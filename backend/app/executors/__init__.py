@@ -52,6 +52,7 @@ from . import phone_file
 from . import phone_advanced
 from . import phone_vision
 from . import phone_settings
+from . import phone_clipboard
 
 # 调试：打印已注册的执行器
 print(f"[DEBUG] 已注册的执行器类型: {registry.get_all_types()}")

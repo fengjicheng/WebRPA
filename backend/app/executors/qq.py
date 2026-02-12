@@ -2,6 +2,8 @@
 import asyncio
 import base64
 import os
+import re
+import time
 from typing import Optional
 
 import httpx
@@ -473,6 +475,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
             
             elapsed = 0.0
             last_log_time = 0.0  # 上次打印日志的时间
+            last_poll_time = time.time()  # 上次轮询的时间
             
             # 首次获取消息，记录当前最大的 message_id，之后只处理比这个大的消息
             initial_messages = await self._get_recent_messages(client, source_type, group_id, sender_id)
@@ -483,6 +486,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
                     seen_message_ids.add(msg_id)
             
             print(f"[QQ等待消息] 开始等待消息 (轮询间隔: {poll_interval}秒)")
+            print(f"[QQ等待消息] 配置原始值: pollInterval={poll_interval_raw}, 解析后: {poll_interval}")
             if sender_id:
                 print(f"  指定发送者: {sender_id}")
             if group_id:
@@ -640,6 +644,11 @@ class QQWaitMessageExecutor(ModuleExecutor):
                     print(f"[QQ等待消息] 获取消息失败: {e}")
                 
                 # 等待下一次轮询
+                current_time = time.time()
+                actual_interval = current_time - last_poll_time
+                print(f"[QQ等待消息] 实际轮询间隔: {actual_interval:.2f}秒 (配置: {poll_interval}秒)")
+                last_poll_time = current_time
+                
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
         
@@ -657,7 +666,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
             try:
                 result = await client.call_api('get_friend_msg_history', {
                     'user_id': sender_id,
-                    'count': 10  # 只获取最近10条
+                    'count': 3  # 减少获取数量以提高速度
                 })
                 msg_list = result.get('messages', []) if isinstance(result, dict) else result if isinstance(result, list) else []
                 for msg in msg_list:
@@ -670,7 +679,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
             try:
                 result = await client.call_api('get_group_msg_history', {
                     'group_id': group_id,
-                    'count': 10
+                    'count': 3  # 减少获取数量以提高速度
                 })
                 msg_list = result.get('messages', []) if isinstance(result, dict) else result if isinstance(result, list) else []
                 for msg in msg_list:
@@ -686,8 +695,8 @@ class QQWaitMessageExecutor(ModuleExecutor):
                 contacts = await client.call_api('get_recent_contact', {})
                 
                 if isinstance(contacts, list):
-                    # 只检查最近3个联系人，减少API调用
-                    for contact in contacts[:3]:
+                    # 只检查最近2个联系人，减少API调用
+                    for contact in contacts[:2]:
                         peer_uin = contact.get('peerUin') or contact.get('peerUid') or contact.get('user_id') or contact.get('group_id')
                         chat_type = contact.get('chatType', 1)
                         
@@ -711,12 +720,12 @@ class QQWaitMessageExecutor(ModuleExecutor):
                             if is_private:
                                 result = await client.call_api('get_friend_msg_history', {
                                     'user_id': peer_uin,
-                                    'count': 5
+                                    'count': 3  # 减少获取数量
                                 })
                             else:
                                 result = await client.call_api('get_group_msg_history', {
                                     'group_id': peer_uin,
-                                    'count': 5
+                                    'count': 3  # 减少获取数量
                                 })
                             
                             msg_list = result.get('messages', []) if isinstance(result, dict) else result if isinstance(result, list) else []

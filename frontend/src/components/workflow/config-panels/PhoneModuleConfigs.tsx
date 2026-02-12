@@ -8,6 +8,7 @@ import { PathInput } from '@/components/ui/path-input'
 import { PhoneCoordinateInput } from '@/components/ui/phone-coordinate-input'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Checkbox } from '@/components/ui/checkbox'
+import React from 'react'
 
 // 点击坐标配置
 export function PhoneTapConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
@@ -165,6 +166,58 @@ export function PhoneLongPressConfig({ data, onChange }: { data: NodeData; onCha
 
 // 输入文本配置
 export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const [adbKeyboardStatus, setAdbKeyboardStatus] = React.useState<'checking' | 'installed' | 'not-installed' | 'error'>('checking')
+  const [installing, setInstalling] = React.useState(false)
+  const [statusMessage, setStatusMessage] = React.useState('')
+
+  // 检查 ADBKeyboard 是否已安装
+  React.useEffect(() => {
+    checkAdbKeyboardStatus()
+  }, [])
+
+  const checkAdbKeyboardStatus = async () => {
+    try {
+      setAdbKeyboardStatus('checking')
+      const response = await fetch('http://localhost:8000/api/phone/check-adbkeyboard')
+      const result = await response.json()
+      
+      if (result.success) {
+        setAdbKeyboardStatus(result.installed ? 'installed' : 'not-installed')
+      } else {
+        setAdbKeyboardStatus('error')
+        setStatusMessage(result.error || '检查失败')
+      }
+    } catch (error) {
+      setAdbKeyboardStatus('error')
+      setStatusMessage('无法连接到后端服务')
+    }
+  }
+
+  const installAdbKeyboard = async () => {
+    try {
+      setInstalling(true)
+      setStatusMessage('正在安装 ADBKeyboard，请稍候...')
+      
+      const response = await fetch('http://localhost:8000/api/phone/install-adbkeyboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        setAdbKeyboardStatus('installed')
+        setStatusMessage('✅ ADBKeyboard 安装成功！')
+        setTimeout(() => setStatusMessage(''), 3000)
+      } else {
+        setStatusMessage(`❌ 安装失败: ${result.error}`)
+      }
+    } catch (error) {
+      setStatusMessage(`❌ 安装失败: ${error}`)
+    } finally {
+      setInstalling(false)
+    }
+  }
+
   return (
     <>
       <div className="space-y-2">
@@ -181,6 +234,22 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
         </p>
       </div>
       
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="autoEnter"
+            checked={(data.autoEnter as boolean) ?? false}
+            onCheckedChange={(checked) => onChange('autoEnter', checked)}
+          />
+          <Label htmlFor="autoEnter" className="text-sm font-normal cursor-pointer">
+            输入完成后自动回车
+          </Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          勾选后会在输入文本后自动按下回车键
+        </p>
+      </div>
+      
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-amber-900">
           ⚠️ 重要提示
@@ -189,34 +258,103 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
           • 使用前请先用「📱 点击」模块点击输入框，确保输入框已获得焦点
         </p>
         <p className="text-xs text-amber-800">
-          • 仅支持输入英文、数字和符号
+          • 默认仅支持输入英文、数字和符号
         </p>
         <p className="text-xs text-amber-800">
-          • <strong>不支持输入中文</strong>（Android 系统限制）
+          • 若需输入中文，请安装 ADBKeyboard 应用（见下方）
         </p>
+      </div>
+
+      {/* ADBKeyboard 状态提示 */}
+      <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-green-900">
+            ⌨️ ADBKeyboard 应用状态
+          </p>
+          {adbKeyboardStatus === 'checking' && (
+            <span className="text-xs text-green-600">检查中...</span>
+          )}
+          {adbKeyboardStatus === 'installed' && (
+            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+          )}
+          {adbKeyboardStatus === 'not-installed' && (
+            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+          )}
+          {adbKeyboardStatus === 'error' && (
+            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+          )}
+        </div>
+
+        {adbKeyboardStatus === 'not-installed' && (
+          <>
+            <p className="text-xs text-green-800">
+              若需输入中文，请安装 ADBKeyboard 应用。点击下方按钮一键安装：
+            </p>
+            <button
+              onClick={installAdbKeyboard}
+              disabled={installing}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-md transition-colors"
+            >
+              {installing ? '正在安装...' : '🚀 一键安装 ADBKeyboard'}
+            </button>
+          </>
+        )}
+
+        {adbKeyboardStatus === 'installed' && (
+          <div className="space-y-2">
+            <p className="text-xs text-green-700 font-semibold">
+              ✅ ADBKeyboard 已安装，现在可以输入中文了！
+            </p>
+            <div className="p-2 bg-green-100 border border-green-300 rounded space-y-1">
+              <p className="text-xs font-semibold text-green-900">
+                💡 使用提示
+              </p>
+              <p className="text-xs text-green-800">
+                • 系统会在输入中文时自动切换到 ADBKeyboard，输入完成后自动恢复原输入法
+              </p>
+              <p className="text-xs text-green-800">
+                • 首次使用前，请到手机「设置」→「语言与输入法」→「输入法管理」中确认 ADBKeyboard 已启用
+              </p>
+            </div>
+          </div>
+        )}
+
+        {adbKeyboardStatus === 'error' && (
+          <>
+            <p className="text-xs text-red-700">
+              {statusMessage || '无法检查 ADBKeyboard 状态'}
+            </p>
+            <button
+              onClick={checkAdbKeyboardStatus}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
+            >
+              🔄 重新检查
+            </button>
+          </>
+        )}
+
+        {statusMessage && adbKeyboardStatus !== 'error' && (
+          <p className="text-xs text-green-700 font-medium">
+            {statusMessage}
+          </p>
+        )}
       </div>
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 输入中文的替代方案
+          💡 其他输入中文的方案
         </p>
         <p className="text-xs text-blue-800">
-          1. 安装 ADBKeyboard 应用（推荐）
-        </p>
-        <p className="text-xs text-blue-700 ml-3">
-          下载: github.com/senzhk/ADBKeyBoard
-        </p>
-        <p className="text-xs text-blue-800">
-          2. 使用「📱 点击」+ 手动输入
+          1. 使用「📱 点击」+ 手动输入
         </p>
         <p className="text-xs text-blue-700 ml-3">
           先点击输入框，暂停工作流，手动输入中文
         </p>
         <p className="text-xs text-blue-800">
-          3. 使用剪贴板（如果手机支持）
+          2. 使用剪贴板方案
         </p>
         <p className="text-xs text-blue-700 ml-3">
-          先复制中文到剪贴板，再用「📱 按键操作」粘贴
+          使用「📱 写入剪贴板」+ 「📱 按键操作」粘贴
         </p>
       </div>
     </>
@@ -360,9 +498,33 @@ export function PhoneInstallAppConfig({ data, onChange }: { data: NodeData; onCh
           选择要安装的APK文件，支持变量引用
         </p>
       </div>
+
+      <div className="p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-red-900">
+          ⚠️ 重要提示：必须开启 USB 安装
+        </p>
+        <p className="text-xs text-red-800">
+          在使用此功能前，请确保已在手机上开启「USB 安装」选项：
+        </p>
+        <div className="ml-3 space-y-1">
+          <p className="text-xs text-red-700">
+            1. 打开手机「设置」→「开发者选项」
+          </p>
+          <p className="text-xs text-red-700">
+            2. 找到并开启「USB 安装」或「通过 USB 安装应用」
+          </p>
+          <p className="text-xs text-red-700">
+            3. 部分手机可能显示为「USB 调试（安全设置）」
+          </p>
+        </div>
+        <p className="text-xs text-red-800 mt-2">
+          如果未开启此选项，安装将会失败！
+        </p>
+      </div>
+      
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs text-amber-800">
-          ⚠️ 安装过程可能需要几秒到几十秒，请耐心等待
+          ⏱️ 安装过程可能需要几秒到几十秒，请耐心等待
         </p>
       </div>
     </>
@@ -970,3 +1132,327 @@ export function PhoneSetBrightnessConfig({ data, onChange }: { data: NodeData; o
     </>
   )
 }
+
+// 写入剪贴板配置
+export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const [clipperStatus, setClipperStatus] = React.useState<'checking' | 'installed' | 'not-installed' | 'error'>('checking')
+  const [installing, setInstalling] = React.useState(false)
+  const [statusMessage, setStatusMessage] = React.useState('')
+
+  // 检查 Clipper 是否已安装
+  React.useEffect(() => {
+    checkClipperStatus()
+  }, [])
+
+  const checkClipperStatus = async () => {
+    try {
+      setClipperStatus('checking')
+      const response = await fetch('http://localhost:8000/api/phone/check-clipper')
+      const result = await response.json()
+      
+      if (result.success) {
+        setClipperStatus(result.installed ? 'installed' : 'not-installed')
+      } else {
+        setClipperStatus('error')
+        setStatusMessage(result.error || '检查失败')
+      }
+    } catch (error) {
+      setClipperStatus('error')
+      setStatusMessage('无法连接到后端服务')
+    }
+  }
+
+  const installClipper = async () => {
+    try {
+      setInstalling(true)
+      setStatusMessage('正在安装 Clipper，请稍候...')
+      
+      const response = await fetch('http://localhost:8000/api/phone/install-clipper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        setClipperStatus('installed')
+        setStatusMessage('✅ Clipper 安装成功！')
+        setTimeout(() => setStatusMessage(''), 3000)
+      } else {
+        setStatusMessage(`❌ 安装失败: ${result.error}`)
+      }
+    } catch (error) {
+      setStatusMessage(`❌ 安装失败: ${error}`)
+    } finally {
+      setInstalling(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="text">剪贴板内容</Label>
+        <VariableInput
+          value={(data.text as string) || ''}
+          onChange={(v) => onChange('text', v)}
+          placeholder="要写入到手机剪贴板的文本内容"
+          multiline
+          rows={4}
+        />
+        <p className="text-xs text-muted-foreground">
+          将文本内容写入到手机的剪贴板，支持变量引用
+        </p>
+      </div>
+
+      {/* Clipper 状态提示 */}
+      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-purple-900">
+            📋 Clipper 应用状态
+          </p>
+          {clipperStatus === 'checking' && (
+            <span className="text-xs text-purple-600">检查中...</span>
+          )}
+          {clipperStatus === 'installed' && (
+            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+          )}
+          {clipperStatus === 'not-installed' && (
+            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+          )}
+          {clipperStatus === 'error' && (
+            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+          )}
+        </div>
+
+        {clipperStatus === 'not-installed' && (
+          <>
+            <p className="text-xs text-purple-800">
+              使用剪贴板功能需要在手机上安装 Clipper 应用。点击下方按钮一键安装：
+            </p>
+            <button
+              onClick={installClipper}
+              disabled={installing}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-md transition-colors"
+            >
+              {installing ? '正在安装...' : '🚀 一键安装 Clipper'}
+            </button>
+          </>
+        )}
+
+        {clipperStatus === 'installed' && (
+          <p className="text-xs text-green-700">
+            Clipper 已安装，可以正常使用剪贴板功能。
+          </p>
+        )}
+
+        {clipperStatus === 'error' && (
+          <>
+            <p className="text-xs text-red-700">
+              {statusMessage || '无法检查 Clipper 状态'}
+            </p>
+            <button
+              onClick={checkClipperStatus}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
+            >
+              🔄 重新检查
+            </button>
+          </>
+        )}
+
+        {statusMessage && clipperStatus !== 'error' && (
+          <p className="text-xs text-purple-700 font-medium">
+            {statusMessage}
+          </p>
+        )}
+      </div>
+      
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-blue-900">
+          💡 使用场景
+        </p>
+        <p className="text-xs text-blue-800">
+          • 配合「📱 按键操作」中的粘贴功能，实现中文输入
+        </p>
+        <p className="text-xs text-blue-800">
+          • 在应用间传递文本内容
+        </p>
+        <p className="text-xs text-blue-800">
+          • 自动填充表单中的复杂文本
+        </p>
+      </div>
+      
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <p className="text-xs font-semibold text-amber-900">
+          ⚠️ 注意事项
+        </p>
+        <p className="text-xs text-amber-800">
+          • 部分设备需要安装 Clipper 应用才能使用剪贴板功能
+        </p>
+        <p className="text-xs text-amber-800">
+          • 写入剪贴板后，可以在手机上手动粘贴或使用按键模拟粘贴
+        </p>
+      </div>
+    </>
+  )
+}
+
+// 读取剪贴板配置
+export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const [clipperStatus, setClipperStatus] = React.useState<'checking' | 'installed' | 'not-installed' | 'error'>('checking')
+  const [installing, setInstalling] = React.useState(false)
+  const [statusMessage, setStatusMessage] = React.useState('')
+
+  // 检查 Clipper 是否已安装
+  React.useEffect(() => {
+    checkClipperStatus()
+  }, [])
+
+  const checkClipperStatus = async () => {
+    try {
+      setClipperStatus('checking')
+      const response = await fetch('http://localhost:8000/api/phone/check-clipper')
+      const result = await response.json()
+      
+      if (result.success) {
+        setClipperStatus(result.installed ? 'installed' : 'not-installed')
+      } else {
+        setClipperStatus('error')
+        setStatusMessage(result.error || '检查失败')
+      }
+    } catch (error) {
+      setClipperStatus('error')
+      setStatusMessage('无法连接到后端服务')
+    }
+  }
+
+  const installClipper = async () => {
+    try {
+      setInstalling(true)
+      setStatusMessage('正在安装 Clipper，请稍候...')
+      
+      const response = await fetch('http://localhost:8000/api/phone/install-clipper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const result = await response.json()
+      
+      if (result.success) {
+        setClipperStatus('installed')
+        setStatusMessage('✅ Clipper 安装成功！')
+        setTimeout(() => setStatusMessage(''), 3000)
+      } else {
+        setStatusMessage(`❌ 安装失败: ${result.error}`)
+      }
+    } catch (error) {
+      setStatusMessage(`❌ 安装失败: ${error}`)
+    } finally {
+      setInstalling(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="variableName">存储到变量</Label>
+        <VariableNameInput
+          value={(data.variableName as string) || 'phone_clipboard'}
+          onChange={(v) => onChange('variableName', v)}
+          placeholder="保存剪贴板内容的变量名"
+          isStorageVariable={true}
+        />
+        <p className="text-xs text-muted-foreground">
+          读取手机剪贴板的内容并保存到变量中
+        </p>
+      </div>
+
+      {/* Clipper 状态提示 */}
+      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-purple-900">
+            📋 Clipper 应用状态
+          </p>
+          {clipperStatus === 'checking' && (
+            <span className="text-xs text-purple-600">检查中...</span>
+          )}
+          {clipperStatus === 'installed' && (
+            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+          )}
+          {clipperStatus === 'not-installed' && (
+            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+          )}
+          {clipperStatus === 'error' && (
+            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+          )}
+        </div>
+
+        {clipperStatus === 'not-installed' && (
+          <>
+            <p className="text-xs text-purple-800">
+              使用剪贴板功能需要在手机上安装 Clipper 应用。点击下方按钮一键安装：
+            </p>
+            <button
+              onClick={installClipper}
+              disabled={installing}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-md transition-colors"
+            >
+              {installing ? '正在安装...' : '🚀 一键安装 Clipper'}
+            </button>
+          </>
+        )}
+
+        {clipperStatus === 'installed' && (
+          <p className="text-xs text-green-700">
+            Clipper 已安装，可以正常使用剪贴板功能。
+          </p>
+        )}
+
+        {clipperStatus === 'error' && (
+          <>
+            <p className="text-xs text-red-700">
+              {statusMessage || '无法检查 Clipper 状态'}
+            </p>
+            <button
+              onClick={checkClipperStatus}
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
+            >
+              🔄 重新检查
+            </button>
+          </>
+        )}
+
+        {statusMessage && clipperStatus !== 'error' && (
+          <p className="text-xs text-purple-700 font-medium">
+            {statusMessage}
+          </p>
+        )}
+      </div>
+      
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-blue-900">
+          💡 使用场景
+        </p>
+        <p className="text-xs text-blue-800">
+          • 获取用户在手机上复制的内容
+        </p>
+        <p className="text-xs text-blue-800">
+          • 读取应用分享到剪贴板的数据
+        </p>
+        <p className="text-xs text-blue-800">
+          • 验证剪贴板内容是否正确
+        </p>
+      </div>
+      
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <p className="text-xs font-semibold text-amber-900">
+          ⚠️ 注意事项
+        </p>
+        <p className="text-xs text-amber-800">
+          • 部分设备需要安装 Clipper 应用才能使用剪贴板功能
+        </p>
+        <p className="text-xs text-amber-800">
+          • 如果剪贴板为空，变量值将为空字符串
+        </p>
+      </div>
+    </>
+  )
+}
+

@@ -62,6 +62,7 @@ function ControlsHelp() {
     { keys: 'Ctrl+点击', desc: '切换选中状态' },
     { keys: 'Shift+点击', desc: '范围选择' },
     { keys: '中键拖拽', desc: '平移画布' },
+    { keys: '空格+左键拖拽', desc: '平移画布' },
     { keys: '滚轮', desc: '缩放画布' },
     { keys: '双击画布', desc: '快速添加收藏模块' },
     { keys: '右键画布', desc: '快速添加所有模块' },
@@ -459,10 +460,113 @@ export function WorkflowEditor() {
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
       event.preventDefault()
+      event.stopPropagation()
     }
     
-    document.addEventListener('contextmenu', handleContextMenu)
-    return () => document.removeEventListener('contextmenu', handleContextMenu)
+    // 使用捕获阶段拦截，优先级更高
+    document.addEventListener('contextmenu', handleContextMenu, true)
+    return () => document.removeEventListener('contextmenu', handleContextMenu, true)
+  }, [])
+
+  // 空格键+左键拖拽画布
+  useEffect(() => {
+    const wrapper = reactFlowWrapper.current
+    if (!wrapper) return
+
+    let isPanning = false
+    let isSpacePressed = false
+    let startX = 0
+    let startY = 0
+    let startViewportX = 0
+    let startViewportY = 0
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // 按下空格键
+      if (event.code === 'Space' && !isSpacePressed) {
+        // 如果焦点在输入框中，不处理
+        const target = event.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return
+        }
+        
+        isSpacePressed = true
+        // 改变鼠标样式为抓手
+        if (wrapper) {
+          wrapper.style.cursor = 'grab'
+        }
+        event.preventDefault()
+      }
+    }
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      // 释放空格键
+      if (event.code === 'Space') {
+        isSpacePressed = false
+        isPanning = false
+        if (wrapper) {
+          wrapper.style.cursor = ''
+        }
+      }
+    }
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // 空格键+左键开始拖拽
+      if (event.button === 0 && isSpacePressed && reactFlowInstance.current) {
+        event.preventDefault()
+        event.stopPropagation()
+        
+        isPanning = true
+        startX = event.clientX
+        startY = event.clientY
+        const viewport = reactFlowInstance.current.getViewport()
+        startViewportX = viewport.x
+        startViewportY = viewport.y
+        // 改变鼠标样式为抓取中
+        wrapper.style.cursor = 'grabbing'
+      }
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (isPanning && reactFlowInstance.current) {
+        event.preventDefault()
+        event.stopPropagation()
+        
+        const deltaX = event.clientX - startX
+        const deltaY = event.clientY - startY
+        const currentZoom = reactFlowInstance.current.getZoom()
+        
+        reactFlowInstance.current.setViewport({
+          x: startViewportX + deltaX,
+          y: startViewportY + deltaY,
+          zoom: currentZoom,
+        }, { duration: 0 })
+      }
+    }
+
+    const handleMouseUp = (event: MouseEvent) => {
+      if (isPanning) {
+        event.preventDefault()
+        event.stopPropagation()
+        
+        isPanning = false
+        // 如果空格键还按着，恢复为抓手样式
+        wrapper.style.cursor = isSpacePressed ? 'grab' : ''
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
+    wrapper.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keyup', handleKeyUp)
+      wrapper.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
   }, [])
 
   // 监听框选开始，记录已选中的节点（用于 Shift+框选）

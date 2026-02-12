@@ -122,6 +122,7 @@ export type ModuleType =
   | 'image_trigger'
   | 'sound_trigger'
   | 'face_trigger'
+  | 'gesture_trigger'
   | 'element_change_trigger'
   // 辅助工具
   | 'print_log'
@@ -302,6 +303,8 @@ export type ModuleType =
   | 'phone_wait_image'
   | 'phone_set_volume'
   | 'phone_set_brightness'
+  | 'phone_set_clipboard'
+  | 'phone_get_clipboard'
 
 // Excel文件资源
 export interface DataAsset {

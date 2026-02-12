@@ -280,9 +280,9 @@ export function WaitElementConfig({
         <Label htmlFor="waitTimeout">超时时间(毫秒)</Label>
         <NumberInput
           id="waitTimeout"
-          value={(data.waitTimeout as number) ?? 30000}
+          value={(data.waitTimeout as number) ?? 60000}
           onChange={(v) => onChange('waitTimeout', v)}
-          defaultValue={30000}
+          defaultValue={60000}
           min={0}
         />
       </div>

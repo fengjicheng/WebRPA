@@ -148,6 +148,7 @@ export const moduleColors: Record<ModuleType, string> = {
   image_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
   sound_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
   face_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
+  gesture_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
   element_change_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
 
   // ===== 📁 文件管理 - 琥珀色 =====
@@ -302,6 +303,8 @@ export const moduleColors: Record<ModuleType, string> = {
   phone_wait_image: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
   phone_set_volume: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
   phone_set_brightness: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
+  phone_set_clipboard: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
+  phone_get_clipboard: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
   // ===== 🔗 网络共享 - 青色 =====
   share_folder: 'border-cyan-500 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',

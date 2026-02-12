@@ -17,6 +17,7 @@ import {
   FolderOpen,
   FileText,
   Webhook,
+  Smartphone,
 } from 'lucide-react'
 import type { DocumentItem } from './types'
 
@@ -68,6 +69,12 @@ export const documents: DocumentItem[] = [
     title: '⚡ 触发器使用指南',
     icon: Webhook,
     description: 'Webhook、热键、文件监控、邮件、API、定时触发',
+  },
+  {
+    id: 'phone-guide',
+    title: '📱 手机自动化指南',
+    icon: Smartphone,
+    description: 'Android手机控制、点击、输入、截图、应用管理',
   },
   {
     id: 'files-guide',

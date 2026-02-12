@@ -106,6 +106,7 @@ import {
   Combine,
   Droplets,
   UserCheck,
+  Hand,
   ScanLine,
   FolderOpen,
   Copy,
@@ -255,6 +256,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   image_trigger: Eye,
   sound_trigger: Volume,
   face_trigger: UserCheck,
+  gesture_trigger: Hand,
   element_change_trigger: RefreshCw,
   // 网络请求
   api_request: Send,
@@ -310,6 +312,8 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   phone_wait_image: Clock,
   phone_set_volume: Volume2,
   phone_set_brightness: Sun,
+  phone_set_clipboard: ClipboardPaste,
+  phone_get_clipboard: ClipboardCopy,
   // 用户交互
   input_prompt: TextCursorInput,
   // 系统操作
@@ -629,6 +633,8 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   phone_wait_image: ['手机', '等待', '图像', '图片', 'phone', 'wait', 'image', '识别', '出现'],
   phone_set_volume: ['手机', '设置', '音量', '声音', 'phone', 'volume', 'sound', '调节'],
   phone_set_brightness: ['手机', '设置', '亮度', '屏幕', 'phone', 'brightness', 'screen', '调节'],
+  phone_set_clipboard: ['手机', '写入', '剪贴板', '复制', 'phone', 'clipboard', 'copy', '粘贴板'],
+  phone_get_clipboard: ['手机', '读取', '剪贴板', '粘贴', 'phone', 'clipboard', 'paste', '粘贴板'],
   select_dropdown: ['下拉', '选择', 'select', 'dropdown'],
   set_checkbox: ['复选框', '勾选', 'checkbox', '选中'],
   drag_element: ['拖拽', '拖动', 'drag', '移动'],
@@ -694,6 +700,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   image_trigger: ['图像', '触发器', 'image', 'trigger', '图片', '识别', '检测', '出现', '屏幕'],
   sound_trigger: ['声音', '触发器', 'sound', 'trigger', '音频', '音量', '检测', '监听', '麦克风'],
   face_trigger: ['人脸', '触发器', 'face', 'trigger', '面部', '识别', '检测', '摄像头', '相机'],
+  gesture_trigger: ['手势', '触发器', 'gesture', 'trigger', '手部', '识别', '检测', '摄像头', '相机', 'mediapipe', '动作', '姿态'],
   element_change_trigger: ['元素', '变化', '触发器', 'element', 'change', 'trigger', '子元素', '数量', '监控', '直播', '评论', '聊天', '消息', '实时'],
   group: ['分组', '注释', '备注', 'group', 'comment', '框', '区域'],
   subflow_header: ['子流程头', '函数头', '子流程定义', 'header', 'function'],
@@ -837,7 +844,7 @@ const moduleCategories = [
   {
     name: '📋 列表/字典',
     color: 'bg-green-600',
-    modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'dict_operation', 'dict_get', 'dict_keys'] as ModuleType[],
+    modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'foreach', 'dict_operation', 'dict_get', 'dict_keys'] as ModuleType[],
   },
   {
     name: '📊 数据表格',
@@ -853,13 +860,13 @@ const moduleCategories = [
   {
     name: '🔀 流程控制',
     color: 'bg-orange-500',
-    modules: ['condition', 'loop', 'foreach', 'break_loop', 'continue_loop', 'scheduled_task', 'subflow', 'subflow_header'] as ModuleType[],
+    modules: ['condition', 'loop', 'break_loop', 'continue_loop', 'scheduled_task', 'subflow', 'subflow_header'] as ModuleType[],
   },
   // ===== 触发器 =====
   {
     name: '⚡ 触发器',
     color: 'bg-yellow-500',
-    modules: ['webhook_trigger', 'hotkey_trigger', 'file_watcher_trigger', 'email_trigger', 'api_trigger', 'mouse_trigger', 'image_trigger', 'sound_trigger', 'face_trigger', 'element_change_trigger'] as ModuleType[],
+    modules: ['webhook_trigger', 'hotkey_trigger', 'file_watcher_trigger', 'email_trigger', 'api_trigger', 'mouse_trigger', 'image_trigger', 'sound_trigger', 'face_trigger', 'gesture_trigger', 'element_change_trigger'] as ModuleType[],
   },
   // ===== 文件与文档 =====
   {
@@ -938,7 +945,7 @@ const moduleCategories = [
   {
     name: '📱 手机自动化',
     color: 'bg-cyan-600',
-    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_set_volume', 'phone_set_brightness'] as ModuleType[],
+    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
   },
   {
     name: '🔗 网络共享',

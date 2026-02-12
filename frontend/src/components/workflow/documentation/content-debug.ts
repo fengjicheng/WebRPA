@@ -105,9 +105,9 @@ Timeout waiting for element
 
 **错误信息**：
 \`\`\`
-Timeout 30000ms exceeded
+Timeout 60000ms exceeded
 Navigation timeout
-执行超时 (65000ms > 30000ms)
+执行超时 (65000ms > 60000ms)
 \`\`\`
 
 **可能原因**：

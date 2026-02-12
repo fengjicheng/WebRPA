@@ -920,3 +920,133 @@ async def capture_template_from_screenshot(request: CaptureTemplateRequest):
             
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@router.post("/install-clipper")
+async def install_clipper(device_id: Optional[str] = None):
+    """安装 Clipper 应用到手机
+    
+    Clipper 是一个剪贴板管理应用，用于支持手机剪贴板功能
+    """
+    try:
+        import os
+        from pathlib import Path
+        
+        adb = get_adb_manager()
+        
+        # Clipper APK 路径
+        apk_path = Path(__file__).parent.parent / "clipper.apk"
+        
+        if not apk_path.exists():
+            return {
+                "success": False,
+                "error": "未找到 Clipper APK 文件，请确保 clipper.apk 文件存在于 backend/app 目录中"
+            }
+        
+        print(f"[InstallClipper] 开始安装 Clipper: {apk_path}")
+        
+        # 安装 APK
+        success, error = adb.install_apk(str(apk_path), device_id)
+        
+        if not success:
+            return {
+                "success": False,
+                "error": f"安装失败: {error}"
+            }
+        
+        return {
+            "success": True,
+            "message": "Clipper 安装成功！现在可以使用剪贴板功能了"
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/check-clipper")
+async def check_clipper_installed(device_id: Optional[str] = None):
+    """检查 Clipper 是否已安装"""
+    try:
+        adb = get_adb_manager()
+        
+        # 获取已安装的应用列表
+        packages = adb.get_installed_packages(device_id)
+        
+        # 检查是否包含 Clipper 的包名
+        # Clipper 的包名通常是 com.majido.clipper 或类似
+        clipper_installed = any('clipper' in pkg.lower() for pkg in packages)
+        
+        return {
+            "success": True,
+            "installed": clipper_installed
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/install-adbkeyboard")
+async def install_adbkeyboard(device_id: Optional[str] = None):
+    """安装 ADBKeyboard 应用到手机
+    
+    ADBKeyboard 是一个输入法应用，用于支持通过ADB输入中文
+    """
+    try:
+        import os
+        from pathlib import Path
+        
+        adb = get_adb_manager()
+        
+        # ADBKeyboard APK 路径
+        apk_path = Path(__file__).parent.parent / "ADBKeyboard.apk"
+        
+        if not apk_path.exists():
+            return {
+                "success": False,
+                "error": "未找到 ADBKeyboard APK 文件，请确保 ADBKeyboard.apk 文件存在于 backend/app 目录中"
+            }
+        
+        print(f"[InstallADBKeyboard] 开始安装 ADBKeyboard: {apk_path}")
+        
+        # 安装 APK
+        success, error = adb.install_apk(str(apk_path), device_id)
+        
+        if not success:
+            return {
+                "success": False,
+                "error": f"安装失败: {error}"
+            }
+        
+        return {
+            "success": True,
+            "message": "ADBKeyboard 安装成功！现在可以输入中文了"
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/check-adbkeyboard")
+async def check_adbkeyboard_installed(device_id: Optional[str] = None):
+    """检查 ADBKeyboard 是否已安装"""
+    try:
+        adb = get_adb_manager()
+        
+        # 获取已安装的应用列表
+        packages = adb.get_installed_packages(device_id)
+        
+        # 检查是否包含 ADBKeyboard 的包名
+        # ADBKeyboard 的包名是 com.android.adbkeyboard
+        adbkeyboard_installed = any('adbkeyboard' in pkg.lower() for pkg in packages)
+        
+        return {
+            "success": True,
+            "installed": adbkeyboard_installed
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}

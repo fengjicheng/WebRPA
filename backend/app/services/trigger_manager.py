@@ -32,6 +32,9 @@ class TriggerManager:
         # 邮件监控触发器
         self.email_monitors: Dict[str, dict] = {}  # monitor_id -> {config, callback}
         self.email_monitor_tasks: Dict[str, asyncio.Task] = {}
+        
+        # 手势触发器
+        self.gestures: Dict[str, Callable] = {}  # gesture_name -> callback
 
     # ==================== Webhook触发器 ====================
 
@@ -457,6 +460,31 @@ class TriggerManager:
             except:
                 pass
         return body
+
+    # ==================== 手势触发器 ====================
+
+    def register_gesture(self, gesture_name: str, callback: Callable):
+        """注册手势触发器"""
+        self.gestures[gesture_name] = callback
+        print(f"[TriggerManager] 手势已注册: {gesture_name}")
+
+    def unregister_gesture(self, gesture_name: str):
+        """注销手势触发器"""
+        if gesture_name in self.gestures:
+            del self.gestures[gesture_name]
+            print(f"[TriggerManager] 手势已注销: {gesture_name}")
+
+    def trigger_gesture(self, gesture_name: str):
+        """触发手势"""
+        if gesture_name in self.gestures:
+            callback = self.gestures[gesture_name]
+            try:
+                callback()
+                print(f"[TriggerManager] 手势已触发: {gesture_name}")
+            except Exception as e:
+                print(f"[TriggerManager] 手势触发回调执行失败: {e}")
+        else:
+            print(f"[TriggerManager] 未找到手势: {gesture_name}")
 
 
 # 全局触发器管理器实例

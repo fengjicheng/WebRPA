@@ -108,6 +108,7 @@ import {
   SoundTriggerConfig,
   FaceTriggerConfig,
   ElementChangeTriggerConfig,
+  GestureTriggerConfig,
 } from './config-panels/TriggerModuleConfigs'
 import {
   RegexExtractConfig,
@@ -219,6 +220,8 @@ import {
   PhoneWaitImageConfig,
   PhoneSetVolumeConfig,
   PhoneSetBrightnessConfig,
+  PhoneSetClipboardConfig,
+  PhoneGetClipboardConfig,
 } from './config-panels/PhoneModuleConfigs'
 import {
   PDFToImagesConfig,
@@ -766,6 +769,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <SoundTriggerConfig data={nodeData} onChange={handleChange} />
       case 'face_trigger':
         return <FaceTriggerConfig data={nodeData} onChange={handleChange} />
+      case 'gesture_trigger':
+        return <GestureTriggerConfig data={nodeData} onChange={handleChange} />
       case 'element_change_trigger':
         return <ElementChangeTriggerConfig {...props} />
       case 'regex_extract':
@@ -981,6 +986,10 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <PhoneSetVolumeConfig data={nodeData} onChange={handleChange} />
       case 'phone_set_brightness':
         return <PhoneSetBrightnessConfig data={nodeData} onChange={handleChange} />
+      case 'phone_set_clipboard':
+        return <PhoneSetClipboardConfig data={nodeData} onChange={handleChange} />
+      case 'phone_get_clipboard':
+        return <PhoneGetClipboardConfig data={nodeData} onChange={handleChange} />
       // PDF处理模块
       case 'pdf_to_images':
         return <PDFToImagesConfig config={nodeData} updateConfig={handleChange} />

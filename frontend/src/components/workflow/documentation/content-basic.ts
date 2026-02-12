@@ -16,7 +16,7 @@ export const basicModulesContent = `# ⚡ 基础模块详解
 |------|------|------|
 | 网址 | 要打开的URL | \`https://www.baidu.com\` |
 | 等待条件 | 页面加载完成的判断方式 | load / domcontentloaded |
-| 超时时间 | 最长等待时间（毫秒） | 30000 |
+| 超时时间 | 最长等待时间（毫秒） | 60000 |
 
 **等待条件说明**：
 - **load**：等待所有资源（图片、样式等）加载完成

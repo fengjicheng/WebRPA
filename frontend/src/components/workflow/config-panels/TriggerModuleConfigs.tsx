@@ -14,6 +14,7 @@ import { ImagePathInput } from '@/components/ui/image-path-input'
 import { AlertCircle, Copy, Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getBackendUrl } from '@/services/api'
+import { InputDialog, ConfirmDialog, AlertDialog } from '@/components/ui/custom-dialogs'
 
 // Webhook触发器配置
 export function WebhookTriggerConfig({
@@ -1489,6 +1490,411 @@ export function ElementChangeTriggerConfig({
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+// 手势触发器配置
+export function GestureTriggerConfig({
+  data,
+  onChange,
+}: {
+  data: NodeData
+  onChange: (key: string, value: unknown) => void
+}) {
+  const [customGestures, setCustomGestures] = useState<Array<{name: string, timestamp: string}>>([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [gestureStatus, setGestureStatus] = useState<{is_running: boolean, camera_index: number}>({
+    is_running: false,
+    camera_index: 0
+  })
+
+  // 弹窗状态
+  const [showInputDialog, setShowInputDialog] = useState(false)
+  const [showRecordingAlert, setShowRecordingAlert] = useState(false)
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false)
+  const [showErrorAlert, setShowErrorAlert] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [alertMessage, setAlertMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [recordingGestureName, setRecordingGestureName] = useState('')
+  const [deleteGestureName, setDeleteGestureName] = useState('')
+
+  // 加载自定义手势列表
+  const loadCustomGestures = () => {
+    fetch(`${getBackendUrl()}/api/triggers/gesture/custom`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          setCustomGestures(result.gestures)
+        }
+      })
+      .catch(err => console.error('加载自定义手势失败:', err))
+  }
+
+  useEffect(() => {
+    loadCustomGestures()
+  }, [])
+
+  // 检查手势识别状态
+  const checkStatus = () => {
+    fetch(`${getBackendUrl()}/api/triggers/gesture/status`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          setGestureStatus(result.status)
+        }
+      })
+      .catch(err => console.error('获取手势识别状态失败:', err))
+  }
+
+  useEffect(() => {
+    checkStatus()
+    const interval = setInterval(checkStatus, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const gestureName = (data.gestureName as string) || ''
+  const cameraIndex = (data.cameraIndex as number) ?? 0
+  
+  // 确保超时时间默认为60000毫秒（60秒）
+  useEffect(() => {
+    if (data.timeout === undefined || (typeof data.timeout === 'number' && data.timeout < 1000)) {
+      // 如果没有设置或者是旧数据（小于1000，认为是秒），设置为60000毫秒
+      const timeoutValue = data.timeout !== undefined ? data.timeout * 1000 : 60000
+      onChange('timeout', timeoutValue)
+    }
+  }, [])
+
+  // 录制新手势
+  const handleRecordGesture = () => {
+    setShowInputDialog(true)
+  }
+
+  const handleInputConfirm = async (newGestureName: string) => {
+    if (!newGestureName || !newGestureName.trim()) return
+
+    const trimmedName = newGestureName.trim()
+    setRecordingGestureName(trimmedName)
+
+    setIsRecording(true)
+    setShowRecordingAlert(true)
+  }
+
+  const handleStartRecording = async () => {
+    setShowRecordingAlert(false)
+
+    try {
+      // 直接录制手势（不需要先启动识别服务）
+      const response = await fetch(`${getBackendUrl()}/api/triggers/gesture/record`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          gesture_name: recordingGestureName,
+          timeout: 30
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || '录制失败')
+      }
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setAlertMessage(`手势"${recordingGestureName}"录制成功！\n\n现在可以在下拉列表中选择使用该手势。`)
+        setShowSuccessAlert(true)
+        loadCustomGestures()
+        onChange('gestureName', recordingGestureName)
+      } else {
+        setErrorMessage('手势录制失败或超时\n\n请确保：\n1. 摄像头正常工作\n2. 手部在摄像头视野内\n3. 在30秒内按下空格键确认')
+        setShowErrorAlert(true)
+      }
+    } catch (err) {
+      console.error('录制手势失败:', err)
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      setErrorMessage(`录制手势失败\n\n错误信息：${errorMsg}\n\n请确保：\n1. 摄像头已连接\n2. 已安装mediapipe库\n3. 摄像头未被其他程序占用`)
+      setShowErrorAlert(true)
+    } finally {
+      setIsRecording(false)
+    }
+  }
+
+  // 删除自定义手势
+  const handleDeleteGesture = (gestureName: string) => {
+    setDeleteGestureName(gestureName)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/triggers/gesture/custom/${deleteGestureName}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        setAlertMessage('删除成功')
+        setShowSuccessAlert(true)
+        loadCustomGestures()
+        if (data.gestureName === deleteGestureName) {
+          onChange('gestureName', '')
+        }
+      }
+    } catch (err) {
+      console.error('删除手势失败:', err)
+      setErrorMessage('删除失败')
+      setShowErrorAlert(true)
+    }
+  }
+
+  return (
+    <>
+      <div className="p-3 bg-blue-600 dark:bg-blue-950 rounded-lg border border-blue-700 dark:border-blue-800 mb-4">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-white mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-white">
+            <p className="font-medium mb-1">使用说明：</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>首次使用需要录制自定义手势</li>
+              <li>录制时会弹出摄像头窗口，做出手势后按空格键确认</li>
+              <li>建议在光线充足、纯色背景下录制</li>
+              <li>每个手势只需录制一次，可重复使用</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>手势识别状态</Label>
+        <div className={`p-3 rounded-lg border ${gestureStatus.is_running ? 'bg-green-600 border-green-700' : 'bg-gray-700 border-gray-600'}`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${gestureStatus.is_running ? 'bg-green-300 animate-pulse' : 'bg-gray-400'}`}></div>
+            <span className="text-sm font-medium text-white">
+              {gestureStatus.is_running ? '✅ 识别服务运行中' : '⏸️ 识别服务未启动'}
+            </span>
+          </div>
+          <p className="text-xs text-white mt-1">
+            {gestureStatus.is_running ? `摄像头 ${gestureStatus.camera_index} 已就绪` : '执行工作流时会自动启动'}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="gestureName">选择手势</Label>
+        <Select
+          id="gestureName"
+          value={gestureName}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange('gestureName', e.target.value)}
+        >
+          <option value="">-- 请选择手势 --</option>
+          {customGestures.map(gesture => (
+            <option key={gesture.name} value={gesture.name}>
+              {gesture.name}
+            </option>
+          ))}
+        </Select>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={handleRecordGesture}
+            disabled={isRecording}
+            className={`flex-1 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm ${
+              isRecording 
+                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                : 'bg-green-500 hover:bg-green-600 text-white hover:shadow-md active:scale-95'
+            }`}
+          >
+            {isRecording ? '⏳ 录制中...' : '📹 录制新手势'}
+          </button>
+          {gestureName && (
+            <button
+              onClick={() => handleDeleteGesture(gestureName)}
+              disabled={isRecording}
+              className={`px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm ${
+                isRecording
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-red-500 hover:bg-red-600 text-white hover:shadow-md active:scale-95'
+              }`}
+            >
+              🗑️ 删除
+            </button>
+          )}
+        </div>
+
+        {isRecording && (
+          <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg animate-pulse">
+            <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+              ⏳ 正在等待录制...
+            </p>
+            <p className="text-xs text-yellow-800 dark:text-yellow-200">
+              请在弹出的窗口中做出手势，然后按空格键确认
+            </p>
+          </div>
+        )}
+
+        {customGestures.length === 0 && !isRecording && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-xs text-blue-900 dark:text-blue-100 font-medium mb-2">
+              💡 还没有录制任何手势
+            </p>
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              点击"录制新手势"按钮开始录制您的第一个手势
+            </p>
+          </div>
+        )}
+
+        <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+          <p className="text-xs text-purple-900 dark:text-purple-100 font-medium mb-2">📝 录制步骤：</p>
+          <ol className="text-xs text-purple-800 dark:text-purple-200 space-y-1 list-decimal list-inside">
+            <li>点击"录制新手势"按钮</li>
+            <li>输入手势名称（如：OK手势、点赞等）</li>
+            <li>在弹出的窗口中对着摄像头做出手势</li>
+            <li>保持手势稳定，按空格键确认录制</li>
+            <li>录制成功后即可在列表中选择使用</li>
+          </ol>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cameraIndex">摄像头索引</Label>
+        <NumberInput
+          id="cameraIndex"
+          value={cameraIndex}
+          onChange={(v) => onChange('cameraIndex', v)}
+          defaultValue={0}
+          min={0}
+          max={10}
+        />
+        <p className="text-xs text-muted-foreground">
+          通常0是默认摄像头，如有多个摄像头可尝试1、2等
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="confidenceThreshold">识别置信度阈值</Label>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            id="confidenceThreshold"
+            min="0"
+            max="100"
+            value={((data.confidenceThreshold as number) ?? 0.6) * 100}
+            onChange={(e) => onChange('confidenceThreshold', Number(e.target.value) / 100)}
+            className="flex-1"
+          />
+          <span className="text-sm font-medium w-12 text-right">
+            {(((data.confidenceThreshold as number) ?? 0.6) * 100).toFixed(0)}%
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          置信度越高，识别越严格，但可能更难触发（推荐60%）
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="timeout">超时时间（秒）</Label>
+        <NumberInput
+          id="timeout"
+          value={
+            data.timeout !== undefined 
+              ? (typeof data.timeout === 'number' && data.timeout < 1000 
+                  ? data.timeout  // 如果是小于1000，认为是旧数据（秒），直接使用
+                  : (data.timeout as number) / 1000)  // 否则是毫秒，转换为秒
+              : 60  // 默认60秒
+          }
+          onChange={(v) => {
+            const milliseconds = typeof v === 'number' ? v * 1000 : 60000
+            onChange('timeout', milliseconds)
+          }}
+          defaultValue={60}
+          min={0}
+        />
+        <p className="text-xs text-muted-foreground">
+          0表示无限等待，直到检测到目标手势
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="saveToVariable">保存手势信息到变量</Label>
+        <VariableNameInput
+          id="saveToVariable"
+          value={(data.saveToVariable as string) || ''}
+          onChange={(v) => onChange('saveToVariable', v)}
+          placeholder="gesture_data"
+          isStorageVariable={true}
+        />
+        <p className="text-xs text-muted-foreground">
+          保存手势名称、置信度、时间戳等信息到变量
+        </p>
+      </div>
+
+      <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-green-900 dark:text-green-100">
+            <p className="font-medium mb-1">💡 应用场景：</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>无接触控制：通过手势控制电脑操作</li>
+              <li>演示互动：演讲时通过手势切换PPT</li>
+              <li>游戏控制：用手势玩游戏</li>
+              <li>智能家居：手势控制灯光、窗帘等</li>
+              <li>直播互动：识别观众手势触发特效</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* 输入手势名称弹窗 */}
+      <InputDialog
+        open={showInputDialog}
+        onOpenChange={setShowInputDialog}
+        title="录制新手势"
+        description="请输入新手势的名称（如：OK手势、点赞等）"
+        placeholder="请输入手势名称"
+        onConfirm={handleInputConfirm}
+      />
+
+      {/* 录制准备提示弹窗 */}
+      <AlertDialog
+        open={showRecordingAlert}
+        onOpenChange={setShowRecordingAlert}
+        title={`准备录制手势"${recordingGestureName}"`}
+        description={`1. 点击确定后，会弹出摄像头窗口\n2. 请对着摄像头做出手势\n3. 按空格键确认录制\n4. 按ESC键取消录制\n\n提示：请在光线充足的环境下录制，并保持手势稳定`}
+        onConfirm={handleStartRecording}
+        variant="default"
+      />
+
+      {/* 成功提示弹窗 */}
+      <AlertDialog
+        open={showSuccessAlert}
+        onOpenChange={setShowSuccessAlert}
+        title="操作成功"
+        description={alertMessage}
+        variant="success"
+      />
+
+      {/* 错误提示弹窗 */}
+      <AlertDialog
+        open={showErrorAlert}
+        onOpenChange={setShowErrorAlert}
+        title="操作失败"
+        description={errorMessage}
+        variant="error"
+      />
+
+      {/* 删除确认弹窗 */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="确认删除"
+        description={`确定要删除自定义手势"${deleteGestureName}"吗？\n\n删除后将无法恢复，需要重新录制。`}
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        confirmText="删除"
+        cancelText="取消"
+      />
     </>
   )
 }

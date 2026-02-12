@@ -15,6 +15,7 @@ class ElementPicker:
         self._url = ""
         self._error = None
         self._reader_task = None
+        self._browser_type = "msedge"  # 默认浏览器类型
 
     async def _read_output(self):
         """读取子进程输出"""
@@ -44,11 +45,12 @@ class ElementPicker:
                 print(f"[ElementPicker] Read error: {e}")
                 break
 
-    async def start(self, url, on_element_selected=None):
+    async def start(self, url, browser_type: str = "msedge", on_element_selected=None):
         if self.is_active:
             raise Exception("已在运行")
         
         self._url = url
+        self._browser_type = browser_type
         self._selected_element = None
         self._similar_elements = None
         self._error = None
@@ -57,8 +59,9 @@ class ElementPicker:
         script_path = Path(__file__).parent / "picker_process.py"
         
         try:
+            # 传递URL和浏览器类型参数
             self._process = subprocess.Popen(
-                [sys.executable, str(script_path), url],
+                [sys.executable, str(script_path), url, browser_type],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

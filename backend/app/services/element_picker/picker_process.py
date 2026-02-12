@@ -292,10 +292,12 @@ async def main():
     
     # 读取启动参数
     url = sys.argv[1] if len(sys.argv) > 1 else "about:blank"
+    browser_type = sys.argv[2] if len(sys.argv) > 2 else "msedge"  # 接收浏览器类型参数
     
-    # 使用与自动化浏览器相同的用户数据目录
-    user_data_dir = Path(__file__).parent.parent.parent.parent / "browser_data"
-    user_data_dir.mkdir(exist_ok=True)
+    # 使用与自动化浏览器相同的用户数据目录（按浏览器类型分子目录）
+    user_data_dir_base = Path(__file__).parent.parent.parent.parent / "browser_data"
+    user_data_dir = user_data_dir_base / browser_type  # 为不同浏览器类型使用不同的数据目录
+    user_data_dir.mkdir(parents=True, exist_ok=True)
     
     # 清理锁文件
     lock_file = user_data_dir / "SingletonLock"

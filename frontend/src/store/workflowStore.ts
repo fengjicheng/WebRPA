@@ -277,6 +277,8 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   phone_wait_image: '📱 等待图像',
   phone_set_volume: '📱 设置音量',
   phone_set_brightness: '📱 设置亮度',
+  phone_set_clipboard: '📱 写入剪贴板',
+  phone_get_clipboard: '📱 读取剪贴板',
   // AI能力
   ai_chat: 'AI对话',
   ai_vision: '图像识别',
@@ -306,6 +308,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   image_trigger: '图像触发器',
   sound_trigger: '声音触发器',
   face_trigger: '人脸触发器',
+  gesture_trigger: '手势触发器',
   element_change_trigger: '子元素变化触发器',
   // 辅助工具
   print_log: '打印日志',
@@ -474,30 +477,30 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
 export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   // 浏览器操作 - 网页加载可能较慢
   open_page: 60000,        // 60秒，网页加载可能慢
-  click_element: 30000,    // 30秒
-  hover_element: 30000,    // 30秒
-  input_text: 30000,       // 30秒
-  get_element_info: 30000, // 30秒
+  click_element: 60000,    // 60秒
+  hover_element: 60000,    // 60秒
+  input_text: 60000,       // 60秒
+  get_element_info: 60000, // 60秒
   wait: 0,                 // 固定等待不需要超时
   wait_element: 60000,     // 60秒，等待元素可能需要较长时间
   wait_image: 60000,       // 60秒，等待图像可能需要较长时间
   close_page: 10000,       // 10秒
   refresh_page: 60000,     // 60秒
-  go_back: 30000,          // 30秒
-  go_forward: 30000,       // 30秒
-  handle_dialog: 30000,    // 30秒
-  inject_javascript: 30000, // 30秒
+  go_back: 60000,          // 60秒
+  go_forward: 60000,       // 60秒
+  handle_dialog: 60000,    // 60秒
+  inject_javascript: 60000, // 60秒
   switch_iframe: 10000,    // 10秒
   switch_to_main: 5000,    // 5秒
   // 表单操作
-  select_dropdown: 30000,  // 30秒
-  set_checkbox: 30000,     // 30秒
-  drag_element: 30000,     // 30秒
-  scroll_page: 30000,      // 30秒
+  select_dropdown: 60000,  // 60秒
+  set_checkbox: 60000,     // 60秒
+  drag_element: 60000,     // 60秒
+  scroll_page: 60000,      // 60秒
   upload_file: 120000,     // 2分钟，大文件上传需要时间
   // 元素操作
-  get_child_elements: 30000,   // 30秒
-  get_sibling_elements: 30000, // 30秒
+  get_child_elements: 60000,   // 60秒
+  get_sibling_elements: 60000, // 60秒
   // 数据处理 - 通常很快
   set_variable: 5000,      // 5秒
   json_parse: 5000,        // 5秒
@@ -506,7 +509,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   get_time: 5000,          // 5秒
   download_file: 300000,   // 5分钟，大文件下载
   save_image: 60000,       // 1分钟
-  screenshot: 30000,       // 30秒
+  screenshot: 60000,       // 60秒
   read_excel: 60000,       // 1分钟，大Excel文件
   // 字符串操作 - 很快
   regex_extract: 10000,    // 10秒
@@ -521,7 +524,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   list_operation: 10000,   // 10秒
   list_get: 5000,          // 5秒
   list_length: 5000,       // 5秒
-  list_export: 30000,      // 30秒
+  list_export: 60000,      // 60秒
   dict_operation: 10000,   // 10秒
   dict_get: 5000,          // 5秒
   dict_keys: 5000,         // 5秒
@@ -534,7 +537,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   table_clear: 5000,       // 5秒
   table_export: 60000,     // 1分钟，大数据导出
   // 数据库操作
-  db_connect: 30000,       // 30秒
+  db_connect: 60000,       // 60秒
   db_query: 120000,        // 2分钟，复杂查询
   db_execute: 120000,      // 2分钟
   db_insert: 60000,        // 1分钟
@@ -545,16 +548,16 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   api_request: 120000,     // 2分钟
   send_email: 60000,       // 1分钟
   // QQ自动化
-  qq_send_message: 30000,  // 30秒
+  qq_send_message: 60000,  // 60秒
   qq_send_image: 60000,    // 1分钟
   qq_send_file: 120000,    // 2分钟，文件上传可能较慢
   qq_wait_message: 0,      // 不超时，模块内部有自己的超时逻辑
-  qq_get_friends: 30000,   // 30秒
-  qq_get_groups: 30000,    // 30秒
-  qq_get_group_members: 30000, // 30秒
+  qq_get_friends: 60000,   // 60秒
+  qq_get_groups: 60000,    // 60秒
+  qq_get_group_members: 60000, // 60秒
   qq_get_login_info: 10000, // 10秒
   // 微信自动化
-  wechat_send_message: 30000,  // 30秒
+  wechat_send_message: 60000,  // 60秒
   wechat_send_file: 120000,    // 2分钟
   // AI能力 - 需要较长时间
   ai_chat: 180000,         // 3分钟，AI响应可能慢
@@ -585,6 +588,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   image_trigger: 0,        // 图像触发器不超时
   sound_trigger: 0,        // 声音触发器不超时
   face_trigger: 0,         // 人脸触发器不超时
+  gesture_trigger: 60,      // 手势触发器默认60秒超时
   element_change_trigger: 0, // 子元素变化触发器不超时
   // 辅助工具
   print_log: 5000,         // 5秒
@@ -597,20 +601,20 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   text_to_speech: 120000,  // 2分钟
   js_script: 60000,        // 1分钟
   python_script: 60000,    // 1分钟
-  extract_table_data: 30000, // 30秒
+  extract_table_data: 60000, // 60秒
   switch_tab: 10000,       // 10秒
   set_clipboard: 5000,     // 5秒
   get_clipboard: 5000,     // 5秒
   keyboard_action: 10000,  // 10秒
   real_mouse_scroll: 10000,// 10秒
   // 系统操作
-  shutdown_system: 30000,  // 30秒
+  shutdown_system: 60000,  // 60秒
   lock_screen: 10000,      // 10秒
   window_focus: 10000,     // 10秒
   real_mouse_click: 10000, // 10秒
   real_mouse_move: 10000,  // 10秒
-  real_mouse_drag: 30000,  // 30秒，拖拽可能需要更长时间
-  real_keyboard: 30000,    // 30秒
+  real_mouse_drag: 60000,  // 60秒，拖拽可能需要更长时间
+  real_keyboard: 60000,    // 60秒
   run_command: 300000,     // 5分钟，命令可能耗时
   click_image: 60000,      // 1分钟
   get_mouse_position: 5000,// 5秒
@@ -618,10 +622,10 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   rename_file: 10000,      // 10秒
   network_capture: 300000, // 5分钟
   // 文件操作
-  list_files: 30000,       // 30秒
+  list_files: 60000,       // 60秒
   copy_file: 300000,       // 5分钟，大文件复制
   move_file: 300000,       // 5分钟
-  delete_file: 30000,      // 30秒
+  delete_file: 60000,      // 60秒
   create_folder: 10000,    // 10秒
   file_exists: 5000,       // 5秒
   get_file_info: 10000,    // 10秒
@@ -658,20 +662,20 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   pdf_add_watermark: 120000, // 2分钟
   pdf_rotate: 60000,         // 1分钟
   pdf_delete_pages: 60000,   // 1分钟
-  pdf_get_info: 30000,       // 30秒
+  pdf_get_info: 60000,       // 60秒
   pdf_compress: 180000,      // 3分钟
   pdf_insert_pages: 60000,   // 1分钟
   pdf_reorder_pages: 60000,  // 1分钟
   pdf_to_word: 300000,       // 5分钟
   // 其他
-  export_log: 30000,         // 30秒
-  click_text: 30000,         // 30秒
-  hover_image: 30000,        // 30秒
-  hover_text: 30000,         // 30秒
+  export_log: 60000,         // 60秒
+  click_text: 60000,         // 60秒
+  hover_image: 60000,        // 60秒
+  hover_text: 60000,         // 60秒
   drag_image: 60000,         // 1分钟
   // 图像处理
-  image_grayscale: 30000,    // 30秒
-  image_round_corners: 30000, // 30秒
+  image_grayscale: 60000,    // 60秒
+  image_round_corners: 60000, // 60秒
   // 音频处理
   audio_to_text: 120000,     // 2分钟
   // 二维码
@@ -681,6 +685,28 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   screen_record: 5000,       // 5秒（非阻塞，只是启动）
   camera_capture: 10000,     // 10秒
   camera_record: 300000,     // 5分钟（根据录制时长动态调整）
+  // 手机自动化
+  phone_tap: 10000,          // 10秒
+  phone_swipe: 10000,        // 10秒
+  phone_long_press: 10000,   // 10秒
+  phone_input_text: 30000,   // 30秒
+  phone_press_key: 10000,    // 10秒
+  phone_screenshot: 30000,   // 30秒
+  phone_start_mirror: 30000, // 30秒
+  phone_stop_mirror: 10000,  // 10秒
+  phone_install_app: 120000, // 2分钟
+  phone_start_app: 30000,    // 30秒
+  phone_stop_app: 10000,     // 10秒
+  phone_uninstall_app: 60000, // 1分钟
+  phone_push_file: 120000,   // 2分钟
+  phone_pull_file: 120000,   // 2分钟
+  phone_click_image: 60000,  // 1分钟
+  phone_click_text: 60000,   // 1分钟
+  phone_wait_image: 60000,   // 1分钟
+  phone_set_volume: 30000,   // 30秒
+  phone_set_brightness: 10000, // 10秒
+  phone_set_clipboard: 10000, // 10秒
+  phone_get_clipboard: 10000, // 10秒
   // 网络共享
   share_folder: 10000,       // 10秒
   share_file: 10000,         // 10秒
@@ -693,7 +719,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
 
 // 获取模块默认超时时间
 export function getModuleDefaultTimeout(moduleType: ModuleType): number {
-  return moduleDefaultTimeouts[moduleType] ?? 30000
+  return moduleDefaultTimeouts[moduleType] ?? 60000  // 默认60秒，避免30秒超时过短
 }
 
 // 创建store
@@ -791,7 +817,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     // 根据模块类型应用默认配置
     let defaultData: Partial<NodeData> = {}
     
-    if (type === 'ai_chat') {
+    if (type === 'gesture_trigger') {
+      // 手势触发器默认配置
+      defaultData = {
+        timeout: 60000,  // 默认60秒（60000毫秒）
+        cameraIndex: 0,
+        confidenceThreshold: 0.6,  // 默认60%置信度
+        saveToVariable: 'gesture_data',
+      }
+    } else if (type === 'ai_chat') {
       defaultData = {
         apiUrl: globalConfig.ai.apiUrl,
         apiKey: globalConfig.ai.apiKey,
@@ -1185,6 +1219,372 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       defaultData = {
         resultVariable: 'new_folder_path',
       }
+    } else if (type === 'phone_screenshot') {
+      // 手机截图模块默认变量
+      defaultData = {
+        variableName: 'phone_screenshot_path',
+      }
+    } else if (type === 'phone_pull_file') {
+      // 手机拉取文件模块默认变量
+      defaultData = {
+        variableName: 'phone_file_path',
+      }
+    } else if (type === 'phone_click_image') {
+      // 手机点击图像模块默认变量
+      defaultData = {
+        resultVariable: 'phone_click_result',
+      }
+    } else if (type === 'phone_wait_image') {
+      // 手机等待图像模块默认变量
+      defaultData = {
+        resultVariable: 'phone_wait_result',
+      }
+    } else if (type === 'phone_get_clipboard') {
+      // 手机读取剪贴板模块默认变量
+      defaultData = {
+        variableName: 'phone_clipboard',
+      }
+    } else if (type === 'file_hash_compare') {
+      // 文件哈希对比模块默认变量
+      defaultData = {
+        resultVariable: 'hash_compare_result',
+      }
+    } else if (type === 'file_diff_compare') {
+      // 文件差异对比模块默认变量
+      defaultData = {
+        resultVariable: 'diff_result',
+      }
+    } else if (type === 'folder_hash_compare') {
+      // 文件夹哈希对比模块默认变量
+      defaultData = {
+        resultVariable: 'folder_hash_result',
+      }
+    } else if (type === 'folder_diff_compare') {
+      // 文件夹差异对比模块默认变量
+      defaultData = {
+        resultVariable: 'folder_diff_result',
+      }
+    } else if (type === 'random_password_generator') {
+      // 随机密码生成模块默认变量
+      defaultData = {
+        resultVariable: 'random_password',
+      }
+    } else if (type === 'url_encode_decode') {
+      // URL编解码模块默认变量
+      defaultData = {
+        resultVariable: 'url_result',
+      }
+    } else if (type === 'md5_encrypt') {
+      // MD5加密模块默认变量
+      defaultData = {
+        resultVariable: 'md5_hash',
+      }
+    } else if (type === 'sha_encrypt') {
+      // SHA加密模块默认变量
+      defaultData = {
+        resultVariable: 'sha_hash',
+      }
+    } else if (type === 'timestamp_converter') {
+      // 时间戳转换模块默认变量
+      defaultData = {
+        resultVariable: 'converted_time',
+      }
+    } else if (type === 'rgb_to_hsv') {
+      // RGB转HSV模块默认变量
+      defaultData = {
+        resultVariable: 'hsv_color',
+      }
+    } else if (type === 'rgb_to_cmyk') {
+      // RGB转CMYK模块默认变量
+      defaultData = {
+        resultVariable: 'cmyk_color',
+      }
+    } else if (type === 'hex_to_cmyk') {
+      // HEX转CMYK模块默认变量
+      defaultData = {
+        resultVariable: 'cmyk_color',
+      }
+    } else if (type === 'uuid_generator') {
+      // UUID生成器模块默认变量
+      defaultData = {
+        resultVariable: 'uuid',
+      }
+    } else if (type === 'webhook_trigger') {
+      // Webhook触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'webhook_data',
+      }
+    } else if (type === 'hotkey_trigger') {
+      // 热键触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'hotkey_data',
+      }
+    } else if (type === 'file_watcher_trigger') {
+      // 文件监控触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'file_event',
+      }
+    } else if (type === 'email_trigger') {
+      // 邮件触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'email_data',
+      }
+    } else if (type === 'api_trigger') {
+      // API触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'api_request',
+      }
+    } else if (type === 'mouse_trigger') {
+      // 鼠标触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'mouse_event',
+      }
+    } else if (type === 'image_trigger') {
+      // 图像触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'image_event',
+      }
+    } else if (type === 'sound_trigger') {
+      // 声音触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'sound_event',
+      }
+    } else if (type === 'face_trigger') {
+      // 人脸触发器模块默认变量
+      defaultData = {
+        saveToVariable: 'face_event',
+      }
+    } else if (type === 'element_change_trigger') {
+      // 子元素变化触发器模块默认变量
+      defaultData = {
+        saveNewElementSelector: 'new_element_selector',
+        saveChangeInfo: 'change_info',
+      }
+    } else if (type === 'image_resize') {
+      // 图像缩放模块默认变量
+      defaultData = {
+        resultVariable: 'resized_image',
+      }
+    } else if (type === 'image_crop') {
+      // 图像裁剪模块默认变量
+      defaultData = {
+        resultVariable: 'cropped_image',
+      }
+    } else if (type === 'image_rotate') {
+      // 图像旋转模块默认变量
+      defaultData = {
+        resultVariable: 'rotated_image',
+      }
+    } else if (type === 'image_flip') {
+      // 图像翻转模块默认变量
+      defaultData = {
+        resultVariable: 'flipped_image',
+      }
+    } else if (type === 'image_blur') {
+      // 图像模糊模块默认变量
+      defaultData = {
+        resultVariable: 'blurred_image',
+      }
+    } else if (type === 'image_sharpen') {
+      // 图像锐化模块默认变量
+      defaultData = {
+        resultVariable: 'sharpened_image',
+      }
+    } else if (type === 'image_brightness') {
+      // 亮度调整模块默认变量
+      defaultData = {
+        resultVariable: 'brightness_image',
+      }
+    } else if (type === 'image_contrast') {
+      // 对比度调整模块默认变量
+      defaultData = {
+        resultVariable: 'contrast_image',
+      }
+    } else if (type === 'image_color_balance') {
+      // 色彩平衡模块默认变量
+      defaultData = {
+        resultVariable: 'balanced_image',
+      }
+    } else if (type === 'image_convert_format') {
+      // 图像格式转换模块默认变量
+      defaultData = {
+        resultVariable: 'converted_image',
+      }
+    } else if (type === 'image_add_text') {
+      // 图像添加文字模块默认变量
+      defaultData = {
+        resultVariable: 'text_image',
+      }
+    } else if (type === 'image_merge') {
+      // 图像拼接模块默认变量
+      defaultData = {
+        resultVariable: 'merged_image',
+      }
+    } else if (type === 'image_thumbnail') {
+      // 生成缩略图模块默认变量
+      defaultData = {
+        resultVariable: 'thumbnail_image',
+      }
+    } else if (type === 'image_filter') {
+      // 图像滤镜模块默认变量
+      defaultData = {
+        resultVariable: 'filtered_image',
+      }
+    } else if (type === 'image_get_info') {
+      // 获取图像信息模块默认变量
+      defaultData = {
+        resultVariable: 'image_info',
+      }
+    } else if (type === 'image_remove_bg') {
+      // 简单去背景模块默认变量
+      defaultData = {
+        resultVariable: 'nobg_image',
+      }
+    } else if (type === 'pdf_to_images') {
+      // PDF转图片模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_images',
+      }
+    } else if (type === 'images_to_pdf') {
+      // 图片转PDF模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_result',
+      }
+    } else if (type === 'pdf_merge') {
+      // PDF合并模块默认变量
+      defaultData = {
+        resultVariable: 'merged_pdf',
+      }
+    } else if (type === 'pdf_split') {
+      // PDF拆分模块默认变量
+      defaultData = {
+        resultVariable: 'split_pdfs',
+      }
+    } else if (type === 'pdf_extract_text') {
+      // PDF提取文本模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_text',
+      }
+    } else if (type === 'pdf_extract_images') {
+      // PDF提取图片模块默认变量
+      defaultData = {
+        resultVariable: 'extracted_images',
+      }
+    } else if (type === 'pdf_encrypt') {
+      // PDF加密模块默认变量
+      defaultData = {
+        resultVariable: 'encrypted_pdf',
+      }
+    } else if (type === 'pdf_decrypt') {
+      // PDF解密模块默认变量
+      defaultData = {
+        resultVariable: 'decrypted_pdf',
+      }
+    } else if (type === 'pdf_add_watermark') {
+      // PDF添加水印模块默认变量
+      defaultData = {
+        resultVariable: 'watermarked_pdf',
+      }
+    } else if (type === 'pdf_rotate') {
+      // PDF旋转页面模块默认变量
+      defaultData = {
+        resultVariable: 'rotated_pdf',
+      }
+    } else if (type === 'pdf_delete_pages') {
+      // PDF删除页面模块默认变量
+      defaultData = {
+        resultVariable: 'result_pdf',
+      }
+    } else if (type === 'pdf_get_info') {
+      // PDF获取信息模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_info',
+      }
+    } else if (type === 'pdf_compress') {
+      // PDF压缩模块默认变量
+      defaultData = {
+        resultVariable: 'compressed_pdf',
+      }
+    } else if (type === 'pdf_insert_pages') {
+      // PDF插入页面模块默认变量
+      defaultData = {
+        resultVariable: 'result_pdf',
+      }
+    } else if (type === 'pdf_reorder_pages') {
+      // PDF重排页面模块默认变量
+      defaultData = {
+        resultVariable: 'reordered_pdf',
+      }
+    } else if (type === 'pdf_to_word') {
+      // PDF转Word模块默认变量
+      defaultData = {
+        resultVariable: 'word_file',
+      }
+    } else if (type === 'markdown_to_html') {
+      // Markdown转HTML模块默认变量
+      defaultData = {
+        resultVariable: 'html_output',
+      }
+    } else if (type === 'html_to_markdown') {
+      // HTML转Markdown模块默认变量
+      defaultData = {
+        resultVariable: 'markdown_output',
+      }
+    } else if (type === 'markdown_to_pdf') {
+      // Markdown转PDF模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_output',
+      }
+    } else if (type === 'markdown_to_docx') {
+      // Markdown转Word模块默认变量
+      defaultData = {
+        resultVariable: 'docx_output',
+      }
+    } else if (type === 'docx_to_markdown') {
+      // Word转Markdown模块默认变量
+      defaultData = {
+        resultVariable: 'markdown_output',
+      }
+    } else if (type === 'html_to_docx') {
+      // HTML转Word模块默认变量
+      defaultData = {
+        resultVariable: 'docx_output',
+      }
+    } else if (type === 'docx_to_html') {
+      // Word转HTML模块默认变量
+      defaultData = {
+        resultVariable: 'html_output',
+      }
+    } else if (type === 'markdown_to_epub') {
+      // Markdown转EPUB模块默认变量
+      defaultData = {
+        resultVariable: 'epub_output',
+      }
+    } else if (type === 'epub_to_markdown') {
+      // EPUB转Markdown模块默认变量
+      defaultData = {
+        resultVariable: 'markdown_output',
+      }
+    } else if (type === 'latex_to_pdf') {
+      // LaTeX转PDF模块默认变量
+      defaultData = {
+        resultVariable: 'pdf_output',
+      }
+    } else if (type === 'rst_to_html') {
+      // RST转HTML模块默认变量
+      defaultData = {
+        resultVariable: 'html_output',
+      }
+    } else if (type === 'org_to_html') {
+      // Org转HTML模块默认变量
+      defaultData = {
+        resultVariable: 'html_output',
+      }
+    } else if (type === 'universal_doc_convert') {
+      // 通用文档转换模块默认变量
+      defaultData = {
+        resultVariable: 'convert_output',
+      }
     }
     
     // 分组节点和便签节点使用特殊的节点类型和默认尺寸
@@ -1216,6 +1616,38 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         ...defaultData,
       },
     }
+    
+    // 将默认变量名添加到变量列表中
+    const variableFields = [
+      'variableName', 'resultVariable', 'itemVariable', 'indexVariable', 
+      'loopIndexVariable', 'saveToVariable', 'saveNewElementSelector', 'saveChangeInfo'
+    ]
+    const newVariables: string[] = []
+    for (const field of variableFields) {
+      const varName = newNode.data[field]
+      if (varName && typeof varName === 'string' && varName.trim()) {
+        newVariables.push(varName.trim())
+      }
+    }
+    
+    // 添加新变量到变量列表(去重)
+    if (newVariables.length > 0) {
+      const currentVariables = get().variables
+      const existingNames = new Set(currentVariables.map(v => v.name))
+      const variablesToAdd: Variable[] = newVariables
+        .filter(name => !existingNames.has(name))
+        .map(name => ({
+          name,
+          value: undefined,
+          type: 'string' as const,
+          scope: 'local' as const
+        }))
+      
+      if (variablesToAdd.length > 0) {
+        set({ variables: [...currentVariables, ...variablesToAdd] })
+      }
+    }
+    
     set({
       nodes: [...get().nodes, newNode],
     })

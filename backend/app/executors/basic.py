@@ -145,18 +145,19 @@ class OpenPageExecutor(ModuleExecutor):
                 
                 print(f"[OpenPage] 浏览器配置: type={browser_type}, channel={channel}, executablePath={executable_path or '默认'}, fullscreen={fullscreen}")
                 
-                # 当指定了自定义浏览器路径时，使用非持久化模式
-                # 因为Playwright的launch_persistent_context不支持executable_path参数
+                # 当指定了自定义浏览器路径时，通过启动参数传递user_data_dir实现持久化
                 if executable_path:
                     print(f"[OpenPage] 使用自定义浏览器路径: {executable_path}")
-                    print(f"[OpenPage] ⚠️ 注意：自定义浏览器路径不支持持久化，登录状态不会保存")
-                    print(f"[OpenPage] 💡 建议：如需持久化登录状态，请使用默认浏览器（不指定路径）")
+                    print(f"[OpenPage] 使用user_data_dir实现持久化: {user_data_dir}")
                     
-                    # 使用普通模式启动（非持久化）
+                    # 将user_data_dir添加到启动参数中
+                    launch_args_with_data_dir = launch_args_list + [f'--user-data-dir={user_data_dir}']
+                    
+                    # 使用普通模式启动（通过启动参数实现持久化）
                     launch_args = {
                         'headless': context.headless,
                         'executable_path': executable_path,
-                        'args': launch_args_list,
+                        'args': launch_args_with_data_dir,
                     }
                     
                     context.browser = await browser_engine.launch(**launch_args)
@@ -193,8 +194,9 @@ class OpenPageExecutor(ModuleExecutor):
                     import psutil
                     import time
                     
-                    # 为不同浏览器类型使用不同的数据目录，避免冲突
-                    user_data_path = Path(user_data_dir) / browser_type
+                    # user_data_dir 已经包含了浏览器类型子目录（在 workflow_executor 中设置）
+                    # 例如：browser_data/msedge
+                    user_data_path = Path(user_data_dir)
                     user_data_path.mkdir(parents=True, exist_ok=True)
                     actual_user_data_dir = str(user_data_path)
                     
@@ -270,124 +272,132 @@ class OpenPageExecutor(ModuleExecutor):
                         headless_args.append('--headless=new')
                         launch_args_list = headless_args
                     
-                    # 多次尝试启动持久化上下文
-                    max_retries = 3
-                    last_error = None
-                    for attempt in range(max_retries):
-                        try:
-                            print(f"[OpenPage] 启动持久化浏览器上下文 (尝试 {attempt + 1}/{max_retries})...")
-                            
-                            # 构建启动参数
-                            launch_args = {
-                                'user_data_dir': actual_user_data_dir,
-                                'headless': context.headless,
-                                'args': launch_args_list,
-                                'no_viewport': True,  # 使用 no_viewport 让页面自适应窗口大小
-                                'ignore_https_errors': True,
-                                # 自动授予所有权限，避免弹窗阻塞工作流
-                                'permissions': ['geolocation', 'notifications', 'camera', 'microphone'],
-                            }
-                            if channel:
-                                launch_args['channel'] = channel
-                            
-                            context.browser_context = await browser_engine.launch_persistent_context(**launch_args)
-                            
-                            # 授予所有权限，避免弹窗阻塞工作流
-                            try:
-                                await context.browser_context.grant_permissions(
-                                    ['geolocation', 'notifications', 'camera', 'microphone', 'clipboard-read', 'clipboard-write'],
-                                    origin='*'
-                                )
-                            except Exception as e:
-                                print(f"[OpenPage] 授予权限时出现警告: {e}")
-                            
-                            # 只在第一次启动时关闭旧页面，后续打开网页时保留已有标签页
-                            # 检查是否是第一次启动（通过检查 context.page 是否为 None）
-                            is_first_launch = context.page is None
-                            
-                            if is_first_launch:
-                                # 第一次启动：复用第一个现有页面，关闭其他页面（保留一个以避免浏览器上下文被关闭）
-                                existing_pages = context.browser_context.pages[:]
-                                if existing_pages:
-                                    # 复用第一个页面
-                                    context.page = existing_pages[0]
-                                    # 只关闭除第一个外的其他页面
-                                    for old_page in existing_pages[1:]:
-                                        try:
-                                            await old_page.close()
-                                        except:
-                                            pass
-                                    print(f"[OpenPage] 第一次启动，复用第一个页面，已清理 {len(existing_pages) - 1} 个其他历史页面")
-                                else:
-                                    # 如果没有现有页面，创建新页面
-                                    context.page = await context.browser_context.new_page()
-                                    print(f"[OpenPage] 第一次启动，创建新页面")
-                            else:
-                                # 非第一次启动：创建新标签页
-                                context.page = await context.browser_context.new_page()
-                                print(f"[OpenPage] 在现有浏览器中创建新标签页")
-                            
-                            # 注入篡改猴脚本
-                            await inject_userscript_to_page(context.page)
-                            
-                            # 监听页面导航，重新注入脚本
-                            context.page.on("load", lambda: asyncio.create_task(inject_on_navigation(context.page)))
-                            
-                            # 监听新页面并自动注入
-                            def on_page(new_page):
-                                asyncio.create_task(inject_userscript_to_page(new_page))
-                                # 为新页面也监听导航事件
-                                new_page.on("load", lambda: asyncio.create_task(inject_on_navigation(new_page)))
-                            context.browser_context.on("page", on_page)
-                            
-                            print(f"[OpenPage] 持久化浏览器上下文准备完成")
-                            break
-                        except Exception as e:
-                            last_error = e
-                            error_msg = str(e)
-                            print(f"[OpenPage] 持久化上下文启动失败 (尝试 {attempt + 1}): {e}")
-                            
-                            # 如果是用户数据目录被占用，尝试关闭 browser_context
-                            if context.browser_context:
-                                try:
-                                    await context.browser_context.close()
-                                except:
-                                    pass
-                                context.browser_context = None
-                            
-                            # 清理锁文件
-                            lock_file = user_data_path / "SingletonLock"
-                            if lock_file.exists():
-                                try:
-                                    lock_file.unlink()
-                                except:
-                                    pass
-                            await asyncio.sleep(0.5)
-                    else:
-                        # 所有重试都失败，返回详细错误信息
-                        error_msg = str(last_error)
-                        error_detail = "❌ 无法启动持久化浏览器"
+                    # 构建启动参数
+                    launch_args = {
+                        'user_data_dir': actual_user_data_dir,
+                        'headless': context.headless,
+                        'args': launch_args_list,
+                        'no_viewport': True,  # 使用 no_viewport 让页面自适应窗口大小
+                        'ignore_https_errors': True,
+                        # 自动授予所有权限，避免弹窗阻塞工作流
+                        'permissions': ['geolocation', 'notifications', 'camera', 'microphone'],
+                    }
+                    if channel:
+                        launch_args['channel'] = channel
+                    
+                    # 尝试启动持久化上下文
+                    try:
+                        print(f"[OpenPage] 启动持久化浏览器上下文...")
+                        context.browser_context = await browser_engine.launch_persistent_context(**launch_args)
+                    except Exception as e:
+                        error_msg = str(e)
                         
-                        # 详细的错误分类
-                        if "user-data-dir" in error_msg.lower() or "already in use" in error_msg.lower():
-                            solution = f"\n\n原始错误: {error_msg}\n\n💡 解决方案:\n1. 关闭所有 {browser_type} 浏览器窗口（包括后台进程）\n2. 打开任务管理器，结束所有 {browser_type}.exe 进程\n3. 重启电脑后重试\n4. 或者在浏览器配置中使用自定义数据目录"
+                        # 详细的错误分类和解决方案
+                        detailed_error = ""
+                        solution = ""
+                        should_retry = False
                         
+                        # 检查是否是数据目录被占用
+                        if "user-data-dir" in error_msg.lower() or "already in use" in error_msg.lower() or "Target page, context or browser has been closed" in error_msg:
+                            detailed_error = f"❌ 浏览器数据目录被占用\n目录: {actual_user_data_dir}\n原始错误: {error_msg}"
+                            solution = f"\n\n💡 解决方案:\n1. 关闭所有 {browser_type} 浏览器窗口（包括后台进程）\n2. 打开任务管理器，结束所有 {browser_type}.exe 进程\n3. 如果问题仍然存在，重启电脑\n4. 或者在浏览器配置中使用自定义数据目录"
+                            return ModuleResult(success=False, error=detailed_error + solution)
+                        
+                        # 检查是否是浏览器驱动未安装
                         elif "executable doesn't exist" in error_msg.lower() or "browser is not installed" in error_msg.lower():
-                            solution = f"\n\n原始错误: {error_msg}\n\n💡 解决方案:\n1. 运行命令安装浏览器驱动:\n   playwright install {browser_type}\n\n2. 或者安装所有浏览器:\n   playwright install\n\n3. 如果命令失败，请检查网络连接\n\n4. 或者切换到其他浏览器类型"
+                            detailed_error = f"❌ {browser_type} 浏览器驱动未安装\n原始错误: {error_msg}"
+                            solution = f"\n\n💡 解决方案:\n1. 运行命令安装浏览器驱动:\n   playwright install {browser_type}\n\n2. 或者安装所有浏览器:\n   playwright install\n\n3. 如果上述命令失败，请检查网络连接\n\n4. 或者切换到其他浏览器类型（在浏览器配置中修改）"
+                            return ModuleResult(success=False, error=detailed_error + solution)
                         
+                        # 检查是否是权限问题
                         elif "permission denied" in error_msg.lower() or "access denied" in error_msg.lower():
-                            solution = f"\n\n原始错误: {error_msg}\n\n💡 解决方案:\n1. 以管理员身份运行 WebRPA\n2. 检查数据目录的权限设置\n3. 确认杀毒软件没有阻止访问"
+                            detailed_error = f"❌ 权限不足，无法访问浏览器数据目录\n目录: {actual_user_data_dir}\n原始错误: {error_msg}"
+                            solution = "\n\n💡 解决方案:\n1. 以管理员身份运行 WebRPA\n2. 检查数据目录的权限设置\n3. 确认杀毒软件没有阻止访问\n4. 尝试使用其他数据目录"
+                            return ModuleResult(success=False, error=detailed_error + solution)
                         
-                        elif "timeout" in error_msg.lower():
-                            solution = f"\n\n原始错误: {error_msg}\n\n💡 解决方案:\n1. 系统配置较低，浏览器启动较慢\n2. 关闭其他占用资源的程序\n3. 重启电脑后重试"
+                        # 检查是否是端口被占用
+                        elif "address already in use" in error_msg.lower() or "port" in error_msg.lower():
+                            detailed_error = f"❌ 调试端口被占用\n原始错误: {error_msg}"
+                            solution = "\n\n💡 解决方案:\n1. 关闭其他正在运行的浏览器自动化程序\n2. 重启电脑释放端口\n3. 检查是否有其他 Playwright/Selenium 程序在运行"
+                            return ModuleResult(success=False, error=detailed_error + solution)
                         
+                        # 其他未知错误，尝试使用临时目录
                         else:
-                            solution = f"\n\n原始错误: {error_msg}\n\n💡 解决方案:\n1. 检查系统资源是否充足（内存、磁盘空间）\n2. 重启电脑后重试\n3. 更新 Playwright: pip install --upgrade playwright\n4. 重新安装浏览器驱动: playwright install\n5. 查看完整错误日志"
+                            should_retry = True
+                            detailed_error = f"⚠️ 无法使用共享数据目录，尝试使用临时目录\n原始错误: {error_msg}"
                         
-                        return ModuleResult(
-                            success=False, 
-                            error=error_detail + solution
+                        # 如果使用用户数据目录失败，尝试使用临时目录
+                        if should_retry:
+                            print(f"[OpenPage] {detailed_error}")
+                            try:
+                                import tempfile
+                                temp_dir = tempfile.mkdtemp(prefix=f"browser_data_{browser_type}_")
+                                launch_args['user_data_dir'] = temp_dir
+                                print(f"[OpenPage] 使用临时目录: {temp_dir}")
+                                context.browser_context = await browser_engine.launch_persistent_context(**launch_args)
+                                print(f"[OpenPage] ⚠️ 注意：使用临时目录，浏览器登录状态不会保存")
+                            except Exception as e2:
+                                error_msg2 = str(e2)
+                                
+                                # 临时目录也失败，给出详细错误
+                                if "executable doesn't exist" in error_msg2.lower() or "browser is not installed" in error_msg2.lower():
+                                    detailed_error = f"❌ {browser_type} 浏览器驱动未安装\n原始错误: {error_msg2}"
+                                    solution = f"\n\n💡 解决方案:\n1. 运行命令安装浏览器驱动:\n   playwright install {browser_type}\n\n2. 或者安装所有浏览器:\n   playwright install\n\n3. 如果上述命令失败，请检查网络连接\n\n4. 或者切换到其他浏览器类型（在浏览器配置中修改）"
+                                else:
+                                    detailed_error = f"❌ 浏览器启动失败（已尝试临时目录）\n原始错误: {error_msg2}"
+                                    solution = "\n\n💡 解决方案:\n1. 检查系统资源是否充足（内存、磁盘空间）\n2. 重启电脑后重试\n3. 更新 Playwright: pip install --upgrade playwright\n4. 重新安装浏览器驱动: playwright install\n5. 查看完整错误日志以获取更多信息"
+                                
+                                return ModuleResult(success=False, error=detailed_error + solution)
+                    
+                    # 授予所有权限，避免弹窗阻塞工作流
+                    try:
+                        await context.browser_context.grant_permissions(
+                            ['geolocation', 'notifications', 'camera', 'microphone', 'clipboard-read', 'clipboard-write'],
+                            origin='*'
                         )
+                    except Exception as e:
+                        print(f"[OpenPage] 授予权限时出现警告: {e}")
+                    
+                    # 只在第一次启动时关闭旧页面，后续打开网页时保留已有标签页
+                    # 检查是否是第一次启动（通过检查 context.page 是否为 None）
+                    is_first_launch = context.page is None
+                    
+                    if is_first_launch:
+                        # 第一次启动：复用第一个现有页面，关闭其他页面（保留一个以避免浏览器上下文被关闭）
+                        existing_pages = context.browser_context.pages[:]
+                        if existing_pages:
+                            # 复用第一个页面
+                            context.page = existing_pages[0]
+                            # 只关闭除第一个外的其他页面
+                            for old_page in existing_pages[1:]:
+                                try:
+                                    await old_page.close()
+                                except:
+                                    pass
+                            print(f"[OpenPage] 第一次启动，复用第一个页面，已清理 {len(existing_pages) - 1} 个其他历史页面")
+                        else:
+                            # 如果没有现有页面，创建新页面
+                            context.page = await context.browser_context.new_page()
+                            print(f"[OpenPage] 第一次启动，创建新页面")
+                    else:
+                        # 非第一次启动：创建新标签页
+                        context.page = await context.browser_context.new_page()
+                        print(f"[OpenPage] 在现有浏览器中创建新标签页")
+                    
+                    # 注入篡改猴脚本
+                    await inject_userscript_to_page(context.page)
+                    
+                    # 监听页面导航，重新注入脚本
+                    context.page.on("load", lambda: asyncio.create_task(inject_on_navigation(context.page)))
+                    
+                    # 监听新页面并自动注入
+                    def on_page(new_page):
+                        asyncio.create_task(inject_userscript_to_page(new_page))
+                        # 为新页面也监听导航事件
+                        new_page.on("load", lambda: asyncio.create_task(inject_on_navigation(new_page)))
+                    context.browser_context.on("page", on_page)
+                    
+                    print(f"[OpenPage] 持久化浏览器上下文准备完成")
                 else:
                     print(f"[OpenPage] 使用普通模式启动浏览器")
                     

@@ -1057,7 +1057,7 @@ export function QQWaitMessageConfig({ data, onChange }: { data: NodeData; onChan
           }}
           placeholder="0"
         />
-        <p className="text-xs text-muted-foreground">0 表示无限等待（默认）</p>
+        <p className="text-xs text-muted-foreground">0 表示无限等待</p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="pollInterval">轮询间隔（秒）</Label>
@@ -1069,7 +1069,10 @@ export function QQWaitMessageConfig({ data, onChange }: { data: NodeData; onChan
           }}
           placeholder="0.3"
         />
-        <p className="text-xs text-muted-foreground">建议 0.3 秒以实现近乎实时响应，最小 0.1 秒</p>
+        <p className="text-xs text-muted-foreground">
+          此配置仅控制轮询间隔，实际响应时间还包含 NapCat API 处理耗时（约1秒，无法优化）。
+          因此实际总间隔约为 1-1.5 秒。
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="resultVariable">结果变量</Label>

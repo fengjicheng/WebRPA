@@ -459,16 +459,17 @@ async def main():
         ]
         
         if executable_path:
-            # 使用自定义路径：使用非持久化模式
-            # 因为Playwright的launch_persistent_context不支持executable_path参数
+            # 使用自定义路径：通过启动参数传递user_data_dir实现持久化
             print(f"[BrowserProcess] 使用自定义浏览器路径: {executable_path}", file=sys.stderr)
-            print(f"[BrowserProcess] ⚠️ 注意：自定义浏览器路径不支持持久化，登录状态不会保存", file=sys.stderr)
-            print(f"[BrowserProcess] 💡 建议：如需持久化登录状态，请使用默认浏览器（不指定路径）", file=sys.stderr)
+            print(f"[BrowserProcess] 使用user_data_dir实现持久化: {user_data_dir}", file=sys.stderr)
+            
+            # 将user_data_dir添加到启动参数中
+            launch_args_with_data_dir = launch_args_list + [f'--user-data-dir={user_data_dir}']
             
             launch_args = {
                 'headless': False,
                 'executable_path': executable_path,
-                'args': launch_args_list,
+                'args': launch_args_with_data_dir,
             }
             
             try:
@@ -478,6 +479,9 @@ async def main():
                     ignore_https_errors=True,
                     permissions=['geolocation', 'notifications', 'camera', 'microphone'],
                 )
+                # 设置默认超时为0（无限超时），让每个操作自己控制超时
+                context.set_default_timeout(0)
+                context.set_default_navigation_timeout(0)
             except Exception as e:
                 error_msg = str(e)
                 

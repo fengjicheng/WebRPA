@@ -23,22 +23,22 @@ from app.services.workflow_parser import WorkflowParser, ExecutionGraph
 MODULE_DEFAULT_TIMEOUTS = {
     # 浏览器操作 - 网页加载可能较慢
     'open_page': 60000,        # 60秒
-    'click_element': 30000,    # 30秒
-    'hover_element': 30000,    # 30秒
-    'input_text': 30000,       # 30秒
-    'get_element_info': 30000, # 30秒
+    'click_element': 60000,    # 60秒
+    'hover_element': 60000,    # 60秒
+    'input_text': 60000,       # 60秒
+    'get_element_info': 60000, # 60秒
     'wait': 0,                 # 固定等待不需要超时（由模块内部控制）
     'wait_element': 60000,     # 60秒
     'close_page': 10000,       # 10秒
     'refresh_page': 60000,     # 60秒
-    'go_back': 30000,          # 30秒
-    'go_forward': 30000,       # 30秒
-    'handle_dialog': 30000,    # 30秒
+    'go_back': 60000,          # 60秒
+    'go_forward': 60000,       # 60秒
+    'handle_dialog': 60000,    # 60秒
     # 表单操作
-    'select_dropdown': 30000,  # 30秒
-    'set_checkbox': 30000,     # 30秒
-    'drag_element': 30000,     # 30秒
-    'scroll_page': 30000,      # 30秒
+    'select_dropdown': 60000,  # 60秒
+    'set_checkbox': 60000,     # 60秒
+    'drag_element': 60000,     # 60秒
+    'scroll_page': 60000,      # 60秒
     'upload_file': 120000,     # 2分钟
     # 数据处理 - 通常很快
     'set_variable': 5000,      # 5秒
@@ -48,7 +48,7 @@ MODULE_DEFAULT_TIMEOUTS = {
     'get_time': 5000,          # 5秒
     'download_file': 300000,   # 5分钟
     'save_image': 60000,       # 1分钟
-    'screenshot': 30000,       # 30秒
+    'screenshot': 60000,       # 60秒
     'read_excel': 60000,       # 1分钟
     # 字符串操作 - 很快
     'regex_extract': 10000,    # 10秒
@@ -76,7 +76,7 @@ MODULE_DEFAULT_TIMEOUTS = {
     'table_clear': 5000,       # 5秒
     'table_export': 60000,     # 1分钟
     # 数据库操作
-    'db_connect': 30000,       # 30秒
+    'db_connect': 60000,       # 60秒
     'db_query': 120000,        # 2分钟
     'db_execute': 120000,      # 2分钟
     'db_insert': 60000,        # 1分钟
@@ -115,13 +115,13 @@ MODULE_DEFAULT_TIMEOUTS = {
     'keyboard_action': 10000,  # 10秒
     'real_mouse_scroll': 10000,# 10秒
     # 系统操作
-    'shutdown_system': 30000,  # 30秒
+    'shutdown_system': 60000,  # 60秒
     'lock_screen': 10000,      # 10秒
     'window_focus': 10000,     # 10秒
     'real_mouse_click': 10000, # 10秒
     'real_mouse_move': 10000,  # 10秒
     'real_mouse_drag': 10000,  # 10秒
-    'real_keyboard': 30000,    # 30秒
+    'real_keyboard': 60000,    # 60秒
     'run_command': 300000,     # 5分钟
     'click_image': 60000,      # 1分钟
     'click_text': 120000,      # 2分钟（OCR识别较慢，首次需要下载模型）
@@ -141,10 +141,10 @@ MODULE_DEFAULT_TIMEOUTS = {
     'start_screen_share': 10000,  # 10秒（启动服务）
     'stop_screen_share': 5000,    # 5秒
     # 文件操作
-    'list_files': 30000,       # 30秒
+    'list_files': 60000,       # 60秒
     'copy_file': 300000,       # 5分钟
     'move_file': 300000,       # 5分钟
-    'delete_file': 30000,      # 30秒
+    'delete_file': 60000,      # 60秒
     'create_folder': 10000,    # 10秒
     'file_exists': 5000,       # 5秒
     'get_file_info': 10000,    # 10秒
@@ -173,7 +173,7 @@ MODULE_DEFAULT_TIMEOUTS = {
     'audio_to_text': 300000,   # 5分钟（语音识别可能较慢）
     # 二维码
     'qr_generate': 10000,      # 10秒
-    'qr_decode': 30000,        # 30秒
+    'qr_decode': 60000,        # 60秒
     # 录屏 - 非阻塞（启动后立即返回，后台录制）
     'screen_record': 10000,    # 10秒（启动录屏）
     # AI识别
@@ -191,13 +191,13 @@ MODULE_DEFAULT_TIMEOUTS = {
     'pdf_add_watermark': 300000, # 5分钟
     'pdf_rotate': 120000,      # 2分钟
     'pdf_delete_pages': 120000,# 2分钟
-    'pdf_get_info': 30000,     # 30秒
+    'pdf_get_info': 60000,     # 60秒
     'pdf_compress': 600000,    # 10分钟
     'pdf_insert_pages': 300000,# 5分钟
     'pdf_reorder_pages': 120000, # 2分钟
     'pdf_to_word': 600000,     # 10分钟
     # 其他
-    'export_log': 30000,       # 30秒
+    'export_log': 60000,       # 60秒
     # 触发器模块 - 不超时（等待事件触发）
     'webhook_trigger': 0,      # 不超时（等待webhook请求）
     'hotkey_trigger': 0,       # 不超时（等待热键触发）
@@ -211,19 +211,19 @@ MODULE_DEFAULT_TIMEOUTS = {
     'element_change_trigger': 0, # 不超时（等待元素变化）
     # QQ自动化
     'qq_wait_message': 0,      # 不超时（阻塞型，等待消息）
-    'qq_send_message': 30000,  # 30秒
+    'qq_send_message': 60000,  # 60秒
     'qq_send_image': 60000,    # 1分钟
     'qq_send_file': 120000,    # 2分钟
-    'qq_get_friends': 30000,   # 30秒
-    'qq_get_groups': 30000,    # 30秒
-    'qq_get_group_members': 30000, # 30秒
+    'qq_get_friends': 60000,   # 60秒
+    'qq_get_groups': 60000,    # 60秒
+    'qq_get_group_members': 60000, # 60秒
     'qq_get_login_info': 10000,# 10秒
     # 微信自动化
     'wechat_wait_message': 0,  # 不超时（阻塞型，等待消息）
-    'wechat_send_message': 30000,  # 30秒
+    'wechat_send_message': 60000,  # 60秒
     'wechat_send_file': 120000,    # 2分钟
-    'wechat_get_messages': 30000,  # 30秒
-    'wechat_get_sessions': 30000,  # 30秒
+    'wechat_get_messages': 60000,  # 60秒
+    'wechat_get_sessions': 60000,  # 60秒
     'wechat_get_login_info': 10000,# 10秒
     # 分组/备注 - 不执行
     'group': 0,
@@ -233,7 +233,7 @@ MODULE_DEFAULT_TIMEOUTS = {
 
 def get_module_default_timeout(module_type: str) -> int:
     """获取模块默认超时时间（毫秒）"""
-    return MODULE_DEFAULT_TIMEOUTS.get(module_type, 30000)
+    return MODULE_DEFAULT_TIMEOUTS.get(module_type, 60000)  # 默认60秒，避免30秒超时过短
 
 
 class WorkflowExecutor:
@@ -1556,11 +1556,15 @@ class WorkflowExecutor:
             
             # 获取浏览器数据目录：优先使用全局配置，否则使用默认目录
             if self.browser_config and self.browser_config.get('userDataDir'):
-                user_data_dir = self.browser_config.get('userDataDir')
+                user_data_dir_base = self.browser_config.get('userDataDir')
             else:
-                # 使用默认目录
-                backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-                user_data_dir = os.path.join(backend_dir, 'browser_data')
+                # 使用默认目录（获取绝对路径）
+                backend_dir = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                user_data_dir_base = os.path.join(backend_dir, 'browser_data')
+            
+            # 获取浏览器类型，为不同浏览器使用不同的子目录
+            browser_type = self.browser_config.get('type', 'msedge') if self.browser_config else 'msedge'
+            user_data_dir = os.path.join(user_data_dir_base, browser_type)
             
             # 确保目录存在
             os.makedirs(user_data_dir, exist_ok=True)
@@ -1642,6 +1646,23 @@ class WorkflowExecutor:
             # 注意：不在这里自动清理浏览器，由调用方根据 autoCloseBrowser 配置决定是否关闭
             # 但需要清理其他资源
             try:
+                # 恢复手机输入法（如果之前切换过）
+                try:
+                    original_ime = self.context.variables.get('original_ime')
+                    if original_ime:
+                        print(f"[WorkflowExecutor] 恢复原输入法: {original_ime}")
+                        from app.services.adb_manager import get_adb_manager
+                        adb = get_adb_manager()
+                        success, error = adb.restore_ime(original_ime)
+                        if success:
+                            print(f"[WorkflowExecutor] 输入法已恢复")
+                        else:
+                            print(f"[WorkflowExecutor] 恢复输入法失败: {error}")
+                        # 清除变量
+                        del self.context.variables['original_ime']
+                except Exception as e:
+                    print(f"恢复输入法时出错: {e}")
+                
                 # 终止所有正在运行的 FFmpeg 进程
                 try:
                     from app.executors.media import ffmpeg_manager

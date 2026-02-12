@@ -1091,6 +1091,126 @@ class FaceTriggerExecutor(ModuleExecutor):
 
 
 @register_executor
+class GestureTriggerExecutor(ModuleExecutor):
+    """手势触发器执行器"""
+
+    @property
+    def module_type(self) -> str:
+        return "gesture_trigger"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        """
+        手势触发器 - 通过摄像头识别自定义手势触发工作流
+        配置项：
+        - gestureName: 手势名称（自定义手势）
+        - cameraIndex: 摄像头索引（默认0）
+        - debugWindow: 是否显示调试窗口（默认False）
+        - timeout: 超时时间（秒），0表示无限等待
+        - saveToVariable: 保存手势信息的变量名
+        """
+        gesture_name = context.resolve_value(config.get('gestureName', ''))
+        camera_index = to_int(config.get('cameraIndex', 0), 0, context)
+        debug_window = config.get('debugWindow', False)
+        timeout = to_int(config.get('timeout', 60), 60, context)
+        save_to_variable = config.get('saveToVariable', 'gesture_data')
+        
+        if not gesture_name:
+            return ModuleResult(success=False, error="手势名称不能为空")
+        
+        try:
+            from app.services.gesture_recognition_service import gesture_service
+            from app.services.trigger_manager import trigger_manager
+            
+            context.add_log('info', f"👋 手势触发器已启动", None)
+            context.add_log('info', f"🎯 目标手势: {gesture_name}", None)
+            context.add_log('info', f"📷 摄像头索引: {camera_index}", None)
+            if debug_window:
+                context.add_log('info', f"🪟 调试窗口已启用", None)
+            await context.send_progress(f"👋 手势触发器已启动，等待手势: {gesture_name}")
+            
+            # 加载自定义手势
+            gesture_service.load_custom_gestures()
+            if gesture_name not in gesture_service.custom_gestures:
+                return ModuleResult(success=False, error=f"自定义手势不存在: {gesture_name}，请先录制该手势")
+            
+            # 创建等待事件
+            event = asyncio.Event()
+            gesture_data = {}
+            
+            def on_gesture_detected(detected_gesture_name: str):
+                nonlocal gesture_data
+                # 检查是否是目标手势
+                if detected_gesture_name == gesture_name:
+                    gesture_data = {
+                        'gesture': detected_gesture_name,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    event.set()
+            
+            # 注册手势到trigger_manager
+            trigger_manager.register_gesture(gesture_name, lambda: on_gesture_detected(gesture_name))
+            
+            try:
+                # 启动手势识别（如果未启动）
+                if not gesture_service.is_running:
+                    # 定义全局回调，将手势触发传递给trigger_manager
+                    def global_gesture_callback(detected_gesture: str):
+                        trigger_manager.trigger_gesture(detected_gesture)
+                    
+                    success = gesture_service.start_recognition(
+                        camera_index=camera_index,
+                        debug_window=debug_window,
+                        callback=global_gesture_callback
+                    )
+                    if not success:
+                        return ModuleResult(success=False, error=f"无法启动手势识别，请检查摄像头 {camera_index}")
+                
+                context.add_log('info', f"⏳ 等待手势: {gesture_name} (超时: {timeout}秒)", None)
+                await context.send_progress(f"⏳ 等待手势: {gesture_name}")
+                
+                # 等待手势触发或超时
+                if timeout > 0:
+                    await asyncio.wait_for(event.wait(), timeout=timeout)
+                else:
+                    await event.wait()
+                
+                # 保存手势数据到变量
+                if save_to_variable and gesture_data:
+                    context.set_variable(save_to_variable, gesture_data)
+                
+                context.add_log('info', f"✅ 手势已触发: {gesture_name}", None)
+                
+                return ModuleResult(
+                    success=True,
+                    message=f"手势触发器已触发: {gesture_name}",
+                    data=gesture_data
+                )
+            
+            except asyncio.TimeoutError:
+                context.add_log('warning', f"⏱️ 手势触发器超时（{timeout}秒）", None)
+                return ModuleResult(
+                    success=False,
+                    error=f"手势触发器超时（{timeout}秒）"
+                )
+            
+            finally:
+                # 移除手势注册
+                trigger_manager.unregister_gesture(gesture_name)
+                # 注意：不要停止手势识别服务，因为可能有其他工作流在使用
+        
+        except ImportError:
+            return ModuleResult(
+                success=False,
+                error="手势触发器初始化失败，请安装 mediapipe 和 opencv-python"
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return ModuleResult(success=False, error=f"手势触发器失败: {str(e)}")
+
+
+
+@register_executor
 class ElementChangeTriggerExecutor(ModuleExecutor):
     """子元素变化触发器执行器"""
 

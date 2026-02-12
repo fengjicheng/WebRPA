@@ -105,5 +105,9 @@ croniter>=2.0.0
 # 任务调度（计划任务模块）
 APScheduler>=3.10.0
 
+# 手势识别（手势触发器模块）
+# MediaPipe 提供高性能的手势识别能力
+mediapipe>=0.10.9
+
 # 安装完成后，还需要安装浏览器:
 # playwright install msedge

@@ -763,9 +763,9 @@ export function FirecrawlScrapeConfig({ data, onChange }: { data: NodeData; onCh
         <Label htmlFor="timeout">超时时间 (毫秒)</Label>
         <NumberInput
           id="timeout"
-          value={(data.timeout as number) ?? 30000}
+          value={(data.timeout as number) ?? 60000}
           onChange={(v) => onChange('timeout', v)}
-          defaultValue={30000}
+          defaultValue={60000}
           min={1000}
         />
       </div>

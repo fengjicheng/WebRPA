@@ -496,6 +496,9 @@ class ADBManager:
                 
                 # 检查是否成功（ADBKeyboard 会返回特定的输出）
                 if 'Broadcast completed' in stdout or 'result=0' in stdout:
+                    # 等待一下,确保文本已经输入
+                    # ADBKeyboard需要一点时间来处理broadcast并输入文本
+                    time.sleep(0.5)
                     return True, ""
                 
                 # 如果 ADBKeyboard 不可用，返回错误并提示
@@ -1009,6 +1012,118 @@ class ADBManager:
             return False, f"设置亮度失败: {stderr}"
         
         return True, ""
+    
+    def set_clipboard(self, text: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+        """写入剪贴板
+        
+        Args:
+            text: 要写入的文本内容
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 错误信息)
+        """
+        device_args = ['-s', device_id] if device_id else []
+        
+        # 方法1: 使用 Clipper 应用（最可靠的方法）
+        try:
+            print(f"[ADBManager] 尝试方法1: Clipper")
+            
+            # 先启动 Clipper 服务
+            print(f"[ADBManager] 启动 Clipper 服务...")
+            self._run_command(
+                device_args + ['shell', 'am', 'startservice', 'ca.zgrs.clipper/.ClipboardService'],
+                check=False
+            )
+            
+            # 等待服务启动
+            time.sleep(0.3)
+            
+            # 使用 Clipper 的 broadcast 设置剪贴板
+            success, stdout, stderr = self._run_command(
+                device_args + ['shell', 'am', 'broadcast', '-a', 'clipper.set', '-e', 'text', text],
+                check=False
+            )
+            
+            if success and 'Broadcast completed' in stdout:
+                print(f"[ADBManager] 方法1成功")
+                # 等待一下确保剪贴板已设置
+                time.sleep(0.2)
+                return True, ""
+            
+            print(f"[ADBManager] 方法1失败: stdout={stdout}, stderr={stderr}")
+            
+        except Exception as e:
+            print(f"[ADBManager] 方法1异常: {e}")
+        
+        # 方法2: 尝试使用 cmd clipboard set（Android 10+）
+        try:
+            cmd = [self.adb_path] + device_args + ['shell', 'cmd', 'clipboard', 'set']
+            print(f"[ADBManager] 尝试方法2: cmd clipboard set")
+            
+            result = subprocess.run(
+                cmd,
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                encoding='utf-8',
+                errors='ignore'
+            )
+            
+            # 检查是否成功（如果返回 "No shell command implementation" 说明不支持）
+            if result.returncode == 0 and 'No shell command implementation' not in result.stdout and 'No shell command implementation' not in result.stderr:
+                print(f"[ADBManager] 方法2成功")
+                return True, ""
+            
+            print(f"[ADBManager] 方法2失败: stdout={result.stdout}, stderr={result.stderr}")
+            
+        except Exception as e:
+            print(f"[ADBManager] 方法2异常: {e}")
+
+        
+        # 方法3: 使用 input keyevent + 模拟粘贴（最通用但需要输入框获得焦点）
+        # 这个方法不太可靠，因为需要有输入框
+        
+        # 方法4: 使用 service call（底层方法，但比较复杂）
+        # Android 的剪贴板服务编号在不同版本可能不同
+        
+        return False, (
+            "❌ 无法设置剪贴板\n\n"
+            "您的设备不支持标准的剪贴板命令。\n\n"
+            "💡 解决方案：\n"
+            "1. 安装 Clipper 应用（推荐）\n"
+            "   下载地址: https://github.com/majido/clipper/releases\n"
+            "   安装后即可使用剪贴板功能\n\n"
+            "2. 或者升级 Android 系统到 10.0 以上版本\n\n"
+            "3. 或者使用其他方法：\n"
+            "   - 先使用「📱 点击」模块点击输入框\n"
+            "   - 然后使用「📱 输入文本」模块输入内容\n"
+        )
+    
+    def get_clipboard(self, device_id: Optional[str] = None) -> Tuple[bool, str, str]:
+        """读取剪贴板
+        
+        Args:
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 剪贴板内容, 错误信息)
+        """
+        device_args = ['-s', device_id] if device_id else []
+        
+        # 使用 cmd clipboard get 命令（Android 8.0+）
+        success, stdout, stderr = self._run_command(
+            device_args + ['shell', 'cmd', 'clipboard', 'get']
+        )
+        
+        if not success:
+            return False, "", f"读取剪贴板失败: {stderr}"
+        
+        # 剪贴板内容在 stdout 中
+        content = stdout.strip()
+        
+        return True, content, ""
 
     
     def get_app_list_with_names(self, device_id: Optional[str] = None) -> Dict[str, str]:
@@ -1134,6 +1249,156 @@ class ADBManager:
             match_list = '\n'.join([f"  - {name} ({pkg})" for name, pkg in matches])
             error = f"找到 {len(matches)} 个匹配的应用:\n{match_list}\n\n请使用包名精确指定要启动的应用"
             return False, None, error, matches
+    
+    def get_current_ime(self, device_id: Optional[str] = None) -> Tuple[bool, Optional[str], str]:
+        """获取当前输入法
+        
+        Args:
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 输入法ID, 错误信息)
+        """
+        device_args = ['-s', device_id] if device_id else []
+        
+        try:
+            success, stdout, stderr = self._run_command(
+                device_args + ['shell', 'settings', 'get', 'secure', 'default_input_method']
+            )
+            
+            if success and stdout.strip():
+                ime_id = stdout.strip()
+                print(f"[ADBManager] 当前输入法: {ime_id}")
+                return True, ime_id, ""
+            
+            return False, None, f"获取输入法失败: {stderr}"
+            
+        except Exception as e:
+            return False, None, f"获取输入法异常: {e}"
+    
+    def enable_ime(self, ime_id: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+        """启用输入法
+        
+        Args:
+            ime_id: 输入法ID，如 com.android.adbkeyboard/.AdbIME
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 错误信息)
+        """
+        device_args = ['-s', device_id] if device_id else []
+        
+        try:
+            print(f"[ADBManager] 启用输入法: {ime_id}")
+            success, stdout, stderr = self._run_command(
+                device_args + ['shell', 'ime', 'enable', ime_id],
+                check=False
+            )
+            
+            # 检查是否成功或已启用
+            if success or 'already enabled' in stdout.lower():
+                print(f"[ADBManager] 输入法已启用")
+                return True, ""
+            
+            return False, f"启用输入法失败: {stderr}"
+            
+        except Exception as e:
+            return False, f"启用输入法异常: {e}"
+    
+    def set_ime(self, ime_id: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+        """设置默认输入法
+        
+        Args:
+            ime_id: 输入法ID，如 com.android.adbkeyboard/.AdbIME
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 错误信息)
+        """
+        device_args = ['-s', device_id] if device_id else []
+        
+        try:
+            print(f"[ADBManager] 设置默认输入法: {ime_id}")
+            success, stdout, stderr = self._run_command(
+                device_args + ['shell', 'ime', 'set', ime_id]
+            )
+            
+            if not success:
+                return False, f"设置输入法失败: {stderr}"
+            
+            print(f"[ADBManager] 输入法已设置")
+            return True, ""
+            
+        except Exception as e:
+            return False, f"设置输入法异常: {e}"
+    
+    def switch_to_adbkeyboard(self, device_id: Optional[str] = None) -> Tuple[bool, Optional[str], str]:
+        """切换到ADBKeyboard输入法，并返回原输入法ID
+        
+        Args:
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 原输入法ID, 错误信息)
+        """
+        # 获取当前输入法
+        success, original_ime, error = self.get_current_ime(device_id)
+        if not success:
+            return False, None, f"获取当前输入法失败: {error}"
+        
+        print(f"[ADBManager] 原输入法: {original_ime}")
+        
+        # 如果已经是ADBKeyboard，直接返回
+        adb_ime_id = 'com.android.adbkeyboard/.AdbIME'
+        if original_ime == adb_ime_id:
+            print(f"[ADBManager] 已经是ADBKeyboard输入法")
+            return True, original_ime, ""
+        
+        # 启用ADBKeyboard
+        success, error = self.enable_ime(adb_ime_id, device_id)
+        if not success:
+            return False, original_ime, f"启用ADBKeyboard失败: {error}"
+        
+        # 设置为默认输入法
+        success, error = self.set_ime(adb_ime_id, device_id)
+        if not success:
+            return False, original_ime, f"设置ADBKeyboard失败: {error}"
+        
+        # 等待输入法切换生效
+        # 输入法切换需要一点时间才能真正生效
+        print(f"[ADBManager] 等待输入法切换生效...")
+        time.sleep(0.8)
+        
+        print(f"[ADBManager] 已切换到ADBKeyboard")
+        return True, original_ime, ""
+    
+    def restore_ime(self, ime_id: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+        """恢复输入法
+        
+        Args:
+            ime_id: 要恢复的输入法ID
+            device_id: 设备 ID
+            
+        Returns:
+            (成功与否, 错误信息)
+        """
+        if not ime_id:
+            return True, ""  # 没有原输入法ID，跳过
+        
+        print(f"[ADBManager] 恢复输入法: {ime_id}")
+        
+        # 启用原输入法
+        success, error = self.enable_ime(ime_id, device_id)
+        if not success:
+            return False, f"启用原输入法失败: {error}"
+        
+        # 设置为默认输入法
+        success, error = self.set_ime(ime_id, device_id)
+        if not success:
+            return False, f"恢复原输入法失败: {error}"
+        
+        print(f"[ADBManager] 输入法已恢复")
+        return True, ""
 
 
 # 全局 ADB 管理器实例
