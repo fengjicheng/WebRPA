@@ -308,7 +308,17 @@ export const workflowApi = {
   }),
 
   // 执行工作流
-  execute: (id: string, options?: { headless?: boolean; browserConfig?: { type: string; executablePath?: string; fullscreen?: boolean; autoCloseBrowser?: boolean; launchArgs?: string } }) => request(`/workflows/${id}/execute`, {
+  execute: (id: string, options?: { 
+    headless?: boolean; 
+    browserConfig?: { 
+      type: string; 
+      executablePath?: string; 
+      userDataDir?: string;  // 不指定时!
+      fullscreen?: boolean; 
+      autoCloseBrowser?: boolean; 
+      launchArgs?: string  // 这个参数也没有!
+    } 
+  }) => request(`/workflows/${id}/execute`, {
     method: 'POST',
     body: JSON.stringify(options || {}),
   }),

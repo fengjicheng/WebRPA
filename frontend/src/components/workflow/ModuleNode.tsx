@@ -87,8 +87,13 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
       </div>
       
       {/* 输出连接点 */}
-      {nodeData.moduleType === 'condition' || nodeData.moduleType === 'face_recognition' ? (
-        // 条件判断/人脸识别：绿色=true/匹配，红色=false/不匹配，右侧=异常
+      {nodeData.moduleType === 'condition' || 
+       nodeData.moduleType === 'face_recognition' ||
+       nodeData.moduleType === 'element_exists' ||
+       nodeData.moduleType === 'element_visible' ||
+       nodeData.moduleType === 'image_exists' ||
+       nodeData.moduleType === 'phone_image_exists' ? (
+        // 条件判断/人脸识别/元素判断/图像判断：绿色=true/存在/匹配，红色=false/不存在/不匹配，右侧=异常
         <>
           <Handle
             type="source"
@@ -98,7 +103,9 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
             style={{ left: '30%', width: `${handleSize}px`, height: `${handleSize}px` }}
           />
           <div className="absolute -bottom-5 text-[10px] text-green-600 font-medium" style={{ left: '30%', transform: 'translateX(-50%)' }}>
-            {nodeData.moduleType === 'face_recognition' ? '匹配' : '是'}
+            {nodeData.moduleType === 'face_recognition' ? '匹配' : 
+             nodeData.moduleType === 'element_visible' ? '可见' :
+             nodeData.moduleType === 'element_exists' || nodeData.moduleType === 'image_exists' || nodeData.moduleType === 'phone_image_exists' ? '存在' : '是'}
           </div>
           <Handle
             type="source"
@@ -108,7 +115,9 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
             style={{ left: '70%', width: `${handleSize}px`, height: `${handleSize}px` }}
           />
           <div className="absolute -bottom-5 text-[10px] text-red-600 font-medium" style={{ left: '70%', transform: 'translateX(-50%)' }}>
-            {nodeData.moduleType === 'face_recognition' ? '不匹配' : '否'}
+            {nodeData.moduleType === 'face_recognition' ? '不匹配' : 
+             nodeData.moduleType === 'element_visible' ? '不可见' :
+             nodeData.moduleType === 'element_exists' || nodeData.moduleType === 'image_exists' || nodeData.moduleType === 'phone_image_exists' ? '不存在' : '否'}
           </div>
           {/* 异常处理连接点 */}
           <Handle

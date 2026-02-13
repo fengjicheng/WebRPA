@@ -15,6 +15,8 @@ class PhoneInputTextExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         text = context.resolve_value(config.get('text', ''))
         auto_enter = config.get('autoEnter', False)  # 是否自动回车
+        auto_switch_keyboard = config.get('autoSwitchKeyboard', True)  # 是否自动切换输入法，默认True
+        auto_restore_keyboard = config.get('autoRestoreKeyboard', True)  # 是否自动恢复输入法，默认True
         
         # 自动连接设备
         success, device_id, error = ensure_phone_connected(context)
@@ -28,7 +30,8 @@ class PhoneInputTextExecutor(ModuleExecutor):
             has_chinese = any('\u4e00' <= char <= '\u9fff' for char in text)
             original_ime = None
             
-            if has_chinese:
+            # 如果包含中文且启用了自动切换
+            if has_chinese and auto_switch_keyboard:
                 # 如果包含中文，自动切换到ADBKeyboard
                 print(f"[PhoneInputText] 检测到中文，切换到ADBKeyboard")
                 success, original_ime, error = adb.switch_to_adbkeyboard(device_id)
@@ -38,11 +41,14 @@ class PhoneInputTextExecutor(ModuleExecutor):
                         error=f"切换到ADBKeyboard失败: {error}\n\n请确保已安装ADBKeyboard应用"
                     )
                 
-                # 保存原输入法ID到context，以便工作流结束时恢复
-                if original_ime and original_ime != 'com.android.adbkeyboard/.AdbIME':
+                # 如果启用了自动恢复，保存原输入法ID到context
+                if auto_restore_keyboard and original_ime and original_ime != 'com.android.adbkeyboard/.AdbIME':
                     if 'original_ime' not in context.variables:
                         context.variables['original_ime'] = original_ime
                         print(f"[PhoneInputText] 已保存原输入法: {original_ime}")
+            elif has_chinese and not auto_switch_keyboard:
+                # 包含中文但未启用自动切换，提示用户
+                print(f"[PhoneInputText] 检测到中文，但未启用自动切换输入法，请确保手机默认输入法为ADBKeyboard")
             
             # 输入文本
             success, error = adb.input_text(text, device_id)

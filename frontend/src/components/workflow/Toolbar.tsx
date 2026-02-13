@@ -181,9 +181,11 @@ export function Toolbar() {
       // 传递浏览器配置
       const browserConfig = config.browser ? {
         type: config.browser.type || 'msedge',
-        executablePath: config.browser.executablePath || undefined,
+        executablePath: config.browser.executablePath || undefined,  // 不指定时!
+        userDataDir: config.browser.userDataDir || undefined,  // 不指定时!
         fullscreen: config.browser.fullscreen || false,
-        autoCloseBrowser: config.browser.autoCloseBrowser
+        autoCloseBrowser: config.browser.autoCloseBrowser,
+        launchArgs: config.browser.launchArgs || undefined  // 这个参数也没有!
       } : undefined
       
       console.log('[Toolbar] 执行工作流，无头模式:', headless, '浏览器配置:', browserConfig)

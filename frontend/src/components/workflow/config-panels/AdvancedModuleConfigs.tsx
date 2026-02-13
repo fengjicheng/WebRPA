@@ -3871,3 +3871,205 @@ export function StopScreenShareConfig({ data, onChange }: { data: NodeData; onCh
     </div>
   )
 }
+
+// 图像存在判断配置
+export function ImageExistsConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const useFullScreen = (data.useFullScreen as boolean) ?? true
+  const [useSearchRegion, setUseSearchRegion] = useState(
+    !useFullScreen && !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+  )
+  
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="imagePath">图像路径</Label>
+        <ImagePathInput
+          value={(data.imagePath as string) || ''}
+          onChange={(v) => onChange('imagePath', v)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="confidence">匹配精度</Label>
+        <div className="flex items-center gap-2">
+          <input
+            id="confidence"
+            type="range"
+            min="0.5"
+            max="1"
+            step="0.05"
+            value={(data.confidence as number) || 0.8}
+            onChange={(e) => onChange('confidence', parseFloat(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-sm w-12 text-right">{((data.confidence as number) || 0.8) * 100}%</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          值越高匹配越精确，但可能找不到
+        </p>
+      </div>
+      
+      {/* 识别模式选择 */}
+      <div className="space-y-2">
+        <Label>识别模式</Label>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="radio"
+              id="fullScreen"
+              name="recognitionMode"
+              checked={useFullScreen}
+              onChange={() => {
+                onChange('useFullScreen', true)
+                setUseSearchRegion(false)
+                onChange('searchRegion', null)
+              }}
+              className="cursor-pointer"
+            />
+            <Label htmlFor="fullScreen" className="cursor-pointer font-normal">
+              全屏识别
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="radio"
+              id="regionSearch"
+              name="recognitionMode"
+              checked={!useFullScreen}
+              onChange={() => {
+                onChange('useFullScreen', false)
+                setUseSearchRegion(true)
+              }}
+              className="cursor-pointer"
+            />
+            <Label htmlFor="regionSearch" className="cursor-pointer font-normal">
+              限定区域识别
+            </Label>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          限定区域可提高识别速度
+        </p>
+      </div>
+      
+      {!useFullScreen && useSearchRegion && (
+        <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+          <DualCoordinateInput
+            label="左上角坐标"
+            xValue={(data.searchRegion as Record<string, number>)?.x ?? 0}
+            yValue={(data.searchRegion as Record<string, number>)?.y ?? 0}
+            onXChange={(v) => onChange('searchRegion', { ...(data.searchRegion as object || {}), x: v })}
+            onYChange={(v) => onChange('searchRegion', { ...(data.searchRegion as object || {}), y: v })}
+            onBothChange={(x, y) => onChange('searchRegion', { ...(data.searchRegion as object || {}), x, y })}
+          />
+          <DualCoordinateInput
+            label="右下角坐标"
+            xValue={(data.searchRegion as Record<string, number>)?.x2 ?? 0}
+            yValue={(data.searchRegion as Record<string, number>)?.y2 ?? 0}
+            onXChange={(v) => onChange('searchRegion', { ...(data.searchRegion as object || {}), x2: v })}
+            onYChange={(v) => onChange('searchRegion', { ...(data.searchRegion as object || {}), y2: v })}
+            onBothChange={(x, y) => onChange('searchRegion', { ...(data.searchRegion as object || {}), x2: x, y2: y })}
+          />
+          <p className="text-xs text-muted-foreground">
+            通过左上角和右下角两点确定搜索区域
+          </p>
+        </div>
+      )}
+      
+      <div className="space-y-2">
+        <Label htmlFor="waitTimeout">等待超时 (秒)</Label>
+        <NumberInput
+          id="waitTimeout"
+          value={(data.waitTimeout as number) ?? 5}
+          onChange={(v) => onChange('waitTimeout', v)}
+          defaultValue={5}
+          min={1}
+        />
+        <p className="text-xs text-muted-foreground">
+          在指定时间内查找图像
+        </p>
+      </div>
+      
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-blue-900">
+          💡 使用说明
+        </p>
+        <p className="text-xs text-blue-800">
+          • 此模块类似条件判断，有两个分支输出点
+        </p>
+        <p className="text-xs text-blue-800">
+          • 图像存在时执行"真"分支，不存在时执行"假"分支
+        </p>
+        <p className="text-xs text-blue-800">
+          • 可用于判断界面状态、按钮是否出现等场景
+        </p>
+      </div>
+    </>
+  )
+}
+
+
+// 元素存在判断配置
+export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; onChange: (key: string, value: unknown) => void; renderSelectorInput: (id: string, label: string, placeholder: string) => React.JSX.Element }) {
+  return (
+    <div className="space-y-4">
+      <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-l-4 border-blue-500">
+        <p className="text-sm text-gray-700 font-medium mb-1">
+          🔍 元素存在判断
+        </p>
+        <p className="text-xs text-gray-600">
+          判断指定元素是否存在于页面中，返回 true/false 分支，可用于条件判断流程
+        </p>
+      </div>
+      
+      {renderSelectorInput('selector', '元素选择器', '输入CSS选择器或使用可视化选择')}
+      
+      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="flex items-start gap-2">
+          <div className="text-amber-600 mt-0.5">💡</div>
+          <div className="text-xs text-amber-800 space-y-1">
+            <p className="font-medium">使用说明：</p>
+            <ul className="list-disc list-inside space-y-0.5 ml-2">
+              <li>元素存在时走 true 分支</li>
+              <li>元素不存在时走 false 分支</li>
+              <li>可以连接不同的后续模块实现条件判断</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 元素可见判断配置
+export function ElementVisibleConfig({ renderSelectorInput }: { data: NodeData; onChange: (key: string, value: unknown) => void; renderSelectorInput: (id: string, label: string, placeholder: string) => React.JSX.Element }) {
+  return (
+    <div className="space-y-4">
+      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
+        <p className="text-sm text-gray-700 font-medium mb-1">
+          👁️ 元素可见判断
+        </p>
+        <p className="text-xs text-gray-600">
+          判断指定元素是否在页面中可见（不仅存在，还要显示出来），返回 true/false 分支
+        </p>
+      </div>
+      
+      {renderSelectorInput('selector', '元素选择器', '输入CSS选择器或使用可视化选择')}
+      
+      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="flex items-start gap-2">
+          <div className="text-amber-600 mt-0.5">💡</div>
+          <div className="text-xs text-amber-800 space-y-1">
+            <p className="font-medium">使用说明：</p>
+            <ul className="list-disc list-inside space-y-0.5 ml-2">
+              <li>元素存在且可见时走 true 分支</li>
+              <li>元素不存在或不可见时走 false 分支</li>
+              <li>可用于判断弹窗、提示信息等动态元素</li>
+              <li>比"元素存在判断"更严格，要求元素实际显示</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

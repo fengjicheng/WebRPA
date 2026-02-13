@@ -482,3 +482,128 @@ class PhoneWaitImageExecutor(ModuleExecutor):
             
         except Exception as e:
             return ModuleResult(success=False, error=f"等待图像失败: {str(e)}")
+
+
+
+@register_executor
+class PhoneImageExistsExecutor(ModuleExecutor):
+    """手机图像存在判断 - 判断图像是否存在于手机屏幕上,类似条件判断模块"""
+    
+    @property
+    def module_type(self) -> str:
+        return "phone_image_exists"
+    
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        image_path = context.resolve_value(config.get('imagePath', ''))
+        confidence = to_float(config.get('confidence', 0.8), 0.8, context)
+        wait_timeout = to_int(config.get('waitTimeout', 5), 5, context)
+        
+        if not image_path:
+            return ModuleResult(success=False, error="图像路径不能为空")
+        
+        if not Path(image_path).exists():
+            return ModuleResult(success=False, error=f"图像文件不存在: {image_path}")
+        
+        # 自动连接设备
+        success, device_id, error = ensure_phone_connected(context)
+        if not success:
+            return ModuleResult(success=False, error=error)
+        
+        try:
+            import cv2
+            import numpy as np
+        except ImportError:
+            return ModuleResult(
+                success=False,
+                error="需要安装 opencv-python: pip install opencv-python"
+            )
+        
+        try:
+            adb = get_adb_manager()
+            
+            # 读取模板图像
+            template = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if template is None:
+                return ModuleResult(success=False, error="无法读取图像文件，请检查图像格式")
+            
+            template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+            h, w = template_gray.shape
+            
+            context.log(f"📐 模板图像尺寸: {w}x{h}")
+            
+            start_time = time.time()
+            found = False
+            match_x, match_y = 0, 0
+            best_confidence = 0
+            check_count = 0
+            
+            # 创建临时目录保存截图
+            with tempfile.TemporaryDirectory() as temp_dir:
+                screenshot_path = os.path.join(temp_dir, 'phone_screenshot.png')
+                
+                while time.time() - start_time < wait_timeout:
+                    check_count += 1
+                    
+                    # 截取手机屏幕
+                    success, error = adb.screenshot(screenshot_path, device_id)
+                    if not success:
+                        return ModuleResult(success=False, error=f"截取手机屏幕失败: {error}")
+                    
+                    # 读取截图
+                    screen = cv2.imread(screenshot_path)
+                    if screen is None:
+                        await asyncio.sleep(0.3)
+                        continue
+                    
+                    screen_gray = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+                    screen_h, screen_w = screen_gray.shape
+                    
+                    # 第一次循环时输出屏幕尺寸
+                    if check_count == 1:
+                        context.log(f"📱 手机屏幕截图尺寸: {screen_w}x{screen_h}")
+                    
+                    # 检查模板是否大于屏幕
+                    if w > screen_w or h > screen_h:
+                        return ModuleResult(
+                            success=False,
+                            error=f"❌ 模板图像 ({w}x{h}) 大于手机屏幕 ({screen_w}x{screen_h})，请截取更小的区域作为模板"
+                        )
+                    
+                    # 模板匹配
+                    result = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+                    
+                    # 更新最高匹配度
+                    if max_val > best_confidence:
+                        best_confidence = max_val
+                        context.log(f"🔍 第{check_count}次检测 - 当前最高匹配度: {best_confidence:.2%} (阈值: {confidence:.2%})")
+                    
+                    if max_val >= confidence:
+                        # 找到匹配
+                        match_x = max_loc[0] + w // 2
+                        match_y = max_loc[1] + h // 2
+                        found = True
+                        context.log(f"✅ 找到匹配！位置: ({match_x}, {match_y}), 匹配度: {best_confidence:.2%}")
+                        break
+                    
+                    await asyncio.sleep(0.3)
+            
+            # 根据是否找到图像返回不同的分支
+            branch = 'true' if found else 'false'
+            
+            if found:
+                message = f"图像存在，位置: ({match_x}, {match_y})，匹配度: {best_confidence:.2%}"
+                data = {"exists": True, "x": match_x, "y": match_y, "confidence": best_confidence}
+            else:
+                message = f"图像不存在（最高匹配度: {best_confidence:.2%}，共检测{check_count}次）"
+                data = {"exists": False, "confidence": best_confidence, "check_count": check_count}
+            
+            return ModuleResult(
+                success=True,
+                message=message,
+                branch=branch,
+                data=data
+            )
+            
+        except Exception as e:
+            return ModuleResult(success=False, error=f"图像存在判断失败: {str(e)}")

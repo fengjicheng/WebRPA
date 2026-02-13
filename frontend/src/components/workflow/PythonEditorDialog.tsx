@@ -19,37 +19,81 @@ interface PythonEditorDialogProps {
   onSave: (code: string) => void
 }
 
-const DEFAULT_CODE = `#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Python 脚本
-"""
+const DEFAULT_CODE = `# ========================================
+# WebRPA Python脚本模块 - 使用教程
+# ========================================
 
-import sys
+# 一、访问工作流变量
+# ----------------------------------------
+# 系统自动注入所有工作流变量，可以直接通过 vars.变量名 访问
+# 例如：
+# - vars.username  # 获取 username 变量
+# - vars.count     # 获取 count 变量
+# - vars.items     # 获取 items 列表变量
+# - vars.user_info # 获取 user_info 字典变量
 
-def main():
-    """主函数"""
-    print("Hello from Python!")
-    print(f"Python 版本: {sys.version}")
-    
-    # 在这里编写你的代码
-    
-    # 示例：简单计算
-    # result = sum(range(1, 11))
-    # print(f"1到10的和: {result}")
-    
-    # 示例：文件操作
-    # with open('output.txt', 'w', encoding='utf-8') as f:
-    #     f.write('Hello World')
-    
-    # 示例：命令行参数
-    # if len(sys.argv) > 1:
-    #     print(f"接收到参数: {sys.argv[1:]}")
-    
-    return 0
+# 如果变量不存在，可以使用 get() 方法提供默认值
+# username = vars.get('username', '默认用户')
+# age = vars.get('age', 0)
 
-if __name__ == "__main__":
-    exit(main())
+# 查看所有可用变量
+print(f"所有可用变量: {list(vars.keys())}")
+
+
+# 二、编写你的业务逻辑
+# ----------------------------------------
+# 示例1：简单计算
+result = 1 + 1
+print(f"计算结果: {result}")
+
+# 示例2：使用工作流变量
+# 假设工作流中有一个名为 'name' 的变量
+if 'name' in vars.keys():
+    name = vars.name  # 或者 vars.get('name')
+    greeting = f"你好, {name}!"
+    print(greeting)
+
+# 示例3：处理列表数据
+# 假设工作流中有一个名为 'numbers' 的列表变量
+if 'numbers' in vars.keys():
+    numbers = vars.numbers
+    total = sum(numbers)
+    print(f"数字总和: {total}")
+
+
+# 三、返回结果给工作流
+# ----------------------------------------
+# 直接使用 return 返回结果即可
+# 支持任意类型：字符串、数字、列表、字典等
+
+# 示例：返回字典
+output_data = {
+    'status': 'success',
+    'result': result,
+    'message': '处理完成'
+}
+
+# 直接返回（系统会自动保存到指定的返回值变量）
+return output_data
+
+
+# ========================================
+# 使用提示
+# ========================================
+# 1. 访问变量：直接使用 vars.变量名 或 vars.get('变量名', 默认值)
+#    系统会自动注入所有工作流变量，无需手动配置
+#
+# 2. 返回值：直接使用 return 返回任意类型的数据
+#    在配置面板的"返回值变量"中指定接收变量名
+#    例如：result，然后可以用 {result} 引用
+#
+# 3. 标准输出：print() 的内容会保存到"标准输出变量"（如果配置了）
+#
+# 4. 内置库：可以使用Python 3.13的所有标准库
+#    以及WebRPA内置的第三方库（requests、pandas等）
+#
+# 5. 简单易用：就像写普通Python脚本一样，无需复杂配置
+# ========================================
 `
 
 export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEditorDialogProps) {

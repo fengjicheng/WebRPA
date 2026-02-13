@@ -74,11 +74,14 @@ import {
   RealKeyboardConfig,
   RunCommandConfig,
   ClickImageConfig,
+  ImageExistsConfig,
   GetMousePositionConfig,
   ScreenshotScreenConfig,
   RenameFileConfig,
   NetworkCaptureConfig,
   MacroRecorderConfig,
+  ElementExistsConfig,
+  ElementVisibleConfig,
 } from './config-panels/AdvancedModuleConfigs'
 import {
   AIChatConfig,
@@ -218,6 +221,7 @@ import {
   PhoneClickImageConfig,
   PhoneClickTextConfig,
   PhoneWaitImageConfig,
+  PhoneImageExistsConfig,
   PhoneSetVolumeConfig,
   PhoneSetBrightnessConfig,
   PhoneSetClipboardConfig,
@@ -702,6 +706,12 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <RunCommandConfig data={nodeData} onChange={handleChange} />
       case 'click_image':
         return <ClickImageConfig data={nodeData} onChange={handleChange} />
+      case 'image_exists':
+        return <ImageExistsConfig data={nodeData} onChange={handleChange} />
+      case 'element_exists':
+        return <ElementExistsConfig {...props} />
+      case 'element_visible':
+        return <ElementVisibleConfig {...props} />
       case 'get_mouse_position':
         return <GetMousePositionConfig data={nodeData} onChange={handleChange} />
       case 'screenshot_screen':
@@ -982,6 +992,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <PhoneClickTextConfig data={nodeData} onChange={handleChange} />
       case 'phone_wait_image':
         return <PhoneWaitImageConfig data={nodeData} onChange={handleChange} />
+      case 'phone_image_exists':
+        return <PhoneImageExistsConfig data={nodeData} onChange={handleChange} />
       case 'phone_set_volume':
         return <PhoneSetVolumeConfig data={nodeData} onChange={handleChange} />
       case 'phone_set_brightness':

@@ -1285,8 +1285,42 @@ class WorkflowExecutor:
                 step_value = loop_state['step_value']
                 should_continue = current <= end_value if step_value > 0 else current >= end_value
             elif loop_type == 'while':
-                condition_value = self.context.get_variable(loop_state['condition'], False)
-                should_continue = bool(condition_value)
+                # 条件循环:评估条件表达式
+                condition = loop_state['condition']
+                if not condition:
+                    should_continue = False
+                else:
+                    try:
+                        # 向下兼容：如果条件是纯变量名（不包含花括号、运算符等），自动转换为 {变量名}
+                        # 检查是否是纯变量名（只包含字母、数字、下划线、中文）
+                        import re
+                        if re.match(r'^[a-zA-Z0-9_\u4e00-\u9fa5]+$', condition.strip()):
+                            # 是纯变量名，转换为 {变量名} 格式
+                            condition = f'{{{condition.strip()}}}'
+                        
+                        # 先解析变量引用
+                        resolved_condition = self.context.resolve_value(condition)
+                        
+                        # 如果解析后是布尔值或可以直接转换的值,直接使用
+                        if isinstance(resolved_condition, bool):
+                            should_continue = resolved_condition
+                        elif isinstance(resolved_condition, str):
+                            # 如果是字符串,尝试作为表达式评估
+                            # 支持的表达式: {count} < 10, {index} >= 5, {value} == "test" 等
+                            try:
+                                # 创建安全的评估环境,只包含变量
+                                eval_globals = {"__builtins__": {}}
+                                eval_locals = dict(self.context.variables)
+                                should_continue = bool(eval(resolved_condition, eval_globals, eval_locals))
+                            except Exception as e:
+                                # 如果表达式评估失败,尝试作为布尔值判断
+                                should_continue = resolved_condition.lower() in ('true', '1') and resolved_condition.strip() != ''
+                        else:
+                            # 其他类型,转换为布尔值
+                            should_continue = bool(resolved_condition)
+                    except Exception as e:
+                        await self._log(LogLevel.ERROR, f"循环条件评估失败: {str(e)}", node_id=loop_node.id)
+                        should_continue = False
             elif loop_type == 'foreach':
                 should_continue = loop_state['current_index'] < len(loop_state['data'])
             

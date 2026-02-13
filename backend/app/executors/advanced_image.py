@@ -779,3 +779,155 @@ class DragImageExecutor(ModuleExecutor):
             return (rand_x, rand_y)
         else:
             return (left + w // 2, top + h // 2)
+
+
+@register_executor
+class ImageExistsExecutor(ModuleExecutor):
+    """图像存在判断模块执行器 - 判断图像是否存在于屏幕上,类似条件判断模块"""
+
+    @property
+    def module_type(self) -> str:
+        return "image_exists"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        import ctypes
+
+        image_path = context.resolve_value(config.get("imagePath", ""))
+        confidence = to_float(config.get("confidence", 0.8), 0.8, context)
+        wait_timeout = to_int(config.get("waitTimeout", 5), 5, context)
+        search_region = config.get("searchRegion", None)
+        use_full_screen = config.get("useFullScreen", True)  # 是否全屏识别
+
+        if not image_path:
+            return ModuleResult(success=False, error="图像路径不能为空")
+
+        if not Path(image_path).exists():
+            return ModuleResult(success=False, error=f"图像文件不存在: {image_path}")
+
+        try:
+            import cv2
+            import numpy as np
+            
+            # 设置 DPI 感知
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+            except:
+                try:
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except:
+                    pass
+            
+            # 读取模板图像
+            template = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
+            if template is None:
+                return ModuleResult(success=False, error="无法读取图像文件，请检查图像格式")
+
+            template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+            h, w = template_gray.shape
+
+            # 解析搜索区域
+            region_x, region_y, region_w, region_h = parse_search_region(search_region)
+            use_region = (not use_full_screen) and region_w > 0 and region_h > 0
+
+            # 获取虚拟屏幕尺寸
+            SM_XVIRTUALSCREEN = 76
+            SM_YVIRTUALSCREEN = 77
+            SM_CXVIRTUALSCREEN = 78
+            SM_CYVIRTUALSCREEN = 79
+            
+            virtual_left = ctypes.windll.user32.GetSystemMetrics(SM_XVIRTUALSCREEN)
+            virtual_top = ctypes.windll.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+            virtual_width = ctypes.windll.user32.GetSystemMetrics(SM_CXVIRTUALSCREEN)
+            virtual_height = ctypes.windll.user32.GetSystemMetrics(SM_CYVIRTUALSCREEN)
+
+            start_time = time.time()
+            found = False
+            best_confidence = 0
+            match_x, match_y = 0, 0
+
+            while time.time() - start_time < wait_timeout:
+                # 截取屏幕
+                if use_region:
+                    # 使用指定区域截图
+                    from PIL import ImageGrab
+                    screenshot_pil = ImageGrab.grab(bbox=(region_x, region_y, region_x + region_w, region_y + region_h))
+                    screen = cv2.cvtColor(np.array(screenshot_pil), cv2.COLOR_RGB2BGR)
+                    offset_x, offset_y = region_x, region_y
+                else:
+                    # 全屏截图
+                    try:
+                        import win32gui
+                        import win32ui
+                        import win32con
+                        
+                        hdesktop = win32gui.GetDesktopWindow()
+                        desktop_dc = win32gui.GetWindowDC(hdesktop)
+                        img_dc = win32ui.CreateDCFromHandle(desktop_dc)
+                        mem_dc = img_dc.CreateCompatibleDC()
+                        
+                        screenshot = win32ui.CreateBitmap()
+                        screenshot.CreateCompatibleBitmap(img_dc, virtual_width, virtual_height)
+                        mem_dc.SelectObject(screenshot)
+                        mem_dc.BitBlt((0, 0), (virtual_width, virtual_height), img_dc, 
+                                      (virtual_left, virtual_top), win32con.SRCCOPY)
+                        
+                        bmpinfo = screenshot.GetInfo()
+                        bmpstr = screenshot.GetBitmapBits(True)
+                        screen = np.frombuffer(bmpstr, dtype=np.uint8).reshape(
+                            (bmpinfo['bmHeight'], bmpinfo['bmWidth'], 4))
+                        screen = cv2.cvtColor(screen, cv2.COLOR_BGRA2BGR)
+                        
+                        mem_dc.DeleteDC()
+                        win32gui.DeleteObject(screenshot.GetHandle())
+                        win32gui.ReleaseDC(hdesktop, desktop_dc)
+                        offset_x, offset_y = virtual_left, virtual_top
+                        
+                    except ImportError:
+                        from PIL import ImageGrab
+                        screenshot_pil = ImageGrab.grab(all_screens=True)
+                        screen = cv2.cvtColor(np.array(screenshot_pil), cv2.COLOR_RGB2BGR)
+                        offset_x, offset_y = 0, 0
+
+                screen_gray = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+
+                # 模板匹配
+                result = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+
+                if max_val > best_confidence:
+                    best_confidence = max_val
+
+                if max_val >= confidence:
+                    # 找到匹配
+                    match_x = offset_x + max_loc[0] + w // 2
+                    match_y = offset_y + max_loc[1] + h // 2
+                    found = True
+                    break
+
+                await asyncio.sleep(0.3)
+
+            # 根据是否找到图像返回不同的分支
+            branch = 'true' if found else 'false'
+            
+            if found:
+                message = f"图像存在，位置: ({match_x}, {match_y})，匹配度: {best_confidence:.2%}"
+                data = {"exists": True, "x": match_x, "y": match_y, "confidence": best_confidence}
+            else:
+                message = f"图像不存在（最高匹配度: {best_confidence:.2%}）"
+                data = {"exists": False, "confidence": best_confidence}
+
+            return ModuleResult(
+                success=True,
+                message=message,
+                branch=branch,
+                data=data
+            )
+
+        except ImportError as e:
+            missing = str(e).split("'")[1] if "'" in str(e) else "opencv-python/Pillow"
+            return ModuleResult(
+                success=False, 
+                error=f"需要安装依赖库: pip install {missing}"
+            )
+        except Exception as e:
+            return ModuleResult(success=False, error=f"图像存在判断失败: {str(e)}")

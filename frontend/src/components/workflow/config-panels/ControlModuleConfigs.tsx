@@ -131,6 +131,8 @@ export function ConditionConfig({
               <option value="!=">不等于（!=）</option>
               <option value=">">大于（&gt;）</option>
               <option value="<">小于（&lt;）</option>
+              <option value=">=">大于等于（&gt;=）</option>
+              <option value="<=">小于等于（&lt;=）</option>
               <option value="contains">包含</option>
               <option value="isEmpty">为空</option>
               <option value="isNotEmpty">不为空</option>
@@ -241,15 +243,24 @@ export function LoopConfig({ data, onChange }: { data: NodeData; onChange: (key:
       {loopType === 'while' && (
         <div className="space-y-2">
           <Label htmlFor="condition">循环条件</Label>
-          <VariableRefInput
-            id="condition"
+          <VariableInput
             value={(data.condition as string) || ''}
             onChange={(v) => onChange('condition', v)}
-            placeholder="输入条件，如 {count} < 10"
+            placeholder='输入条件，如 {count} < 10'
           />
-          <p className="text-xs text-muted-foreground">
-            当条件为真时继续循环
-          </p>
+          <div className="text-xs space-y-1">
+            <p className="text-muted-foreground">
+              当条件为真时继续循环
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded p-2 space-y-1">
+              <p className="text-amber-800 font-medium">💡 条件表达式示例:</p>
+              <p className="text-amber-700 font-mono">• 数值比较: {`{count} < 10`}</p>
+              <p className="text-amber-700 font-mono">• 复合条件: {`{index} >= 5 and {index} <= 15`}</p>
+              <p className="text-amber-700 font-mono">• 字符串比较: {`"{status}" == "running"`}</p>
+              <p className="text-amber-700 font-mono">• 布尔变量: {`{is_active}`}</p>
+              <p className="text-orange-600 font-medium mt-1">⚠️ 字符串变量需要加引号: {`"{变量}"`} 而不是 {`{变量}`}</p>
+            </div>
+          </div>
         </div>
       )}
       

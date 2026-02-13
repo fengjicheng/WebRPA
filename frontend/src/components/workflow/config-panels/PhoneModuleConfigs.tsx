@@ -22,9 +22,6 @@ export function PhoneTapConfig({ data, onChange }: { data: NodeData; onChange: (
           onXChange={(v) => onChange('x', v)}
           onYChange={(v) => onChange('y', v)}
         />
-        <p className="text-xs text-muted-foreground">
-          点击「拾取」按钮启动手机镜像窗口，在镜像中点击要获取坐标的位置
-        </p>
       </div>
     </>
   )
@@ -218,6 +215,10 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
     }
   }
 
+  // 获取复选框的值，默认为 true
+  const autoSwitchKeyboard = (data.autoSwitchKeyboard as boolean) ?? true
+  const autoRestoreKeyboard = (data.autoRestoreKeyboard as boolean) ?? true
+
   return (
     <>
       <div className="space-y-2">
@@ -248,6 +249,62 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
         <p className="text-xs text-muted-foreground">
           勾选后会在输入文本后自动按下回车键
         </p>
+      </div>
+
+      {/* 输入法切换选项 */}
+      <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg space-y-3">
+        <p className="text-xs font-semibold text-indigo-900">
+          ⌨️ 输入法切换设置
+        </p>
+        
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="autoSwitchKeyboard"
+              checked={autoSwitchKeyboard}
+              onCheckedChange={(checked) => onChange('autoSwitchKeyboard', checked)}
+            />
+            <Label htmlFor="autoSwitchKeyboard" className="text-sm font-normal cursor-pointer">
+              自动切换到 ADBKeyboard
+            </Label>
+          </div>
+          <p className="text-xs text-indigo-700 ml-6">
+            检测到中文时自动切换到 ADBKeyboard 输入法
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="autoRestoreKeyboard"
+              checked={autoRestoreKeyboard}
+              onCheckedChange={(checked) => onChange('autoRestoreKeyboard', checked)}
+            />
+            <Label htmlFor="autoRestoreKeyboard" className="text-sm font-normal cursor-pointer">
+              自动切回原输入法
+            </Label>
+          </div>
+          <p className="text-xs text-indigo-700 ml-6">
+            输入完成后自动恢复到原来的输入法
+          </p>
+        </div>
+
+        {(!autoSwitchKeyboard || !autoRestoreKeyboard) && (
+          <div className="p-2 bg-orange-50 border border-orange-300 rounded space-y-1">
+            <p className="text-xs font-semibold text-orange-900">
+              ⚡ 性能优化提示
+            </p>
+            <p className="text-xs text-orange-800">
+              • 关闭自动切换可以提高输入速度（减少输入法切换步骤）
+            </p>
+            <p className="text-xs text-orange-800">
+              • 关闭前提：需手动将手机默认输入法改为 ADBKeyboard
+            </p>
+            <p className="text-xs text-orange-800">
+              • 设置方法：手机「设置」→「语言与输入法」→「默认输入法」→ 选择「ADBKeyboard」
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
@@ -295,7 +352,7 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
               disabled={installing}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-md transition-colors"
             >
-              {installing ? '正在安装...' : '🚀 一键安装 ADBKeyboard'}
+              {installing ? '正在安装...' : '� 一键安装 ADBKeyboard'}
             </button>
           </>
         )}
@@ -1239,9 +1296,22 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
         )}
 
         {clipperStatus === 'installed' && (
-          <p className="text-xs text-green-700">
-            Clipper 已安装，可以正常使用剪贴板功能。
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-green-700 font-semibold">
+              ✅ Clipper 已安装，可以正常使用剪贴板功能。
+            </p>
+            <div className="pl-3 border-l-2 border-green-300 space-y-1">
+              <p className="text-xs text-green-800">
+                📌 使用说明：
+              </p>
+              <p className="text-xs text-green-700">
+                1. 安装后启动 Clipper APP 并赋予权限
+              </p>
+              <p className="text-xs text-green-700">
+                2. 最好将 APP 的省电策略改成"无限制"
+              </p>
+            </div>
+          </div>
         )}
 
         {clipperStatus === 'error' && (
@@ -1253,7 +1323,7 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
               onClick={checkClipperStatus}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
             >
-              🔄 重新检查
+              � 重新检查
             </button>
           </>
         )}
@@ -1400,9 +1470,22 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
         )}
 
         {clipperStatus === 'installed' && (
-          <p className="text-xs text-green-700">
-            Clipper 已安装，可以正常使用剪贴板功能。
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-green-700 font-semibold">
+              ✅ Clipper 已安装，可以正常使用剪贴板功能。
+            </p>
+            <div className="pl-3 border-l-2 border-green-300 space-y-1">
+              <p className="text-xs text-green-800">
+                📌 使用说明：
+              </p>
+              <p className="text-xs text-green-700">
+                1. 安装后启动 Clipper APP 并赋予权限
+              </p>
+              <p className="text-xs text-green-700">
+                2. 最好将 APP 的省电策略改成"无限制"
+              </p>
+            </div>
+          </div>
         )}
 
         {clipperStatus === 'error' && (
@@ -1414,7 +1497,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
               onClick={checkClipperStatus}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
             >
-              🔄 重新检查
+              � 重新检查
             </button>
           </>
         )}
@@ -1456,3 +1539,83 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
   )
 }
 
+
+
+// 手机图像存在判断配置
+export function PhoneImageExistsConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="imagePath">图像路径</Label>
+        <ImagePathInput
+          value={(data.imagePath as string) || ''}
+          onChange={(v) => onChange('imagePath', v)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="confidence">匹配精度</Label>
+        <div className="flex items-center gap-2">
+          <input
+            id="confidence"
+            type="range"
+            min="0.5"
+            max="1"
+            step="0.05"
+            value={(data.confidence as number) || 0.8}
+            onChange={(e) => onChange('confidence', parseFloat(e.target.value))}
+            className="flex-1"
+          />
+          <span className="text-sm w-12 text-right">{((data.confidence as number) || 0.8) * 100}%</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          值越高匹配越精确，但可能找不到
+        </p>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="waitTimeout">等待超时 (秒)</Label>
+        <NumberInput
+          id="waitTimeout"
+          value={(data.waitTimeout as number) ?? 5}
+          onChange={(v) => onChange('waitTimeout', v)}
+          defaultValue={5}
+          min={1}
+        />
+        <p className="text-xs text-muted-foreground">
+          在指定时间内查找图像
+        </p>
+      </div>
+      
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-amber-900">
+          ⚠️ 重要提示
+        </p>
+        <p className="text-xs text-amber-800">
+          • 请使用从相同分辨率手机截取的图像作为模板
+        </p>
+        <p className="text-xs text-amber-800">
+          • 截取更小、更独特的区域可提高识别准确度
+        </p>
+        <p className="text-xs text-amber-800">
+          • 如果识别失败，可以尝试降低匹配精度
+        </p>
+      </div>
+      
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+        <p className="text-xs font-semibold text-blue-900">
+          💡 使用说明
+        </p>
+        <p className="text-xs text-blue-800">
+          • 此模块类似条件判断，有两个分支输出点
+        </p>
+        <p className="text-xs text-blue-800">
+          • 图像存在时执行"真"分支，不存在时执行"假"分支
+        </p>
+        <p className="text-xs text-blue-800">
+          • 可用于判断界面状态、按钮是否出现等场景
+        </p>
+      </div>
+    </>
+  )
+}

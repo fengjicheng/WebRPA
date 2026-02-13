@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Smartphone, Loader2, X, Play } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Loader2, Play } from 'lucide-react'
 import { VariableInput } from './variable-input'
 import { Button } from './button'
 import { cn } from '@/lib/utils'
@@ -24,11 +24,9 @@ export function PhoneCoordinateInput({
   yPlaceholder = '手机屏幕Y坐标',
   className,
 }: PhoneCoordinateInputProps) {
-  const [isPicking, setIsPicking] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [statusText, setStatusText] = useState('')
   const [deviceId, setDeviceId] = useState<string | null>(null)
-  const pollingIntervalRef = useRef<number | null>(null)
 
   // 检查设备
   const checkDevice = async () => {
@@ -47,105 +45,6 @@ export function PhoneCoordinateInput({
   useEffect(() => {
     checkDevice()
   }, [])
-
-  // 轮询坐标
-  const startPolling = () => {
-    if (pollingIntervalRef.current) return
-
-    let lastCoord: { x: number; y: number } | null = null
-
-    pollingIntervalRef.current = window.setInterval(async () => {
-      try {
-        const statusResult = await phoneApi.getMirrorStatus()
-        if (statusResult.data?.status && !statusResult.data.status.running) {
-          handleStop()
-          return
-        }
-
-        const result = await phoneApi.getPickedCoordinate()
-        if (result.data?.picked && result.data.x !== undefined && result.data.y !== undefined) {
-          const currentCoord = { x: result.data.x, y: result.data.y }
-          
-          if (!lastCoord || lastCoord.x !== currentCoord.x || lastCoord.y !== currentCoord.y) {
-            onXChange(String(currentCoord.x))
-            onYChange(String(currentCoord.y))
-            setStatusText(`✅ 已获取坐标: (${currentCoord.x}, ${currentCoord.y})`)
-            setTimeout(() => {
-              if (isPicking) {
-                setStatusText('✅ 运行中，按住 Ctrl+左键 获取坐标')
-              }
-            }, 2000)
-            
-            lastCoord = currentCoord
-          }
-        }
-      } catch (error) {
-        console.error('Failed to get coordinate:', error)
-      }
-    }, 200)
-  }
-
-  const stopPolling = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-  }
-
-  useEffect(() => {
-    return () => stopPolling()
-  }, [])
-
-  const handlePick = async () => {
-    if (isPicking) return
-    
-    setIsPicking(true)
-    setStatusText('正在检查设备...')
-    
-    const currentDeviceId = await checkDevice()
-    
-    if (!currentDeviceId) {
-      setStatusText('❌ 未检测到设备，请先连接手机')
-      setTimeout(() => setStatusText(''), 3000)
-      setIsPicking(false)
-      return
-    }
-    
-    setStatusText('正在启动镜像窗口...')
-    
-    try {
-      const result = await phoneApi.startCoordinatePicker(currentDeviceId, 1920, '8M')
-      
-      if (!result.data?.success) {
-        setStatusText(`❌ 启动失败: ${result.data?.error || result.error || '未知错误'}`)
-        setTimeout(() => setStatusText(''), 3000)
-        setIsPicking(false)
-        return
-      }
-      
-      setStatusText('✅ 已启动！按住 Ctrl+左键 获取坐标')
-      startPolling()
-      
-    } catch (error) {
-      console.error('Failed to start:', error)
-      setStatusText('❌ 启动失败')
-      setTimeout(() => setStatusText(''), 2000)
-      setIsPicking(false)
-    }
-  }
-
-  const handleStop = async () => {
-    try {
-      stopPolling()
-      await phoneApi.stopCoordinatePicker()
-      setStatusText('')
-      setIsPicking(false)
-    } catch (error) {
-      console.error('Failed to stop:', error)
-      setStatusText('')
-      setIsPicking(false)
-    }
-  }
 
   const handleTest = async () => {
     const x = parseInt(xValue)
@@ -206,38 +105,13 @@ export function PhoneCoordinateInput({
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          {!isPicking ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handlePick}
-              className="h-8 px-3 flex items-center justify-center gap-1"
-              title="启动镜像窗口，按住 Ctrl+左键 获取坐标"
-            >
-              <Smartphone className="h-3 w-3" />
-              <span className="text-xs whitespace-nowrap">拾取</span>
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={handleStop}
-              className="h-8 px-3 flex items-center justify-center gap-1"
-              title="关闭坐标选择器"
-            >
-              <X className="h-3 w-3" />
-              <span className="text-xs whitespace-nowrap">关闭</span>
-            </Button>
-          )}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleTest}
             disabled={isTesting || !xValue || !yValue || !deviceId}
-            className="h-8 px-3 flex items-center justify-center gap-1"
+            className="h-16 px-3 flex items-center justify-center gap-1"
             title="在手机上测试当前坐标"
           >
             {isTesting ? (
@@ -265,7 +139,7 @@ export function PhoneCoordinateInput({
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          点击「拾取」启动镜像窗口，按住 Ctrl+左键 获取坐标。点击「测试」验证坐标。
+          请先到「手机镜像」中启动设备，然后通过查看「指针位置」来手动填写上方的坐标输入框。点击「测试」可验证坐标是否正确。
         </p>
       )}
     </div>

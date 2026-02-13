@@ -1050,3 +1050,4 @@ async def check_adbkeyboard_installed(device_id: Optional[str] = None):
         
     except Exception as e:
         return {"success": False, "error": str(e)}
+

@@ -310,6 +310,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   phone_click_image: Image,
   phone_click_text: Type,
   phone_wait_image: Clock,
+  phone_image_exists: GitBranch,
   phone_set_volume: Volume2,
   phone_set_brightness: Sun,
   phone_set_clipboard: ClipboardPaste,
@@ -330,6 +331,9 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   real_keyboard: Keyboard,
   run_command: Terminal,
   click_image: Image,
+  image_exists: GitBranch,
+  element_exists: GitBranch,
+  element_visible: GitBranch,
   get_mouse_position: Crosshair,
   screenshot_screen: Monitor,
   network_capture: Radio,
@@ -518,6 +522,9 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   real_keyboard: ['真实', '键盘', '按键', '物理', 'keyboard', 'key', '系统', '硬件', '输入', '打字'],
   run_command: ['执行', '命令', '终端', 'cmd', 'command', 'shell', 'powershell', '脚本', '系统'],
   click_image: ['点击', '图像', '图片', '识别', 'image', 'click', '屏幕', '匹配', '查找'],
+  image_exists: ['图像', '存在', '判断', '检测', 'image', 'exists', '识别', '条件', '分支', '屏幕'],
+  element_exists: ['元素', '存在', '判断', '检测', 'element', 'exists', '条件', '分支', '网页', 'dom'],
+  element_visible: ['元素', '可见', '判断', '检测', 'element', 'visible', '条件', '分支', '网页', 'dom', '显示'],
   get_mouse_position: ['获取', '鼠标', '位置', '坐标', 'mouse', 'position', 'cursor', '光标'],
   screenshot_screen: ['截屏', '屏幕', '截图', '桌面', 'screenshot', 'screen', 'capture', '全屏'],
   network_capture: ['网络', '抓包', '请求', 'network', 'capture', 'request', 'url', '监听', 'F12'],
@@ -631,6 +638,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   phone_click_image: ['手机', '点击', '图像', '图片', 'phone', 'click', 'image', '识别', '视觉'],
   phone_click_text: ['手机', '点击', '文本', '文字', 'phone', 'click', 'text', 'ocr', '识别'],
   phone_wait_image: ['手机', '等待', '图像', '图片', 'phone', 'wait', 'image', '识别', '出现'],
+  phone_image_exists: ['手机', '图像', '存在', '判断', '检测', 'phone', 'image', 'exists', '识别', '条件', '分支'],
   phone_set_volume: ['手机', '设置', '音量', '声音', 'phone', 'volume', 'sound', '调节'],
   phone_set_brightness: ['手机', '设置', '亮度', '屏幕', 'phone', 'brightness', 'screen', '调节'],
   phone_set_clipboard: ['手机', '写入', '剪贴板', '复制', 'phone', 'clipboard', 'copy', '粘贴板'],
@@ -780,6 +788,11 @@ const moduleCategories = [
     modules: ['get_child_elements', 'get_sibling_elements'] as ModuleType[],
   },
   {
+    name: '🔍 元素判断',
+    color: 'bg-indigo-600',
+    modules: ['element_exists', 'element_visible'] as ModuleType[],
+  },
+  {
     name: '📥 数据采集',
     color: 'bg-emerald-500',
     modules: ['get_element_info', 'screenshot', 'save_image', 'download_file', 'extract_table_data'] as ModuleType[],
@@ -808,7 +821,7 @@ const moduleCategories = [
   {
     name: '🎯 图像/文字识别点击',
     color: 'bg-rose-500',
-    modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image'] as ModuleType[],
+    modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image', 'image_exists'] as ModuleType[],
   },
   {
     name: '📷 屏幕操作',
@@ -945,7 +958,7 @@ const moduleCategories = [
   {
     name: '📱 手机自动化',
     color: 'bg-cyan-600',
-    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
+    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_image_exists', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
   },
   {
     name: '🔗 网络共享',

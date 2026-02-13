@@ -275,6 +275,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   phone_click_image: '📱 点击图像',
   phone_click_text: '📱 点击文本',
   phone_wait_image: '📱 等待图像',
+  phone_image_exists: '📱 图像存在判断',
   phone_set_volume: '📱 设置音量',
   phone_set_brightness: '📱 设置亮度',
   phone_set_clipboard: '📱 写入剪贴板',
@@ -336,6 +337,9 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   real_keyboard: '真实键盘操作',
   run_command: '执行命令',
   click_image: '点击图像',
+  image_exists: '图像存在判断',
+  element_exists: '元素存在判断',
+  element_visible: '元素可见判断',
   get_mouse_position: '获取鼠标位置',
   screenshot_screen: '屏幕截图',
   rename_file: '文件重命名',
@@ -617,6 +621,9 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   real_keyboard: 60000,    // 60秒
   run_command: 300000,     // 5分钟，命令可能耗时
   click_image: 60000,      // 1分钟
+  image_exists: 60000,     // 1分钟
+  element_exists: 60000,   // 1分钟
+  element_visible: 60000,  // 1分钟
   get_mouse_position: 5000,// 5秒
   screenshot_screen: 10000,// 10秒
   rename_file: 10000,      // 10秒
@@ -703,6 +710,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   phone_click_image: 60000,  // 1分钟
   phone_click_text: 60000,   // 1分钟
   phone_wait_image: 60000,   // 1分钟
+  phone_image_exists: 60000, // 1分钟
   phone_set_volume: 30000,   // 30秒
   phone_set_brightness: 10000, // 10秒
   phone_set_clipboard: 10000, // 10秒
@@ -1239,6 +1247,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       defaultData = {
         resultVariable: 'phone_wait_result',
       }
+    } else if (type === 'phone_image_exists') {
+      // 手机图像存在判断模块默认变量
+      defaultData = {
+        resultVariable: 'phone_image_exists_result',
+      }
     } else if (type === 'phone_get_clipboard') {
       // 手机读取剪贴板模块默认变量
       defaultData = {
@@ -1620,7 +1633,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     // 将默认变量名添加到变量列表中
     const variableFields = [
       'variableName', 'resultVariable', 'itemVariable', 'indexVariable', 
-      'loopIndexVariable', 'saveToVariable', 'saveNewElementSelector', 'saveChangeInfo'
+      'loopIndexVariable', 'saveToVariable', 'saveNewElementSelector', 'saveChangeInfo',
+      // 坐标相关
+      'variableNameX', 'variableNameY',
+      // Python脚本相关
+      'stdoutVariable', 'stderrVariable', 'returnCodeVariable',
+      // 数据提取相关
+      'columnName',
+      // 其他可能的变量名字段
+      'outputVariable', 'targetVariable', 'dataVariable'
     ]
     const newVariables: string[] = []
     for (const field of variableFields) {

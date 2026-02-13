@@ -1028,19 +1028,82 @@ export function JsScriptConfig({ data, onChange }: { data: NodeData; onChange: (
   )
 }
 
-// Python脚本默认代码
-const DEFAULT_PYTHON_CODE = `# Python脚本示例
-# 可以通过 sys.argv 获取参数
-# 可以使用 print() 输出结果
+// Python脚本默认代码（包含详细教学注释）
+const DEFAULT_PYTHON_CODE = `# ========================================
+# WebRPA Python脚本模块 - 使用教程
+# ========================================
 
-def main():
-    # 在这里编写你的Python代码
-    result = "Hello from Python!"
-    print(result)
-    return 0
+# 一、访问工作流变量
+# ----------------------------------------
+# 系统自动注入所有工作流变量，可以直接通过 vars.变量名 访问
+# 例如：
+# - vars.username  # 获取 username 变量
+# - vars.count     # 获取 count 变量
+# - vars.items     # 获取 items 列表变量
+# - vars.user_info # 获取 user_info 字典变量
 
-if __name__ == "__main__":
-    exit(main())
+# 如果变量不存在，可以使用 get() 方法提供默认值
+# username = vars.get('username', '默认用户')
+# age = vars.get('age', 0)
+
+# 查看所有可用变量
+print(f"所有可用变量: {list(vars.keys())}")
+
+
+# 二、编写你的业务逻辑
+# ----------------------------------------
+# 示例1：简单计算
+result = 1 + 1
+print(f"计算结果: {result}")
+
+# 示例2：使用工作流变量
+# 假设工作流中有一个名为 'name' 的变量
+if 'name' in vars.keys():
+    name = vars.name  # 或者 vars.get('name')
+    greeting = f"你好, {name}!"
+    print(greeting)
+
+# 示例3：处理列表数据
+# 假设工作流中有一个名为 'numbers' 的列表变量
+if 'numbers' in vars.keys():
+    numbers = vars.numbers
+    total = sum(numbers)
+    print(f"数字总和: {total}")
+
+
+# 三、返回结果给工作流
+# ----------------------------------------
+# 直接使用 return 返回结果即可
+# 支持任意类型：字符串、数字、列表、字典等
+
+# 示例：返回字典
+output_data = {
+    'status': 'success',
+    'result': result,
+    'message': '处理完成'
+}
+
+# 直接返回（系统会自动保存到指定的返回值变量）
+return output_data
+
+
+# ========================================
+# 使用提示
+# ========================================
+# 1. 访问变量：直接使用 vars.变量名 或 vars.get('变量名', 默认值)
+#    系统会自动注入所有工作流变量，无需手动配置
+#
+# 2. 返回值：直接使用 return 返回任意类型的数据
+#    在配置面板的"返回值变量"中指定接收变量名
+#    例如：result，然后可以用 {result} 引用
+#
+# 3. 标准输出：print() 的内容会保存到"标准输出变量"（如果配置了）
+#
+# 4. 内置库：可以使用Python 3.13的所有标准库
+#    以及WebRPA内置的第三方库（requests、pandas等）
+#
+# 5. 简单易用：就像写普通Python脚本一样，无需复杂配置
+# ========================================
 `
 
 // Python脚本配置
@@ -1055,6 +1118,15 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
   
   return (
     <>
+      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
+        <p className="text-sm text-gray-700 font-medium mb-1">
+          🐍 Python脚本执行
+        </p>
+        <p className="text-xs text-gray-600">
+          执行自定义Python代码，自动注入所有工作流变量，支持返回值接收和输出捕获
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label>脚本模式</Label>
         <Select
@@ -1131,16 +1203,78 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="scriptArgs">脚本参数（可选）</Label>
-        <VariableInput
-          value={(data.scriptArgs as string) || ''}
-          onChange={(v) => onChange('scriptArgs', v)}
-          placeholder="参数1 参数2 参数3"
-        />
-        <p className="text-xs text-muted-foreground">
-          空格分隔的参数列表
-        </p>
+      <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-200">
+        <p className="text-xs font-medium text-cyan-800 mb-2">💡 变量访问说明</p>
+        <div className="text-xs space-y-1">
+          <p className="text-cyan-700">
+            系统会自动将所有工作流变量注入到脚本中，您可以直接通过 <span className="font-mono bg-white px-1 rounded">vars.变量名</span> 访问任何变量
+          </p>
+          <div className="bg-white/50 rounded p-2 space-y-0.5 mt-2">
+            <p className="text-cyan-600 font-medium">使用示例:</p>
+            <p className="text-gray-600 font-mono">• 访问变量: vars.username</p>
+            <p className="text-gray-600 font-mono">• 带默认值: vars.get('age', 0)</p>
+            <p className="text-gray-600 font-mono">• 列表所有变量: list(vars.keys())</p>
+            <p className="text-gray-600 font-mono">• 检查变量存在: 'name' in vars.keys()</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+        <p className="text-xs font-medium text-amber-800 mb-2">📤 输出结果配置</p>
+        <div className="space-y-2">
+          <div className="space-y-2">
+            <Label htmlFor="resultVariable">返回值变量</Label>
+            <VariableNameInput
+              id="resultVariable"
+              value={(data.resultVariable as string) || ''}
+              onChange={(v) => onChange('resultVariable', v)}
+              placeholder="result"
+              isStorageVariable={true}
+            />
+            <p className="text-xs text-amber-700">
+              接收脚本中 return 返回的数据（支持任意类型）
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="stdoutVariable">标准输出变量（可选）</Label>
+            <VariableNameInput
+              id="stdoutVariable"
+              value={(data.stdoutVariable as string) || ''}
+              onChange={(v) => onChange('stdoutVariable', v)}
+              placeholder="stdout"
+              isStorageVariable={true}
+            />
+            <p className="text-xs text-amber-700">
+              接收 print() 输出的内容
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="stderrVariable">标准错误变量（可选）</Label>
+            <VariableNameInput
+              id="stderrVariable"
+              value={(data.stderrVariable as string) || ''}
+              onChange={(v) => onChange('stderrVariable', v)}
+              placeholder="stderr"
+              isStorageVariable={true}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="returnCodeVariable">返回码变量（可选）</Label>
+            <VariableNameInput
+              id="returnCodeVariable"
+              value={(data.returnCodeVariable as string) || ''}
+              onChange={(v) => onChange('returnCodeVariable', v)}
+              placeholder="return_code"
+              isStorageVariable={true}
+            />
+            <p className="text-xs text-amber-700">
+              0表示成功，非0表示失败
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -1165,46 +1299,14 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="stdoutVariable">标准输出变量（可选）</Label>
-        <VariableNameInput
-          id="stdoutVariable"
-          value={(data.stdoutVariable as string) || ''}
-          onChange={(v) => onChange('stdoutVariable', v)}
-          placeholder="stdout"
-          isStorageVariable={true}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="stderrVariable">标准错误变量（可选）</Label>
-        <VariableNameInput
-          id="stderrVariable"
-          value={(data.stderrVariable as string) || ''}
-          onChange={(v) => onChange('stderrVariable', v)}
-          placeholder="stderr"
-          isStorageVariable={true}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="returnCodeVariable">返回码变量（可选）</Label>
-        <VariableNameInput
-          id="returnCodeVariable"
-          value={(data.returnCodeVariable as string) || ''}
-          onChange={(v) => onChange('returnCodeVariable', v)}
-          placeholder="return_code"
-          isStorageVariable={true}
-        />
-      </div>
-
       <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-green-800">使用说明：</p>
+        <p className="text-xs font-medium text-green-800">💡 使用说明：</p>
         <ul className="text-xs text-green-700 space-y-1 list-disc list-inside">
           <li>默认使用WebRPA内置的Python 3.13环境</li>
-          <li>可以选择使用本地Python环境</li>
-          <li>脚本的标准输出、标准错误和返回码可以保存到变量</li>
-          <li>返回码为0表示成功，非0表示失败</li>
+          <li>系统自动注入所有工作流变量，通过 vars.变量名 直接访问</li>
+          <li>使用 return 返回任意类型的数据（字符串、数字、列表、字典等）</li>
+          <li>可以使用所有Python标准库和WebRPA内置的第三方库</li>
+          <li>代码编辑器中有详细的使用教程和示例代码</li>
         </ul>
       </div>
 

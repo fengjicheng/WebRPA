@@ -98,8 +98,8 @@ class WorkflowParser:
                 if source_id not in graph.error_branches:
                     graph.error_branches[source_id] = []
                 graph.error_branches[source_id].append(target_id)
-            # 处理条件分支（condition 和 face_recognition 模块的 true/false）
-            elif edge.sourceHandle and source_node and source_node.type in ('condition', 'face_recognition'):
+            # 处理条件分支（condition、face_recognition、element_exists、element_visible、image_exists、phone_image_exists 模块的 true/false）
+            elif edge.sourceHandle and source_node and source_node.type in ('condition', 'face_recognition', 'element_exists', 'element_visible', 'image_exists', 'phone_image_exists'):
                 if source_id not in graph.condition_branches:
                     graph.condition_branches[source_id] = {}
                 graph.condition_branches[source_id][edge.sourceHandle] = target_id

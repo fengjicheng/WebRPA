@@ -456,16 +456,31 @@ export function WorkflowEditor() {
     return () => wrapper.removeEventListener('wheel', handleWheel)
   }, [])
 
-  // 全局拦截浏览器右键菜单
+  // 拦截画布区域的默认右键菜单（但不影响ReactFlow的onPaneContextMenu和底栏）
   useEffect(() => {
+    const wrapper = reactFlowWrapper.current
+    if (!wrapper) return
+    
     const handleContextMenu = (event: MouseEvent) => {
+      // 检查事件目标是否在画布区域内
+      const target = event.target as HTMLElement
+      
+      // 只拦截画布背景的右键菜单，不拦截ReactFlow的pane事件
+      // ReactFlow的pane会触发onPaneContextMenu，我们不需要在这里拦截
+      if (target.classList.contains('react-flow__pane') || 
+          target.classList.contains('react-flow__renderer') ||
+          target.classList.contains('react-flow__selectionpane')) {
+        // 不做任何处理，让ReactFlow的onPaneContextMenu处理
+        return
+      }
+      
+      // 对于其他画布内的元素（如节点、边等），阻止默认菜单
       event.preventDefault()
-      event.stopPropagation()
     }
     
-    // 使用捕获阶段拦截，优先级更高
-    document.addEventListener('contextmenu', handleContextMenu, true)
-    return () => document.removeEventListener('contextmenu', handleContextMenu, true)
+    // 只在画布元素上添加监听器，不使用document全局监听
+    wrapper.addEventListener('contextmenu', handleContextMenu)
+    return () => wrapper.removeEventListener('contextmenu', handleContextMenu)
   }, [])
 
   // 空格键+左键拖拽画布

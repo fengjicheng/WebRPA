@@ -480,19 +480,25 @@ export function ExcelAssetsPanel() {
           onContextMenu={(e) => handleContextMenu(e)}
         >
           {dataAssets.length === 0 && folders.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+            <div 
+              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
+            >
               <File className="w-16 h-16 mb-3 opacity-30" />
               <p className="text-sm font-medium">暂无 Excel 文件</p>
               <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
             </div>
           ) : subfolders.length === 0 && files.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground py-12">
+            <div 
+              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
+            >
               <Folder className="w-16 h-16 mb-3 opacity-30" />
               <p className="text-sm font-medium">此文件夹为空</p>
               <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
+            <div 
+              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2"
+            >
               {subfolders.map(folder => renderFolderCard(folder))}
               {files.map(asset => renderExcelCard(asset))}
             </div>
@@ -564,8 +570,9 @@ export function ExcelAssetsPanel() {
       {/* 右键菜单 */}
       {contextMenu && (
         <div
-          className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl py-2 z-50 min-w-[140px] animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl py-2 z-[9999] min-w-[140px] animate-in fade-in zoom-in-95 duration-200"
           style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
         >
           {contextMenu.isFile ? (
             <>

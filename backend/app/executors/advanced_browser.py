@@ -638,3 +638,116 @@ class GetSiblingElementsExecutor(ModuleExecutor):
         
         except Exception as e:
             return ModuleResult(success=False, error=f"获取兄弟元素列表失败: {str(e)}")
+
+
+@register_executor
+class ElementExistsExecutor(ModuleExecutor):
+    """元素存在判断模块执行器 - 判断元素是否存在于页面中,类似条件判断模块"""
+
+    @property
+    def module_type(self) -> str:
+        return "element_exists"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        selector = context.resolve_value(config.get("selector", ""))
+        
+        if not selector:
+            return ModuleResult(success=False, error="元素选择器不能为空")
+        
+        if context.page is None:
+            return ModuleResult(success=False, error="没有打开的页面，请先使用'打开网页'模块")
+        
+        try:
+            await context.switch_to_latest_page()
+            
+            # 检查元素是否存在
+            element = context.page.locator(escape_css_selector(selector))
+            count = await element.count()
+            exists = count > 0
+            
+            # 根据是否存在返回不同的分支
+            branch = 'true' if exists else 'false'
+            
+            if exists:
+                message = f"元素存在（共找到 {count} 个匹配元素）"
+                data = {"exists": True, "count": count}
+            else:
+                message = "元素不存在"
+                data = {"exists": False, "count": 0}
+            
+            return ModuleResult(
+                success=True,
+                message=message,
+                branch=branch,
+                data=data
+            )
+            
+        except Exception as e:
+            # 出错时返回false分支
+            return ModuleResult(
+                success=True,
+                message=f"元素不存在（检查时出错: {str(e)}）",
+                branch='false',
+                data={"exists": False, "error": str(e)}
+            )
+
+
+@register_executor
+class ElementVisibleExecutor(ModuleExecutor):
+    """元素可见判断模块执行器 - 判断元素是否可见,类似条件判断模块"""
+
+    @property
+    def module_type(self) -> str:
+        return "element_visible"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        selector = context.resolve_value(config.get("selector", ""))
+        
+        if not selector:
+            return ModuleResult(success=False, error="元素选择器不能为空")
+        
+        if context.page is None:
+            return ModuleResult(success=False, error="没有打开的页面，请先使用'打开网页'模块")
+        
+        try:
+            await context.switch_to_latest_page()
+            
+            # 检查元素是否存在且可见
+            element = context.page.locator(escape_css_selector(selector))
+            count = await element.count()
+            
+            if count > 0:
+                # 元素存在，检查第一个元素是否可见
+                visible = await element.first.is_visible()
+            else:
+                # 元素不存在，视为不可见
+                visible = False
+            
+            # 根据是否可见返回不同的分支
+            branch = 'true' if visible else 'false'
+            
+            if visible:
+                message = f"元素可见（共找到 {count} 个匹配元素）"
+                data = {"visible": True, "exists": True, "count": count}
+            elif count > 0:
+                message = f"元素存在但不可见（共找到 {count} 个匹配元素）"
+                data = {"visible": False, "exists": True, "count": count}
+            else:
+                message = "元素不存在"
+                data = {"visible": False, "exists": False, "count": 0}
+            
+            return ModuleResult(
+                success=True,
+                message=message,
+                branch=branch,
+                data=data
+            )
+            
+        except Exception as e:
+            # 出错时返回false分支
+            return ModuleResult(
+                success=True,
+                message=f"元素不可见（检查时出错: {str(e)}）",
+                branch='false',
+                data={"visible": False, "error": str(e)}
+            )

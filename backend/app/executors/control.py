@@ -188,7 +188,7 @@ class LoopExecutor(ModuleExecutor):
         loop_type = context.resolve_value(config.get('loopType', 'count'))  # 支持变量引用
         
         count = to_int(config.get('count', 10), 10, context)
-        condition = context.resolve_value(config.get('condition', ''))  # 支持变量引用
+        condition = config.get('condition', '')  # 保持原始条件表达式,不在这里解析
         max_iterations = to_int(config.get('maxIterations', 1000), 1000, context)
         index_variable = config.get('indexVariable', 'loop_index')
         

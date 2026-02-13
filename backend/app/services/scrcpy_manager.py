@@ -6,6 +6,8 @@ import threading
 from pathlib import Path
 from typing import Optional, Dict
 import psutil
+import win32gui
+import win32con
 
 
 class ScrcpyManager:
@@ -37,9 +39,135 @@ class ScrcpyManager:
         self.process: Optional[subprocess.Popen] = None
         self.device_id: Optional[str] = None
         self.recording: bool = False
+        self._monitor_thread: Optional[threading.Thread] = None
+        self._should_monitor: bool = False
         
         print(f"[ScrcpyManager] 使用 Scrcpy 路径: {self.scrcpy_path}")
         print(f"[ScrcpyManager] 使用 ADB 路径: {self.adb_path}")
+    
+    def _monitor_process(self, device_id: Optional[str]):
+        """监控镜像进程,当进程结束时自动关闭指针位置
+        
+        Args:
+            device_id: 设备 ID
+        """
+        try:
+            while self._should_monitor and self.process:
+                # 检查进程是否还在运行
+                if self.process.poll() is not None:
+                    # 进程已结束
+                    print(f"[ScrcpyManager] 检测到镜像窗口已关闭")
+                    # 关闭指针位置
+                    if device_id:
+                        self._disable_pointer_location(device_id)
+                    break
+                time.sleep(1)
+        except Exception as e:
+            print(f"[ScrcpyManager] 监控线程异常: {str(e)}")
+    
+    def _enable_pointer_location(self, device_id: Optional[str] = None) -> bool:
+        """开启手机的指针位置显示
+        
+        Args:
+            device_id: 设备 ID
+            
+        Returns:
+            是否成功
+        """
+        try:
+            cmd = [self.adb_path]
+            if device_id:
+                cmd.extend(['-s', device_id])
+            cmd.extend(['shell', 'settings', 'put', 'system', 'pointer_location', '1'])
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                print(f"[ScrcpyManager] ✅ 已开启指针位置显示")
+                return True
+            else:
+                print(f"[ScrcpyManager] ⚠️ 开启指针位置失败: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"[ScrcpyManager] ⚠️ 开启指针位置异常: {str(e)}")
+            return False
+    
+    def _disable_pointer_location(self, device_id: Optional[str] = None) -> bool:
+        """关闭手机的指针位置显示
+        
+        Args:
+            device_id: 设备 ID
+            
+        Returns:
+            是否成功
+        """
+        try:
+            cmd = [self.adb_path]
+            if device_id:
+                cmd.extend(['-s', device_id])
+            cmd.extend(['shell', 'settings', 'put', 'system', 'pointer_location', '0'])
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                print(f"[ScrcpyManager] ✅ 已关闭指针位置显示")
+                return True
+            else:
+                print(f"[ScrcpyManager] ⚠️ 关闭指针位置失败: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"[ScrcpyManager] ⚠️ 关闭指针位置异常: {str(e)}")
+            return False
+    
+    def _bring_window_to_front(self, window_title: str, max_wait_seconds: int = 10) -> bool:
+        """强制将窗口置顶到最前面
+        
+        Args:
+            window_title: 窗口标题
+            max_wait_seconds: 最大等待时间（秒）
+            
+        Returns:
+            是否成功
+        """
+        try:
+            print(f"[ScrcpyManager] 等待窗口创建: {window_title}")
+            
+            # 等待窗口创建，最多等待 max_wait_seconds 秒
+            hwnd = None
+            for i in range(max_wait_seconds * 2):  # 每0.5秒检查一次
+                hwnd = win32gui.FindWindow(None, window_title)
+                if hwnd:
+                    print(f"[ScrcpyManager] ✅ 找到窗口句柄: {hwnd}")
+                    break
+                time.sleep(0.5)
+            
+            if not hwnd:
+                print(f"[ScrcpyManager] ⚠️ 未找到窗口: {window_title}")
+                return False
+            
+            # 强制将窗口置顶
+            # 1. 先恢复窗口（如果是最小化状态）
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            
+            # 2. 将窗口设置为前台窗口
+            win32gui.SetForegroundWindow(hwnd)
+            
+            # 3. 将窗口置顶（HWND_TOPMOST）
+            win32gui.SetWindowPos(
+                hwnd,
+                win32con.HWND_TOPMOST,
+                0, 0, 0, 0,
+                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+            )
+            
+            # 4. 再次设置为前台窗口，确保获得焦点
+            win32gui.SetForegroundWindow(hwnd)
+            
+            print(f"[ScrcpyManager] ✅ 窗口已置顶: {window_title}")
+            return True
+            
+        except Exception as e:
+            print(f"[ScrcpyManager] ⚠️ 窗口置顶失败: {str(e)}")
+            # 置顶失败不影响镜像功能，只是窗口可能不在最前面
+            return False
     
     def start_mirror(self, device_id: Optional[str] = None, 
                     max_size: int = 0,
@@ -70,6 +198,9 @@ class ScrcpyManager:
         """
         if self.process and self.process.poll() is None:
             return False, "Scrcpy 已在运行中"
+        
+        # 启动镜像前,先开启指针位置显示
+        self._enable_pointer_location(device_id)
         
         # 设置环境变量，确保使用正确的 ADB 和 scrcpy-server
         env = os.environ.copy()
@@ -149,6 +280,15 @@ class ScrcpyManager:
                 return False, error_msg
             
             print(f"[ScrcpyManager] Scrcpy 启动成功，进程ID: {self.process.pid}")
+            
+            # 等待窗口创建并强制置顶
+            self._bring_window_to_front(window_title)
+            
+            # 启动监控线程,监控镜像进程是否结束
+            self._should_monitor = True
+            self._monitor_thread = threading.Thread(target=self._monitor_process, args=(device_id,), daemon=True)
+            self._monitor_thread.start()
+            
             return True, ""
             
         except FileNotFoundError as e:
@@ -169,13 +309,26 @@ class ScrcpyManager:
         if not self.process:
             return True, ""
         
+        # 保存设备ID,用于关闭指针位置
+        device_id = self.device_id
+        
         try:
+            # 停止监控线程
+            self._should_monitor = False
+            if self._monitor_thread and self._monitor_thread.is_alive():
+                self._monitor_thread.join(timeout=2)
+            
             if self.process.poll() is None:
                 self.process.terminate()
                 self.process.wait(timeout=5)
             
             self.process = None
             self.device_id = None
+            
+            # 停止镜像后,关闭指针位置显示
+            if device_id:
+                self._disable_pointer_location(device_id)
+            
             print(f"[ScrcpyManager] Scrcpy 已停止")
             return True, ""
             

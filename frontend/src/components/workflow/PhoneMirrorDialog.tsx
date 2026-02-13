@@ -139,11 +139,34 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
             <div className="flex gap-3">
               <Monitor className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 mb-1">功能说明</h3>
-                <p className="text-sm text-blue-700">
-                  启动手机屏幕镜像后，您可以在电脑上查看和操作手机屏幕。
-                  镜像窗口会自动置顶显示，方便您同时使用电脑和手机。
-                </p>
+                <h3 className="font-semibold text-blue-900 mb-2">功能说明</h3>
+                <div className="space-y-2 text-sm text-blue-700">
+                  <p>
+                    启动手机屏幕镜像后，您可以在电脑上查看和操作手机屏幕。
+                    镜像窗口会自动置顶显示，方便您同时使用电脑和手机。
+                  </p>
+                  
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <p className="font-semibold text-blue-900 mb-1.5">📍 指针位置辅助功能</p>
+                    <p className="mb-2">
+                      启动镜像后，手机屏幕上会自动显示"指针位置"信息，帮助您精准定位坐标：
+                    </p>
+                    <ul className="space-y-1.5 ml-4 list-disc">
+                      <li>
+                        <span className="font-medium">长按屏幕不松手</span>，将指针拖拽到需要操作的位置
+                      </li>
+                      <li>
+                        查看屏幕<span className="font-medium">左上角的 X 和 Y 坐标值</span>，即为当前触摸点的精确坐标
+                      </li>
+                      <li className="text-orange-700 font-medium">
+                        ⚠️ 注意：必须保持长按状态，一旦松手，左上角显示的就会变成 dX 和 dY（滑动距离），而不是坐标位置
+                      </li>
+                    </ul>
+                    <p className="mt-2 text-xs text-blue-600">
+                      💡 提示：关闭镜像窗口后，指针位置显示会自动关闭
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

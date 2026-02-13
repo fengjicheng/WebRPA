@@ -18,17 +18,26 @@ export function HierarchicalExcelSelector({ value, onChange, className }: Hierar
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>([])
 
   // 加载资源
-  useEffect(() => {
-    const loadData = async () => {
-      const [assetsResult, foldersResult] = await Promise.all([
-        dataAssetApi.list(),
-        dataAssetApi.listFolders()
-      ])
-      if (assetsResult.data) setAssets(assetsResult.data)
-      if (foldersResult.data) setFolders(foldersResult.data)
-    }
-    loadData()
+  const loadData = useCallback(async () => {
+    const [assetsResult, foldersResult] = await Promise.all([
+      dataAssetApi.list(),
+      dataAssetApi.listFolders()
+    ])
+    if (assetsResult.data) setAssets(assetsResult.data)
+    if (foldersResult.data) setFolders(foldersResult.data)
   }, [])
+
+  // 初始加载
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // 打开下拉框时重新加载数据
+  useEffect(() => {
+    if (isOpen) {
+      loadData()
+    }
+  }, [isOpen, loadData])
 
   // 获取当前路径下的项目
   const getCurrentItems = useCallback(() => {
