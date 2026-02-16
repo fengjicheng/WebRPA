@@ -13,6 +13,7 @@ from .base import (
     register_executor,
 )
 from .type_utils import to_int, to_float, parse_search_region
+from ..utils.jsonpath_parser import parse_jsonpath
 
 
 @register_executor
@@ -117,7 +118,7 @@ class JsonParseExecutor(ModuleExecutor):
                 return ModuleResult(success=False, error=f"源数据不是有效的JSON: {str(e)}")
         
         try:
-            result = self._parse_jsonpath(source_data, json_path)
+            result = parse_jsonpath(source_data, json_path)
             
             if variable_name:
                 context.set_variable(variable_name, result)
@@ -133,87 +134,6 @@ class JsonParseExecutor(ModuleExecutor):
         
         except Exception as e:
             return ModuleResult(success=False, error=f"JSON解析失败: {str(e)}")
-    
-    def _parse_jsonpath(self, data, path: str):
-        """简单的JSONPath解析器"""
-        if path.startswith('$'):
-            path = path[1:]
-        if path.startswith('.'):
-            path = path[1:]
-        
-        if not path:
-            return data
-        
-        current = data
-        parts = self._split_path(path)
-        
-        for part in parts:
-            if current is None:
-                return None
-            
-            if part.startswith('[') and part.endswith(']'):
-                index_str = part[1:-1]
-                if index_str == '*':
-                    if isinstance(current, list):
-                        return current
-                    else:
-                        return None
-                else:
-                    try:
-                        index = int(index_str)
-                        if isinstance(current, list) and -len(current) <= index < len(current):
-                            current = current[index]
-                        else:
-                            return None
-                    except ValueError:
-                        return None
-            else:
-                if '[' in part:
-                    prop_name = part[:part.index('[')]
-                    array_part = part[part.index('['):]
-                    
-                    if isinstance(current, dict) and prop_name in current:
-                        current = current[prop_name]
-                        current = self._parse_jsonpath(current, array_part)
-                    else:
-                        return None
-                else:
-                    if isinstance(current, dict) and part in current:
-                        current = current[part]
-                    else:
-                        return None
-        
-        return current
-    
-    def _split_path(self, path: str) -> list:
-        """分割JSONPath路径"""
-        parts = []
-        current = ''
-        in_bracket = False
-        
-        for char in path:
-            if char == '[':
-                if current:
-                    parts.append(current)
-                    current = ''
-                in_bracket = True
-                current = '['
-            elif char == ']':
-                current += ']'
-                parts.append(current)
-                current = ''
-                in_bracket = False
-            elif char == '.' and not in_bracket:
-                if current:
-                    parts.append(current)
-                    current = ''
-            else:
-                current += char
-        
-        if current:
-            parts.append(current)
-        
-        return parts
 
 
 @register_executor

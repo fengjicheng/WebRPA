@@ -17,15 +17,29 @@ interface Device {
 
 export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
   const [devices, setDevices] = useState<Device[]>([])
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mirrorStatus, setMirrorStatus] = useState<{
+    devices?: Record<string, { running: boolean; recording: boolean }>
     running: boolean
     device_id: string | null
   }>({ running: false, device_id: null })
   const [refreshing, setRefreshing] = useState(false)
   const [showCropper, setShowCropper] = useState(false)
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
+  
+  // 每个设备独立的加载状态
+  const [deviceLoadingStates, setDeviceLoadingStates] = useState<Record<string, boolean>>({})
+  
+  // 从localStorage读取指针位置设置，默认为true
+  const [enablePointerLocation, setEnablePointerLocation] = useState(() => {
+    const saved = localStorage.getItem('phone_mirror_enable_pointer_location')
+    return saved !== null ? saved === 'true' : true
+  })
+
+  // 当enablePointerLocation改变时，保存到localStorage
+  useEffect(() => {
+    localStorage.setItem('phone_mirror_enable_pointer_location', String(enablePointerLocation))
+  }, [enablePointerLocation])
 
   // 加载设备列表
   const loadDevices = async () => {
@@ -51,6 +65,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
   const loadMirrorStatus = async () => {
     try {
       const result = await phoneApi.getMirrorStatus()
+      console.log('[PhoneMirror] 镜像状态:', JSON.stringify(result.data?.status, null, 2))
       if (result.data?.status) {
         setMirrorStatus(result.data.status)
       }
@@ -61,30 +76,38 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
 
   // 启动镜像
   const startMirror = async (deviceId: string) => {
-    setLoading(true)
+    console.log('[PhoneMirror] 启动镜像:', deviceId, 'enablePointerLocation:', enablePointerLocation)
+    // 设置该设备的加载状态
+    setDeviceLoadingStates(prev => ({ ...prev, [deviceId]: true }))
     setError(null)
     try {
-      const result = await phoneApi.startMirror(deviceId, 1920, '8M')
+      const result = await phoneApi.startMirror(deviceId, 1920, '8M', enablePointerLocation)
+      console.log('[PhoneMirror] 启动镜像结果:', JSON.stringify(result, null, 2))
       if (result.error) {
         // 显示详细的错误信息
+        console.error('[PhoneMirror] 启动失败:', result.error)
         setError(result.error)
       } else {
+        console.log('[PhoneMirror] 启动成功，刷新状态...')
         // 启动成功，更新状态
         await loadMirrorStatus()
       }
     } catch (err) {
+      console.error('[PhoneMirror] 启动镜像异常:', err)
       setError('启动镜像失败')
     } finally {
-      setLoading(false)
+      // 清除该设备的加载状态
+      setDeviceLoadingStates(prev => ({ ...prev, [deviceId]: false }))
     }
   }
 
   // 停止镜像
-  const stopMirror = async () => {
-    setLoading(true)
+  const stopMirror = async (deviceId: string) => {
+    // 设置该设备的加载状态
+    setDeviceLoadingStates(prev => ({ ...prev, [deviceId]: true }))
     setError(null)
     try {
-      const result = await phoneApi.stopMirror()
+      const result = await phoneApi.stopMirror(deviceId)
       if (result.error) {
         setError(result.error)
       } else {
@@ -93,8 +116,14 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
     } catch (err) {
       setError('停止镜像失败')
     } finally {
-      setLoading(false)
+      // 清除该设备的加载状态
+      setDeviceLoadingStates(prev => ({ ...prev, [deviceId]: false }))
     }
+  }
+  
+  // 检查设备是否正在运行镜像
+  const isDeviceRunning = (deviceId: string): boolean => {
+    return mirrorStatus.devices?.[deviceId]?.running || false
   }
 
   // 对话框打开时加载数据
@@ -149,7 +178,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
                   <div className="mt-3 pt-3 border-t border-blue-200">
                     <p className="font-semibold text-blue-900 mb-1.5">📍 指针位置辅助功能</p>
                     <p className="mb-2">
-                      启动镜像后，手机屏幕上会自动显示"指针位置"信息，帮助您精准定位坐标：
+                      启用后，手机屏幕上会自动显示"指针位置"信息，帮助您精准定位坐标：
                     </p>
                     <ul className="space-y-1.5 ml-4 list-disc">
                       <li>
@@ -171,38 +200,25 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
             </div>
           </div>
 
-          {/* 镜像状态 */}
-          {mirrorStatus.running && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <div>
-                    <h3 className="font-semibold text-green-900">镜像运行中</h3>
-                    <p className="text-sm text-green-700">
-                      设备: {mirrorStatus.device_id || '未知'}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={stopMirror}
-                  disabled={loading}
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      停止中...
-                    </>
-                  ) : (
-                    '停止镜像'
-                  )}
-                </Button>
+          {/* 指针位置设置 */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enablePointerLocation}
+                    onChange={(e) => setEnablePointerLocation(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                  />
+                  <span className="font-medium text-amber-900">启动镜像时自动开启"指针位置"</span>
+                </label>
+                <p className="text-sm text-amber-700 mt-1.5 ml-6">
+                  开启后，镜像启动时会自动在手机屏幕顶部显示触摸坐标信息。如果您不需要查看坐标，可以取消勾选此选项。
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* 错误信息 */}
           {error && (
@@ -210,7 +226,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
               <div className="flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-red-900 mb-2">连接失败</h3>
+                  <h3 className="font-semibold text-red-900 mb-2">操作失败</h3>
                   <pre className="text-sm text-red-700 whitespace-pre-wrap font-mono bg-red-100 p-3 rounded">
                     {error}
                   </pre>
@@ -244,56 +260,99 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
               </div>
             ) : (
               <div className="space-y-2">
-                {devices.map((device) => (
-                  <div
-                    key={device.id}
-                    className="bg-white border border-gray-200 rounded-lg p-4 hover:border-emerald-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <Smartphone className="w-5 h-5 text-emerald-600" />
+                {devices.map((device) => {
+                  const isRunning = isDeviceRunning(device.id)
+                  const isLoading = deviceLoadingStates[device.id] || false
+                  
+                  return (
+                    <div
+                      key={device.id}
+                      className={`bg-white border rounded-lg p-4 transition-all ${
+                        isRunning 
+                          ? 'border-green-300 bg-green-50' 
+                          : 'border-gray-200 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            isRunning ? 'bg-green-200' : 'bg-emerald-100'
+                          }`}>
+                            <Smartphone className={`w-5 h-5 ${
+                              isRunning ? 'text-green-700' : 'text-emerald-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-gray-900">{device.model || device.id}</h4>
+                              {isRunning && (
+                                <span className="px-2 py-0.5 bg-green-200 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  镜像中
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">
+                              {device.id} • {device.status}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{device.model || device.id}</h4>
-                          <p className="text-sm text-gray-500">
-                            {device.id} • {device.status}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedDeviceId(device.id)
-                            setShowCropper(true)
-                          }}
-                          className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                        >
-                          <Crop className="w-4 h-4 mr-1" />
-                          截图裁剪
-                        </Button>
-                        <Button
-                          onClick={() => startMirror(device.id)}
-                          disabled={loading || mirrorStatus.running}
-                          className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400"
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              启动中...
-                            </>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedDeviceId(device.id)
+                              setShowCropper(true)
+                            }}
+                            disabled={isLoading}
+                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                          >
+                            <Crop className="w-4 h-4 mr-1" />
+                            截图裁剪
+                          </Button>
+                          {isRunning ? (
+                            <Button
+                              variant="outline"
+                              onClick={() => stopMirror(device.id)}
+                              disabled={isLoading}
+                              className="border-red-300 text-red-700 hover:bg-red-50"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  停止中...
+                                </>
+                              ) : (
+                                <>
+                                  <X className="w-4 h-4 mr-1" />
+                                  停止镜像
+                                </>
+                              )}
+                            </Button>
                           ) : (
-                            <>
-                              <Monitor className="w-4 h-4 mr-1" />
-                              启动镜像
-                            </>
+                            <Button
+                              onClick={() => startMirror(device.id)}
+                              disabled={isLoading}
+                              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400"
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  启动中...
+                                </>
+                              ) : (
+                                <>
+                                  <Monitor className="w-4 h-4 mr-1" />
+                                  启动镜像
+                                </>
+                              )}
+                            </Button>
                           )}
-                        </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

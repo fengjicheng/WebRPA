@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Code } from 'lucide-react'
 import { JsEditorDialog } from '../JsEditorDialog'
+import { InjectJsEditorDialog } from '../InjectJsEditorDialog'
 import { PythonEditorDialog } from '../PythonEditorDialog'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
@@ -1850,20 +1851,25 @@ export function HandleDialogConfig({ data, onChange }: { data: NodeData; onChang
 // JS脚本注入配置
 const DEFAULT_INJECT_JS_CODE = `// 在页面中注入并执行 JavaScript 代码
 // 可以访问页面的 DOM、window 对象等
+// 可以通过 vars.变量名 访问工作流中的所有变量
 
-// 示例1：修改页面背景色（最明显的测试）
+// 示例1：使用工作流变量
+// const username = vars.username;  // 访问工作流变量
+// console.log('当前用户:', username);
+
+// 示例2：修改页面背景色（最明显的测试）
 document.body.style.background = "lightblue";
 
-// 示例2：修改页面标题
+// 示例3：修改页面标题
 // document.title = "✅ JS脚本注入成功";
 
-// 示例3：在页面上显示提示框
+// 示例4：在页面上显示提示框
 // const div = document.createElement('div');
 // div.style.cssText = 'position:fixed;top:20px;right:20px;background:green;color:white;padding:20px;font-size:18px;z-index:999999;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,0.1);';
 // div.textContent = '✅ 脚本执行成功';
 // document.body.appendChild(div);
 
-// 示例4：获取页面信息（使用 return 返回数据）
+// 示例5：获取页面信息（使用 return 返回数据）
 // return {
 //   title: document.title,
 //   url: window.location.href,
@@ -1984,13 +1990,14 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
           <li><strong>'所有标签页'</strong>：'在所有标签页中执行代码'</li>
           <li><strong>'URL匹配'</strong>：'在URL匹配的标签页中执行代码'</li>
           <li><strong>'指定索引'</strong>：'在指定索引的标签页中执行代码'</li>
-          <li>'使用' <code className="bg-purple-100 px-1 rounded">return</code></li>
+          <li>'通过' <code className="bg-purple-100 px-1 rounded">vars.变量名</code> '访问工作流变量'</li>
+          <li>'使用' <code className="bg-purple-100 px-1 rounded">return</code> '返回数据到工作流'</li>
           <li>'可以访问页面的DOM、window对象等'</li>
         </ul>
       </div>
       
       {/* 代码编辑器弹窗 */}
-      <JsEditorDialog
+      <InjectJsEditorDialog
         isOpen={editorOpen}
         code={code}
         onClose={() => setEditorOpen(false)}

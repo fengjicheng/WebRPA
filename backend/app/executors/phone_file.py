@@ -16,8 +16,8 @@ class PhonePushFileExecutor(ModuleExecutor):
         local_path = context.resolve_value(config.get('localPath', ''))
         remote_path = context.resolve_value(config.get('remotePath', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -46,8 +46,8 @@ class PhonePullFileExecutor(ModuleExecutor):
         remote_path = context.resolve_value(config.get('remotePath', ''))
         local_path = context.resolve_value(config.get('localPath', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

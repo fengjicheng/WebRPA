@@ -17,8 +17,8 @@ class PhoneTapExecutor(ModuleExecutor):
         x = to_int(config.get('x', 0), 0, context)
         y = to_int(config.get('y', 0), 0, context)
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -58,8 +58,8 @@ class PhoneSwipeExecutor(ModuleExecutor):
             x2 = to_int(config.get('x2', 0), 0, context)
             y2 = to_int(config.get('y2', 0), 0, context)
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

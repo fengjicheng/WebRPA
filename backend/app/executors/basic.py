@@ -1968,6 +1968,22 @@ class InjectJavaScriptExecutor(ModuleExecutor):
         if context.browser_context is None:
             return ModuleResult(success=False, error="没有打开的浏览器")
         
+        # 准备工作流变量，注入到JavaScript环境中
+        import json
+        workflow_vars = {}
+        for key, value in context.variables.items():
+            # 将Python对象转换为JSON可序列化的格式
+            try:
+                # 尝试序列化，确保可以传递到JavaScript
+                json.dumps(value)
+                workflow_vars[key] = value
+            except (TypeError, ValueError):
+                # 如果无法序列化，转换为字符串
+                workflow_vars[key] = str(value)
+        
+        # 将变量对象序列化为JSON字符串
+        vars_json = json.dumps(workflow_vars, ensure_ascii=False)
+        
         try:
             # 获取所有页面
             all_pages = context.browser_context.pages
@@ -2024,30 +2040,17 @@ class InjectJavaScriptExecutor(ModuleExecutor):
             results = []
             errors = []
             
-            # 智能包装用户代码
-            # 1. 如果代码已经是完整的函数调用（如 main(vars)），直接使用
-            # 2. 如果代码是函数定义后调用，直接使用
-            # 3. 否则包装成立即执行的异步函数
-            wrapped_code = javascript_code.strip()
-            
-            # 检查是否需要包装
-            needs_wrapping = True
-            
-            # 如果代码以函数调用结尾（如 main(vars); 或 someFunc()），不需要包装
-            if (')' in wrapped_code and wrapped_code.rstrip().endswith(')') and 
-                not wrapped_code.startswith('(async')):
-                # 可能是函数调用，不包装
-                needs_wrapping = False
-            # 如果代码已经是 IIFE 形式，不需要包装
-            elif wrapped_code.startswith('(') and wrapped_code.rstrip().endswith(')'):
-                needs_wrapping = False
-            # 如果代码以 async 开头，可能是异步函数表达式
-            elif wrapped_code.startswith('async'):
-                needs_wrapping = False
-            
-            # 如果需要包装，包装成立即执行的异步函数
-            if needs_wrapping:
-                wrapped_code = f"(async () => {{ {javascript_code} }})()"
+            # 智能包装用户代码，注入工作流变量
+            # 创建一个vars对象，包含所有工作流变量
+            wrapped_code = f"""
+(async () => {{
+    // 注入工作流变量
+    const vars = {vars_json};
+    
+    // 用户代码
+    {javascript_code}
+}})()
+"""
             
             for i, page in enumerate(target_pages):
                 try:

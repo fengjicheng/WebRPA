@@ -10,6 +10,10 @@ from ..services.phone_coordinate_picker import get_coordinate_picker
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
 
+class StopMirrorRequest(BaseModel):
+    device_id: Optional[str] = None
+
+
 class ConnectWifiRequest(BaseModel):
     ip_address: str
     port: int = 5555
@@ -19,6 +23,7 @@ class StartCoordinatePickerRequest(BaseModel):
     device_id: str
     max_size: int = 1920
     bit_rate: str = '8M'
+    enable_pointer_location: bool = True  # 是否自动开启指针位置
 
 
 @router.get("/devices")
@@ -73,11 +78,14 @@ async def get_mirror_status():
 async def start_mirror(request: StartCoordinatePickerRequest):
     """启动手机镜像（普通Scrcpy镜像，可以正常操作手机）"""
     try:
+        print(f"[API] 收到启动镜像请求: device_id={request.device_id}, enable_pointer_location={request.enable_pointer_location}")
         scrcpy = get_scrcpy_manager()
         
-        # 检查是否已经在运行
-        if scrcpy.is_running():
-            return {"success": False, "error": "镜像已在运行中"}
+        # 检查该设备的镜像是否已经在运行
+        is_running = scrcpy.is_running(request.device_id)
+        print(f"[API] 设备 {request.device_id} 运行状态: {is_running}")
+        if is_running:
+            return {"success": False, "error": f"设备 {request.device_id} 的镜像已在运行中"}
         
         # 获取手机实际分辨率
         adb = get_adb_manager()
@@ -98,6 +106,7 @@ async def start_mirror(request: StartCoordinatePickerRequest):
         
         # 启动镜像窗口（正常模式，可以操作）
         # max_size=0 表示不限制，使用手机原始分辨率
+        print(f"[API] 调用 start_mirror: device_id={request.device_id}, enable_pointer_location={request.enable_pointer_location}")
         success, error = scrcpy.start_mirror(
             device_id=request.device_id,
             max_size=0,
@@ -105,23 +114,27 @@ async def start_mirror(request: StartCoordinatePickerRequest):
             window_title="手机屏幕镜像",
             always_on_top=True,
             no_control=False,  # 允许控制
-            stay_awake=True    # 保持屏幕常亮
+            stay_awake=True,   # 保持屏幕常亮
+            enable_pointer_location=request.enable_pointer_location  # 是否开启指针位置
         )
         
+        print(f"[API] start_mirror 结果: success={success}, error={error}")
         if not success:
             return {"success": False, "error": error}
         
         return {"success": True, "message": "镜像已启动"}
     except Exception as e:
+        print(f"[API] 启动镜像异常: {e}")
         return {"success": False, "error": str(e)}
 
 
 @router.post("/mirror/stop")
-async def stop_mirror():
+async def stop_mirror(request: Optional[StopMirrorRequest] = None):
     """停止手机镜像"""
     try:
         scrcpy = get_scrcpy_manager()
-        success, error = scrcpy.stop_mirror()
+        device_id = request.device_id if request else None
+        success, error = scrcpy.stop_mirror(device_id)
         if not success:
             return {"success": False, "error": error}
         

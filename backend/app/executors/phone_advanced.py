@@ -18,8 +18,8 @@ class PhoneLongPressExecutor(ModuleExecutor):
         y = to_int(config.get('y', 0), 0, context)
         duration = to_int(config.get('duration', 1000), 1000, context)
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -44,8 +44,8 @@ class PhoneStopAppExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         package_name = context.resolve_value(config.get('packageName', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -89,8 +89,8 @@ class PhoneUninstallAppExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         package_name = context.resolve_value(config.get('packageName', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

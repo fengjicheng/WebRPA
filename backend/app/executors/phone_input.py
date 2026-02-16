@@ -18,8 +18,8 @@ class PhoneInputTextExecutor(ModuleExecutor):
         auto_switch_keyboard = config.get('autoSwitchKeyboard', True)  # 是否自动切换输入法，默认True
         auto_restore_keyboard = config.get('autoRestoreKeyboard', True)  # 是否自动恢复输入法，默认True
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -89,8 +89,8 @@ class PhonePressKeyExecutor(ModuleExecutor):
         if keycode and not keycode.startswith('KEYCODE_'):
             keycode = f'KEYCODE_{keycode}'
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

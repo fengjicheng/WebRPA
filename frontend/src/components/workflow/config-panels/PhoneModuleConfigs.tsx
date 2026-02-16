@@ -9,14 +9,103 @@ import { PhoneCoordinateInput } from '@/components/ui/phone-coordinate-input'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import React from 'react'
+import { phoneApi } from '@/services/api'
+
+// 设备选择器组件
+function DeviceSelector({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [devices, setDevices] = React.useState<Array<{ id: string; model: string; status: string }>>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState('')
+
+  React.useEffect(() => {
+    loadDevices()
+  }, [])
+
+  const loadDevices = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const response = await phoneApi.getDevices()
+      if (response.data?.devices) {
+        setDevices(response.data.devices)
+      } else if (response.error) {
+        setError(response.error)
+      } else {
+        setError('获取设备列表失败')
+      }
+    } catch (err) {
+      setError('无法连接到后端服务')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="deviceId">目标设备</Label>
+        <button
+          type="button"
+          onClick={loadDevices}
+          className="text-xs text-blue-600 hover:text-blue-700"
+        >
+          🔄 刷新
+        </button>
+      </div>
+      
+      {loading ? (
+        <div className="text-xs text-muted-foreground">加载设备列表中...</div>
+      ) : error ? (
+        <div className="text-xs text-red-600">{error}</div>
+      ) : devices.length === 0 ? (
+        <div className="text-xs text-orange-600">未检测到已连接的设备</div>
+      ) : null}
+      
+      <VariableInput
+        value={value || ''}
+        onChange={onChange}
+        placeholder={devices.length > 0 ? `留空则使用: ${devices[0].id}` : '留空则使用第一台设备'}
+      />
+      
+      {devices.length > 0 && (
+        <div className="p-2 bg-gray-50 border border-gray-200 rounded space-y-1">
+          <p className="text-xs font-semibold text-gray-700">已连接的设备：</p>
+          {devices.map((device, index) => (
+            <div key={device.id} className="flex items-center justify-between text-xs">
+              <span className="text-gray-600">
+                {index + 1}. {device.id}
+              </span>
+              <button
+                type="button"
+                onClick={() => onChange(device.id)}
+                className="text-blue-600 hover:text-blue-700 underline"
+              >
+                选择
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <p className="text-xs text-muted-foreground">
+        指定要自动化的设备ID，留空则自动使用第一台设备。支持变量引用。
+      </p>
+    </div>
+  )
+}
 
 // 点击坐标配置
 export function PhoneTapConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label>点击坐标</Label>
         <PhoneCoordinateInput
+          deviceId={(data.deviceId as string) || ''}
           xValue={(data.x as string) || ''}
           yValue={(data.y as string) || ''}
           onXChange={(v) => onChange('x', v)}
@@ -33,6 +122,10 @@ export function PhoneSwipeConfig({ data, onChange }: { data: NodeData; onChange:
   
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="swipeMode">滑动模式</Label>
         <Select
@@ -54,6 +147,7 @@ export function PhoneSwipeConfig({ data, onChange }: { data: NodeData; onChange:
           <div className="space-y-2">
             <Label>起点坐标</Label>
             <PhoneCoordinateInput
+              deviceId={(data.deviceId as string) || ''}
               xValue={(data.x1 as string) || ''}
               yValue={(data.y1 as string) || ''}
               onXChange={(v) => onChange('x1', v)}
@@ -63,6 +157,7 @@ export function PhoneSwipeConfig({ data, onChange }: { data: NodeData; onChange:
           <div className="space-y-2">
             <Label>终点坐标</Label>
             <PhoneCoordinateInput
+              deviceId={(data.deviceId as string) || ''}
               xValue={(data.x2 as string) || ''}
               yValue={(data.y2 as string) || ''}
               onXChange={(v) => onChange('x2', v)}
@@ -75,6 +170,7 @@ export function PhoneSwipeConfig({ data, onChange }: { data: NodeData; onChange:
           <div className="space-y-2">
             <Label>起点坐标</Label>
             <PhoneCoordinateInput
+              deviceId={(data.deviceId as string) || ''}
               xValue={(data.x1 as string) || ''}
               yValue={(data.y1 as string) || ''}
               onXChange={(v) => onChange('x1', v)}
@@ -134,9 +230,14 @@ export function PhoneSwipeConfig({ data, onChange }: { data: NodeData; onChange:
 export function PhoneLongPressConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label>长按坐标</Label>
         <PhoneCoordinateInput
+          deviceId={(data.deviceId as string) || ''}
           xValue={(data.x as string) || ''}
           yValue={(data.y as string) || ''}
           onXChange={(v) => onChange('x', v)}
@@ -221,6 +322,10 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
 
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="text">输入文本</Label>
         <VariableInput
@@ -422,6 +527,10 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
 export function PhonePressKeyConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="keycode">按键类型</Label>
         <Select
@@ -448,6 +557,10 @@ export function PhonePressKeyConfig({ data, onChange }: { data: NodeData; onChan
 export function PhoneScreenshotConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="savePath">保存路径（可选）</Label>
         <PathInput
@@ -477,6 +590,10 @@ export function PhoneScreenshotConfig({ data, onChange }: { data: NodeData; onCh
 export function PhoneStartMirrorConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="bitRate">视频比特率（Mbps）</Label>
         <NumberInput
@@ -543,6 +660,10 @@ export function PhoneStopMirrorConfig() {
 export function PhoneInstallAppConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="apkPath">APK文件路径</Label>
         <PathInput
@@ -592,6 +713,10 @@ export function PhoneInstallAppConfig({ data, onChange }: { data: NodeData; onCh
 export function PhoneStartAppConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="packageName">应用包名或名称</Label>
         <VariableInput
@@ -661,6 +786,10 @@ export function PhoneStartAppConfig({ data, onChange }: { data: NodeData; onChan
 export function PhoneStopAppConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="packageName">应用包名或名称</Label>
         <VariableInput
@@ -686,6 +815,10 @@ export function PhoneStopAppConfig({ data, onChange }: { data: NodeData; onChang
 export function PhoneUninstallAppConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="packageName">应用包名或名称</Label>
         <VariableInput
@@ -711,6 +844,10 @@ export function PhoneUninstallAppConfig({ data, onChange }: { data: NodeData; on
 export function PhonePushFileConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="localPath">本地文件路径</Label>
         <PathInput
@@ -742,6 +879,10 @@ export function PhonePushFileConfig({ data, onChange }: { data: NodeData; onChan
 export function PhonePullFileConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="remotePath">手机文件路径</Label>
         <VariableInput
@@ -782,6 +923,10 @@ export function PhonePullFileConfig({ data, onChange }: { data: NodeData; onChan
 export function PhoneClickImageConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="imagePath">图像文件路径</Label>
         <ImagePathInput
@@ -885,6 +1030,10 @@ export function PhoneClickImageConfig({ data, onChange }: { data: NodeData; onCh
 export function PhoneClickTextConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="targetText">目标文本</Label>
         <VariableInput
@@ -981,6 +1130,10 @@ export function PhoneClickTextConfig({ data, onChange }: { data: NodeData; onCha
 export function PhoneWaitImageConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="imagePath">图像文件路径</Label>
         <ImagePathInput
@@ -1075,6 +1228,10 @@ export function PhoneWaitImageConfig({ data, onChange }: { data: NodeData; onCha
 export function PhoneSetVolumeConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="streamType">音频类型</Label>
         <Select
@@ -1136,6 +1293,10 @@ export function PhoneSetBrightnessConfig({ data, onChange }: { data: NodeData; o
   
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="brightness">亮度值（0-255）</Label>
         <NumberInput
@@ -1246,6 +1407,10 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
 
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="text">剪贴板内容</Label>
         <VariableInput
@@ -1421,6 +1586,10 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
 
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="variableName">存储到变量</Label>
         <VariableNameInput
@@ -1545,6 +1714,10 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
 export function PhoneImageExistsConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <DeviceSelector
+        value={(data.deviceId as string) || ''}
+        onChange={(v) => onChange('deviceId', v)}
+      />
       <div className="space-y-2">
         <Label htmlFor="imagePath">图像路径</Label>
         <ImagePathInput

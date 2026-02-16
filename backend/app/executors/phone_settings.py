@@ -18,7 +18,7 @@ class PhoneSetVolumeExecutor(ModuleExecutor):
         stream_type = context.resolve_value(config.get('streamType', 'music'))
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -57,7 +57,7 @@ class PhoneSetBrightnessExecutor(ModuleExecutor):
         brightness = to_int(config.get('brightness', 128), 128, context)
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

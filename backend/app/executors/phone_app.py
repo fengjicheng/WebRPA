@@ -15,8 +15,8 @@ class PhoneInstallAppExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         apk_path = context.resolve_value(config.get('apkPath', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -45,8 +45,8 @@ class PhoneStartAppExecutor(ModuleExecutor):
         package_name = context.resolve_value(config.get('packageName', ''))
         activity_name = context.resolve_value(config.get('activityName', ''))
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

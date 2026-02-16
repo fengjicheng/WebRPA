@@ -877,22 +877,24 @@ export const phoneApi = {
 
   // 获取镜像状态
   getMirrorStatus: () => request<{ status: {
+    devices?: Record<string, { running: boolean; recording: boolean }>
     running: boolean
     recording: boolean
     device_id: string | null
   } }>('/phone/mirror/status'),
 
   // 启动普通镜像（可以正常操作手机）
-  startMirror: (deviceId: string, maxSize: number = 1920, bitRate: string = '8M') => 
+  startMirror: (deviceId: string, maxSize: number = 1920, bitRate: string = '8M', enablePointerLocation: boolean = true) => 
     request<{ success: boolean; message: string; error?: string }>('/phone/mirror/start', {
       method: 'POST',
-      body: JSON.stringify({ device_id: deviceId, max_size: maxSize, bit_rate: bitRate }),
+      body: JSON.stringify({ device_id: deviceId, max_size: maxSize, bit_rate: bitRate, enable_pointer_location: enablePointerLocation }),
     }),
 
   // 停止镜像
-  stopMirror: () => 
+  stopMirror: (deviceId?: string) => 
     request<{ success: boolean; message: string; error?: string }>('/phone/mirror/stop', {
       method: 'POST',
+      body: deviceId ? JSON.stringify({ device_id: deviceId }) : undefined,
     }),
 
   // 启动坐标选择器

@@ -19,8 +19,8 @@ class PhoneScreenshotExecutor(ModuleExecutor):
         save_path = context.resolve_value(config.get('savePath', ''))
         save_to_variable = config.get('saveToVariable', '')
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -54,8 +54,8 @@ class PhoneStartMirrorExecutor(ModuleExecutor):
         return "phone_start_mirror"
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

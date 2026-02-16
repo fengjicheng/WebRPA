@@ -14,6 +14,7 @@ from .base import (
     register_executor,
 )
 from .type_utils import to_int
+from ..utils.jsonpath_parser import parse_jsonpath
 
 
 @register_executor
@@ -524,39 +525,41 @@ class ApiTriggerExecutor(ModuleExecutor):
                     )
 
                 # 检查条件
-                from jsonpath_ng import parse
-                jsonpath_expr = parse(condition_path)
-                matches = jsonpath_expr.find(response_data)
+                try:
+                    actual_value = parse_jsonpath(response_data, condition_path)
+                    
+                    if actual_value is None:
+                        # 路径不存在或值为None
+                        context.add_log('warning', f"⚠️ 第{check_count}次检查，JSONPath未找到值: {condition_path}", None)
+                    else:
+                        # 比较值
+                        condition_met = False
+                        if condition_operator == '==':
+                            condition_met = str(actual_value) == str(condition_value)
+                        elif condition_operator == '!=':
+                            condition_met = str(actual_value) != str(condition_value)
+                        elif condition_operator == '>':
+                            try:
+                                condition_met = float(actual_value) > float(condition_value)
+                            except (ValueError, TypeError):
+                                pass
+                        elif condition_operator == '<':
+                            try:
+                                condition_met = float(actual_value) < float(condition_value)
+                            except (ValueError, TypeError):
+                                pass
+                        elif condition_operator == 'contains':
+                            condition_met = str(condition_value) in str(actual_value)
 
-                if matches:
-                    actual_value = matches[0].value
-
-                    # 比较值
-                    condition_met = False
-                    if condition_operator == '==':
-                        condition_met = str(actual_value) == str(condition_value)
-                    elif condition_operator == '!=':
-                        condition_met = str(actual_value) != str(condition_value)
-                    elif condition_operator == '>':
-                        try:
-                            condition_met = float(actual_value) > float(condition_value)
-                        except (ValueError, TypeError):
-                            pass
-                    elif condition_operator == '<':
-                        try:
-                            condition_met = float(actual_value) < float(condition_value)
-                        except (ValueError, TypeError):
-                            pass
-                    elif condition_operator == 'contains':
-                        condition_met = str(condition_value) in str(actual_value)
-
-                    if condition_met:
-                        context.set_variable(save_to_variable, response_data)
-                        return ModuleResult(
-                            success=True,
-                            message=f"API条件满足（第{check_count}次检查）: {condition_path} = {actual_value}",
-                            data=response_data
-                        )
+                        if condition_met:
+                            context.set_variable(save_to_variable, response_data)
+                            return ModuleResult(
+                                success=True,
+                                message=f"API条件满足（第{check_count}次检查）: {condition_path} = {actual_value}",
+                                data=response_data
+                            )
+                except Exception as parse_error:
+                    context.add_log('warning', f"⚠️ 第{check_count}次检查，JSONPath解析失败: {str(parse_error)}", None)
 
                 # 条件未满足，继续等待
                 context.add_log('info', f"⏳ 第{check_count}次检查，条件未满足，{check_interval}秒后重试...", None)

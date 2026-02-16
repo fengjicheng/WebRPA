@@ -5,7 +5,7 @@
 Web RPA - 网页机器人流程自动化工具
 </h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/版本-1.29.21-blue.svg" alt="版本">
+  <img src="https://img.shields.io/badge/版本-1.29.28-blue.svg" alt="版本">
   <img src="https://img.shields.io/badge/模块数量-267个-brightgreen.svg" alt="模块数量">
   <img src="https://img.shields.io/badge/协议-CC%20BY--NC--SA%204.0-green.svg" alt="协议">
   <img src="https://img.shields.io/badge/作者-青云制作__彭明航-orange.svg" alt="作者">
@@ -647,6 +647,15 @@ WebRPA/
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <img src="png/支付宝收款码.jpg" width="183" alt="支付宝收款码"/>
 </div>
+| 序号 | 付款账户 | 打赏日期 | 打赏金额（元） |
+| :------: | :--: | :--: | :--: |
+| 1 | 1*1 | 2026-01-25 12:32:15 | 20.00 |
+| 2 | N*g | 2026-01-31 16:50:27 | 100.00 |
+| 3 | *風 | 2026-02-01 14:43:17 | 10.00 |
+| 4 | *墨 | 2026-02-02 18:53:10 | 16.00 |
+| 5 | *墨 | 2026-02-14 22:06:28 | 20.00 |
+| 6 | N*g | 2026-02-16 22:30:03 | 166.00 |
+
 
 ---
 

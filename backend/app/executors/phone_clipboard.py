@@ -18,8 +18,8 @@ class PhoneSetClipboardExecutor(ModuleExecutor):
         if not text:
             return ModuleResult(success=False, error="剪贴板内容不能为空")
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -44,8 +44,8 @@ class PhoneGetClipboardExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         variable_name = config.get('variableName', 'phone_clipboard')
         
-        # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        # 自动连接设备（支持指定设备）
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

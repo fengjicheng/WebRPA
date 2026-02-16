@@ -32,7 +32,7 @@ class PhoneClickImageExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"图像文件不存在: {image_path}")
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -217,7 +217,7 @@ class PhoneClickTextExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="目标文本不能为空")
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -351,6 +351,7 @@ class PhoneClickTextExecutor(ModuleExecutor):
 
 
 
+
 @register_executor
 class PhoneWaitImageExecutor(ModuleExecutor):
     """手机等待图像 - 等待图像出现在手机屏幕上"""
@@ -373,7 +374,7 @@ class PhoneWaitImageExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"图像文件不存在: {image_path}")
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         
@@ -505,7 +506,7 @@ class PhoneImageExistsExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"图像文件不存在: {image_path}")
         
         # 自动连接设备
-        success, device_id, error = ensure_phone_connected(context)
+        success, device_id, error = ensure_phone_connected(context, config)
         if not success:
             return ModuleResult(success=False, error=error)
         

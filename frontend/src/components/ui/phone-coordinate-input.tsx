@@ -10,6 +10,7 @@ interface PhoneCoordinateInputProps {
   yValue: string
   onXChange: (value: string) => void
   onYChange: (value: string) => void
+  deviceId?: string  // 指定的设备ID
   xPlaceholder?: string
   yPlaceholder?: string
   className?: string
@@ -20,20 +21,21 @@ export function PhoneCoordinateInput({
   yValue,
   onXChange,
   onYChange,
+  deviceId: propDeviceId,  // 从props接收的设备ID
   xPlaceholder = '手机屏幕X坐标',
   yPlaceholder = '手机屏幕Y坐标',
   className,
 }: PhoneCoordinateInputProps) {
   const [isTesting, setIsTesting] = useState(false)
   const [statusText, setStatusText] = useState('')
-  const [deviceId, setDeviceId] = useState<string | null>(null)
+  const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null)
 
-  // 检查设备
+  // 获取默认设备（仅在没有指定deviceId时使用）
   const checkDevice = async () => {
     try {
       const result = await phoneApi.getDevices()
       if (result.data?.devices && result.data.devices.length > 0) {
-        setDeviceId(result.data.devices[0].id)
+        setDefaultDeviceId(result.data.devices[0].id)
         return result.data.devices[0].id
       }
       return null
@@ -43,8 +45,11 @@ export function PhoneCoordinateInput({
   }
 
   useEffect(() => {
-    checkDevice()
-  }, [])
+    // 只有在没有指定deviceId时才获取默认设备
+    if (!propDeviceId) {
+      checkDevice()
+    }
+  }, [propDeviceId])
 
   const handleTest = async () => {
     const x = parseInt(xValue)
@@ -56,7 +61,10 @@ export function PhoneCoordinateInput({
       return
     }
     
-    if (!deviceId) {
+    // 使用指定的deviceId，如果没有则使用默认设备
+    const targetDeviceId = propDeviceId || defaultDeviceId
+    
+    if (!targetDeviceId) {
       setStatusText('❌ 未检测到设备')
       setTimeout(() => setStatusText(''), 2000)
       return
@@ -66,10 +74,10 @@ export function PhoneCoordinateInput({
     setStatusText(`正在测试坐标 (${x}, ${y})...`)
     
     try {
-      const result = await phoneApi.testCoordinate(x, y, deviceId)
+      const result = await phoneApi.testCoordinate(x, y, targetDeviceId)
       
       if (result.data?.success) {
-        setStatusText(`✅ 已在手机上点击坐标 (${x}, ${y})`)
+        setStatusText(`✅ 已在设备 ${targetDeviceId} 上点击坐标 (${x}, ${y})`)
       } else {
         setStatusText(`❌ 测试失败: ${result.data?.error || result.error || '未知错误'}`)
       }
@@ -110,7 +118,7 @@ export function PhoneCoordinateInput({
             variant="outline"
             size="sm"
             onClick={handleTest}
-            disabled={isTesting || !xValue || !yValue || !deviceId}
+            disabled={isTesting || !xValue || !yValue || !(propDeviceId || defaultDeviceId)}
             className="h-16 px-3 flex items-center justify-center gap-1"
             title="在手机上测试当前坐标"
           >
