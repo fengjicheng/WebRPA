@@ -18,6 +18,9 @@ ENV/
 uploads/
 browser_data/
 
+# poppler 工具（体积较大，用户需自行下载）
+poppler/
+
 # AI 模型文件（体积巨大）
 data/easyocr_models/
 data/whisper_models/

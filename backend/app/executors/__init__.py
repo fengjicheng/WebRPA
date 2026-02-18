@@ -33,7 +33,8 @@ from . import media_record
 from . import media_m3u8
 from . import qq
 from . import wechat
-from . import pdf
+from . import pdf_ops
+from . import pdf_convert
 from . import document_convert
 from . import screen_share
 from . import trigger

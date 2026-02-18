@@ -5,7 +5,7 @@
 Web RPA - 网页机器人流程自动化工具
 </h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/版本-1.29.33-blue.svg" alt="版本">
+  <img src="https://img.shields.io/badge/版本-1.29.45-blue.svg" alt="版本">
   <img src="https://img.shields.io/badge/模块数量-267个-brightgreen.svg" alt="模块数量">
   <img src="https://img.shields.io/badge/协议-CC%20BY--NC--SA%204.0-green.svg" alt="协议">
   <img src="https://img.shields.io/badge/作者-青云制作__彭明航-orange.svg" alt="作者">
@@ -13,10 +13,6 @@ Web RPA - 网页机器人流程自动化工具
   <img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6.svg" alt="TypeScript">
 </p>
-
-
-
-
 **一款功能强大的可视化网页自动化工具（支持一定的Windows系统桌面自动化和Android系统自动化），通过拖拽模块的方式快速构建自动化工作流，无需编写代码即可实现网页数据采集、表单填写、自动化测试等任务。**
 
 > **【请到Releases中下载最新7z压缩包，最新源代码和运行环境都在里面，解压即可使用！😇】**
@@ -88,12 +84,13 @@ Web RPA - 网页机器人流程自动化工具
 - **进度显示**：实时显示处理进度
 
 ### 📄 PDF处理（16个模块）
-- **格式转换**：PDF转图片、图片转PDF、PDF转Word
+- **格式转换**：PDF转图片、图片转PDF、PDF转Word（高保真，仅供非商业使用）
 - **文档操作**：合并、拆分、插入页面、重排页面、删除页面、旋转页面
 - **内容提取**：提取文本、提取图片、获取文档信息
 - **安全加密**：PDF加密、PDF解密
 - **文档优化**：添加水印、压缩PDF
 - **批量处理**：支持批量转换和处理
+- **⚠️ 许可证说明**：PDF转Word功能使用 pdf2docx（GPL v3），仅供非商业使用
 
 ### 📝 文档转换（13个模块，基于Pandoc）
 - **Markdown转换**：Markdown → HTML/PDF/Word/EPUB
@@ -439,7 +436,7 @@ WebRPA/
 - **图像处理**：Pillow 11.0（PIL分支，支持HEIC/WEBP）
 - **计算机视觉**：OpenCV 4（图像识别、人脸检测）
 - **音频处理**：pydub（音频剪辑、格式转换）
-- **PDF处理**：PyMuPDF（高性能PDF库）
+- **PDF处理**：pypdf（MIT 协议的 PDF 库）
 - **文档转换**：Pandoc 3.6（支持30+种文档格式）
 
 ### AI与识别
@@ -606,7 +603,7 @@ WebRPA/
 - [Pillow](https://pillow.readthedocs.io/) - Python图像处理库（PIL分支）
 - [OpenCV](https://opencv.org/) - 开源计算机视觉库
 - [pydub](https://github.com/jiaaro/pydub) - 简单易用的音频处理库
-- [PyMuPDF (fitz)](https://pymupdf.readthedocs.io/) - 高性能PDF处理库
+- [pypdf](https://github.com/py-pdf/pypdf) - MIT 协议的 PDF 处理库
 - [Pandoc](https://pandoc.org/) - 通用文档转换工具
 - [pypandoc](https://github.com/JessicaTegner/pypandoc) - Pandoc的Python包装器
 
@@ -690,6 +687,47 @@ WebRPA/
 | 中大型企业 | 100 人以上企业，规模化永久授权  |   43200    |
 
 <br>
+
+---
+
+## ⚠️ 重要声明：NapCat与pdf2docx 使用规范
+
+> **本项目内置的 NapCat框架与pdf2docx库 仅供个人非商业用途使用。**
+
+### 📋 使用规则
+
+1. **个人非商用**：您可以在个人学习、研究、娱乐等非商业场景下自由使用 NapCat与pdf2docx 相关功能
+2. **商业使用禁止**：任何商业使用场景下，严禁使用 NapCat与pdf2docx 相关功能
+3. **商业授权版本**：购买商业授权后，您将获得不含 NapCat与pdf2docx 的商业版本
+4. **自行添加禁止**：商业用户不得自行添加、集成或使用 NapCat与pdf2docx
+
+### 🔒 法律合规
+
+- NapCat与pdf2docx 采用非商业性使用协议，本项目完全遵守该协议
+- 本项目不提供任何商业场景下的 NapCat与pdf2docx 支持
+- 商业授权版本将彻底移除 NapCat与pdf2docx 相关文件夹及代码
+- 作者不对商业用户违规使用 NapCat与pdf2docx 承担任何责任
+
+### 💼 商业用户须知
+
+如果您购买了本项目的商业授权：
+- ✅ 您可以使用本项目的所有其他功能（浏览器自动化、系统操作、AI 能力等）
+- ❌ 您不能使用任何 QQ 机器人相关功能，以及PDF转Word服务（这些功能依赖 NapCat与pdf2docx）
+- ❌ 您不能自行下载、安装、集成 NapCat或pdf2docx 到商业版本中
+- ❌ 作者不会提供任何帮助您在商业环境中使用 NapCat与pdf2docx 的技术支持
+
+**如需 QQ 机器人或PDF转Word的商业化方案，请自行寻找具有商业授权的替代方案！**
+
+---
+
+## 📦 商业版本功能说明
+
+购买商业授权后，您将获得完整的商业版本：
+
+**移除的功能**：
+
+- ❌ 所有 QQ 机器人相关功能（8个模块）
+- ❌ PDF转Word模块
 
 ---
 

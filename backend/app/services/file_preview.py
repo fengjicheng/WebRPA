@@ -319,19 +319,29 @@ def _preview_pptx(file_path: Path) -> Tuple[str, str]:
 def preview_pdf_as_images(file_path: Path) -> Tuple[str, str]:
     """
     将 PDF 转换为图片预览，返回 (html_content, content_type)
+    使用 pdf2image 库替代 PyMuPDF
     """
     try:
-        import fitz  # PyMuPDF
+        from pdf2image import convert_from_path
         
-        doc = fitz.open(file_path)
+        # 获取 backend 目录的路径
+        backend_root = Path(__file__).parent.parent.parent
+        poppler_path = backend_root / 'poppler' / 'Library' / 'bin'
+        
+        # 转换 PDF 为图片，限制页数
+        if poppler_path.exists():
+            images = convert_from_path(str(file_path), dpi=150, first_page=1, last_page=50, poppler_path=str(poppler_path))
+        else:
+            # 如果内置 poppler 不存在，尝试使用系统 PATH 中的 poppler
+            images = convert_from_path(str(file_path), dpi=150, first_page=1, last_page=50)
+        
         pages_html = []
         
-        for page_num in range(min(doc.page_count, 50)):  # 限制页数
-            page = doc[page_num]
-            # 渲染为图片
-            mat = fitz.Matrix(1.5, 1.5)  # 缩放因子
-            pix = page.get_pixmap(matrix=mat)
-            img_bytes = pix.tobytes("png")
+        for page_num, img in enumerate(images):
+            # 将图片转换为 base64
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format='PNG')
+            img_bytes = img_buffer.getvalue()
             b64_image = base64.b64encode(img_bytes).decode('utf-8')
             
             pages_html.append(f'''
@@ -340,8 +350,6 @@ def preview_pdf_as_images(file_path: Path) -> Tuple[str, str]:
                     <img src="data:image/png;base64,{b64_image}">
                 </div>
             ''')
-        
-        doc.close()
         
         content = _get_preview_wrapper(
             file_path.name,
@@ -354,8 +362,20 @@ def preview_pdf_as_images(file_path: Path) -> Tuple[str, str]:
             '''
         )
         return content, "text/html"
+    except ImportError:
+        error_html = "<p>PDF 预览需要安装 pdf2image 库: pip install pdf2image</p>"
+        return error_html, "text/html"
     except Exception as e:
-        return f"<p>PDF 预览失败: {html.escape(str(e))}</p>", "text/html"
+        error_msg = str(e)
+        if "poppler" in error_msg.lower():
+            error_html = "<div style='padding: 20px; color: #fafafa;'>"
+            error_html += "<h2 style='color: #ef4444;'>PDF 预览需要 poppler 工具</h2>"
+            error_html += "<p>请将 poppler 文件夹放置到 backend 目录下</p>"
+            error_html += "<p>下载地址: <a href='https://github.com/oschwartz10612/poppler-windows/releases' target='_blank' style='color: #3b82f6;'>https://github.com/oschwartz10612/poppler-windows/releases</a></p>"
+            error_html += f"<p style='color: #71717a; margin-top: 20px;'>错误详情: {html.escape(error_msg)}</p>"
+            error_html += "</div>"
+            return error_html, "text/html"
+        return f"<p>PDF 预览失败: {html.escape(error_msg)}</p>", "text/html"
 
 
 def _get_preview_wrapper(filename: str, content: str, extra_style: str = '') -> str:

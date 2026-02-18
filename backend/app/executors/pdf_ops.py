@@ -13,10 +13,16 @@
 - PDF压缩
 - PDF插入页面
 - PDF重排页面
+
+使用 pypdf 库替代 PyMuPDF，完全符合 MIT 许可证
 """
 import asyncio
 import os
 from typing import List
+from pypdf import PdfReader, PdfWriter, Transformation
+from pypdf.generic import RectangleObject
+from PIL import Image
+import io
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 
@@ -24,10 +30,10 @@ from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_execu
 def ensure_pdf_libs():
     """确保PDF处理库已安装"""
     try:
-        import fitz
+        import pypdf
         return True
     except ImportError:
-        raise ImportError("请安装 PyMuPDF: pip install PyMuPDF")
+        raise ImportError("请安装 pypdf: pip install pypdf")
 
 
 def parse_page_range(page_range: str, total_pages: int = None) -> List[int]:
@@ -65,7 +71,6 @@ class PDFMergeExecutor(ModuleExecutor):
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         ensure_pdf_libs()
-        import fitz
         
         pdfs_input = context.resolve_value(config.get('pdfFiles', ''))
         output_path = context.resolve_value(config.get('outputPath', ''))
@@ -99,20 +104,18 @@ class PDFMergeExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF合并失败: {str(e)}")
     
     def _merge(self, pdf_paths: List[str], output_path: str) -> dict:
-        import fitz
-        
-        merged_doc = fitz.open()
+        writer = PdfWriter()
         total_pages = 0
         
         for pdf_path in pdf_paths:
-            doc = fitz.open(pdf_path)
-            merged_doc.insert_pdf(doc)
-            total_pages += len(doc)
-            doc.close()
+            reader = PdfReader(pdf_path)
+            total_pages += len(reader.pages)
+            for page in reader.pages:
+                writer.add_page(page)
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        merged_doc.save(output_path)
-        merged_doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         
         return {
             "output_path": output_path,
@@ -162,32 +165,30 @@ class PDFSplitExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF拆分失败: {str(e)}")
     
     def _split(self, pdf_path: str, output_dir: str, split_mode: str, page_ranges: str) -> dict:
-        import fitz
-        
-        doc = fitz.open(pdf_path)
-        total_pages = len(doc)
+        reader = PdfReader(pdf_path)
+        total_pages = len(reader.pages)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
         output_files = []
         
         if split_mode == 'single':
             for i in range(total_pages):
-                new_doc = fitz.open()
-                new_doc.insert_pdf(doc, from_page=i, to_page=i)
+                writer = PdfWriter()
+                writer.add_page(reader.pages[i])
                 output_path = os.path.join(output_dir, f"{base_name}_page_{i + 1}.pdf")
-                new_doc.save(output_path)
-                new_doc.close()
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
                 output_files.append(output_path)
         else:
             ranges = self._parse_ranges(page_ranges, total_pages)
             for idx, (start, end) in enumerate(ranges):
-                new_doc = fitz.open()
-                new_doc.insert_pdf(doc, from_page=start, to_page=end - 1)
+                writer = PdfWriter()
+                for page_num in range(start, end):
+                    writer.add_page(reader.pages[page_num])
                 output_path = os.path.join(output_dir, f"{base_name}_part_{idx + 1}.pdf")
-                new_doc.save(output_path)
-                new_doc.close()
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
                 output_files.append(output_path)
         
-        doc.close()
         return {"output_files": output_files, "total_pages": total_pages, "split_count": len(output_files)}
     
     def _parse_ranges(self, page_ranges: str, total_pages: int) -> List[tuple]:
@@ -244,19 +245,16 @@ class PDFExtractTextExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF提取文本失败: {str(e)}")
     
     def _extract(self, pdf_path: str, page_range: str, output_path: str) -> dict:
-        import fitz
-        
-        doc = fitz.open(pdf_path)
-        total_pages = len(doc)
+        reader = PdfReader(pdf_path)
+        total_pages = len(reader.pages)
         pages = parse_page_range(page_range, total_pages)
         
         text_parts = []
         for page_num in pages:
-            page = doc[page_num]
-            text = page.get_text()
+            page = reader.pages[page_num]
+            text = page.extract_text()
             text_parts.append(f"--- 第 {page_num + 1} 页 ---\n{text}")
         
-        doc.close()
         full_text = "\n\n".join(text_parts)
         
         if output_path:
@@ -275,7 +273,11 @@ class PDFExtractTextExecutor(ModuleExecutor):
 
 @register_executor
 class PDFExtractImagesExecutor(ModuleExecutor):
-    """PDF提取图片模块执行器"""
+    """PDF提取图片模块执行器
+    
+    注意：pypdf 对图片提取的支持有限，此功能可能无法提取所有图片
+    建议使用专门的 PDF 图片提取工具
+    """
     
     @property
     def module_type(self) -> str:
@@ -310,37 +312,77 @@ class PDFExtractImagesExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF提取图片失败: {str(e)}")
     
     def _extract(self, pdf_path: str, output_dir: str, min_size: int) -> dict:
-        import fitz
-        
-        doc = fitz.open(pdf_path)
+        reader = PdfReader(pdf_path)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
         images = []
         img_count = 0
         
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            image_list = page.get_images()
-            
-            for img_index, img in enumerate(image_list):
-                xref = img[0]
-                base_image = doc.extract_image(xref)
+        for page_num, page in enumerate(reader.pages):
+            if '/Resources' in page and '/XObject' in page['/Resources']:
+                xobjects = page['/Resources']['/XObject'].get_object()
                 
-                if base_image:
-                    image_bytes = base_image["image"]
-                    image_ext = base_image["ext"]
-                    width = base_image.get("width", 0)
-                    height = base_image.get("height", 0)
+                for obj_name in xobjects:
+                    obj = xobjects[obj_name]
                     
-                    if width >= min_size and height >= min_size:
-                        img_count += 1
-                        output_path = os.path.join(output_dir, f"{base_name}_page{page_num + 1}_img{img_count}.{image_ext}")
-                        
-                        with open(output_path, "wb") as f:
-                            f.write(image_bytes)
-                        
-                        images.append({"path": output_path, "page": page_num + 1, "width": width, "height": height, "format": image_ext})
+                    if obj['/Subtype'] == '/Image':
+                        try:
+                            size = (obj['/Width'], obj['/Height'])
+                            
+                            if size[0] >= min_size and size[1] >= min_size:
+                                img_count += 1
+                                
+                                # 提取图片数据
+                                data = obj.get_data()
+                                
+                                # 尝试确定图片格式
+                                if '/Filter' in obj:
+                                    filter_type = obj['/Filter']
+                                    if filter_type == '/DCTDecode':
+                                        ext = 'jpg'
+                                    elif filter_type == '/JPXDecode':
+                                        ext = 'jp2'
+                                    elif filter_type == '/FlateDecode':
+                                        ext = 'png'
+                                    else:
+                                        ext = 'png'
+                                else:
+                                    ext = 'png'
+                                
+                                output_path = os.path.join(output_dir, f"{base_name}_page{page_num + 1}_img{img_count}.{ext}")
+                                
+                                # 如果是原始数据，需要转换为图片
+                                if ext == 'png' and '/Filter' in obj and obj['/Filter'] == '/FlateDecode':
+                                    try:
+                                        # 尝试使用 PIL 处理
+                                        mode = "RGB"
+                                        if '/ColorSpace' in obj:
+                                            cs = obj['/ColorSpace']
+                                            if cs == '/DeviceGray':
+                                                mode = "L"
+                                            elif cs == '/DeviceCMYK':
+                                                mode = "CMYK"
+                                        
+                                        img = Image.frombytes(mode, size, data)
+                                        img.save(output_path)
+                                    except:
+                                        # 如果失败，直接保存原始数据
+                                        with open(output_path, 'wb') as f:
+                                            f.write(data)
+                                else:
+                                    with open(output_path, 'wb') as f:
+                                        f.write(data)
+                                
+                                images.append({
+                                    "path": output_path,
+                                    "page": page_num + 1,
+                                    "width": size[0],
+                                    "height": size[1],
+                                    "format": ext
+                                })
+                        except Exception as e:
+                            # 跳过无法提取的图片
+                            continue
         
-        doc.close()
         return {"images": images, "image_count": len(images), "output_dir": output_dir}
 
 
@@ -354,7 +396,6 @@ class PDFEncryptExecutor(ModuleExecutor):
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         ensure_pdf_libs()
-        import fitz
         
         pdf_path = context.resolve_value(config.get('pdfPath', ''))
         output_path = context.resolve_value(config.get('outputPath', ''))
@@ -388,33 +429,23 @@ class PDFEncryptExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF加密失败: {str(e)}")
     
     def _encrypt(self, pdf_path: str, output_path: str, user_password: str, owner_password: str, permissions: dict) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
         
-        doc = fitz.open(pdf_path)
+        # 复制所有页面
+        for page in reader.pages:
+            writer.add_page(page)
         
-        perm = fitz.PDF_PERM_ACCESSIBILITY
-        if permissions.get('print', True):
-            perm |= fitz.PDF_PERM_PRINT | fitz.PDF_PERM_PRINT_HQ
-        if permissions.get('copy', True):
-            perm |= fitz.PDF_PERM_COPY
-        if permissions.get('modify', False):
-            perm |= fitz.PDF_PERM_MODIFY
-        if permissions.get('annotate', True):
-            perm |= fitz.PDF_PERM_ANNOTATE
-        if permissions.get('form', True):
-            perm |= fitz.PDF_PERM_FORM
-        
-        encrypt_meth = fitz.PDF_ENCRYPT_AES_256
+        # 设置加密
+        writer.encrypt(
+            user_password=user_password if user_password else "",
+            owner_password=owner_password if owner_password else user_password,
+            permissions_flag=-1  # pypdf 的权限标志与 PyMuPDF 不同，使用 -1 表示所有权限
+        )
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(
-            output_path,
-            encryption=encrypt_meth,
-            user_pw=user_password if user_password else None,
-            owner_pw=owner_password if owner_password else user_password,
-            permissions=perm
-        )
-        doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         
         return {
             "output_path": output_path,
@@ -461,21 +492,21 @@ class PDFDecryptExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF解密失败: {str(e)}")
     
     def _decrypt(self, pdf_path: str, password: str, output_path: str) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
         
-        doc = fitz.open(pdf_path)
-        
-        if doc.is_encrypted:
-            if not doc.authenticate(password):
-                doc.close()
+        if reader.is_encrypted:
+            if not reader.decrypt(password):
                 raise Exception("密码错误")
         
-        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path)
-        page_count = len(doc)
-        doc.close()
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
         
-        return {"output_path": output_path, "page_count": page_count}
+        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+        
+        return {"output_path": output_path, "page_count": len(reader.pages)}
 
 
 @register_executor
@@ -533,58 +564,75 @@ class PDFAddWatermarkExecutor(ModuleExecutor):
     def _add_watermark(self, pdf_path: str, output_path: str, watermark_type: str,
                        watermark_text: str, watermark_image: str, opacity: float,
                        position: str, font_size: int, color: str) -> dict:
-        import fitz
-        import math
+        """
+        注意：pypdf 对水印的支持有限，此功能使用简化实现
+        建议使用专门的 PDF 水印工具获得更好的效果
+        """
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import letter
+        import tempfile
         
-        doc = fitz.open(pdf_path)
-        color_rgb = self._hex_to_rgb(color)
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
         
-        for page in doc:
-            rect = page.rect
+        # 创建水印 PDF
+        watermark_pdf = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
+        watermark_path = watermark_pdf.name
+        watermark_pdf.close()
+        
+        try:
+            # 使用 reportlab 创建水印
+            c = canvas.Canvas(watermark_path, pagesize=letter)
             
             if watermark_type == 'text':
-                if position == 'diagonal':
-                    angle = math.degrees(math.atan2(rect.height, rect.width))
-                    center = fitz.Point(rect.width / 2, rect.height / 2)
-                    page.insert_text(center, watermark_text, fontsize=font_size, color=color_rgb, rotate=angle, overlay=True)
-                elif position == 'tile':
-                    y = 50
-                    while y < rect.height:
-                        x = 50
-                        while x < rect.width:
-                            page.insert_text(fitz.Point(x, y), watermark_text, fontsize=font_size, color=color_rgb, overlay=True)
-                            x += font_size * len(watermark_text) + 100
-                        y += font_size + 100
-                else:
-                    text_length = fitz.get_text_length(watermark_text, fontsize=font_size)
-                    x = (rect.width - text_length) / 2
-                    y = rect.height / 2
-                    page.insert_text(fitz.Point(x, y), watermark_text, fontsize=font_size, color=color_rgb, overlay=True)
-            else:
-                img_rect = fitz.Rect(0, 0, 200, 200)
+                c.setFillColorRGB(*self._hex_to_rgb(color))
+                c.setFont("Helvetica", font_size)
+                c.setFillAlpha(opacity)
                 
                 if position == 'center':
-                    x = (rect.width - img_rect.width) / 2
-                    y = (rect.height - img_rect.height) / 2
-                    img_rect = fitz.Rect(x, y, x + img_rect.width, y + img_rect.height)
-                    page.insert_image(img_rect, filename=watermark_image, overlay=True)
+                    c.drawCentredString(300, 400, watermark_text)
+                elif position == 'diagonal':
+                    c.saveState()
+                    c.translate(300, 400)
+                    c.rotate(45)
+                    c.drawCentredString(0, 0, watermark_text)
+                    c.restoreState()
                 elif position == 'tile':
-                    y = 50
-                    while y < rect.height:
-                        x = 50
-                        while x < rect.width:
-                            tile_rect = fitz.Rect(x, y, x + 150, y + 150)
-                            page.insert_image(tile_rect, filename=watermark_image, overlay=True)
-                            x += 200
-                        y += 200
-                else:
-                    page.insert_image(img_rect, filename=watermark_image, overlay=True)
-        
-        os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path)
-        doc.close()
-        
-        return {"output_path": output_path, "watermark_type": watermark_type, "position": position}
+                    for y in range(100, 700, 150):
+                        for x in range(100, 500, 200):
+                            c.drawString(x, y, watermark_text)
+            else:
+                # 图片水印
+                if os.path.exists(watermark_image):
+                    c.setFillAlpha(opacity)
+                    if position == 'center':
+                        c.drawImage(watermark_image, 200, 300, width=200, height=200, preserveAspectRatio=True, mask='auto')
+                    elif position == 'tile':
+                        for y in range(100, 700, 250):
+                            for x in range(100, 500, 250):
+                                c.drawImage(watermark_image, x, y, width=150, height=150, preserveAspectRatio=True, mask='auto')
+            
+            c.save()
+            
+            # 读取水印 PDF
+            watermark_reader = PdfReader(watermark_path)
+            watermark_page = watermark_reader.pages[0]
+            
+            # 将水印应用到每一页
+            for page in reader.pages:
+                page.merge_page(watermark_page)
+                writer.add_page(page)
+            
+            # 保存结果
+            os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+            
+            return {"output_path": output_path, "watermark_type": watermark_type, "position": position}
+        finally:
+            # 清理临时文件
+            if os.path.exists(watermark_path):
+                os.unlink(watermark_path)
     
     def _hex_to_rgb(self, hex_color: str) -> tuple:
         hex_color = hex_color.lstrip('#')
@@ -634,21 +682,22 @@ class PDFRotateExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF旋转失败: {str(e)}")
     
     def _rotate(self, pdf_path: str, output_path: str, rotation: int, page_range: str) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
+        total_pages = len(reader.pages)
+        pages_to_rotate = parse_page_range(page_range, total_pages)
         
-        doc = fitz.open(pdf_path)
-        total_pages = len(doc)
-        pages = parse_page_range(page_range, total_pages)
-        
-        for page_num in pages:
-            page = doc[page_num]
-            page.set_rotation(page.rotation + rotation)
+        for page_num in range(total_pages):
+            page = reader.pages[page_num]
+            if page_num in pages_to_rotate:
+                page.rotate(rotation)
+            writer.add_page(page)
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path)
-        doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         
-        return {"output_path": output_path, "rotation": rotation, "rotated_pages": len(pages), "total_pages": total_pages}
+        return {"output_path": output_path, "rotation": rotation, "rotated_pages": len(pages_to_rotate), "total_pages": total_pages}
 
 
 @register_executor
@@ -690,19 +739,20 @@ class PDFDeletePagesExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF删除页面失败: {str(e)}")
     
     def _delete(self, pdf_path: str, output_path: str, page_range: str) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
+        total_pages = len(reader.pages)
+        pages_to_delete = set(parse_page_range(page_range, total_pages))
         
-        doc = fitz.open(pdf_path)
-        total_pages = len(doc)
-        pages_to_delete = parse_page_range(page_range, total_pages)
-        
-        for page_num in sorted(pages_to_delete, reverse=True):
-            doc.delete_page(page_num)
+        for page_num in range(total_pages):
+            if page_num not in pages_to_delete:
+                writer.add_page(reader.pages[page_num])
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path)
-        new_page_count = len(doc)
-        doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+        
+        new_page_count = len(writer.pages)
         
         return {
             "output_path": output_path,
@@ -744,24 +794,25 @@ class PDFGetInfoExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"获取PDF信息失败: {str(e)}")
     
     def _get_info(self, pdf_path: str, password: str) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
         
-        doc = fitz.open(pdf_path)
-        
-        if doc.is_encrypted:
+        if reader.is_encrypted:
             if password:
-                if not doc.authenticate(password):
-                    doc.close()
+                if not reader.decrypt(password):
                     raise Exception("密码错误")
             else:
-                doc.close()
                 raise Exception("PDF已加密，请提供密码")
         
-        metadata = doc.metadata or {}
+        metadata = reader.metadata or {}
         pages_info = []
-        for i, page in enumerate(doc):
-            rect = page.rect
-            pages_info.append({"page_number": i + 1, "width": rect.width, "height": rect.height, "rotation": page.rotation})
+        for i, page in enumerate(reader.pages):
+            box = page.mediabox
+            pages_info.append({
+                "page_number": i + 1,
+                "width": float(box.width),
+                "height": float(box.height),
+                "rotation": page.get('/Rotate', 0)
+            })
         
         file_size = os.path.getsize(pdf_path)
         
@@ -769,22 +820,21 @@ class PDFGetInfoExecutor(ModuleExecutor):
             "file_path": pdf_path,
             "file_size": file_size,
             "file_size_mb": round(file_size / 1024 / 1024, 2),
-            "page_count": len(doc),
-            "is_encrypted": doc.is_encrypted,
+            "page_count": len(reader.pages),
+            "is_encrypted": reader.is_encrypted,
             "metadata": {
-                "title": metadata.get("title", ""),
-                "author": metadata.get("author", ""),
-                "subject": metadata.get("subject", ""),
-                "keywords": metadata.get("keywords", ""),
-                "creator": metadata.get("creator", ""),
-                "producer": metadata.get("producer", ""),
-                "creation_date": metadata.get("creationDate", ""),
-                "modification_date": metadata.get("modDate", ""),
+                "title": metadata.get('/Title', ''),
+                "author": metadata.get('/Author', ''),
+                "subject": metadata.get('/Subject', ''),
+                "keywords": metadata.get('/Keywords', ''),
+                "creator": metadata.get('/Creator', ''),
+                "producer": metadata.get('/Producer', ''),
+                "creation_date": str(metadata.get('/CreationDate', '')),
+                "modification_date": str(metadata.get('/ModDate', '')),
             },
             "pages": pages_info
         }
         
-        doc.close()
         return result
 
 
@@ -825,17 +875,29 @@ class PDFCompressExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF压缩失败: {str(e)}")
     
     def _compress(self, pdf_path: str, output_path: str, image_quality: int) -> dict:
-        import fitz
-        
+        """
+        注意：pypdf 的压缩功能有限，主要通过移除重复对象和压缩流来减小文件大小
+        对于包含大量图片的 PDF，压缩效果可能不如 PyMuPDF
+        """
         original_size = os.path.getsize(pdf_path)
-        doc = fitz.open(pdf_path)
+        
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
+        
+        # 复制所有页面
+        for page in reader.pages:
+            writer.add_page(page)
+        
+        # 压缩内容流
+        for page in writer.pages:
+            page.compress_content_streams()
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path, garbage=4, deflate=True, clean=True, linear=True)
-        doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         
         new_size = os.path.getsize(output_path)
-        compression_ratio = round((1 - new_size / original_size) * 100, 1)
+        compression_ratio = round((1 - new_size / original_size) * 100, 1) if original_size > 0 else 0
         
         return {
             "output_path": output_path,
@@ -889,26 +951,35 @@ class PDFInsertPagesExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF插入页面失败: {str(e)}")
     
     def _insert(self, pdf_path: str, insert_pdf: str, output_path: str, insert_position: int) -> dict:
-        import fitz
+        reader = PdfReader(pdf_path)
+        insert_reader = PdfReader(insert_pdf)
+        writer = PdfWriter()
         
-        doc = fitz.open(pdf_path)
-        insert_doc = fitz.open(insert_pdf)
-        
-        original_pages = len(doc)
-        insert_pages = len(insert_doc)
+        original_pages = len(reader.pages)
+        insert_pages = len(insert_reader.pages)
         
         if insert_position == -1 or insert_position >= original_pages:
             position = original_pages
         else:
             position = max(0, insert_position)
         
-        doc.insert_pdf(insert_doc, start_at=position)
+        # 添加插入位置之前的页面
+        for i in range(position):
+            writer.add_page(reader.pages[i])
+        
+        # 添加要插入的页面
+        for page in insert_reader.pages:
+            writer.add_page(page)
+        
+        # 添加插入位置之后的页面
+        for i in range(position, original_pages):
+            writer.add_page(reader.pages[i])
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        doc.save(output_path)
-        total_pages = len(doc)
-        doc.close()
-        insert_doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+        
+        total_pages = len(writer.pages)
         
         return {
             "output_path": output_path,
@@ -958,10 +1029,9 @@ class PDFReorderPagesExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF重排页面失败: {str(e)}")
     
     def _reorder(self, pdf_path: str, output_path: str, page_order: str) -> dict:
-        import fitz
-        
-        doc = fitz.open(pdf_path)
-        total_pages = len(doc)
+        reader = PdfReader(pdf_path)
+        writer = PdfWriter()
+        total_pages = len(reader.pages)
         
         if isinstance(page_order, str):
             order = [int(p.strip()) - 1 for p in page_order.split(',') if p.strip()]
@@ -972,13 +1042,11 @@ class PDFReorderPagesExecutor(ModuleExecutor):
             if idx < 0 or idx >= total_pages:
                 raise Exception(f"页面索引 {idx + 1} 超出范围 (1-{total_pages})")
         
-        new_doc = fitz.open()
         for idx in order:
-            new_doc.insert_pdf(doc, from_page=idx, to_page=idx)
+            writer.add_page(reader.pages[idx])
         
         os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
-        new_doc.save(output_path)
-        new_doc.close()
-        doc.close()
+        with open(output_path, 'wb') as f:
+            writer.write(f)
         
         return {"output_path": output_path, "original_pages": total_pages, "new_page_count": len(order), "page_order": [i + 1 for i in order]}

@@ -55,6 +55,79 @@ Copyright (c) 2025 青云制作_彭明航
 
 如需将本项目用于商业目的，请联系作者获取商业授权。
 
+联系方式：QQ 2124691573
+
+【重要】关于 NapCat 的特别说明：
+
+1. NapCat 使用限制
+   - 本项目内置的 NapCat 框架仅供个人非商业用途使用
+   - NapCat 采用非商业性使用协议，本项目完全遵守该协议
+   - 任何商业使用场景下，严禁使用 NapCat 相关功能
+
+2. 商业授权版本说明
+   - 购买商业授权后，您将获得不含 NapCat 的商业版本
+   - 商业版本将彻底移除 NapCat 文件夹及所有相关代码
+   - 商业版本不包含任何 QQ 机器人相关功能
+
+3. 商业用户禁止事项
+   - 禁止在商业环境中使用 NapCat
+   - 禁止自行下载、安装、集成 NapCat 到商业版本
+   - 禁止将 NapCat 用于任何营利性目的
+   - 作者不提供任何商业场景下的 NapCat 技术支持
+
+4. 法律责任
+   - 商业用户违规使用 NapCat 的法律责任由用户自行承担
+   - 作者不对商业用户违反 NapCat 协议的行为负责
+   - 如需 QQ 机器人商业化方案，请寻找具有商业授权的替代方案
+
+【重要】关于 PDF 处理库的说明：
+
+1. PDF 基础库（MIT 协议 - 完全商业友好）
+   - pypdf: MIT 协议 - 基本 PDF 操作
+   - reportlab: BSD 协议 - PDF 生成
+   - pdf2image: MIT 协议 - PDF 转图片
+   - python-docx: MIT 协议 - Word 文档操作
+   - pdfplumber: MIT 协议 - PDF 内容提取
+
+2. PDF 转 Word 功能（GPL v3 协议 - 仅供非商业使用）
+   - 本项目使用 pdf2docx 库（GPL v3 协议）实现高保真 PDF 转 Word
+   - pdf2docx 依赖 PyMuPDF（AGPL 3.0 协议）
+   - 这两个库仅供个人非商业用途使用
+   - 商业使用需要遵守 GPL v3 许可证或联系原作者获取商业授权
+
+3. 商业版本说明
+   - 购买商业授权后，您将获得不含 pdf2docx 和 PyMuPDF 的商业版本
+   - 商业版本将移除 PDF 转 Word 功能
+   - 其他 PDF 功能（合并、拆分、提取文本、加密等）仍可正常使用
+   - 如需 PDF 转 Word 功能，请使用商业 API（如 Adobe PDF Services）
+
+4. poppler 工具说明（可选）
+   - PDF转图片功能需要 poppler 工具（GPL v2+ 协议）
+   - poppler 是作为外部工具调用，不是链接库，因此不影响项目许可证
+   - 这是合法且常见的做法（类似于调用 ffmpeg、pandoc 等 GPL 工具）
+   - GPL 协议允许商业使用，只要求分发时提供源代码
+   - 用户可以选择不安装 poppler，其他 PDF 功能仍可正常使用
+
+3. 其他依赖库说明
+   本项目使用的其他主要库均采用商业友好的许可协议：
+   - FastAPI, Playwright, React: MIT 协议
+   - MediaPipe: Apache 2.0 协议
+   - EasyOCR: Apache 2.0 协议
+   - mitmproxy: MIT 协议
+   - face_recognition: MIT 协议
+   - ddddocr: MIT 协议
+   - pypdf: MIT 协议
+   - 其他库详见 requirements.txt 和 package.json
+
+4. 商业版本部署指南
+   购买商业授权后，请参阅项目根目录的"商业版本部署指南.txt"文件，
+   该文件详细说明了如何移除 NapCat 相关功能。
+   
+   商业版本：
+   - 移除 NapCat 和所有 QQ 相关功能（8个模块）
+   - 保留其他所有功能（259个模块，包括完整的 PDF 处理能力）
+   - 完全无许可证风险
+
 ================================================================================
 
 完整协议文本请参阅：
