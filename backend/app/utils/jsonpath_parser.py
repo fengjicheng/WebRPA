@@ -42,7 +42,11 @@ def parse_jsonpath(data, path: str):
                     else:
                         return None
                 except ValueError:
-                    return None
+                    # 不是数字索引，可能是字典键名
+                    if isinstance(current, dict) and index_str in current:
+                        current = current[index_str]
+                    else:
+                        return None
         else:
             # 处理属性名，可能带数组索引 如: records[0]
             if '[' in part:
@@ -102,3 +106,4 @@ def _split_path(path: str) -> list:
         parts.append(current)
     
     return parts
+

@@ -178,7 +178,11 @@ export function GetElementInfoConfig({
           <option value="value">输入框值</option>
           <option value="href">链接地址</option>
           <option value="src">图片地址</option>
+          <option value="attributes">元素属性值（字典）</option>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          选择"元素属性值"将返回包含所有HTML属性的字典对象
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="variableName">存储到变量</Label>

@@ -730,25 +730,42 @@ class GetElementInfoExecutor(ModuleExecutor):
                 return ModuleResult(success=False, error=f"未找到元素: {selector}")
             
             value = None
-            for retry in range(3):
-                if attribute == 'text':
-                    value = await element.text_content()
-                elif attribute == 'innerHTML':
-                    value = await element.inner_html()
-                elif attribute == 'value':
-                    value = await element.input_value()
-                elif attribute == 'href':
-                    value = await element.get_attribute('href')
-                elif attribute == 'src':
-                    value = await element.get_attribute('src')
-                else:
-                    value = await element.get_attribute(attribute)
-                
-                if value is not None and value != '':
-                    break
-                
-                if retry < 2:
-                    await asyncio.sleep(0.1)
+            
+            # 新增：元素属性值类型，返回所有属性的字典
+            if attribute == 'attributes':
+                # 获取元素的所有属性
+                attributes_js = """
+                (element) => {
+                    const attrs = {};
+                    for (let i = 0; i < element.attributes.length; i++) {
+                        const attr = element.attributes[i];
+                        attrs[attr.name] = attr.value;
+                    }
+                    return attrs;
+                }
+                """
+                value = await element.evaluate(attributes_js)
+            else:
+                # 原有逻辑
+                for retry in range(3):
+                    if attribute == 'text':
+                        value = await element.text_content()
+                    elif attribute == 'innerHTML':
+                        value = await element.inner_html()
+                    elif attribute == 'value':
+                        value = await element.input_value()
+                    elif attribute == 'href':
+                        value = await element.get_attribute('href')
+                    elif attribute == 'src':
+                        value = await element.get_attribute('src')
+                    else:
+                        value = await element.get_attribute(attribute)
+                    
+                    if value is not None and value != '':
+                        break
+                    
+                    if retry < 2:
+                        await asyncio.sleep(0.1)
             
             if variable_name:
                 context.set_variable(variable_name, value)
@@ -1223,7 +1240,15 @@ class PlayMusicExecutor(ModuleExecutor):
 
         try:
             url = audio_url.strip()
-            if not url.startswith(("http://", "https://")):
+            
+            # 检查是否是本地文件路径
+            is_local_file = False
+            if (url.startswith(('/', '\\')) or 
+                (len(url) > 2 and url[1] == ':' and url[2] in ('\\', '/'))):
+                is_local_file = True
+            
+            # 只对网络URL添加协议前缀
+            if not is_local_file and not url.startswith(("http://", "https://")):
                 url = "https://" + url
 
             # 通过前端播放音乐
@@ -1274,7 +1299,15 @@ class PlayVideoExecutor(ModuleExecutor):
 
         try:
             url = video_url.strip()
-            if not url.startswith(("http://", "https://")):
+            
+            # 检查是否是本地文件路径
+            is_local_file = False
+            if (url.startswith(('/', '\\')) or 
+                (len(url) > 2 and url[1] == ':' and url[2] in ('\\', '/'))):
+                is_local_file = True
+            
+            # 只对网络URL添加协议前缀
+            if not is_local_file and not url.startswith(("http://", "https://")):
                 url = "https://" + url
 
             # 通过前端播放视频

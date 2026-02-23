@@ -460,6 +460,71 @@ async def convert_audio(request: AudioConvertRequest):
     
     try:
         url = audio_url.strip()
+        
+        # 检查是否是本地文件路径
+        is_local_file = False
+        local_file_path = None
+        
+        # Windows路径格式：C:\path 或 \\path 或 /path
+        # Unix路径格式：/path
+        if (url.startswith(('/', '\\')) or 
+            (len(url) > 2 and url[1] == ':' and url[2] in ('\\', '/'))):
+            is_local_file = True
+            local_file_path = Path(url)
+            
+            # 检查文件是否存在
+            if not local_file_path.exists():
+                return {"success": False, "error": f"本地文件不存在: {url}"}
+            
+            if not local_file_path.is_file():
+                return {"success": False, "error": f"路径不是文件: {url}"}
+        
+        # 处理本地文件
+        if is_local_file:
+            url_hash = get_url_hash(url)
+            cache_dir = get_audio_cache_dir()
+            output_path = cache_dir / f"{url_hash}.mp3"
+            
+            # 检查缓存
+            if output_path.exists():
+                return {
+                    "success": True,
+                    "audioPath": f"/api/system/audio/{url_hash}.mp3"
+                }
+            
+            # 获取文件扩展名
+            file_ext = local_file_path.suffix.lower()
+            
+            # 如果已经是MP3，直接复制
+            if file_ext == '.mp3':
+                import shutil
+                shutil.copy2(local_file_path, output_path)
+            else:
+                # 使用ffmpeg转换为MP3
+                ffmpeg = get_ffmpeg_path()
+                cmd = [
+                    ffmpeg, '-i', str(local_file_path), '-y',
+                    '-c:a', 'libmp3lame', '-q:a', '2',
+                    str(output_path)
+                ]
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    timeout=60,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+                )
+                
+                if result.returncode != 0:
+                    error_msg = result.stderr.decode('utf-8', errors='ignore')
+                    return {"success": False, "error": f"音频转换失败: {error_msg[:200]}"}
+            
+            return {
+                "success": True,
+                "audioPath": f"/api/system/audio/{url_hash}.mp3"
+            }
+        
+        # 处理网络URL
         if not url.startswith(("http://", "https://")):
             url = "https://" + url
         

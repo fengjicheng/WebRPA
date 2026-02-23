@@ -36,6 +36,18 @@ export function ListFilesConfig({ data, onChange }: ConfigProps) {
         </Select>
       </div>
       <div className="space-y-2">
+        <Label htmlFor="recursive">递归处理子文件夹</Label>
+        <Select
+          id="recursive"
+          value={String(data.recursive ?? false)}
+          onChange={(e) => onChange('recursive', e.target.value === 'true')}
+        >
+          <option value="false">否</option>
+          <option value="true">是</option>
+        </Select>
+        <p className="text-xs text-muted-foreground">开启后会递归遍历所有子文件夹</p>
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="includeExtension">文件名格式</Label>
         <Select
           id="includeExtension"

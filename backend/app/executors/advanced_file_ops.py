@@ -45,12 +45,20 @@ class ListFilesExecutor(ModuleExecutor):
 
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import fnmatch
+        
         folder_path = context.resolve_value(config.get("folderPath", ""))
         list_type = context.resolve_value(config.get("listType", "files"))
         include_ext_raw = config.get("includeExtension", True)
         if isinstance(include_ext_raw, str):
             include_ext_raw = context.resolve_value(include_ext_raw)
         include_ext = include_ext_raw in [True, 'true', 'True', '1', 1]
+        
+        # 新增：递归处理子文件夹选项
+        recursive_raw = config.get("recursive", False)
+        if isinstance(recursive_raw, str):
+            recursive_raw = context.resolve_value(recursive_raw)
+        recursive = recursive_raw in [True, 'true', 'True', '1', 1]
+        
         filter_pattern = context.resolve_value(config.get("filterPattern", ""))
         variable_name = config.get("resultVariable", "file_list")
 
@@ -65,18 +73,64 @@ class ListFilesExecutor(ModuleExecutor):
             result_list = []
             patterns = [p.strip() for p in filter_pattern.split(';') if p.strip()] if filter_pattern else []
             
-            for item in folder.iterdir():
-                if list_type == "files" and not item.is_file():
-                    continue
-                if list_type == "folders" and not item.is_dir():
-                    continue
-                name = item.name
-                if patterns and item.is_file():
-                    if not any(fnmatch.fnmatch(name.lower(), p.lower()) for p in patterns):
-                        continue
-                if item.is_file() and not include_ext:
-                    name = item.stem
-                result_list.append(name)
+            def process_folder(current_folder: Path, base_folder: Path):
+                """递归处理文件夹"""
+                try:
+                    items = list(current_folder.iterdir())
+                    
+                    for item in items:
+                        if item.is_dir():
+                            # 处理文件夹
+                            if list_type in ["folders", "all"]:
+                                # 添加文件夹到结果
+                                if recursive:
+                                    # 递归模式下使用相对路径
+                                    rel_path = item.relative_to(base_folder)
+                                    result_list.append(str(rel_path))
+                                else:
+                                    # 非递归模式下只使用文件夹名
+                                    result_list.append(item.name)
+                            
+                            # 如果开启递归，继续处理子文件夹
+                            if recursive:
+                                process_folder(item, base_folder)
+                        
+                        elif item.is_file():
+                            # 处理文件
+                            if list_type == "folders":
+                                # 只列出文件夹时跳过文件
+                                continue
+                            
+                            # 获取文件名
+                            if recursive:
+                                # 递归模式下使用相对路径
+                                rel_path = item.relative_to(base_folder)
+                                name = str(rel_path)
+                            else:
+                                name = item.name
+                            
+                            # 应用过滤模式
+                            if patterns:
+                                file_name = item.name
+                                if not any(fnmatch.fnmatch(file_name.lower(), p.lower()) for p in patterns):
+                                    continue
+                            
+                            # 处理扩展名
+                            if not include_ext and not recursive:
+                                name = item.stem
+                            elif not include_ext and recursive:
+                                # 递归模式下，去掉扩展名但保留路径
+                                name = str(Path(name).with_suffix(''))
+                            
+                            result_list.append(name)
+                except PermissionError:
+                    # 忽略没有权限访问的文件夹
+                    pass
+                except Exception:
+                    # 忽略其他错误，继续处理
+                    pass
+            
+            process_folder(folder, folder)
             
             result_list.sort()
             if variable_name:

@@ -432,7 +432,7 @@ class TimestampConverterExecutor(ModuleExecutor):
                     # 如果没有输入，使用当前时间
                     dt = datetime.now()
                 else:
-                    dt = datetime.strptime(input_value, datetime_format)
+                    dt = datetime.strptime(str(input_value), datetime_format)
                 
                 timestamp = dt.timestamp()
                 if timestamp_unit == "milliseconds":
@@ -446,7 +446,11 @@ class TimestampConverterExecutor(ModuleExecutor):
                 if not input_value:
                     return ModuleResult(success=False, error="时间戳不能为空")
                 
-                timestamp = to_float({"value": input_value}, 0, context)
+                # 修复：直接传递input_value而不是字典
+                timestamp = to_float(input_value, 0, context)
+                if timestamp == 0:
+                    return ModuleResult(success=False, error=f"无效的时间戳值: {input_value}")
+                
                 if timestamp_unit == "milliseconds":
                     timestamp = timestamp / 1000
                 
