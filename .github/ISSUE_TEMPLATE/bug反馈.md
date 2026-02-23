@@ -1,6 +1,6 @@
 ---
 name: Bug反馈
-about: 提出您遇到的问题来帮助WebRPA越来越稳定
+about: 提出您遇到的问题来帮助WebRPA变得越来越稳定
 title: "[Bug反馈]"
 labels: ''
 assignees: ''
