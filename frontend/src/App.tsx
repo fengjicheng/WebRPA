@@ -186,15 +186,31 @@ function App() {
       }
 
       if (workflowId) {
-        // 调用 store 中的加载方法
-        const store = useWorkflowStore.getState();
-        store.loadWorkflow(workflowId).then(() => {
-          console.log(`[AutoLoad] 成功从 URL 加载工作流: ${workflowId}`);
-          // 通知后端我们当前所在的工作流，这样日志和事件才能正确推送过来
-          socketService.setCurrentWorkflow(workflowId);
-        }).catch(err => {
-          console.error(`[AutoLoad] 从 URL 加载工作流失败:`, err);
-        });
+        // 通过本地工作流 API 加载工作流文件，再调用 store 的 loadWorkflow
+        (async () => {
+          try {
+            const { localWorkflowApi } = await import('@/services/api')
+            // 尝试在默认文件夹下加载（filename 兼容带不带 .json）
+            const filename = workflowId!.endsWith('.json') ? workflowId! : `${workflowId}.json`
+            const res = await localWorkflowApi.get(filename) as { success?: boolean; data?: { content?: any }; error?: string }
+            const content = res?.data?.content
+            if (!content) {
+              console.error('[AutoLoad] 加载工作流失败:', res?.error || '未找到内容')
+              return
+            }
+            const store = useWorkflowStore.getState()
+            store.loadWorkflow({
+              nodes: content.nodes || [],
+              edges: content.edges || [],
+              name: content.name || '未命名工作流',
+            })
+            console.log(`[AutoLoad] 成功从 URL 加载工作流: ${workflowId}`)
+            // 通知后端我们当前所在的工作流，这样日志和事件才能正确推送过来
+            socketService.setCurrentWorkflow(workflowId!)
+          } catch (err) {
+            console.error('[AutoLoad] 从 URL 加载工作流失败:', err)
+          }
+        })()
       }
     }, 1000); // 缩短延迟，尽快加载
 

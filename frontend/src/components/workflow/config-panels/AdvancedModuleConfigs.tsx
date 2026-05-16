@@ -5180,42 +5180,42 @@ export function DesktopGetControlTreeConfig({ data, onChange }: { data: NodeData
 }
 
 // 导出所有不存在的旧配置组件（占位符）
-export function DesktopAppGetInfoConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopAppGetInfoConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请使用"获取控件信息"模块</div>
 }
 
-export function DesktopAppWaitReadyConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopAppWaitReadyConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请在"启动桌面应用"中勾选"等待应用就绪"</div>
 }
 
-export function DesktopWindowListConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopWindowListConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除</div>
 }
 
-export function DesktopControlInfoConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopControlInfoConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请使用"获取控件信息"模块</div>
 }
 
-export function DesktopControlTreeConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopControlTreeConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请使用"获取控件树"模块</div>
 }
 
-export function DesktopSetValueConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopSetValueConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请使用"输入文本到控件"模块</div>
 }
 
-export function DesktopDragControlConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopDragControlConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除</div>
 }
 
-export function DesktopListOperateConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopListOperateConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除</div>
 }
 
-export function DesktopGetPropertyConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopGetPropertyConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除，请使用"获取控件信息"模块</div>
 }
 
-export function DesktopDialogHandleConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+export function DesktopDialogHandleConfig(_props: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return <div className="p-4 text-center text-muted-foreground">此模块已移除</div>
 }

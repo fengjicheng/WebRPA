@@ -1,7 +1,7 @@
 import { Button } from './button'
-import { AlertTriangle, Info, HelpCircle } from 'lucide-react'
+import { AlertTriangle, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 
-export type ConfirmDialogType = 'confirm' | 'alert' | 'warning'
+export type ConfirmDialogType = 'confirm' | 'alert' | 'warning' | 'success'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -34,6 +34,8 @@ export function ConfirmDialog({
         return <AlertTriangle className="w-6 h-6 text-orange-500" />
       case 'alert':
         return <Info className="w-6 h-6 text-blue-500" />
+      case 'success':
+        return <CheckCircle2 className="w-6 h-6 text-green-500" />
       default:
         return <HelpCircle className="w-6 h-6 text-blue-500" />
     }
@@ -46,6 +48,8 @@ export function ConfirmDialog({
         return '警告'
       case 'alert':
         return '提示'
+      case 'success':
+        return '成功'
       default:
         return '确认'
     }
@@ -85,6 +89,8 @@ export function ConfirmDialog({
             className={
               type === 'warning'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white'
+                : type === 'success'
+                ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white'
                 : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
             }
             onClick={onConfirm}

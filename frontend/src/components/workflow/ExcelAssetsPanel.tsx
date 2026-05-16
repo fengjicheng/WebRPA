@@ -190,7 +190,7 @@ export function ExcelAssetsPanel() {
       let successCount = 0
       let errorCount = 0
       
-      results.forEach((result, index) => {
+      results.forEach((result) => {
         if (result.data?.asset) {
           addDataAsset(result.data.asset)
           successCount++

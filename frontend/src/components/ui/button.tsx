@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { motion } from 'framer-motion'
+import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { buttonHover } from '@/lib/motion'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -42,6 +41,18 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       )
     }
 
+    // 把 onDrag/onDragStart/onDragEnd 等会与 framer-motion 冲突的事件剔除，
+    // 避免 React 的 DragEvent 与 motion 的 PanInfo 类型冲突
+    const {
+      onDrag: _onDrag,
+      onDragStart: _onDragStart,
+      onDragEnd: _onDragEnd,
+      onAnimationStart: _onAnimationStart,
+      onAnimationEnd: _onAnimationEnd,
+      onAnimationIteration: _onAnimationIteration,
+      ...motionProps
+    } = props
+
     return (
       <motion.button
         className={combinedClass}
@@ -49,7 +60,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={{ scale: 1.03, y: -1 }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+        {...(motionProps as HTMLMotionProps<'button'>)}
       />
     )
   }

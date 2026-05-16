@@ -289,10 +289,14 @@ export const phoneApi = {
   stopMirror: (deviceId: string) =>
     apiRequest('/phone/mirror/stop', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
   getMirrorStatus: () => apiRequest('/phone/mirror/status'),
-  captureTemplate: (deviceId: string, x: number, y: number, width: number, height: number) =>
+  captureTemplate: (deviceId: string, x: number, y: number, width: number, height: number, templateName?: string) =>
     apiRequest('/phone/screenshot/capture-template', {
       method: 'POST',
-      body: JSON.stringify({ device_id: deviceId, x, y, width, height }),
+      body: JSON.stringify({
+        device_id: deviceId,
+        x, y, width, height,
+        template_name: templateName,
+      }),
     }),
   getInfo: (deviceId: string) =>
     apiRequest(`/phone/info/${deviceId}`),

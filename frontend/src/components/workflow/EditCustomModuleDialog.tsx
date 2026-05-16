@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { useCustomModuleStore } from '@/store/customModuleStore'
-import { useWorkflowStore } from '@/store/workflowStore'
 import { Plus, Trash2, AlertCircle, Edit, Save } from 'lucide-react'
 import type { CustomModule, CustomModuleParameter, CustomModuleOutput } from '@/types/customModule'
 

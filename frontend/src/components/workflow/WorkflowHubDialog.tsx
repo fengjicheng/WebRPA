@@ -141,10 +141,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
   // 状态
   const [activeTab, setActiveTab] = useState<'browse' | 'publish' | 'my' | 'custom_modules' | 'guestbook' | 'remote' | 'settings'>('browse')
   
-  // 自定义模块状态
-  const [customModules, setCustomModules] = useState<any[]>([])
-  const [customModulesLoading, setCustomModulesLoading] = useState(false)
-  const [customModulesError, setCustomModulesError] = useState<string | null>(null)
+  // 自定义模块状态（部分字段为预留，未来实现自定义模块 hub 时启用）
+  const [_customModules, _setCustomModules] = useState<any[]>([])
+  const [_customModulesLoading, _setCustomModulesLoading] = useState(false)
+  const [_customModulesError, _setCustomModulesError] = useState<string | null>(null)
   const [customModuleSearchQuery, setCustomModuleSearchQuery] = useState('')
   const [selectedCustomModuleCategory, setSelectedCustomModuleCategory] = useState('全部')
   const [hubUrl, setHubUrlState] = useState(getHubUrl())

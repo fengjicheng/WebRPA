@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Image as ImageIcon, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
@@ -14,7 +14,7 @@ export function ScreenshotNameDialog({
   defaultName,
   onConfirm,
   onCancel,
-  onRetry
+  onRetry: _onRetry
 }: ScreenshotNameDialogProps) {
   const [name, setName] = useState(defaultName.replace('.png', ''))
 

@@ -11,12 +11,6 @@ import { Trash2, Crosshair, Loader2, Ban, ChevronLeft, ChevronRight, Settings } 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { elementPickerApi, desktopPickerApi } from '@/services/api'
 
-// 配置组件的通用类型
-interface ConfigProps {
-  data: NodeData
-  onChange: (key: string, value: any) => void
-}
-
 // 导入拆分的配置组件
 import { ReadExcelConfig } from './config-panels/ReadExcelConfig'
 import { SimilarSelectorDialog } from './config-panels/SimilarSelectorDialog'
@@ -991,7 +985,6 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   // 渲染模块配置
   const renderModuleConfig = () => {
     const props = { data: nodeData, onChange: handleChange, renderSelectorInput }
-    const desktopProps = { data: nodeData, onChange: handleChange, renderDesktopSelectorInput }
     
     switch (nodeData.moduleType) {
       case 'open_page':

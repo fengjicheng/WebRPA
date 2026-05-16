@@ -41,11 +41,28 @@ export function Popover({ open: controlledOpen, onOpenChange, children }: Popove
   )
 }
 
+interface PopoverTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean
+}
+
 export const PopoverTrigger = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, children, onClick, ...props }, ref) => {
+  PopoverTriggerProps
+>(({ className, children, onClick, asChild = false, ...props }, ref) => {
   const { open, setOpen } = React.useContext(PopoverContext)
+
+  // asChild 模式下：把 onClick 注入到子元素
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<any>
+    return React.cloneElement(child, {
+      ...child.props,
+      onClick: (e: React.MouseEvent) => {
+        setOpen(!open)
+        child.props.onClick?.(e)
+        onClick?.(e as React.MouseEvent<HTMLButtonElement>)
+      },
+    })
+  }
 
   return (
     <button
@@ -67,7 +84,7 @@ PopoverTrigger.displayName = "PopoverTrigger"
 export const PopoverContent = React.forwardRef<
   HTMLDivElement,
   PopoverContentProps
->(({ className, align = "center", sideOffset = 4, children, ...props }, ref) => {
+>(({ className, align = "center", sideOffset = 4, children, ...props }, _ref) => {
   const { open, setOpen } = React.useContext(PopoverContext)
   const contentRef = React.useRef<HTMLDivElement>(null)
 

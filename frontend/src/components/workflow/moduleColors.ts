@@ -1,7 +1,3 @@
-import type { ModuleType } from '@/types'
-
-
-
 /**
 
  * 模块颜色映射 - 根据模块分类统一颜色
@@ -10,7 +6,8 @@ import type { ModuleType } from '@/types'
 
  */
 
-export const moduleColors: Record<ModuleType, string> = {
+// 接受 ModuleType 也接受少量"非模块"用途的辅助键（如类型颜色、状态颜色）
+export const moduleColors: Record<string, string> = {
 
   // ===== 🌐 页面操作 - 蓝色 =====
 

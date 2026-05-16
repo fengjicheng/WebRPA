@@ -8,7 +8,6 @@ import { documentContents } from './contents'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import type { DocumentationDialogProps } from './types'
 import { pinyinMatch } from '@/lib/pinyin'
-import { dialogVariants, overlayVariants, listItemVariants, slideInRightVariants, spring } from '@/lib/motion'
 
 export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProps) {
   const [selectedDoc, setSelectedDoc] = useState('getting-started')

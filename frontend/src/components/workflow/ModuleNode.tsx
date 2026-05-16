@@ -36,10 +36,6 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
     const rgb = hexToRgb(customColor)
     if (!rgb) return {}
     
-    // 计算亮度，决定文字颜色
-    // 使用相对亮度公式：(0.299*R + 0.587*G + 0.114*B)
-    const brightness = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b)
-    
     // 生成浅色背景（类似bg-xxx-100的效果）
     // 将颜色与白色混合，使其变浅（混合比例：20%原色 + 80%白色）
     const lightR = Math.round(rgb.r * 0.2 + 255 * 0.8)

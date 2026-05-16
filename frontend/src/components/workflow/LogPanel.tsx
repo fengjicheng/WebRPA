@@ -1,6 +1,5 @@
 import { useWorkflowStore, type DataRow } from '@/store/workflowStore'
-import { motion, AnimatePresence } from 'framer-motion'
-import { spring } from '@/lib/motion'
+import { motion } from 'framer-motion'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

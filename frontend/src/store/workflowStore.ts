@@ -20,6 +20,14 @@ export interface NodeData extends ModuleConfig {
   label: string
   moduleType: ModuleType
   isHighlighted?: boolean  // 用于日志点击高亮（可选）
+  remark?: string  // 节点备注
+  customName?: string  // 用户自定义名称
+  subflowName?: string  // 子流程名称
+  subflowGroupId?: string  // 子流程分组 ID
+  isSubflow?: boolean  // 是否是子流程
+  customModuleId?: string  // 自定义模块 ID
+  parameterValues?: Record<string, unknown>  // 自定义模块参数值
+  url?: string  // 部分模块的 URL
 }
 
 // 数据行类型

@@ -80,7 +80,8 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
     setImporting(true)
     try {
       const text = await file.text()
-      const data = JSON.parse(text)
+      // 解析 JSON 验证文件格式有效（导入 API 待实现）
+      JSON.parse(text)
       // TODO: 调用导入API
       await alert('模块已导入', { title: '导入成功' })
     } catch (error) {

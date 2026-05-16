@@ -26,7 +26,6 @@ import {
   Mouse,
   Image,
   Wrench,
-  BarChart3,
   Eye,
   Network,
   Calculator,

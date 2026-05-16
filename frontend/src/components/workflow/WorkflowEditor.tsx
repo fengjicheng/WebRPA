@@ -81,10 +81,10 @@ function ModuleSearch({
       }
       
       const data = node.data as NodeData
-      const label = (data.label || '').toLowerCase()
-      const remark = (data.remark || '').toLowerCase()
-      const name = (data.name || '').toLowerCase()
-      const nodeName = (data.nodeName || '').toLowerCase()
+      const label = String(data.label || '').toLowerCase()
+      const remark = String(data.remark || '').toLowerCase()
+      const name = String(data.name || '').toLowerCase()
+      const nodeName = String(data.nodeName || '').toLowerCase()
       
       return label.includes(query) || remark.includes(query) || name.includes(query) || nodeName.includes(query)
     })
@@ -1128,72 +1128,8 @@ export function WorkflowEditor() {
     [addNode, mergeWorkflow, addLog]
   )
 
-  // 处理文件拖拽到画布
-  const handleFileDragOver = useCallback((event: React.DragEvent) => {
-    // 只处理文件拖拽
-    if (event.dataTransfer.types.includes('Files')) {
-      event.preventDefault()
-      event.stopPropagation()
-      event.dataTransfer.dropEffect = 'copy'
-      setIsDraggingFile(true)
-    }
-  }, [])
-
-  const handleFileDragLeave = useCallback((event: React.DragEvent) => {
-    // 检查是否真的离开了容器
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-    const x = event.clientX
-    const y = event.clientY
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setIsDraggingFile(false)
-    }
-  }, [])
-
-  const handleFileDrop = useCallback((event: React.DragEvent) => {
-    setIsDraggingFile(false)
-    
-    // 检查是否是文件拖拽
-    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-      event.preventDefault()
-      event.stopPropagation()
-      
-      const files = Array.from(event.dataTransfer.files)
-      const jsonFiles = files.filter(f => f.name.endsWith('.json'))
-      
-      if (jsonFiles.length > 0 && reactFlowInstance.current && reactFlowWrapper.current) {
-        // screenToFlowPosition 需要屏幕坐标
-        const position = reactFlowInstance.current.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        })
-        
-        // 读取并导入所有JSON文件
-        jsonFiles.forEach((file, index) => {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            const content = e.target?.result as string
-            if (content) {
-              // 每个文件在Y方向上偏移一些，避免重叠
-              const success = mergeWorkflow(content, { 
-                x: position.x, 
-                y: position.y + index * 150 
-              })
-              if (success) {
-                addLog({ level: 'success', message: `已导入工作流: ${file.name}` })
-              } else {
-                addLog({ level: 'error', message: `导入失败: ${file.name}，文件格式无效` })
-              }
-            }
-          }
-          reader.onerror = () => {
-            addLog({ level: 'error', message: `读取文件失败: ${file.name}` })
-          }
-          reader.readAsText(file)
-        })
-      }
-    }
-    // 如果不是文件拖拽，不阻止事件传播，让ReactFlow的onDrop处理
-  }, [mergeWorkflow, addLog])
+  // 注：原来还定义了 handleFileDragOver/Leave/Drop 一组函数，但实际未绑定到任何 React Flow 元素，
+  // 文件拖拽功能已经通过上面的 onDragOver/onDrop 实现，故移除以避免死代码。
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: { id: string }) => {

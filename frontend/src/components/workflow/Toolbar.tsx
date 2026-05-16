@@ -45,7 +45,6 @@ import {
   MoreVertical,
   MoreHorizontal,
   ChevronDown,
-  Edit,
   X,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
