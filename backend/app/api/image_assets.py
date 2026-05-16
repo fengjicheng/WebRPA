@@ -285,17 +285,24 @@ async def rename_folder(request: RenameFolderRequest):
         raise HTTPException(status_code=400, detail="目标文件夹已存在")
     
     try:
-        # 重命名文件夹
-        os.rename(old_full_path, new_full_path)
+        # 跨盘符也要支持
+        import shutil
+        shutil.move(old_full_path, new_full_path)
         
-        # 更新所有该文件夹下的图像元数据
+        # 更新所有该文件夹下的图像元数据（精确前缀匹配）
         new_rel_path = _get_relative_path(new_full_path)
+        old_rel = request.oldPath.rstrip('/').rstrip('\\')
+        old_rel_with_sep = old_rel + '/'
         for asset in image_assets.values():
-            if asset['folder'].startswith(request.oldPath):
-                # 更新文件夹路径
-                asset['folder'] = asset['folder'].replace(request.oldPath, new_rel_path, 1)
-                # 更新文件路径
-                asset['path'] = asset['path'].replace(old_full_path, new_full_path, 1)
+            af = asset['folder']
+            if af == old_rel:
+                asset['folder'] = new_rel_path
+            elif af.startswith(old_rel_with_sep):
+                asset['folder'] = new_rel_path + af[len(old_rel):]
+            
+            ap = asset['path']
+            if ap == old_full_path or ap.startswith(old_full_path + os.sep) or ap.startswith(old_full_path + '/'):
+                asset['path'] = new_full_path + ap[len(old_full_path):]
         
         return {'success': True, 'newPath': new_rel_path}
     except Exception as e:
@@ -397,8 +404,9 @@ async def rename_image(image_id: str, newName: str):
         raise HTTPException(status_code=400, detail="文件名已存在")
     
     try:
-        # 重命名文件
-        os.rename(old_path, new_path)
+        # 跨盘符也要支持
+        import shutil
+        shutil.move(old_path, new_path)
         
         # 更新元数据
         asset['path'] = new_path

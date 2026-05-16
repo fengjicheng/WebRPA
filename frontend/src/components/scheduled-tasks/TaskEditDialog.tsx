@@ -85,6 +85,35 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
     }
   }, [open])
   
+  // 当 task 切换时（编辑不同的任务），把所有字段同步到 state
+  useEffect(() => {
+    setCurrentTask(task)
+    setName(task.name)
+    setDescription(task.description || '')
+    setWorkflowId(task.workflow_id)
+    setWorkflowName(task.workflow_name || '')
+    setTriggerType(task.trigger.type)
+    setScheduleType(task.trigger.schedule_type || 'daily')
+    setStartDate(task.trigger.start_date || '')
+    setStartTime(task.trigger.start_time || '08:00:00')
+    setEndDate(task.trigger.end_date || '')
+    setDailyTime(task.trigger.daily_time || '08:00:00')
+    setWeeklyDays(task.trigger.weekly_days || [1])
+    setWeeklyTime(task.trigger.weekly_time || '08:00:00')
+    setMonthlyDay(task.trigger.monthly_day || 1)
+    setMonthlyTime(task.trigger.monthly_time || '08:00:00')
+    setIntervalSeconds(task.trigger.interval_seconds || 300)
+    setRepeatEnabled(task.trigger.repeat_enabled || false)
+    setRepeatCount(task.trigger.repeat_count || null)
+    setRepeatInterval(task.trigger.repeat_interval || 60)
+    setHotkey(task.trigger.hotkey || '')
+    setStartupDelay(task.trigger.startup_delay || 0)
+    setWebhookPath(task.trigger.webhook_path || '')
+    setOpenMonitor(task.open_monitor || false)
+    setHeadless(task.headless || false)
+    setError('')
+  }, [task.id])
+  
   // 刷新任务状态
   const refreshTaskStatus = async () => {
     try {
@@ -209,11 +238,15 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
     window.addEventListener('keydown', handleKeyDown)
     
     setTimeout(() => {
-      if (recordingHotkey) {
-        setRecordingHotkey(false)
-        setHotkey('')
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+      // 用函数式 setState 读取最新状态，避免闭包陷阱
+      setRecordingHotkey((isRecording) => {
+        if (isRecording) {
+          setHotkey('')
+          window.removeEventListener('keydown', handleKeyDown)
+          return false
+        }
+        return isRecording
+      })
     }, 10000)
   }
   

@@ -21,6 +21,7 @@ class WorkflowFolderConfig(BaseModel):
 class SaveWorkflowRequest(BaseModel):
     filename: str
     content: dict
+    folder: Optional[str] = None  # 可选，未提供时使用默认文件夹
 
 
 class MigrateRequest(BaseModel):
@@ -42,6 +43,39 @@ def ensure_folder_exists(folder: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _safe_resolve_in_folder(folder: str, filename: str) -> Optional[str]:
+    """安全地把 folder + filename 解析为绝对路径，并要求 filename 必须落在 folder 内
+    
+    防御路径穿越攻击（如 ../../etc/passwd 或 D:/secrets.json）
+    返回解析后的绝对路径；若不安全则返回 None
+    """
+    try:
+        folder_path = Path(folder).resolve()
+        # 不允许 filename 是绝对路径
+        fn = Path(filename)
+        if fn.is_absolute() or fn.drive:
+            return None
+        target = (folder_path / filename).resolve()
+        # 检查目标是否在 folder 内
+        try:
+            target.relative_to(folder_path)
+        except ValueError:
+            return None
+        return str(target)
+    except Exception:
+        return None
+
+
+def _sanitize_filename(filename: str) -> str:
+    """清理文件名中的非法字符，并去掉路径分隔符（防止路径穿越）"""
+    if not filename:
+        return ''
+    # 只取最终的文件名部分
+    filename = os.path.basename(filename)
+    # 清理非法字符
+    return "".join(c for c in filename if c not in r'\/:*?"<>|').strip()
 
 
 @router.get("/default-folder")
@@ -124,22 +158,23 @@ async def list_workflows(config: WorkflowFolderConfig):
 
 
 @router.post("/save")
-async def save_workflow(request: SaveWorkflowRequest, config: WorkflowFolderConfig = None):
-    """保存工作流到指定文件夹"""
-    folder = config.folder if config else DEFAULT_WORKFLOW_FOLDER
+async def save_workflow(request: SaveWorkflowRequest):
+    """保存工作流到指定文件夹（folder 字段可选）"""
+    folder = request.folder if request.folder else DEFAULT_WORKFLOW_FOLDER
     
     if not ensure_folder_exists(folder):
         return {"success": False, "error": "无法创建文件夹"}
     
     # 确保文件名以 .json 结尾
-    filename = request.filename
+    filename = _sanitize_filename(request.filename)
+    if not filename:
+        return {"success": False, "error": "文件名无效"}
     if not filename.endswith('.json'):
         filename += '.json'
     
-    # 清理文件名中的非法字符
-    filename = "".join(c for c in filename if c not in r'\/:*?"<>|')
-    
-    filepath = os.path.join(folder, filename)
+    filepath = _safe_resolve_in_folder(folder, filename)
+    if not filepath:
+        return {"success": False, "error": "文件路径不安全"}
     
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -154,23 +189,30 @@ async def save_workflow(request: SaveWorkflowRequest, config: WorkflowFolderConf
 @router.post("/save-to-folder")
 async def save_workflow_to_folder(request: SaveWorkflowRequest):
     """保存工作流到指定文件夹（从请求体获取文件夹路径）"""
-    # 从 content 中提取 folder 信息，如果为空则使用默认值
-    folder = request.content.get('_folder')
-    if not folder:  # 如果为 None 或空字符串，使用默认文件夹
+    # 优先用 request.folder 字段，其次从 content._folder 取（兼容旧前端）
+    folder = request.folder
+    if not folder:
+        folder = request.content.get('_folder') if isinstance(request.content, dict) else None
+    if not folder:
         folder = DEFAULT_WORKFLOW_FOLDER
     
     # 移除临时的 _folder 字段
-    content = {k: v for k, v in request.content.items() if k != '_folder'}
+    content = request.content
+    if isinstance(content, dict) and '_folder' in content:
+        content = {k: v for k, v in content.items() if k != '_folder'}
     
     if not ensure_folder_exists(folder):
         return {"success": False, "error": "[ERROR] 未配置工作流保存路径"}
     
-    filename = request.filename
+    filename = _sanitize_filename(request.filename)
+    if not filename:
+        return {"success": False, "error": "文件名无效"}
     if not filename.endswith('.json'):
         filename += '.json'
     
-    filename = "".join(c for c in filename if c not in r'\/:*?"<>|')
-    filepath = os.path.join(folder, filename)
+    filepath = _safe_resolve_in_folder(folder, filename)
+    if not filepath:
+        return {"success": False, "error": "文件路径不安全"}
     
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -187,7 +229,14 @@ async def load_workflow(filename: str, folder: str = None):
     """加载指定的工作流文件"""
     # 如果 folder 为空字符串或 None，使用默认文件夹
     folder = folder if folder else DEFAULT_WORKFLOW_FOLDER
-    filepath = os.path.join(folder, filename)
+    
+    # 路径穿越防御
+    safe_filename = _sanitize_filename(filename)
+    if not safe_filename:
+        return {"success": False, "error": "文件名无效"}
+    filepath = _safe_resolve_in_folder(folder, safe_filename)
+    if not filepath:
+        return {"success": False, "error": "文件路径不安全"}
     
     if not os.path.exists(filepath):
         return {"success": False, "error": "文件不存在"}
@@ -207,7 +256,14 @@ async def delete_workflow(filename: str, folder: str = None):
     """删除指定的工作流文件"""
     # 如果 folder 为空字符串或 None，使用默认文件夹
     folder = folder if folder else DEFAULT_WORKFLOW_FOLDER
-    filepath = os.path.join(folder, filename)
+    
+    # 路径穿越防御
+    safe_filename = _sanitize_filename(filename)
+    if not safe_filename:
+        return {"success": False, "error": "文件名无效"}
+    filepath = _safe_resolve_in_folder(folder, safe_filename)
+    if not filepath:
+        return {"success": False, "error": "文件路径不安全"}
     
     if not os.path.exists(filepath):
         return {"success": False, "error": "文件不存在"}

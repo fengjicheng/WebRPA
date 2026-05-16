@@ -28,7 +28,19 @@ export function PhoneCoordinateInput({
 }: PhoneCoordinateInputProps) {
   const [isTesting, setIsTesting] = useState(false)
   const [statusText, setStatusText] = useState('')
+  const [statusKind, setStatusKind] = useState<'success' | 'error' | 'info' | ''>('')
   const [defaultDeviceId, setDefaultDeviceId] = useState<string | null>(null)
+
+  const setStatus = (text: string, kind: 'success' | 'error' | 'info' | '' = 'info', clearAfter = 0) => {
+    setStatusText(text)
+    setStatusKind(kind)
+    if (clearAfter > 0) {
+      setTimeout(() => {
+        setStatusText('')
+        setStatusKind('')
+      }, clearAfter)
+    }
+  }
 
   // 获取默认设备（仅在没有指定deviceId时使用）
   const checkDevice = async () => {
@@ -56,8 +68,7 @@ export function PhoneCoordinateInput({
     const y = parseInt(yValue)
     
     if (isNaN(x) || isNaN(y)) {
-      setStatusText('❌ 请先输入有效的坐标')
-      setTimeout(() => setStatusText(''), 2000)
+      setStatus('请先输入有效的坐标', 'error', 2000)
       return
     }
     
@@ -65,27 +76,24 @@ export function PhoneCoordinateInput({
     const targetDeviceId = propDeviceId || defaultDeviceId
     
     if (!targetDeviceId) {
-      setStatusText('❌ 未检测到设备')
-      setTimeout(() => setStatusText(''), 2000)
+      setStatus('未检测到设备', 'error', 2000)
       return
     }
     
     setIsTesting(true)
-    setStatusText(`正在测试坐标 (${x}, ${y})...`)
+    setStatus(`正在测试坐标 (${x}, ${y})...`, 'info')
     
     try {
       const result = await phoneApi.testCoordinate(x, y, targetDeviceId)
       
       if (result.data?.success) {
-        setStatusText(`✅ 已在设备 ${targetDeviceId} 上点击坐标 (${x}, ${y})`)
+        setStatus(`已在设备 ${targetDeviceId} 上点击坐标 (${x}, ${y})`, 'success', 3000)
       } else {
-        setStatusText(`❌ 测试失败: ${result.data?.error || result.error || '未知错误'}`)
+        setStatus(`测试失败: ${result.data?.error || result.error || '未知错误'}`, 'error', 3000)
       }
-      setTimeout(() => setStatusText(''), 3000)
     } catch (error) {
       console.error('Failed to test:', error)
-      setStatusText('❌ 测试失败')
-      setTimeout(() => setStatusText(''), 2000)
+      setStatus('测试失败', 'error', 2000)
     } finally {
       setIsTesting(false)
     }
@@ -139,8 +147,8 @@ export function PhoneCoordinateInput({
       {statusText ? (
         <p className={cn(
           'text-xs',
-          statusText.includes('✅') ? 'text-green-600' : 
-          statusText.includes('❌') ? 'text-red-600' : 
+          statusKind === 'success' ? 'text-green-600' :
+          statusKind === 'error' ? 'text-red-600' :
           'text-blue-600'
         )}>
           {statusText}

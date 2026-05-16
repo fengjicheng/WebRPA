@@ -1,7 +1,7 @@
 """工作流API路由"""
 import asyncio
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 from uuid import uuid4
 from pathlib import Path
 
@@ -28,9 +28,8 @@ def set_sio(socketio_instance):
     sio = socketio_instance
 
 def is_log_enabled() -> bool:
-    """检查是否有客户端连接"""
-    # 只要有客户端连接就发送日志，由前端决定是否显示
-    return len(log_enabled_by_client) > 0 or True  # 始终返回True，确保日志发送
+    """检查是否有客户端连接需要日志"""
+    return len(log_enabled_by_client) > 0
 
 def set_log_enabled(sid: str, enabled: bool):
     """设置客户端的日志开关状态"""
@@ -94,7 +93,7 @@ async def flush_log_batch_for_workflow(workflow_id: str):
         # 清理任务
         if workflow_id in log_batch_tasks:
             del log_batch_tasks[workflow_id]
-global_variables: dict[str, any] = {}
+global_variables: dict[str, Any] = {}
 
 
 class WorkflowCreate(BaseModel):
@@ -472,6 +471,28 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
             print(f"[run_execution] execution:completed 事件已发送（异常情况）")
         
         finally:
+            # 强制刷新本工作流剩余的批量日志（防止批量发送丢失）
+            try:
+                async with log_batch_lock:
+                    if workflow_id in log_batch_queue and log_batch_queue[workflow_id]:
+                        logs = log_batch_queue[workflow_id]
+                        log_batch_queue[workflow_id] = []
+                        if sio is not None:
+                            await sio.emit('execution:log_batch', {
+                                'workflowId': workflow_id,
+                                'logs': logs
+                            })
+                    # 清理本工作流的批量队列
+                    log_batch_queue.pop(workflow_id, None)
+                    if workflow_id in log_batch_tasks:
+                        try:
+                            log_batch_tasks[workflow_id].cancel()
+                        except Exception:
+                            pass
+                        log_batch_tasks.pop(workflow_id, None)
+            except Exception as e:
+                print(f"[run_execution] 刷新批量日志失败: {e}")
+            
             # 在清理执行器之前保存变量追踪记录
             if workflow_id in executions_store:
                 try:

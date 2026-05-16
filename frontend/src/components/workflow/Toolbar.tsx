@@ -222,12 +222,12 @@ export function Toolbar() {
           })),
         })
 
-        if (createResult.error) {
-          addLog({ level: 'error', message: `创建工作流失败: ${createResult.error}` })
+        if (createResult.error || !createResult.data?.id) {
+          addLog({ level: 'error', message: `创建工作流失败: ${createResult.error || '返回数据无效'}` })
           return
         }
 
-        currentWorkflowId = createResult.data!.id
+        currentWorkflowId = createResult.data.id
         setWorkflowId(currentWorkflowId)
       } else {
         // 更新现有工作流
@@ -269,6 +269,11 @@ export function Toolbar() {
       
       console.log('[Toolbar] 执行工作流，无头模式:', headless, '浏览器配置:', browserConfig)
       
+      // 此时 currentWorkflowId 必然是 string（前面分支都已赋值）
+      if (!currentWorkflowId) {
+        addLog({ level: 'error', message: '执行失败: 工作流 ID 缺失' })
+        return
+      }
       const executeResult = await workflowApi.execute(currentWorkflowId, { 
         headless,
         browserConfig 
@@ -298,8 +303,16 @@ export function Toolbar() {
 
   const handleStop = useCallback(async () => {
     if (workflowId) {
-      socketService.stopExecution(workflowId)
-      await workflowApi.stop(workflowId)
+      try {
+        socketService.stopExecution(workflowId)
+      } catch (e) {
+        console.error('[Toolbar] socketService.stopExecution 失败:', e)
+      }
+      try {
+        await workflowApi.stop(workflowId)
+      } catch (e) {
+        addLog({ level: 'warning', message: `停止 API 调用失败: ${e}` })
+      }
     }
     setExecutionStatus('stopped')
     addLog({ level: 'warning', message: '工作流已停止' })
@@ -694,12 +707,12 @@ export function Toolbar() {
           })),
         })
 
-        if (createResult.error) {
-          addLog({ level: 'error', message: `创建工作流失败: ${createResult.error}` })
+        if (createResult.error || !createResult.data?.id) {
+          addLog({ level: 'error', message: `创建工作流失败: ${createResult.error || '返回数据无效'}` })
           return
         }
 
-        currentWorkflowId = createResult.data!.id
+        currentWorkflowId = createResult.data.id
         setWorkflowId(currentWorkflowId)
       } else {
         // 更新现有工作流

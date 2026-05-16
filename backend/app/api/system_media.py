@@ -207,15 +207,53 @@ async def get_audio(filename: str):
 
 @router.get("/local-file")
 async def get_local_file(path: str):
-    """提供本地文件访问服务，用于视频/图片播放等"""
+    """提供本地文件访问服务，用于视频/图片播放等
+    
+    安全限制：
+    - 只允许媒体相关扩展名
+    - 禁止访问 Windows 系统目录 / 用户敏感目录
+    """
     import urllib.parse
     import mimetypes
     
-    file_path = urllib.parse.unquote(path)
-    file_path = Path(file_path)
+    file_path_str = urllib.parse.unquote(path)
+    try:
+        file_path = Path(file_path_str).resolve()
+    except Exception:
+        raise HTTPException(status_code=400, detail="路径无效")
     
     if not file_path.is_absolute():
         raise HTTPException(status_code=400, detail="必须使用绝对路径")
+    
+    # 限制允许的扩展名
+    ALLOWED_EXTS = {
+        '.mp4', '.webm', '.mov', '.mkv', '.avi', '.flv', '.m4v',
+        '.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a',
+        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.ico',
+        '.pdf', '.txt', '.json', '.csv', '.xlsx', '.xls', '.docx', '.doc',
+    }
+    if file_path.suffix.lower() not in ALLOWED_EXTS:
+        raise HTTPException(status_code=403, detail="不支持的文件类型")
+    
+    # 禁止敏感目录
+    path_str = str(file_path).lower()
+    forbidden_prefixes = []
+    if sys.platform == 'win32':
+        windir = os.environ.get('WINDIR', 'C:\\Windows').lower()
+        progfiles = os.environ.get('PROGRAMFILES', 'C:\\Program Files').lower()
+        progfiles86 = os.environ.get('PROGRAMFILES(X86)', 'C:\\Program Files (x86)').lower()
+        forbidden_prefixes = [windir, progfiles, progfiles86]
+        # 同时禁止访问当前用户的 .ssh、.gnupg、AppData\Roaming 中的 token 文件
+        userprofile = os.environ.get('USERPROFILE', '').lower()
+        if userprofile:
+            forbidden_prefixes.append(os.path.join(userprofile, '.ssh').lower())
+            forbidden_prefixes.append(os.path.join(userprofile, '.gnupg').lower())
+    else:
+        forbidden_prefixes = ['/etc', '/root', '/proc', '/sys', '/var/log']
+    
+    for prefix in forbidden_prefixes:
+        if path_str.startswith(prefix):
+            raise HTTPException(status_code=403, detail="禁止访问系统目录")
     
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件不存在: {file_path}")

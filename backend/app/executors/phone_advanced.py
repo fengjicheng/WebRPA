@@ -1,6 +1,6 @@
 """手机高级操作模块执行器"""
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
-from .type_utils import to_int
+from .type_utils import to_int, to_float
 from .phone_utils import ensure_phone_connected
 from ..services.adb_manager import get_adb_manager
 

@@ -275,9 +275,14 @@ class ExecutionContext:
             return False
     
     def get_variable(self, name: str, default: Any = None) -> Any:
-        """获取变量值，支持${var}语法"""
-        if name.startswith('${') and name.endswith('}'):
-            name = name[2:-1]
+        """获取变量值，支持 ${var} 和 {var} 两种格式"""
+        if isinstance(name, str):
+            n = name.strip()
+            if n.startswith('${') and n.endswith('}'):
+                n = n[2:-1].strip()
+            elif n.startswith('{') and n.endswith('}'):
+                n = n[1:-1].strip()
+            return self.variables.get(n, default)
         return self.variables.get(name, default)
     
     def set_variable(self, name: str, value: Any):
@@ -319,7 +324,13 @@ class ExecutionContext:
                 "operation": "create" if old_value is None else "update",
                 "value_type": type(value).__name__
             }
+            # 限制追踪记录数量上限，防止长循环导致内存爆炸
+            _MAX_TRACKING = 5000
             self._variable_tracking.append(tracking_record)
+            if len(self._variable_tracking) > _MAX_TRACKING:
+                # 删除最早的 1/4 记录（避免每次都做截断的开销）
+                drop = _MAX_TRACKING // 4
+                del self._variable_tracking[:drop]
         except Exception as e:
             print(f"记录变量追踪失败: {e}")
         
@@ -327,10 +338,13 @@ class ExecutionContext:
         if self._variable_update_callback:
             import asyncio
             try:
-                # 在异步上下文中调用回调
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
+                # 在异步上下文中调用回调（仅当存在运行中的事件循环）
+                try:
+                    asyncio.get_running_loop()
                     asyncio.create_task(self._variable_update_callback(name, value))
+                except RuntimeError:
+                    # 不在 async 上下文中，跳过通知
+                    pass
             except Exception as e:
                 print(f"通知变量更新失败: {e}")
     
@@ -424,10 +438,9 @@ class ExecutionContext:
                 if base_name not in self.variables:
                     return _MISSING
                 result = self.variables[base_name]
-                # 深拷贝以避免并发修改问题
-                if isinstance(result, (list, dict)):
-                    import copy
-                    result = copy.deepcopy(result)
+                # 只在有访问路径时才浅拷贝顶层容器，避免修改原变量
+                # 完整 deepcopy 在大数据上代价过高
+                # 对最终返回值，调用方应该自行决定是否拷贝
                 
                 # 如果没有访问路径，直接返回
                 if not access_path:

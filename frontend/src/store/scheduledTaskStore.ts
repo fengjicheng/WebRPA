@@ -64,6 +64,10 @@ export interface ScheduledTask {
   // 内部状态
   is_running?: boolean
   current_repeat_count?: number
+  
+  // 运行模式
+  open_monitor?: boolean
+  headless?: boolean
 }
 
 export interface ScheduledTaskExecutionLog {
@@ -82,6 +86,8 @@ export interface ScheduledTaskExecutionLog {
   executed_nodes: number
   failed_nodes: number
   collected_data_count: number
+  // 额外日志（可选）
+  workflow_logs?: any[]
 }
 
 export interface StatisticsSummary {

@@ -2611,6 +2611,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       executionStatus: 'pending',
       logs: [],
       collectedData: [],
+      currentExecutionWorkflowId: null,
+      variables: [],
       hasUnsavedChanges: false,  // 清空后标记为已保存
       history: [{ nodes: [], edges: [], name: '未命名工作流' }],
       historyIndex: 0,
@@ -2628,6 +2630,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       edges: workflow.edges,
       name: workflow.name,
       selectedNodeId: null,
+      clipboard: [],
+      clipboardEdges: [],
+      executionStatus: 'pending',
+      logs: [],
+      collectedData: [],
+      currentExecutionWorkflowId: null,
       hasUnsavedChanges: false,  // 加载后标记为已保存
       history: [snapshot],
       historyIndex: 0,

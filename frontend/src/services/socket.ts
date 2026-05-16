@@ -320,6 +320,9 @@ class SocketService {
       console.log('Socket connected')
       this.connected = true
       
+      // 绑定外部待绑定的事件监听器
+      this.bindPendingListeners()
+      
       // 连接后同步 verboseLog 状态到后端
       const verboseLog = useWorkflowStore.getState().verboseLog
       this.socket?.emit('set_verbose_log', { enabled: verboseLog })
@@ -698,17 +701,16 @@ class SocketService {
     return this.connected
   }
 
+  // 待绑定的外部监听器（用于 socket 尚未连接时）
+  private pendingListeners: Array<{ event: string; callback: (...args: any[]) => void }> = []
+
   // 添加 on 方法，支持外部监听事件
   on(event: string, callback: (...args: any[]) => void) {
     if (this.socket) {
       this.socket.on(event, callback)
     } else {
-      // 如果 socket 还没初始化，等待连接后再绑定
-      setTimeout(() => {
-        if (this.socket) {
-          this.socket.on(event, callback)
-        }
-      }, 500)
+      // 如果 socket 还没初始化，加入待绑定队列
+      this.pendingListeners.push({ event, callback })
     }
   }
 
@@ -717,6 +719,19 @@ class SocketService {
     if (this.socket) {
       this.socket.off(event, callback)
     }
+    // 同时从待绑定队列移除（避免下次连接重复绑定）
+    this.pendingListeners = this.pendingListeners.filter(
+      (l) => !(l.event === event && l.callback === callback)
+    )
+  }
+
+  // 内部：把待绑定的监听器一次性绑定到 socket
+  private bindPendingListeners() {
+    if (!this.socket) return
+    for (const l of this.pendingListeners) {
+      this.socket.on(l.event, l.callback)
+    }
+    this.pendingListeners = []
   }
 
   // 停止所有音频/视频播放

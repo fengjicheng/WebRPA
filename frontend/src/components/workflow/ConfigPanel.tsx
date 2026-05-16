@@ -603,6 +603,35 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
     }
   }, [])
 
+  // 切换选中节点时，停止已激活的元素选择器，避免选中结果写入到错误的节点字段
+  const lastSelectedNodeIdRef = useRef<string | null | undefined>(selectedNodeId)
+  useEffect(() => {
+    if (lastSelectedNodeIdRef.current !== selectedNodeId) {
+      // 节点真正变化时，关闭还在运行的选择器
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      if (desktopPollingRef.current) {
+        clearInterval(desktopPollingRef.current)
+        desktopPollingRef.current = null
+      }
+      if (isPicking) {
+        elementPickerApi.stop().catch(() => {})
+        setIsPicking(false)
+        setPickingField(null)
+        setShowSimilarDialog(false)
+        setSimilarResult(null)
+      }
+      if (isDesktopPicking) {
+        desktopPickerApi.stop().catch(() => {})
+        setIsDesktopPicking(false)
+        setDesktopPickingField(null)
+      }
+      lastSelectedNodeIdRef.current = selectedNodeId
+    }
+  }, [selectedNodeId, isPicking, isDesktopPicking])
+
   const handleChange = useCallback((key: string, value: unknown) => {
     if (selectedNodeId) {
       updateNodeData(selectedNodeId, { [key]: value })
@@ -922,7 +951,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
           </Button>
         </div>
         {isPicking && pickingField === id && (
-          <p className="text-xs text-blue-500">Ctrl+点击单选，Shift+点击选择相似元素</p>
+          <p className="text-xs text-blue-500">Ctrl+点击单选，Alt+点击选择相似元素</p>
         )}
       </div>
     )

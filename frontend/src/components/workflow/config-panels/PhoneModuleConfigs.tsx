@@ -445,13 +445,13 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
             <span className="text-xs text-green-600">检查中...</span>
           )}
           {adbKeyboardStatus === 'installed' && (
-            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+            <span className="text-xs text-green-600 font-semibold">已安装</span>
           )}
           {adbKeyboardStatus === 'not-installed' && (
-            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+            <span className="text-xs text-orange-600 font-semibold">未安装</span>
           )}
           {adbKeyboardStatus === 'error' && (
-            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+            <span className="text-xs text-red-600 font-semibold">检查失败</span>
           )}
         </div>
 
@@ -465,7 +465,7 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
               disabled={installing}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-md transition-colors"
             >
-              {installing ? '正在安装...' : '� 一键安装 ADBKeyboard'}
+              {installing ? '正在安装...' : '一键安装 ADBKeyboard'}
             </button>
           </>
         )}
@@ -1443,13 +1443,13 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
             <span className="text-xs text-purple-600">检查中...</span>
           )}
           {clipperStatus === 'installed' && (
-            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+            <span className="text-xs text-green-600 font-semibold">已安装</span>
           )}
           {clipperStatus === 'not-installed' && (
-            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+            <span className="text-xs text-orange-600 font-semibold">未安装</span>
           )}
           {clipperStatus === 'error' && (
-            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+            <span className="text-xs text-red-600 font-semibold">检查失败</span>
           )}
         </div>
 
@@ -1496,7 +1496,7 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
               onClick={checkClipperStatus}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
             >
-              � 重新检查
+              重新检查
             </button>
           </>
         )}
@@ -1621,13 +1621,13 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
             <span className="text-xs text-purple-600">检查中...</span>
           )}
           {clipperStatus === 'installed' && (
-            <span className="text-xs text-green-600 font-semibold">✅ 已安装</span>
+            <span className="text-xs text-green-600 font-semibold">已安装</span>
           )}
           {clipperStatus === 'not-installed' && (
-            <span className="text-xs text-orange-600 font-semibold">⚠️ 未安装</span>
+            <span className="text-xs text-orange-600 font-semibold">未安装</span>
           )}
           {clipperStatus === 'error' && (
-            <span className="text-xs text-red-600 font-semibold">❌ 检查失败</span>
+            <span className="text-xs text-red-600 font-semibold">检查失败</span>
           )}
         </div>
 
@@ -1674,7 +1674,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
               onClick={checkClipperStatus}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-md transition-colors"
             >
-              � 重新检查
+              重新检查
             </button>
           </>
         )}

@@ -41,14 +41,32 @@ class DataCollector:
         self._current_row = {}
     
     def to_dataframe(self) -> pl.DataFrame:
-        """转换为Polars DataFrame"""
+        """转换为Polars DataFrame
+        
+        把不能直接写入 Excel 的复杂类型（dict/list/tuple/set）序列化为 JSON 字符串，
+        避免 openpyxl 的 IllegalCharacterError 或 polars schema 冲突。
+        """
+        import json
         if not self.data:
             return pl.DataFrame()
+        
+        def _normalize(v):
+            if v is None:
+                return None
+            if isinstance(v, (str, int, float, bool)):
+                return v
+            if isinstance(v, (list, dict, tuple, set)):
+                try:
+                    return json.dumps(v, ensure_ascii=False, default=str)
+                except Exception:
+                    return str(v)
+            # 其他对象（datetime、Path 等）转字符串
+            return str(v)
         
         # 确保所有行都有相同的列
         normalized_data = []
         for row in self.data:
-            normalized_row = {col: row.get(col, None) for col in self.columns}
+            normalized_row = {col: _normalize(row.get(col)) for col in self.columns}
             normalized_data.append(normalized_row)
         
         return pl.DataFrame(normalized_data)

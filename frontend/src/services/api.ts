@@ -1,23 +1,23 @@
 import { getBackendBaseUrl } from './config'
 
-// ???? API ????
+// 获取后端 API 基础地址
 function getApiBase(): string {
   return `${getBackendBaseUrl()}/api`
 }
 
 let API_BASE = getApiBase()
 
-// ?? API ???????????????
+// 配置变化后刷新 API_BASE，确保后续请求使用最新地址
 export function updateApiBase() {
   API_BASE = getApiBase()
 }
 
-// ???? API ????
+// 获取当前 API 基础地址
 export function getApiBaseUrl(): string {
   return API_BASE
 }
 
-// ?????? URL?????????
+// 获取后端服务 URL（不含 /api 前缀）
 export function getBackendUrl(): string {
   return getBackendBaseUrl()
 }
@@ -28,7 +28,7 @@ export interface ApiResponse<T = any> {
   error?: string
 }
 
-// ?????????
+// 判断是否为网络连接错误
 function isConnectionError(error: unknown): boolean {
   if (error instanceof TypeError) {
     const message = error.message.toLowerCase()
@@ -41,7 +41,7 @@ function isConnectionError(error: unknown): boolean {
   return false
 }
 
-// ?????????
+// 显示连接错误弹窗
 async function showConnectionErrorDialog() {
   const existingDialog = document.getElementById('connection-error-dialog')
   if (existingDialog) return
@@ -56,15 +56,15 @@ async function showConnectionErrorDialog() {
     'z-index:10000', 'max-width:400px',
   ].join(';')
   dialog.innerHTML = [
-    '<h2 style="margin:0 0 10px 0;color:#d32f2f">????</h2>',
-    '<p style="margin:0 0 15px 0;color:#666">???????????????</p>',
+    '<h2 style="margin:0 0 10px 0;color:#d32f2f">连接失败</h2>',
+    '<p style="margin:0 0 15px 0;color:#666">无法连接到后端服务，请检查：</p>',
     '<ul style="margin:0 0 15px 0;padding-left:20px;color:#666">',
-    '<li>??????????</li>',
-    '<li>????????</li>',
-    '<li>?????</li>',
+    '<li>后端服务是否已启动</li>',
+    '<li>端口配置是否正确</li>',
+    '<li>网络连接是否正常</li>',
     '</ul>',
     '<button id="retry-btn" style="background:#1976d2;color:white;border:none;',
-    'padding:8px 16px;border-radius:4px;cursor:pointer">??</button>',
+    'padding:8px 16px;border-radius:4px;cursor:pointer">重试</button>',
   ].join('')
   document.body.appendChild(dialog)
   document.getElementById('retry-btn')?.addEventListener('click', () => {
@@ -132,7 +132,7 @@ export async function apiRequest<T = any>(
   }
 }
 
-// ==================== ?? API ====================
+// ==================== 系统 API ====================
 export const systemApi = {
   getConfig: () => apiRequest('/system/config'),
   selectFolder: (title?: string, initialDir?: string) =>
@@ -173,7 +173,7 @@ export const workflowApi = {
     ),
 }
 
-// ==================== ????? API ====================
+// ==================== 本地工作流 API ====================
 export const localWorkflowApi = {
   list: (folder?: string) => 
     apiRequest('/local-workflows/list', { 
@@ -191,14 +191,14 @@ export const localWorkflowApi = {
   getDefaultFolder: () => apiRequest('/local-workflows/default-folder'),
 }
 
-// ==================== ?? API ====================
+// ==================== 执行器 API ====================
 export const executorApi = {
   execute: (data: any) =>
     apiRequest('/executor/execute', { method: 'POST', body: JSON.stringify(data) }),
   getTypes: () => apiRequest('/executor/types'),
 }
 
-// ==================== ???? API ====================
+// ==================== 图像资源 API ====================
 export const imageAssetApi = {
   list: () => apiRequest('/image-assets'),
   listFolders: () => apiRequest('/image-assets/folders'),
@@ -222,7 +222,7 @@ export const imageAssetApi = {
     apiRequest('/image-assets/move', { method: 'PUT', body: JSON.stringify({ assetId, targetFolder }) }),
 }
 
-// ==================== ???? API ====================
+// ==================== 数据资源 API ====================
 export const dataAssetApi = {
   list: () => apiRequest('/data-assets'),
   listFolders: () => apiRequest('/data-assets/folders'),
@@ -257,26 +257,48 @@ export const dataAssetApi = {
     apiRequest('/data-assets/move', { method: 'PUT', body: JSON.stringify({ assetId, targetFolder }) }),
 }
 
-// ==================== ???? API ====================
+// ==================== 手机自动化 API ====================
 export const phoneApi = {
   listDevices: () => apiRequest('/phone/devices'),
+  // 兼容别名（部分组件用 getDevices）
+  getDevices: () => apiRequest('/phone/devices'),
   screenshot: (deviceId: string) =>
     apiRequest('/phone/screenshot', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
   tap: (deviceId: string, x: number, y: number) =>
     apiRequest('/phone/tap', { method: 'POST', body: JSON.stringify({ device_id: deviceId, x, y }) }),
+  // 测试坐标 - 实际就是 tap 一下
+  testCoordinate: (x: number, y: number, deviceId: string) =>
+    apiRequest('/phone/coordinate-picker/test', {
+      method: 'POST',
+      body: JSON.stringify({ x, y, device_id: deviceId }),
+    }),
   swipe: (deviceId: string, x1: number, y1: number, x2: number, y2: number, duration?: number) =>
     apiRequest('/phone/swipe', { method: 'POST', body: JSON.stringify({ device_id: deviceId, x1, y1, x2, y2, duration }) }),
   inputText: (deviceId: string, text: string) =>
     apiRequest('/phone/input-text', { method: 'POST', body: JSON.stringify({ device_id: deviceId, text }) }),
-  startMirror: (deviceId: string) =>
-    apiRequest('/phone/start-mirror', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
+  startMirror: (deviceId: string, maxSize?: number, bitRate?: string, enablePointerLocation?: boolean) =>
+    apiRequest('/phone/mirror/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        device_id: deviceId,
+        max_size: maxSize,
+        bit_rate: bitRate,
+        enable_pointer_location: enablePointerLocation,
+      }),
+    }),
   stopMirror: (deviceId: string) =>
-    apiRequest('/phone/stop-mirror', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
+    apiRequest('/phone/mirror/stop', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
+  getMirrorStatus: () => apiRequest('/phone/mirror/status'),
+  captureTemplate: (deviceId: string, x: number, y: number, width: number, height: number) =>
+    apiRequest('/phone/screenshot/capture-template', {
+      method: 'POST',
+      body: JSON.stringify({ device_id: deviceId, x, y, width, height }),
+    }),
   getInfo: (deviceId: string) =>
     apiRequest(`/phone/info/${deviceId}`),
 }
 
-// ==================== ???? API ====================
+// ==================== 定时任务 API ====================
 export const scheduledTaskApi = {
   list: () => apiRequest('/scheduled-tasks/list'),
   get: (id: string) => apiRequest(`/scheduled-tasks/${id}`),
@@ -304,7 +326,7 @@ export const scheduledTaskApi = {
     apiRequest('/scheduled-tasks/statistics/summary'),
 }
 
-// ==================== ?????? API ====================
+// ==================== 自动化浏览器 API ====================
 export const browserApi = {
   getStatus: () => apiRequest('/browser/status'),
   open: (url?: string, browserConfig?: any) =>

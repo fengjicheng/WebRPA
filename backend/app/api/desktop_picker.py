@@ -14,6 +14,8 @@ from app.services.desktop_element_picker import get_desktop_element_picker
 # 存储捕获的元素信息
 _captured_element: Optional[Dict[str, Any]] = None
 _capture_event = asyncio.Event()
+# 保存主事件循环引用，供子线程回调使用
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
 class ElementPickerResponse(BaseModel):
@@ -27,22 +29,27 @@ class ElementPickerResponse(BaseModel):
 async def start_element_picker():
     """启动桌面元素选择器"""
     try:
-        global _captured_element, _capture_event
+        global _captured_element, _capture_event, _main_loop
         _captured_element = None
         _capture_event.clear()
+        # 在 async 路由中可安全获取当前 running loop
+        try:
+            _main_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            _main_loop = None
         
         picker = get_desktop_element_picker()
         
-        # 定义回调函数
+        # 定义回调函数（在子线程中调用）
         def on_element_captured(element_info: Dict[str, Any]):
             global _captured_element
             _captured_element = element_info
-            # 在事件循环中设置事件
-            try:
-                loop = asyncio.get_event_loop()
-                loop.call_soon_threadsafe(_capture_event.set)
-            except:
-                pass
+            # 通过保存的主循环引用安全唤醒等待者
+            if _main_loop is not None:
+                try:
+                    _main_loop.call_soon_threadsafe(_capture_event.set)
+                except Exception as e:
+                    print(f"[desktop_picker] 唤醒事件失败: {e}")
         
         picker.start_picking(on_element_captured)
         

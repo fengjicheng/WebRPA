@@ -191,7 +191,14 @@ class PercentileExecutor(ModuleExecutor):
             if not numbers:
                 return ModuleResult(success=False, error="列表中没有数字")
             
-            result = statistics.quantiles(numbers, n=100)[int(p)-1] if p > 0 else numbers[0]
+            # 边界保护：避免索引越界
+            if p <= 0:
+                result = numbers[0]
+            elif p >= 100:
+                result = numbers[-1]
+            else:
+                quantiles = statistics.quantiles(numbers, n=100)
+                result = quantiles[int(p) - 1]
             context.set_variable(result_variable, result)
             return ModuleResult(success=True, message=f"第{p}百分位数: {result}", data=result)
         except Exception as e:

@@ -652,11 +652,6 @@ class ScheduledTaskManager:
                     # 重复完成，重置计数
                     task.current_repeat_count = 0
                     self._save_tasks()
-        
-        try:
-            await workflow_task
-        except asyncio.CancelledError:
-            pass  # 任务被取消，已在 execute_workflow 中处理
     
     async def execute_task_manually(self, task_id: str):
         """手动执行任务（加入队列）"""

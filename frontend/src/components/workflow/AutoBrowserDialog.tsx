@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Globe, MousePointer, Copy, Check, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UrlInput } from '@/components/ui/url-input'
-import { browserApi } from '@/services/api'
+import { browserApi, elementPickerApi } from '@/services/api'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 
 interface AutoBrowserDialogProps {
@@ -46,20 +46,24 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
     if (pickerActive) {
       pollingRef.current = setInterval(async () => {
         // 检查单元素选择
-        const singleResult = await browserApi.getSelectedElement()
+        const singleResult = await elementPickerApi.getSelected()
         if (singleResult.data?.selected && singleResult.data.element) {
           const selector = singleResult.data.element.selector
-          setLastSelector(selector)
-          onLog('success', `已选择元素: ${selector}`)
+          if (selector) {
+            setLastSelector(selector)
+            onLog('success', `已选择元素: ${selector}`)
+          }
         }
 
         // 检查相似元素选择
-        const similarResult = await browserApi.getSimilarElements()
+        const similarResult = await elementPickerApi.getSimilar()
         if (similarResult.data?.selected && similarResult.data.similar) {
           const pattern = similarResult.data.similar.pattern
           const count = similarResult.data.similar.count
-          setLastSelector(pattern)
-          onLog('success', `已选择 ${count} 个相似元素: ${pattern}`)
+          if (pattern) {
+            setLastSelector(pattern)
+            onLog('success', `已选择 ${count} 个相似元素: ${pattern}`)
+          }
         }
       }, 500)
     } else {
@@ -72,6 +76,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
+        pollingRef.current = null
       }
     }
   }, [pickerActive, onLog])
@@ -232,7 +237,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
               <div className="p-3 bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border border-orange-200/50 rounded-xl">
                 <div className="flex items-start gap-2">
                   <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
-                    <span className="text-white text-lg">✨</span>
+                    <span className="text-white text-lg"></span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-purple-900 mb-1">高级元素选择器</p>
@@ -240,9 +245,9 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
                       在浏览器中按 <kbd className="px-2 py-1 bg-white border-2 border-purple-300 rounded shadow-sm text-xs font-bold text-purple-700">Alt+X</kbd> 激活智能元素定位助手
                     </p>
                     <div className="flex flex-wrap gap-1 text-[10px] text-purple-600">
-                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">🎯 智能选择器生成</span>
-                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">📋 批量收集管理</span>
-                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">🎨 可拖拽面板</span>
+                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">智能选择器生成</span>
+                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">批量收集管理</span>
+                      <span className="px-1.5 py-0.5 bg-purple-100 rounded">可拖拽面板</span>
                     </div>
                   </div>
                 </div>
@@ -306,9 +311,9 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
                 <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm">
                   <p className="font-medium text-orange-800 mb-2">选择器已激活</p>
                   <ul className="text-xs text-orange-700 space-y-1">
-                    <li>• <kbd className="px-1 bg-orange-100 rounded">Ctrl</kbd> + 点击：选择单个元素</li>
-                    <li>• 按住 <kbd className="px-1 bg-orange-100 rounded">Alt</kbd> 依次点击两个相似元素，自动识别并选择所有相似元素</li>
-                    <li>• 按 <kbd className="px-1 bg-orange-100 rounded">Esc</kbd> 取消相似元素选择</li>
+                    <li>•<kbd className="px-1 bg-orange-100 rounded">Ctrl</kbd>+ 点击：选择单个元素</li>
+                    <li>• 按住<kbd className="px-1 bg-orange-100 rounded">Alt</kbd>依次点击两个相似元素，自动识别并选择所有相似元素</li>
+                    <li>• 按<kbd className="px-1 bg-orange-100 rounded">Esc</kbd>取消相似元素选择</li>
                   </ul>
                 </div>
               )}
@@ -327,7 +332,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
                       className="h-6 w-6 p-0"
                       onClick={() => copyToClipboard(lastSelector)}
                     >
-                      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                      {copied ? <Check className="w-3 h-3 text-green-500" />:<Copy className="w-3 h-3" />}
                     </Button>
                   </div>
                 </div>

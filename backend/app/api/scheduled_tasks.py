@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/scheduled-tasks", tags=["scheduled-tasks"])
 @router.post("", response_model=ScheduledTask)
 async def create_scheduled_task(request: ScheduledTaskCreate):
     """创建计划任务"""
-    task = ScheduledTask(**request.dict())
+    task = ScheduledTask(**request.model_dump())
     return scheduled_task_manager.create_task(task)
 
 
@@ -39,7 +39,7 @@ async def get_scheduled_task(task_id: str):
 @router.put("/{task_id}", response_model=ScheduledTask)
 async def update_scheduled_task(task_id: str, request: ScheduledTaskUpdate):
     """更新计划任务"""
-    updates = request.dict(exclude_unset=True)
+    updates = request.model_dump(exclude_unset=True)
     task = scheduled_task_manager.update_task(task_id, updates)
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
@@ -72,9 +72,22 @@ async def execute_scheduled_task(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
     
-    # 异步执行任务
+    # 异步执行任务，保留任务引用避免被 GC
     import asyncio
-    asyncio.create_task(scheduled_task_manager.execute_task_manually(task_id))
+    
+    if not hasattr(scheduled_task_manager, '_manual_execute_tasks'):
+        scheduled_task_manager._manual_execute_tasks = set()
+    bg_task = asyncio.create_task(scheduled_task_manager.execute_task_manually(task_id))
+    scheduled_task_manager._manual_execute_tasks.add(bg_task)
+    
+    def _on_done(t: asyncio.Task):
+        try:
+            scheduled_task_manager._manual_execute_tasks.discard(t)
+            if t.exception():
+                print(f"[scheduled_tasks] 手动执行任务 {task_id} 异常: {t.exception()}")
+        except Exception:
+            pass
+    bg_task.add_done_callback(_on_done)
     
     return {"success": True, "message": "任务已开始执行"}
 
@@ -169,8 +182,10 @@ async def trigger_webhook(path: str, payload: dict = None):
 @router.get("/queue/status")
 async def get_queue_status():
     """获取任务队列状态"""
+    queue = scheduled_task_manager.task_queue
+    queue_size = queue.qsize() if queue is not None else 0
     return {
-        "queue_size": scheduled_task_manager.task_queue.qsize(),
-        "is_processing": scheduled_task_manager.queue_processing,
-        "running_tasks": list(scheduled_task_manager.running_tasks.keys())
+        "queue_size": queue_size,
+        "is_processing": getattr(scheduled_task_manager, 'queue_processing', False),
+        "running_tasks": list(getattr(scheduled_task_manager, 'running_tasks', {}).keys())
     }

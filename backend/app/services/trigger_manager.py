@@ -247,7 +247,7 @@ class TriggerManager:
         return snapshot
 
     async def _file_watcher_loop(self, watcher_id: str):
-        """文件监控循环"""
+        """文件监控循环（持续运行直到注销）"""
         try:
             while watcher_id in self.file_watchers:
                 watcher = self.file_watchers[watcher_id]
@@ -260,14 +260,18 @@ class TriggerManager:
                 # 获取当前快照
                 current_snapshot = self._get_directory_snapshot(watch_path)
 
-                # 检测新增文件
+                # 检测新增文件（不再因触发而退出，保持监控状态）
                 if watch_type in ['created', 'any']:
                     for file_path in current_snapshot:
                         if file_path not in last_snapshot:
                             if fnmatch.fnmatch(os.path.basename(file_path), file_pattern):
-                                callback('created', file_path)
-                                watcher['last_snapshot'] = current_snapshot
-                                return  # 触发后退出
+                                try:
+                                    res = callback('created', file_path)
+                                    # 兼容 sync 和 async 回调
+                                    if asyncio.iscoroutine(res):
+                                        await res
+                                except Exception as cb_err:
+                                    print(f"[TriggerManager] 文件回调失败: {cb_err}")
 
                 # 检测修改文件
                 if watch_type in ['modified', 'any']:
@@ -275,18 +279,24 @@ class TriggerManager:
                         if file_path in last_snapshot:
                             if current_snapshot[file_path]['mtime'] != last_snapshot[file_path]['mtime']:
                                 if fnmatch.fnmatch(os.path.basename(file_path), file_pattern):
-                                    callback('modified', file_path)
-                                    watcher['last_snapshot'] = current_snapshot
-                                    return  # 触发后退出
+                                    try:
+                                        res = callback('modified', file_path)
+                                        if asyncio.iscoroutine(res):
+                                            await res
+                                    except Exception as cb_err:
+                                        print(f"[TriggerManager] 文件回调失败: {cb_err}")
 
                 # 检测删除文件
                 if watch_type in ['deleted', 'any']:
                     for file_path in last_snapshot:
                         if file_path not in current_snapshot:
                             if fnmatch.fnmatch(os.path.basename(file_path), file_pattern):
-                                callback('deleted', file_path)
-                                watcher['last_snapshot'] = current_snapshot
-                                return  # 触发后退出
+                                try:
+                                    res = callback('deleted', file_path)
+                                    if asyncio.iscoroutine(res):
+                                        await res
+                                except Exception as cb_err:
+                                    print(f"[TriggerManager] 文件回调失败: {cb_err}")
 
                 # 更新快照
                 watcher['last_snapshot'] = current_snapshot

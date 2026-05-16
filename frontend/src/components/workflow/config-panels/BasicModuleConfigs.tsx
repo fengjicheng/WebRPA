@@ -367,7 +367,7 @@ export function WaitImageConfig({
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="confidence">'匹配度'</Label>
+        <Label htmlFor="confidence">匹配度</Label>
         <div className="flex items-center gap-2">
           <input
             id="confidence"
@@ -386,7 +386,7 @@ export function WaitImageConfig({
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="waitTimeout">'超时时间(秒)'</Label>
+        <Label htmlFor="waitTimeout">超时时间(秒)</Label>
         <NumberInput
           id="waitTimeout"
           value={(data.waitTimeout as number) ?? 30}
@@ -396,7 +396,7 @@ export function WaitImageConfig({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="checkInterval">'检查间隔(秒)'</Label>
+        <Label htmlFor="checkInterval">检查间隔(秒)</Label>
         <NumberInput
           id="checkInterval"
           value={(data.checkInterval as number) ?? 0.5}
@@ -423,7 +423,7 @@ export function WaitImageConfig({
               }
             }}
           />
-          <Label htmlFor="useSearchRegion" className="cursor-pointer">'限定搜索区域'</Label>
+          <Label htmlFor="useSearchRegion" className="cursor-pointer">限定搜索区域</Label>
         </div>
         <p className="text-xs text-muted-foreground">
           '仅在屏幕的指定区域内查找图片'
@@ -455,7 +455,7 @@ export function WaitImageConfig({
       )}
       
       <div className="space-y-2">
-        <Label htmlFor="variableNameX">'X坐标变量名'</Label>
+        <Label htmlFor="variableNameX">X坐标变量名</Label>
         <VariableNameInput
           id="variableNameX"
           value={(data.variableNameX as string) || ''}
@@ -465,7 +465,7 @@ export function WaitImageConfig({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="variableNameY">'Y坐标变量名'</Label>
+        <Label htmlFor="variableNameY">Y坐标变量名</Label>
         <VariableNameInput
           id="variableNameY"
           value={(data.variableNameY as string) || ''}
@@ -588,7 +588,7 @@ export function PrintLogConfig({ data, onChange }: { data: NodeData; onChange: (
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="logMessage">'日志内容'</Label>
+        <Label htmlFor="logMessage">日志内容</Label>
         <VariableInput
           value={(data.logMessage as string) || ''}
           onChange={(v) => onChange('logMessage', v)}
@@ -596,17 +596,17 @@ export function PrintLogConfig({ data, onChange }: { data: NodeData; onChange: (
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="logLevel">'日志级别'</Label>
+        <Label htmlFor="logLevel">日志级别</Label>
         <Select
           id="logLevel"
           value={(data.logLevel as string) || 'info'}
           onChange={(e) => onChange('logLevel', e.target.value)}
         >
-          <option value="debug">'调试'</option>
-          <option value="info">'信息'</option>
-          <option value="success">'成功'</option>
-          <option value="warning">'警告'</option>
-          <option value="error">'错误'</option>
+          <option value="debug">调试</option>
+          <option value="info">信息</option>
+          <option value="success">成功</option>
+          <option value="warning">警告</option>
+          <option value="error">错误</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -622,7 +622,7 @@ export function PlaySoundConfig({ data, onChange }: { data: NodeData; onChange: 
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="beepCount">'提示音次数'</Label>
+        <Label htmlFor="beepCount">提示音次数</Label>
         <NumberInput
           id="beepCount"
           value={(data.beepCount as number) ?? 1}
@@ -656,7 +656,7 @@ export function SystemNotificationConfig({ data, onChange }: { data: NodeData; o
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="notifyTitle">'通知标题'</Label>
+        <Label htmlFor="notifyTitle">通知标题</Label>
         <VariableInput
           value={(data.notifyTitle as string) || ''}
           onChange={(v) => onChange('notifyTitle', v)}
@@ -664,7 +664,7 @@ export function SystemNotificationConfig({ data, onChange }: { data: NodeData; o
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="notifyMessage">'通知内容'</Label>
+        <Label htmlFor="notifyMessage">通知内容</Label>
         <VariableInput
           value={(data.notifyMessage as string) || ''}
           onChange={(v) => onChange('notifyMessage', v)}
@@ -672,7 +672,7 @@ export function SystemNotificationConfig({ data, onChange }: { data: NodeData; o
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="duration">'显示时长(秒)'</Label>
+        <Label htmlFor="duration">显示时长(秒)</Label>
         <NumberInput
           id="duration"
           value={(data.duration as number) ?? 5}
@@ -695,7 +695,7 @@ export function PlayMusicConfig({ data, onChange }: { data: NodeData; onChange: 
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="audioUrl">'音频地址'</Label>
+        <Label htmlFor="audioUrl">音频地址</Label>
         <VariableInput
           value={(data.audioUrl as string) || ''}
           onChange={(v) => onChange('audioUrl', v)}
@@ -703,14 +703,14 @@ export function PlayMusicConfig({ data, onChange }: { data: NodeData; onChange: 
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="waitForEnd">'等待播放完成'</Label>
+        <Label htmlFor="waitForEnd">等待播放完成</Label>
         <Select
           id="waitForEnd"
           value={String(data.waitForEnd ?? false)}
           onChange={(e) => onChange('waitForEnd', e.target.value === 'true')}
         >
-          <option value="false">'否'</option>
-          <option value="true">'是'</option>
+          <option value="false">否</option>
+          <option value="true">是</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -726,7 +726,7 @@ export function PlayVideoConfig({ data, onChange }: { data: NodeData; onChange: 
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="videoUrl">'视频地址'</Label>
+        <Label htmlFor="videoUrl">视频地址</Label>
         <VariableInput
           value={(data.videoUrl as string) || ''}
           onChange={(v) => onChange('videoUrl', v)}
@@ -734,14 +734,14 @@ export function PlayVideoConfig({ data, onChange }: { data: NodeData; onChange: 
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="waitForEnd">'等待播放完成'</Label>
+        <Label htmlFor="waitForEnd">等待播放完成</Label>
         <Select
           id="waitForEnd"
           value={String(data.waitForEnd ?? false)}
           onChange={(e) => onChange('waitForEnd', e.target.value === 'true')}
         >
-          <option value="false">'否'</option>
-          <option value="true">'是'</option>
+          <option value="false">否</option>
+          <option value="true">是</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -757,7 +757,7 @@ export function ViewImageConfig({ data, onChange }: { data: NodeData; onChange: 
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="imageUrl">'图片地址'</Label>
+        <Label htmlFor="imageUrl">图片地址</Label>
         <VariableInput
           value={(data.imageUrl as string) || ''}
           onChange={(v) => onChange('imageUrl', v)}
@@ -765,19 +765,19 @@ export function ViewImageConfig({ data, onChange }: { data: NodeData; onChange: 
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="autoClose">'自动关闭'</Label>
+        <Label htmlFor="autoClose">自动关闭</Label>
         <Select
           id="autoClose"
           value={String(data.autoClose ?? false)}
           onChange={(e) => onChange('autoClose', e.target.value === 'true')}
         >
-          <option value="false">'否'</option>
-          <option value="true">'是'</option>
+          <option value="false">否</option>
+          <option value="true">是</option>
         </Select>
       </div>
       {data.autoClose && (
         <div className="space-y-2">
-          <Label htmlFor="displayTime">'显示时长(秒)'</Label>
+          <Label htmlFor="displayTime">显示时长(秒)</Label>
           <NumberInput
             id="displayTime"
             value={(data.displayTime as number) ?? 5}
@@ -806,25 +806,25 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="inputMode">'输入模式'</Label>
+        <Label htmlFor="inputMode">输入模式</Label>
         <Select
           id="inputMode"
           value={inputMode}
           onChange={(e) => onChange('inputMode', e.target.value)}
         >
-          <option value="single">'单行文本'</option>
-          <option value="multiline">'多行文本'</option>
-          <option value="number">'数字'</option>
-          <option value="integer">'整数'</option>
-          <option value="password">'密码'</option>
-          <option value="list">'列表'</option>
-          <option value="file">'文件'</option>
-          <option value="folder">'文件夹'</option>
-          <option value="checkbox">'复选框'</option>
-          <option value="slider_int">'整数滑块'</option>
-          <option value="slider_float">'小数滑块'</option>
-          <option value="select_single">'单选下拉'</option>
-          <option value="select_multiple">'多选下拉'</option>
+          <option value="single">单行文本</option>
+          <option value="multiline">多行文本</option>
+          <option value="number">数字</option>
+          <option value="integer">整数</option>
+          <option value="password">密码</option>
+          <option value="list">列表</option>
+          <option value="file">文件</option>
+          <option value="folder">文件夹</option>
+          <option value="checkbox">复选框</option>
+          <option value="slider_int">整数滑块</option>
+          <option value="slider_float">小数滑块</option>
+          <option value="select_single">单选下拉</option>
+          <option value="select_multiple">多选下拉</option>
         </Select>
         <p className="text-xs text-muted-foreground">
           {inputMode === 'single' && '单行文本输入框'}
@@ -843,7 +843,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="variableName">'变量名'</Label>
+        <Label htmlFor="variableName">变量名</Label>
         <VariableNameInput
           id="variableName"
           value={(data.variableName as string) || ''}
@@ -853,7 +853,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="promptTitle">'提示标题'</Label>
+        <Label htmlFor="promptTitle">提示标题</Label>
         <VariableInput
           value={(data.promptTitle as string) || ''}
           onChange={(v) => onChange('promptTitle', v)}
@@ -861,7 +861,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="promptMessage">'提示信息'</Label>
+        <Label htmlFor="promptMessage">提示信息</Label>
         <VariableInput
           value={(data.promptMessage as string) || ''}
           onChange={(v) => onChange('promptMessage', v)}
@@ -869,7 +869,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="defaultValue">'默认值'</Label>
+        <Label htmlFor="defaultValue">默认值</Label>
         {inputMode === 'checkbox' ? (
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <input
@@ -902,7 +902,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
       </div>
       {(inputMode === 'select_single' || inputMode === 'select_multiple') && (
         <div className="space-y-2">
-          <Label htmlFor="selectOptions">'选项列表'</Label>
+          <Label htmlFor="selectOptions">选项列表</Label>
           <VariableInput
             value={(data.selectOptions as string) || ''}
             onChange={(v) => onChange('selectOptions', v)}
@@ -917,7 +917,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
         <>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-2">
-              <Label htmlFor="minValue">'最小值'</Label>
+              <Label htmlFor="minValue">最小值</Label>
               <NumberInput
                 id="minValue"
                 value={(data.minValue as number | string) ?? ''}
@@ -926,7 +926,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="maxValue">'最大值'</Label>
+              <Label htmlFor="maxValue">最大值</Label>
               <NumberInput
                 id="maxValue"
                 value={(data.maxValue as number | string) ?? ''}
@@ -944,7 +944,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
       )}
       {inputMode === 'single' && (
         <div className="space-y-2">
-          <Label htmlFor="maxLength">'最大长度'</Label>
+          <Label htmlFor="maxLength">最大长度</Label>
           <NumberInput
             id="maxLength"
             value={(data.maxLength as number | string) ?? ''}
@@ -961,7 +961,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
           onChange={(e) => onChange('required', e.target.checked)}
           className="rounded"
         />
-        <Label htmlFor="required" className="cursor-pointer">'必填'</Label>
+        <Label htmlFor="required" className="cursor-pointer">必填</Label>
       </div>
     </>
   )
@@ -973,7 +973,7 @@ export function TextToSpeechConfig({ data, onChange }: { data: NodeData; onChang
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="text">'朗读文本'</Label>
+        <Label htmlFor="text">朗读文本</Label>
         <VariableInput
           value={(data.text as string) || ''}
           onChange={(v) => onChange('text', v)}
@@ -983,19 +983,19 @@ export function TextToSpeechConfig({ data, onChange }: { data: NodeData; onChang
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="lang">'语言'</Label>
+        <Label htmlFor="lang">语言</Label>
         <Select
           id="lang"
           value={(data.lang as string) || 'zh-CN'}
           onChange={(e) => onChange('lang', e.target.value)}
         >
-          <option value="zh-CN">'中文(简体)'</option>
-          <option value="zh-TW">'中文(繁体)'</option>
-          <option value="zh-HK">'中文(香港)'</option>
-          <option value="en-US">'英语(美国)'</option>
-          <option value="en-GB">'英语(英国)'</option>
-          <option value="ja-JP">'日语'</option>
-          <option value="ko-KR">'韩语'</option>
+          <option value="zh-CN">中文(简体)</option>
+          <option value="zh-TW">中文(繁体)</option>
+          <option value="zh-HK">中文(香港)</option>
+          <option value="en-US">英语(美国)</option>
+          <option value="en-GB">英语(英国)</option>
+          <option value="ja-JP">日语</option>
+          <option value="ko-KR">韩语</option>
         </Select>
       </div>
       <div className="space-y-2">
@@ -1029,9 +1029,9 @@ export function TextToSpeechConfig({ data, onChange }: { data: NodeData; onChang
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>'低'</span>
-          <span>'正常'</span>
-          <span>'高'</span>
+          <span>低</span>
+          <span>正常</span>
+          <span>高</span>
         </div>
       </div>
       <div className="space-y-2">
@@ -1047,7 +1047,7 @@ export function TextToSpeechConfig({ data, onChange }: { data: NodeData; onChang
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>'静音'</span>
+          <span>静音</span>
           <span>50%</span>
           <span>100%</span>
         </div>
@@ -1095,7 +1095,7 @@ export function JsScriptConfig({ data, onChange }: { data: NodeData; onChange: (
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="code">'JavaScript代码'</Label>
+        <Label htmlFor="code">JavaScript代码</Label>
         <div className="relative">
           <textarea
             id="code"
@@ -1112,7 +1112,7 @@ export function JsScriptConfig({ data, onChange }: { data: NodeData; onChange: (
           >
             <div className="bg-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
               <Code className="w-4 h-4" />
-              <span className="text-sm font-medium">'打开代码编辑器'</span>
+              <span className="text-sm font-medium">打开代码编辑器</span>
             </div>
           </div>
         </div>
@@ -1121,7 +1121,7 @@ export function JsScriptConfig({ data, onChange }: { data: NodeData; onChange: (
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="resultVariable">'结果变量'</Label>
+        <Label htmlFor="resultVariable">结果变量</Label>
         <VariableNameInput
           id="resultVariable"
           value={(data.resultVariable as string) || ''}
@@ -1131,12 +1131,12 @@ export function JsScriptConfig({ data, onChange }: { data: NodeData; onChange: (
         />
       </div>
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-amber-800">'使用说明：'</p>
+        <p className="text-xs font-medium text-amber-800">使用说明：</p>
         <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
           <li>'通过' <code className="bg-amber-100 px-1 rounded">vars</code></li>
           <li><code className="bg-amber-100 px-1 rounded">main(vars)</code> '函数的返回值将存储到结果变量'</li>
-          <li>'支持所有标准JavaScript语法和内置对象'</li>
-          <li>'不支持异步操作(async/await)和DOM操作'</li>
+          <li>支持所有标准JavaScript语法和内置对象</li>
+          <li>不支持异步操作(async/await)和DOM操作</li>
         </ul>
       </div>
       
@@ -1639,7 +1639,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
       {/* 子流程开关 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="isSubflow">'设为子流程'</Label>
+          <Label htmlFor="isSubflow">设为子流程</Label>
           <button
             type="button"
             role="switch"
@@ -1671,7 +1671,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
       {isSubflow ? (
         <>
           <div className="space-y-2">
-            <Label htmlFor="subflowName">'子流程名称'</Label>
+            <Label htmlFor="subflowName">子流程名称</Label>
             <VariableInput
               value={(data.subflowName as string) || (data.label as string) || ''}
               onChange={(v) => {
@@ -1698,7 +1698,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
                 <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-1">
                   <span className="text-red-500 font-bold">⚠️</span>
                   <div>
-                    <strong>'名称重复警告'</strong><br />
+                    <strong>名称重复警告</strong><br />
                     "已存在同名子流程 ''，请使用不同的名称"
                   </div>
                 </div>
@@ -1736,7 +1736,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
       ) : (
         <>
           <div className="space-y-2">
-            <Label htmlFor="label">'分组标签'</Label>
+            <Label htmlFor="label">分组标签</Label>
             <VariableInput
               value={(data.label as string) ?? ''}
               onChange={(v) => onChange('label', v)}
@@ -1744,7 +1744,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
             />
           </div>
           <div className="space-y-2">
-            <Label>'分组颜色'</Label>
+            <Label>分组颜色</Label>
             <div className="flex flex-wrap gap-2">
               {GROUP_COLORS.map((color) => (
                 <button
@@ -1794,7 +1794,7 @@ export function SubflowHeaderConfig({ data, onChange }: { data: NodeData; onChan
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="subflowName">'子流程名称'</Label>
+        <Label htmlFor="subflowName">子流程名称</Label>
         <VariableInput
           value={currentName}
           onChange={(v) => {
@@ -1807,7 +1807,7 @@ export function SubflowHeaderConfig({ data, onChange }: { data: NodeData; onChan
           <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-1">
             <span className="text-red-500 font-bold">⚠️</span>
             <div>
-              <strong>'名称重复警告'</strong><br />
+              <strong>名称重复警告</strong><br />
               "已存在同名子流程 ''，请使用不同的名称"
             </div>
           </div>
@@ -1858,15 +1858,15 @@ export function RefreshPageConfig({ data, onChange }: { data: NodeData; onChange
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="waitUntil">'等待条件'</Label>
+        <Label htmlFor="waitUntil">等待条件</Label>
         <Select
           id="waitUntil"
           value={(data.waitUntil as string) || 'load'}
           onChange={(e) => onChange('waitUntil', e.target.value)}
         >
-          <option value="load">'页面加载完成'</option>
-          <option value="domcontentloaded">'DOM加载完成'</option>
-          <option value="networkidle">'网络空闲'</option>
+          <option value="load">页面加载完成</option>
+          <option value="domcontentloaded">DOM加载完成</option>
+          <option value="networkidle">网络空闲</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -1882,15 +1882,15 @@ export function GoBackConfig({ data, onChange }: { data: NodeData; onChange: (ke
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="waitUntil">'等待条件'</Label>
+        <Label htmlFor="waitUntil">等待条件</Label>
         <Select
           id="waitUntil"
           value={(data.waitUntil as string) || 'load'}
           onChange={(e) => onChange('waitUntil', e.target.value)}
         >
-          <option value="load">'页面加载完成'</option>
-          <option value="domcontentloaded">'DOM加载完成'</option>
-          <option value="networkidle">'网络空闲'</option>
+          <option value="load">页面加载完成</option>
+          <option value="domcontentloaded">DOM加载完成</option>
+          <option value="networkidle">网络空闲</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -1906,15 +1906,15 @@ export function GoForwardConfig({ data, onChange }: { data: NodeData; onChange: 
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="waitUntil">'等待条件'</Label>
+        <Label htmlFor="waitUntil">等待条件</Label>
         <Select
           id="waitUntil"
           value={(data.waitUntil as string) || 'load'}
           onChange={(e) => onChange('waitUntil', e.target.value)}
         >
-          <option value="load">'页面加载完成'</option>
-          <option value="domcontentloaded">'DOM加载完成'</option>
-          <option value="networkidle">'网络空闲'</option>
+          <option value="load">页面加载完成</option>
+          <option value="domcontentloaded">DOM加载完成</option>
+          <option value="networkidle">网络空闲</option>
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -1930,18 +1930,18 @@ export function HandleDialogConfig({ data, onChange }: { data: NodeData; onChang
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="dialogAction">'处理方式'</Label>
+        <Label htmlFor="dialogAction">处理方式</Label>
         <Select
           id="dialogAction"
           value={(data.dialogAction as string) || 'accept'}
           onChange={(e) => onChange('dialogAction', e.target.value)}
         >
-          <option value="accept">'接受/确定'</option>
-          <option value="dismiss">'取消/关闭'</option>
+          <option value="accept">接受/确定</option>
+          <option value="dismiss">取消/关闭</option>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="promptText">'输入文本'</Label>
+        <Label htmlFor="promptText">输入文本</Label>
         <VariableInput
           value={(data.promptText as string) || ''}
           onChange={(v) => onChange('promptText', v)}
@@ -1949,7 +1949,7 @@ export function HandleDialogConfig({ data, onChange }: { data: NodeData; onChang
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="saveMessage">'保存对话框消息'</Label>
+        <Label htmlFor="saveMessage">保存对话框消息</Label>
         <VariableNameInput
           value={(data.saveMessage as string) || ''}
           onChange={(v) => onChange('saveMessage', v)}
@@ -1958,7 +1958,7 @@ export function HandleDialogConfig({ data, onChange }: { data: NodeData; onChang
         />
       </div>
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-blue-800">'支持的对话框类型：'</p>
+        <p className="text-xs font-medium text-blue-800">支持的对话框类型：</p>
         <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
           <li><code className="bg-blue-100 px-1 rounded">alert</code> - '警告框'</li>
           <li><code className="bg-blue-100 px-1 rounded">confirm</code> - '确认框'</li>
@@ -2010,16 +2010,16 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="injectMode">'注入模式'</Label>
+        <Label htmlFor="injectMode">注入模式</Label>
         <Select
           id="injectMode"
           value={injectMode}
           onChange={(e) => onChange('injectMode', e.target.value)}
         >
-          <option value="current">'当前标签页'</option>
-          <option value="all">'所有标签页'</option>
-          <option value="url_match">'URL匹配'</option>
-          <option value="index">'指定索引'</option>
+          <option value="current">当前标签页</option>
+          <option value="all">所有标签页</option>
+          <option value="url_match">URL匹配</option>
+          <option value="index">指定索引</option>
         </Select>
         <p className="text-xs text-muted-foreground">
           {injectMode === 'current' && '在当前激活的标签页中注入脚本'}
@@ -2032,7 +2032,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
       {/* URL匹配模式的配置 */}
       {injectMode === 'url_match' && (
         <div className="space-y-2">
-          <Label htmlFor="targetUrl">'目标URL'</Label>
+          <Label htmlFor="targetUrl">目标URL</Label>
           <VariableInput
             id="targetUrl"
             value={(data.targetUrl as string) || ''}
@@ -2048,7 +2048,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
       {/* 索引模式的配置 */}
       {injectMode === 'index' && (
         <div className="space-y-2">
-          <Label htmlFor="targetIndex">'标签页索引'</Label>
+          <Label htmlFor="targetIndex">标签页索引</Label>
           <NumberInput
             id="targetIndex"
             value={(data.targetIndex as string) || '0'}
@@ -2063,7 +2063,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
       )}
       
       <div className="space-y-2">
-        <Label htmlFor="javascriptCode">'JavaScript代码'</Label>
+        <Label htmlFor="javascriptCode">JavaScript代码</Label>
         <div className="relative">
           <textarea
             id="javascriptCode"
@@ -2080,7 +2080,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
           >
             <div className="bg-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
               <Code className="w-4 h-4" />
-              <span className="text-sm font-medium">'打开代码编辑器'</span>
+              <span className="text-sm font-medium">打开代码编辑器</span>
             </div>
           </div>
         </div>
@@ -2090,7 +2090,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="saveResult">'保存结果'</Label>
+        <Label htmlFor="saveResult">保存结果</Label>
         <VariableNameInput
           id="saveResult"
           value={(data.saveResult as string) || ''}
@@ -2106,15 +2106,15 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
       </div>
       
       <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-purple-800">'使用说明：'</p>
+        <p className="text-xs font-medium text-purple-800">使用说明：</p>
         <ul className="text-xs text-purple-700 space-y-1 list-disc list-inside">
-          <li><strong>'当前标签页'</strong>：'在当前标签页中执行代码'</li>
-          <li><strong>'所有标签页'</strong>：'在所有标签页中执行代码'</li>
-          <li><strong>'URL匹配'</strong>：'在URL匹配的标签页中执行代码'</li>
-          <li><strong>'指定索引'</strong>：'在指定索引的标签页中执行代码'</li>
+          <li><strong>当前标签页</strong>：'在当前标签页中执行代码'</li>
+          <li><strong>所有标签页</strong>：'在所有标签页中执行代码'</li>
+          <li><strong>URL匹配</strong>：'在URL匹配的标签页中执行代码'</li>
+          <li><strong>指定索引</strong>：'在指定索引的标签页中执行代码'</li>
           <li>'通过' <code className="bg-purple-100 px-1 rounded">vars.变量名</code> '访问工作流变量'</li>
           <li>'使用' <code className="bg-purple-100 px-1 rounded">return</code> '返回数据到工作流'</li>
-          <li>'可以访问页面的DOM、window对象等'</li>
+          <li>可以访问页面的DOM、window对象等</li>
         </ul>
       </div>
       

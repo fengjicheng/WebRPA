@@ -10,6 +10,7 @@ from .base import (
     get_backend_root,
     get_ffmpeg_path,
     get_ffprobe_path,
+    escape_css_selector,
 )
 
 # 导入所有执行器以触发注册
@@ -86,6 +87,18 @@ from . import network_monitor
 from . import allure
 # Apprise多渠道通知模块
 from . import notify_apprise
+# 自定义模块执行器（重要！用户创建的自定义模块依赖此模块）
+from . import custom_module
+# 备注节点
+from . import note
+# 媒体处理模块
+from . import media_audio
+from . import media_convert
+from . import media_image_effect
+from . import media_qrcode
+from . import media_recognition
+from . import media_video_edit
+from . import media_watermark
 
 # 调试：打印已注册的执行器
 print(f"[DEBUG] 已注册的执行器类型: {registry.get_all_types()}")

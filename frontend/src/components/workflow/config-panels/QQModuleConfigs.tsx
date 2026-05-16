@@ -199,7 +199,7 @@ function QRCodeDialog({
               <div className="text-center space-y-2">
                 <p className="text-sm text-gray-600">请使用手机 QQ 扫描上方二维码登录</p>
                 <p className="text-xs text-gray-400">扫码后在手机上确认登录</p>
-                <p className="text-xs text-blue-500">💡 若之前已扫码登录过，稍等片刻会自动登录</p>
+                <p className="text-xs text-blue-500">若之前已扫码登录过，稍等片刻会自动登录</p>
               </div>
 
               {/* 刷新按钮 */}
@@ -448,7 +448,7 @@ function NapCatServiceManager() {
   if (status && !status.napcat_installed) {
     return (
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4">
-        <p className="text-xs text-amber-800 font-medium mb-2">⚠️ NapCat 未安装</p>
+        <p className="text-xs text-amber-800 font-medium mb-2">NapCat 未安装</p>
         <p className="text-xs text-amber-700">
           请下载 NapCat.Shell.zip 并解压到项目根目录的 NapCat 文件夹
         </p>
@@ -468,7 +468,7 @@ function NapCatServiceManager() {
   if (status && !status.qq_installed) {
     return (
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4">
-        <p className="text-xs text-amber-800 font-medium mb-2">⚠️ QQNT 未安装</p>
+        <p className="text-xs text-amber-800 font-medium mb-2">QQNT 未安装</p>
         <p className="text-xs text-amber-700">
           NapCat 需要配合 QQNT 客户端使用，请先安装 QQ
         </p>

@@ -1002,7 +1002,7 @@ export function DownloadM3U8Config({ data, onChange }: { data: NodeData; onChang
       
       <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-xs text-blue-800 dark:text-blue-200">
-          <strong>💡 功能特点：</strong><br />
+          <strong>功能特点：</strong><br />
           • 全新下载引擎，支持更多加密格式<br />
           • 多线程下载，速度更快<br />
           • 支持 AES-128、SAMPLE-AES 等加密方式<br />
@@ -1214,7 +1214,7 @@ export function ExtractFrameConfig({ data, onChange }: { data: NodeData; onChang
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          <strong>💡 使用场景：</strong><br />
+          <strong>使用场景：</strong><br />
           • 提取视频封面图<br />
           • 视频内容预览<br />
           • 视频关键帧提取
@@ -1279,7 +1279,7 @@ export function AddSubtitleConfig({ data, onChange }: { data: NodeData; onChange
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs text-amber-800">
-          <strong>⚠️ 注意：</strong><br />
+          <strong>注意：</strong><br />
           • 字幕会被烧录到视频中（硬字幕）<br />
           • 烧录后无法移除或修改字幕<br />
           • 处理时间较长，需要重新编码视频
@@ -1349,7 +1349,7 @@ export function AdjustVolumeConfig({ data, onChange }: { data: NodeData; onChang
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          <strong>💡 使用场景：</strong><br />
+          <strong>使用场景：</strong><br />
           • 增大音量过小的音频<br />
           • 降低音量过大的音频<br />
           • 统一多个音频的音量
@@ -1446,7 +1446,7 @@ export function ResizeVideoConfig({ data, onChange }: { data: NodeData; onChange
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          <strong>💡 常用分辨率：</strong><br />
+          <strong>常用分辨率：</strong><br />
           • 4K: 3840×2160<br />
           • 1080p: 1920×1080<br />
           • 720p: 1280×720<br />
@@ -1791,7 +1791,7 @@ export function CameraCaptureConfig({ data, onChange }: { data: NodeData; onChan
       </div>
       <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
         <p className="text-xs text-blue-700 dark:text-blue-300">
-          <strong>💡 使用说明：</strong><br/>
+          <strong>使用说明：</strong><br/>
           • 自动打开摄像头并拍摄一张照片<br/>
           • 照片保存为 JPG 格式<br/>
           • 可用于人脸采集、证件拍摄等场景
@@ -1887,7 +1887,7 @@ export function CameraRecordConfig({ data, onChange }: { data: NodeData; onChang
       </div>
       <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
         <p className="text-xs text-blue-700 dark:text-blue-300">
-          <strong>💡 使用说明：</strong><br/>
+          <strong>使用说明：</strong><br/>
           • 自动打开摄像头并录制指定时长的视频<br/>
           • 录制期间会阻塞工作流，完成后继续执行<br/>
           • 视频保存为 MP4 格式<br/>
@@ -1896,7 +1896,7 @@ export function CameraRecordConfig({ data, onChange }: { data: NodeData; onChang
       </div>
       <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
         <p className="text-xs text-amber-700 dark:text-amber-300">
-          <strong>⚠️ 注意：</strong>录制过程中工作流会等待，与桌面录屏的非阻塞模式不同
+          <strong>注意：</strong>录制过程中工作流会等待，与桌面录屏的非阻塞模式不同
         </p>
       </div>
     </div>

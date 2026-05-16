@@ -15,47 +15,92 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 mouse_picker_process = None
 
 
-class OpenUrlRequest(BaseModel):
-    url: str
+# 注：/open-url 已移至 system_dialog.py，避免路由冲突
+# 注：/mouse-position 已移至 system_mouse.py，避免路由冲突
 
 
-@router.post("/open-url")
-async def open_url(request: OpenUrlRequest):
-    """使用系统默认浏览器打开URL"""
-    import webbrowser
+class ScreenshotToolRequest(BaseModel):
+    """截图工具请求"""
+    saveToAssets: bool = True
+    folder: Optional[str] = None
+
+
+@router.post("/screenshot-tool")
+async def screenshot_tool(request: ScreenshotToolRequest):
+    """启动系统截图工具（Win+Shift+S），等待用户截图后保存"""
     try:
-        webbrowser.open(request.url)
-        return {"success": True}
+        from app.services.screenshot_tool_v2 import screenshot_tool_handler
+        result = await screenshot_tool_handler(request.model_dump())
+        return result
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": f"截图工具启动失败: {e}"}
 
 
-# 文件/文件夹选择器已移至 system_dialog.py，避免路由冲突
-
-
-@router.get("/mouse-position")
-async def get_mouse_position():
-    """获取当前鼠标位置"""
-    import ctypes
+@router.post("/screenshot")
+async def screenshot_screen():
+    """直接对当前屏幕进行截图（不需要用户交互）"""
+    import tempfile
+    import os
+    from datetime import datetime
+    try:
+        from PIL import ImageGrab
+    except ImportError:
+        return {"success": False, "error": "缺少 Pillow 依赖（pip install Pillow）"}
     
-    class POINT(ctypes.Structure):
-        _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-    
-    pt = POINT()
-    ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-    
-    return {
-        "success": True,
-        "x": pt.x,
-        "y": pt.y
-    }
+    try:
+        # 截取整个屏幕
+        loop = asyncio.get_running_loop()
+        img = await loop.run_in_executor(None, ImageGrab.grab)
+        if img is None:
+            return {"success": False, "error": "截屏失败，未获取到图像"}
+        
+        # 保存到 image_assets
+        image_assets_dir = Path(__file__).parent.parent.parent / "uploads" / "images"
+        image_assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        import uuid
+        asset_id = str(uuid.uuid4())
+        save_path = image_assets_dir / f"{asset_id}.png"
+        await loop.run_in_executor(None, lambda: img.save(str(save_path), 'PNG'))
+        
+        file_name = f"screen_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        file_size = save_path.stat().st_size
+        
+        # 注册资产
+        from app.api.image_assets import image_assets
+        image_assets[asset_id] = {
+            "id": asset_id,
+            "name": f"{asset_id}.png",
+            "originalName": file_name,
+            "size": file_size,
+            "uploadedAt": datetime.now().isoformat(),
+            "folder": "",
+            "extension": ".png",
+            "path": str(save_path),
+        }
+        
+        return {
+            "success": True,
+            "assetId": asset_id,
+            "fileName": file_name,
+            "width": img.width,
+            "height": img.height,
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": f"截屏失败: {e}"}
 
 
-# 设置 socketio 实例的引用
+# 设置 socketio 实例的引用（保留旧名以兼容历史导入）
 _sio = None
 
+
 def set_napcat_sio(sio):
-    """设置 socketio 实例"""
+    """[已废弃] 旧的 sio 注入入口，保留兼容性。
+    
+    实际的 napcat 事件由 system_napcat.py 中的 set_napcat_sio 接管。
+    """
     global _sio
     _sio = sio
 

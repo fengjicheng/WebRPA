@@ -3,9 +3,22 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 import os
+import sys
 from ..services.adb_manager import get_adb_manager
 from ..services.scrcpy_manager import get_scrcpy_manager
 from ..services.phone_coordinate_picker import get_coordinate_picker
+
+# Windows 平台才导入 win32gui，避免在 Linux/macOS 上 import 失败
+if sys.platform == 'win32':
+    try:
+        import win32gui  # type: ignore
+        import win32con  # type: ignore
+    except ImportError:
+        win32gui = None
+        win32con = None
+else:
+    win32gui = None
+    win32con = None
 
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
@@ -386,6 +399,12 @@ async def get_screenshot(device_id: Optional[str] = None):
         # 截取屏幕
         success, error = adb.screenshot(screenshot_path, device_id)
         if not success:
+            # 失败时清理临时文件，避免泄漏
+            try:
+                if os.path.exists(screenshot_path):
+                    os.unlink(screenshot_path)
+            except Exception:
+                pass
             return {"success": False, "error": error}
         
         return {"success": True, "path": screenshot_path}
@@ -397,8 +416,10 @@ async def get_screenshot(device_id: Optional[str] = None):
 async def get_screenshot_file(device_id: Optional[str] = None):
     """获取手机截图文件"""
     from fastapi.responses import FileResponse
+    from starlette.background import BackgroundTask
     import tempfile
     
+    screenshot_path = None
     try:
         adb = get_adb_manager()
         
@@ -409,11 +430,26 @@ async def get_screenshot_file(device_id: Optional[str] = None):
         # 截取屏幕
         success, error = adb.screenshot(screenshot_path, device_id)
         if not success:
+            # 失败时清理临时文件
+            try:
+                if screenshot_path and os.path.exists(screenshot_path):
+                    os.unlink(screenshot_path)
+            except Exception:
+                pass
             raise HTTPException(status_code=500, detail=error)
+        
+        # 文件在响应发送完毕后自动删除
+        def _cleanup(path):
+            try:
+                if path and os.path.exists(path):
+                    os.unlink(path)
+            except Exception:
+                pass
         
         return FileResponse(
             screenshot_path,
             media_type="image/png",
+            background=BackgroundTask(_cleanup, screenshot_path),
             headers={
                 "Cache-Control": "no-cache",
                 "Access-Control-Allow-Origin": "*",
@@ -734,12 +770,14 @@ async def start_manual_calibrate(request: ManualCalibrateRequest):
         # 获取窗口尺寸
         if not picker.window_width or not picker.window_height:
             # 尝试获取窗口尺寸
+            if win32gui is None:
+                return {"success": False, "error": "win32gui 不可用（仅支持 Windows）"}
             try:
                 client_rect = win32gui.GetClientRect(picker.scrcpy_hwnd)
                 picker.window_width = client_rect[2]
                 picker.window_height = client_rect[3]
-            except:
-                return {"success": False, "error": "无法获取窗口尺寸"}
+            except Exception as e:
+                return {"success": False, "error": f"无法获取窗口尺寸: {e}"}
         
         # 确保有手机分辨率
         if not picker.phone_width or not picker.phone_height:
@@ -807,6 +845,8 @@ async def get_actual_coordinate(request: SubmitCalibrationDataRequest):
         
         # 将窗口坐标转换为手机坐标（使用当前的转换逻辑）
         # 先模拟屏幕坐标
+        if win32gui is None:
+            return {"success": False, "error": "win32gui 不可用（仅支持 Windows）"}
         point = win32gui.ClientToScreen(picker.scrcpy_hwnd, (request.window_x, request.window_y))
         screen_x, screen_y = point
         

@@ -11,7 +11,9 @@ import { CoordinateInput } from '@/components/ui/coordinate-input'
 import { DualCoordinateInput } from '@/components/ui/dual-coordinate-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ImagePathInput } from '@/components/ui/image-path-input'
-import { getBackendUrl } from '@/services/api'
+import { Button } from '@/components/ui/button'
+import { Loader2, Crosshair } from 'lucide-react'
+import { getBackendUrl, desktopPickerApi } from '@/services/api'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
 
@@ -1238,7 +1240,7 @@ export function RunCommandConfig({ data, onChange }: { data: NodeData; onChange:
 // 点击图像配置
 export function ClickImageConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -1606,7 +1608,7 @@ export function NetworkCaptureConfig({ data, onChange }: { data: NodeData; onCha
             </Select>
           </div>
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-            <p className="text-xs font-medium text-blue-800">📱 代理配置说明</p>
+            <p className="text-xs font-medium text-blue-800">代理配置说明</p>
             <p className="text-xs text-blue-700">{getProxyTip()}</p>
             <p className="text-xs text-blue-600">
               MuMu模拟器：设置 → WiFi → 长按已连接网络 → 修改网络 → 高级选项 → 代理 → 手动
@@ -1770,11 +1772,11 @@ export function MacroRecorderConfig({ data, onChange }: { data: NodeData; onChan
             <div className="space-y-1">
               <div className="font-medium">已录制 {stats.total} 个动作</div>
               <div className="text-xs text-muted-foreground space-y-0.5">
-                {stats.moveCount > 0 && <div>• 鼠标移动: {stats.moveCount} 次</div>}
-                {stats.clickCount > 0 && <div>• 鼠标点击: {stats.clickCount} 次</div>}
-                {stats.dragCount > 0 && <div>• 鼠标拖拽: {stats.dragCount} 次</div>}
-                {stats.scrollCount > 0 && <div>• 鼠标滚动: {stats.scrollCount} 次</div>}
-                {stats.keyCount > 0 && <div>• 键盘操作: {stats.keyCount} 次</div>}
+                {stats.moveCount >0 &&<div>• 鼠标移动: {stats.moveCount} 次</div>}
+                {stats.clickCount >0 &&<div>• 鼠标点击: {stats.clickCount} 次</div>}
+                {stats.dragCount >0 &&<div>• 鼠标拖拽: {stats.dragCount} 次</div>}
+                {stats.scrollCount >0 &&<div>• 鼠标滚动: {stats.scrollCount} 次</div>}
+                {stats.keyCount >0 &&<div>• 键盘操作: {stats.keyCount} 次</div>}
                 <div>• 总时长: {stats.duration.toFixed(1)} 秒</div>
               </div>
             </div>
@@ -2134,7 +2136,7 @@ function MacroRecordDialog({
       <div className="bg-white rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h3 className="font-semibold text-gray-900">🎬 宏录制器</h3>
+          <h3 className="font-semibold text-gray-900">宏录制器</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             ✕
           </button>
@@ -2193,7 +2195,7 @@ function MacroRecordDialog({
           <div className="p-4 bg-gray-100 rounded-lg text-center">
             {isRecording ? (
               <div className="space-y-2">
-                <div className="text-2xl animate-pulse">🔴 录制中...</div>
+                <div className="text-2xl animate-pulse">录制中...</div>
                 <div className="text-sm text-muted-foreground">
                   已录制 {stats.total} 个动作 | 时长 {stats.duration.toFixed(1)}s
                 </div>
@@ -2217,8 +2219,8 @@ function MacroRecordDialog({
                   </>
                 ) : (
                   <div className="text-muted-foreground space-y-1">
-                    <div>点击"开始录制"或按 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700 font-mono">F9</kbd> 开始</div>
-                    <div className="text-xs">录制完成后按 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700 font-mono">F10</kbd> 停止</div>
+                    <div>点击"开始录制"或按<kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700 font-mono">F9</kbd>开始</div>
+                    <div className="text-xs">录制完成后按<kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700 font-mono">F10</kbd>停止</div>
                   </div>
                 )}
               </div>
@@ -2453,8 +2455,8 @@ function MacroEditDialog({
       <div className="bg-white rounded-lg shadow-xl w-[700px] max-h-[85vh] overflow-hidden flex flex-col">
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h3 className="font-semibold text-gray-900">✏️ 编辑宏操作</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+          <h3 className="font-semibold text-gray-900">编辑宏操作</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700"></button>
         </div>
 
         {/* 工具栏 */}
@@ -2689,9 +2691,9 @@ function MacroActionEditDialog({
                 disabled={isPicking}
               >
                 {isPicking ? (
-                  <>🎯 拾取中...</>
+                  <>拾取中...</>
                 ) : (
-                  <>🎯 拾取坐标</>
+                  <>拾取坐标</>
                 )}
               </button>
               {statusText && (
@@ -2886,11 +2888,11 @@ function MacroAddActionDialog({
               value={actionType}
               onChange={(e) => setActionType(e.target.value as MacroAction['type'])}
             >
-              <option value="mouse_move">🖱️ 鼠标移动</option>
-              <option value="mouse_click">👆 鼠标点击</option>
-              <option value="mouse_scroll">🔄 鼠标滚轮</option>
-              <option value="key_press">⌨️ 按键</option>
-              <option value="key_char">📝 输入字符</option>
+              <option value="mouse_move">鼠标移动</option>
+              <option value="mouse_click">鼠标点击</option>
+              <option value="mouse_scroll">鼠标滚轮</option>
+              <option value="key_press">按键</option>
+              <option value="key_char">输入字符</option>
             </select>
           </div>
 
@@ -2925,9 +2927,9 @@ function MacroAddActionDialog({
                 disabled={isPicking}
               >
                 {isPicking ? (
-                  <>🎯 拾取中...</>
+                  <>拾取中...</>
                 ) : (
-                  <>🎯 拾取坐标</>
+                  <>拾取坐标</>
                 )}
               </button>
               {statusText && (
@@ -3107,7 +3109,7 @@ export function ExportLogConfig({ data, onChange }: { data: NodeData; onChange: 
 // 点击文本配置
 export function ClickTextConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -3224,7 +3226,7 @@ export function ClickTextConfig({ data, onChange }: { data: NodeData; onChange: 
 // 悬停图像配置
 export function HoverImageConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -3349,7 +3351,7 @@ export function HoverImageConfig({ data, onChange }: { data: NodeData; onChange:
 // 悬停文本配置
 export function HoverTextConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -3464,7 +3466,7 @@ export function HoverTextConfig({ data, onChange }: { data: NodeData; onChange: 
 // 拖拽图像配置
 export function DragImageConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   const targetType = (data.targetType as string) || 'image'
   
@@ -3919,7 +3921,7 @@ export function StopScreenShareConfig({ data, onChange }: { data: NodeData; onCh
 export function ImageExistsConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   const useFullScreen = (data.useFullScreen as boolean) ?? true
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !useFullScreen && !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !useFullScreen && !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -4069,7 +4071,7 @@ export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; o
       
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <div className="flex items-start gap-2">
-          <div className="text-amber-600 mt-0.5">💡</div>
+          <div className="text-amber-600 mt-0.5"></div>
           <div className="text-xs text-amber-800 space-y-1">
             <p className="font-medium">使用说明：</p>
             <ul className="list-disc list-inside space-y-0.5 ml-2">
@@ -4101,7 +4103,7 @@ export function ElementVisibleConfig({ renderSelectorInput }: { data: NodeData; 
       
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <div className="flex items-start gap-2">
-          <div className="text-amber-600 mt-0.5">💡</div>
+          <div className="text-amber-600 mt-0.5"></div>
           <div className="text-xs text-amber-800 space-y-1">
             <p className="font-medium">使用说明：</p>
             <ul className="list-disc list-inside space-y-0.5 ml-2">
@@ -4166,7 +4168,7 @@ export function NetworkMonitorStartConfig({ data, onChange }: { data: NodeData; 
       </div>
       
       <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-green-800">💡 使用说明</p>
+        <p className="text-xs font-medium text-green-800">使用说明</p>
         <ul className="text-xs text-green-700 space-y-1 list-disc list-inside">
           <li>在打开网页前启动监听，可捕获页面加载时的API请求</li>
           <li>监听器会持续运行，直到使用"停止网络监听"或"等待API请求"停止</li>
@@ -4258,7 +4260,7 @@ export function NetworkMonitorWaitConfig({ data, onChange }: { data: NodeData; o
       </div>
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-blue-800">💡 使用场景</p>
+        <p className="text-xs font-medium text-blue-800">使用场景</p>
         <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
           <li>等待登录接口返回，获取token</li>
           <li>等待搜索接口返回，获取结果数据</li>

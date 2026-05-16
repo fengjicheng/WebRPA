@@ -191,7 +191,7 @@ try:
     # 无论是否有返回值，都保存变量状态
     _save_result(_result)
 except Exception as e:
-    print(f"脚本执行错误: {{e}}", file=sys.stderr)
+    print(f"脚本执行错误: {e}", file=sys.stderr)
     import traceback
     traceback.print_exc()
     sys.exit(1)

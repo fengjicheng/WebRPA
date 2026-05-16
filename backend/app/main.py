@@ -69,12 +69,12 @@ from app.api.element_picker import router as element_picker_router
 from app.api.data_assets import router as data_assets_router
 from app.api.image_assets import router as image_assets_router
 from app.api.browser import router as browser_router
-from app.api.system import router as system_router, set_napcat_sio
+from app.api.system import router as system_router
 from app.api.system_media import router as system_media_router
 from app.api.system_dialog import router as system_dialog_router
 from app.api.system_macro import router as system_macro_router
 from app.api.system_mouse import router as system_mouse_router
-from app.api.system_napcat import router as system_napcat_router
+from app.api.system_napcat import router as system_napcat_router, set_napcat_sio
 from app.api.local_workflows import router as local_workflows_router
 from app.api.triggers import router as triggers_router
 from app.api.scheduled_tasks import router as scheduled_tasks_router
@@ -519,17 +519,19 @@ async def on_hotkey_screenshot():
 @sio.event
 async def connect(sid, environ):
     """客户端连接事件"""
-    print(f"[Socket.IO] ✅ 客户端已连接: {sid}")
+    print(f"[Socket.IO] 客户端已连接: {sid}")
     # 打印连接信息用于调试
     origin = environ.get('HTTP_ORIGIN', 'unknown')
     print(f"[Socket.IO] 连接来源: {origin}")
+    # 默认启用日志推送，由前端通过 set_verbose_log 事件细粒度控制
+    set_log_enabled(sid, True)
     return True  # 明确返回True表示接受连接
 
 
 @sio.event
 async def disconnect(sid):
     """客户端断开连接事件"""
-    print(f"[Socket.IO] ❌ 客户端已断开: {sid}")
+    print(f"[Socket.IO] 客户端已断开: {sid}")
     # 清理该客户端的日志开关状态
     remove_log_enabled(sid)
 

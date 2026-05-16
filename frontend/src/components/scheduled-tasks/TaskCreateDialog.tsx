@@ -175,13 +175,16 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
     
     window.addEventListener('keydown', handleKeyDown)
     
-    // 10秒后自动取消录制
+    // 10秒后自动取消录制（使用函数式 setState 避免闭包陷阱）
     setTimeout(() => {
-      if (recordingHotkey) {
-        setRecordingHotkey(false)
-        setHotkey('')
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+      setRecordingHotkey((isRecording) => {
+        if (isRecording) {
+          setHotkey('')
+          window.removeEventListener('keydown', handleKeyDown)
+          return false
+        }
+        return isRecording
+      })
     }, 10000)
   }
   

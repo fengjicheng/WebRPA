@@ -70,7 +70,7 @@ export function WebhookTriggerConfig({
             className="px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-1"
             title="复制URL"
           >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4" />:<Copy className="w-4 h-4" />}
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -211,7 +211,7 @@ export function WebhookTriggerConfig({
 
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800 leading-relaxed break-words">
-          <strong>💡 使用说明：</strong><br />
+          <strong>使用说明：</strong><br />
           • 工作流执行到此模块时会暂停，等待HTTP请求触发<br />
           • 使用任何HTTP客户端（浏览器、Postman、curl等）向上方URL发送请求<br />
           • 可设置请求头和查询参数验证，增强安全性<br />
@@ -266,7 +266,7 @@ export function HotkeyTriggerConfig({
 
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800 leading-relaxed">
-          <strong>💡 使用说明：</strong><br />
+          <strong>使用说明：</strong><br />
           • 工作流执行到此模块时会暂停，等待指定热键按下<br />
           • 热键监听是全局的，即使WebRPA窗口不在前台也能触发<br />
           • 按下热键后，工作流会继续执行后续模块<br />
@@ -373,7 +373,7 @@ export function FileWatcherTriggerConfig({
 
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800 leading-relaxed">
-          <strong>💡 使用说明：</strong><br />
+          <strong>使用说明：</strong><br />
           • 工作流执行到此模块时会暂停，监控指定路径的文件变化<br />
           • 检测到匹配的文件事件后，工作流会继续执行<br />
           • 适用于自动处理新文件、监控文件变化等场景<br />
@@ -534,7 +534,7 @@ export function EmailTriggerConfig({
 
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800 leading-relaxed">
-          <strong>💡 使用说明：</strong><br />
+          <strong>使用说明：</strong><br />
           • 工作流执行到此模块时会暂停，定期检查邮箱<br />
           • 收到符合条件的新邮件后，工作流会继续执行<br />
           • 邮件会被标记为已读<br />
@@ -705,7 +705,7 @@ export function ApiTriggerConfig({
 
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800 leading-relaxed">
-          <strong>💡 使用说明：</strong><br />
+          <strong>使用说明：</strong><br />
           • 工作流执行到此模块时会暂停，定期轮询API接口<br />
           • 当API响应满足指定条件时，工作流会继续执行<br />
           • 适用于等待任务完成、监控状态变化等场景<br />
@@ -804,7 +804,7 @@ export function TimerTriggerConfig({
 
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800 leading-relaxed">
-              <strong>💡 使用说明：</strong><br />
+              <strong>使用说明：</strong><br />
               • 定时触发器会按固定间隔重复执行后续流程<br />
               • 适用于定期数据采集、定时任务等场景<br />
               • 可设置重复次数或无限循环<br />
@@ -861,7 +861,7 @@ export function TimerTriggerConfig({
 
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800 leading-relaxed">
-              <strong>💡 使用说明：</strong><br />
+              <strong>使用说明：</strong><br />
               • 在指定的时间点触发工作流<br />
               • 可设置每天重复或指定具体日期<br />
               • 适用于定时报表、每日任务等场景<br />
@@ -891,7 +891,7 @@ export function TimerTriggerConfig({
 
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800 leading-relaxed">
-              <strong>💡 使用说明：</strong><br />
+              <strong>使用说明：</strong><br />
               • 使用Cron表达式定义复杂的定时规则<br />
               • 支持标准的5位Cron格式<br />
               • 适用于复杂的定时需求<br />
@@ -1066,7 +1066,7 @@ export function ImageTriggerConfig({
   onChange: (key: string, value: unknown) => void
 }) {
   const [useSearchRegion, setUseSearchRegion] = useState(
-    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 > 0 || (data.searchRegion as Record<string, number>).y2 > 0))
+    !!(data.searchRegion && ((data.searchRegion as Record<string, number>).x2 >0 || (data.searchRegion as Record<string, number>).y2 > 0))
   )
   
   return (
@@ -1530,7 +1530,7 @@ export function ElementChangeTriggerConfig({
         <div className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
           <div className="text-xs text-green-900 dark:text-green-100">
-            <p className="font-medium mb-1">💡 实战示例：</p>
+            <p className="font-medium mb-1">实战示例：</p>
             <p className="mb-1">监控直播间评论：</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>选择器：.comment-list（评论列表容器）</li>
@@ -1797,7 +1797,7 @@ export function GestureTriggerConfig({
         )}
 
         <div className="p-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
-          <p className="text-xs text-purple-900 dark:text-purple-100 font-medium mb-2">📝 录制步骤：</p>
+          <p className="text-xs text-purple-900 dark:text-purple-100 font-medium mb-2">录制步骤：</p>
           <ol className="text-xs text-purple-800 dark:text-purple-200 space-y-1 list-decimal list-inside">
             <li>点击"录制新手势"按钮</li>
             <li>输入手势名称（如：OK手势、点赞等）</li>
@@ -1885,7 +1885,7 @@ export function GestureTriggerConfig({
         <div className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
           <div className="text-xs text-green-900 dark:text-green-100">
-            <p className="font-medium mb-1">💡 应用场景：</p>
+            <p className="font-medium mb-1">应用场景：</p>
             <ul className="list-disc list-inside space-y-1">
               <li>无接触控制：通过手势控制电脑操作</li>
               <li>演示互动：演讲时通过手势切换PPT</li>

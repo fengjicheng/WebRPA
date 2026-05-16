@@ -107,17 +107,17 @@ class VariableManager:
         return result
     
     def evaluate_expression(self, expression: str) -> Any:
-        """计算简单表达式"""
+        """计算简单表达式（仅限数字四则运算）"""
         # 先解析变量
         resolved = self._resolve_string(expression)
         
-        # 尝试计算数学表达式
+        # 尝试计算数学表达式（严格白名单 + 隔离 builtins）
         try:
-            # 只允许安全的操作
             allowed_chars = set('0123456789+-*/.() ')
             if all(c in allowed_chars for c in resolved):
-                return eval(resolved)
-        except:
+                # 隔离 builtins，禁止访问任何函数/属性
+                return eval(resolved, {"__builtins__": {}}, {})
+        except Exception:
             pass
         
         # 返回解析后的字符串

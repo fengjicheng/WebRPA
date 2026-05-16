@@ -1,4 +1,5 @@
 """触发器API路由"""
+from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -7,6 +8,18 @@ from app.services.trigger_manager import trigger_manager
 
 
 router = APIRouter(prefix="/api/triggers", tags=["triggers"])
+
+
+# 请求头中的敏感字段（不会传给工作流）
+_SENSITIVE_HEADERS = {
+    'authorization', 'cookie', 'x-api-key', 'x-auth-token',
+    'x-csrf-token', 'proxy-authorization',
+}
+
+
+def _filter_headers(headers: Dict[str, Any]) -> Dict[str, Any]:
+    """过滤掉敏感的请求头，避免泄露给工作流"""
+    return {k: v for k, v in headers.items() if k.lower() not in _SENSITIVE_HEADERS}
 
 
 class WebhookTriggerRequest(BaseModel):
@@ -31,11 +44,11 @@ async def trigger_webhook(webhook_id: str, request: Request):
             body = await request.json()
         else:
             body = dict(request.query_params)
-    except:
+    except Exception:
         body = {}
 
-    # 获取请求头
-    headers = dict(request.headers)
+    # 获取请求头并过滤敏感字段
+    headers = _filter_headers(dict(request.headers))
 
     # 构建触发数据
     trigger_data = {
@@ -43,7 +56,7 @@ async def trigger_webhook(webhook_id: str, request: Request):
         'headers': headers,
         'body': body,
         'query': dict(request.query_params),
-        'timestamp': __import__('datetime').datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat()
     }
 
     # 触发Webhook

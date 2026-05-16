@@ -1,4 +1,4 @@
-"""高级模块执行�?- advanced_ocr"""
+"""高级模块执行器 - advanced_ocr"""
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 from .type_utils import to_int, to_float, parse_search_region
 import asyncio
@@ -10,7 +10,7 @@ import time
 
 @register_executor
 class ClickTextExecutor(ModuleExecutor):
-    """点击文本模块执行�?- 通过屏幕OCR识别实现鼠标点击指定文本"""
+    """点击文本模块执行器 - 通过屏幕OCR识别实现鼠标点击指定文本"""
     
     @property
     def module_type(self) -> str:
@@ -23,7 +23,7 @@ class ClickTextExecutor(ModuleExecutor):
         click_type = config.get('clickType', 'single')  # single, double
         occurrence = int(config.get('occurrence', 1))  # 第几个匹配项
         search_region = config.get('searchRegion', None)  # 搜索区域 {x, y, width, height}
-        wait_timeout = int(config.get('waitTimeout', 10))  # 等待超时（秒�?
+        wait_timeout = int(config.get('waitTimeout', 10))  # 等待超时（秒）
         result_variable = config.get('resultVariable', '')
         
         if not target_text:
@@ -42,18 +42,18 @@ class ClickTextExecutor(ModuleExecutor):
             if result.get('found'):
                 return ModuleResult(
                     success=True,
-                    message=f"已点击文�?\"{target_text}\" 位置: ({result['x']}, {result['y']})",
+                    message=f"已点击文本 \"{target_text}\" 位置: ({result['x']}, {result['y']})",
                     data=result
                 )
             else:
-                return ModuleResult(success=False, error=f"未找到文�? {target_text}")
+                return ModuleResult(success=False, error=f"未找到文本: {target_text}")
         except Exception as e:
             return ModuleResult(success=False, error=f"点击文本失败: {str(e)}")
     
     def _click_text(self, target_text: str, match_mode: str, click_button: str,
                     click_type: str, occurrence: int, search_region: dict, 
                     wait_timeout: int) -> dict:
-        """执行OCR识别并点击文�?- 使用 PaddleOCR，速度�?""
+        """执行OCR识别并点击文本 - 使用 PaddleOCR，速度快"""
         import ctypes
         import re
         import numpy as np
@@ -62,7 +62,7 @@ class ClickTextExecutor(ModuleExecutor):
         try:
             from PIL import ImageGrab
         except ImportError:
-            raise ImportError("请安�?Pillow: pip install Pillow")
+            raise ImportError("请安装 Pillow: pip install Pillow")
         
         # 配置本地模型目录
         project_root = Path(__file__).parent.parent.parent
@@ -70,20 +70,20 @@ class ClickTextExecutor(ModuleExecutor):
         models_dir.mkdir(parents=True, exist_ok=True)
         os.environ['PaddleOCR_HOME'] = str(models_dir)
         
-        # 使用 PaddleOCR - �?EasyOCR 快很�?
+        # 使用 PaddleOCR - 比 EasyOCR 快很多
         try:
             from paddleocr import PaddleOCR
             print(f"[OCR] Using local model directory: {models_dir}")
             ocr = PaddleOCR(use_angle_cls=True, lang="ch", model_storage_directory=str(models_dir))
             print(f"[OCR] PaddleOCR initialized successfully")
         except ImportError:
-            raise ImportError("请安�?paddleocr: pip install paddleocr")
+            raise ImportError("请安装 paddleocr: pip install paddleocr")
         
         start_time = time.time()
         
         while time.time() - start_time < wait_timeout:
             # 截取屏幕
-            # 解析搜索区域（支持两点模式和起点+宽高模式�?
+            # 解析搜索区域（支持两点模式和起点+宽高模式）
             region_x, region_y, region_w, region_h = parse_search_region(search_region)
             if region_w > 0 and region_h > 0:
                 screenshot = ImageGrab.grab(bbox=(region_x, region_y, region_x + region_w, region_y + region_h))
@@ -92,7 +92,7 @@ class ClickTextExecutor(ModuleExecutor):
                 screenshot = ImageGrab.grab()
                 offset_x, offset_y = 0, 0
             
-            # 转换�?numpy 数组
+            # 转换为 numpy 数组
             img_array = np.array(screenshot)
             
             # OCR识别
@@ -107,7 +107,7 @@ class ClickTextExecutor(ModuleExecutor):
                 time.sleep(0.3)
                 continue
             
-            # 查找匹配的文�?
+            # 查找匹配的文本
             matches = []
             for item in result:
                 # item 格式: [box, text, confidence]
@@ -117,7 +117,7 @@ class ClickTextExecutor(ModuleExecutor):
                 if not recognized_text:
                     continue
                 
-                # 匹配检�?
+                # 匹配检查
                 is_match = False
                 if match_mode == 'exact':
                     is_match = recognized_text == target_text
@@ -161,7 +161,7 @@ class ClickTextExecutor(ModuleExecutor):
                     'total_matches': len(matches)
                 }
             
-            # 等待后重�?
+            # 等待后重试
             time.sleep(0.3)
         
         return {'found': False, 'text': target_text}
@@ -205,7 +205,7 @@ class ClickTextExecutor(ModuleExecutor):
 
 @register_executor
 class HoverTextExecutor(ModuleExecutor):
-    """鼠标悬停在文本上模块执行�?- 通过屏幕OCR识别实现鼠标悬停在指定文本上"""
+    """鼠标悬停在文本上模块执行器 - 通过屏幕OCR识别实现鼠标悬停在指定文本上"""
     
     @property
     def module_type(self) -> str:
@@ -217,7 +217,7 @@ class HoverTextExecutor(ModuleExecutor):
         hover_duration = to_int(config.get('hoverDuration', 500), 500, context)  # 悬停时长（毫秒）
         occurrence = int(config.get('occurrence', 1))  # 第几个匹配项
         search_region = config.get('searchRegion', None)  # 搜索区域
-        wait_timeout = int(config.get('waitTimeout', 10))  # 等待超时（秒�?
+        wait_timeout = int(config.get('waitTimeout', 10))  # 等待超时（秒）
         result_variable = config.get('resultVariable', '')
         
         if not target_text:
@@ -240,45 +240,52 @@ class HoverTextExecutor(ModuleExecutor):
                     data=result
                 )
             else:
-                return ModuleResult(success=False, error=f"未找到文�? {target_text}")
+                return ModuleResult(success=False, error=f"未找到文本: {target_text}")
         except Exception as e:
             return ModuleResult(success=False, error=f"悬停文本失败: {str(e)}")
     
     def _hover_text(self, target_text: str, match_mode: str, hover_duration: int,
                     occurrence: int, search_region: dict, wait_timeout: int) -> dict:
-        """执行OCR识别并悬停在文本�?- 使用 PaddleOCR，速度�?""
+        """执行OCR识别并悬停在文本上 - 使用 PaddleOCR，速度快"""
         import ctypes
         import re
         import numpy as np
         
         # 调试日志
         print(f"[悬停文本] 目标文本: '{target_text}', 匹配模式: {match_mode}")
-        print(f"[悬停文本] search_region 原始�? {search_region}")
+        print(f"[悬停文本] search_region 原始值: {search_region}")
         
         try:
             from PIL import ImageGrab
         except ImportError:
-            raise ImportError("请安�?Pillow: pip install Pillow")
+            raise ImportError("请安装 Pillow: pip install Pillow")
         
-        # 使用 PaddleOCR - �?EasyOCR 快很�?
+        # 配置本地模型目录
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent.parent
+        models_dir = project_root / "backend" / "models" / "ocr"
+        models_dir.mkdir(parents=True, exist_ok=True)
+        os.environ['PaddleOCR_HOME'] = str(models_dir)
+        
+        # 使用 PaddleOCR - 比 EasyOCR 快很多
         try:
             from paddleocr import PaddleOCR
             print(f"[OCR] Using local model directory: {models_dir}")
             ocr = PaddleOCR(use_angle_cls=True, lang="ch", model_storage_directory=str(models_dir))
             print(f"[OCR] PaddleOCR initialized successfully")
         except ImportError:
-            raise ImportError("请安�?paddleocr: pip install paddleocr")
+            raise ImportError("请安装 paddleocr: pip install paddleocr")
         
         start_time = time.time()
         first_loop = True
         
         while time.time() - start_time < wait_timeout:
             # 截取屏幕
-            # 解析搜索区域（支持两点模式和起点+宽高模式�?
+            # 解析搜索区域（支持两点模式和起点+宽高模式）
             region_x, region_y, region_w, region_h = parse_search_region(search_region)
             
             if first_loop:
-                print(f"[悬停文本] 解析后区�? x={region_x}, y={region_y}, w={region_w}, h={region_h}")
+                print(f"[悬停文本] 解析后区域: x={region_x}, y={region_y}, w={region_w}, h={region_h}")
                 first_loop = False
             
             if region_w > 0 and region_h > 0:
@@ -290,7 +297,7 @@ class HoverTextExecutor(ModuleExecutor):
                 screenshot = ImageGrab.grab()
                 offset_x, offset_y = 0, 0
             
-            # 转换�?numpy 数组
+            # 转换为 numpy 数组
             img_array = np.array(screenshot)
             print(f"[悬停文本] 截图尺寸: {img_array.shape}")
             
@@ -307,17 +314,17 @@ class HoverTextExecutor(ModuleExecutor):
                 time.sleep(0.3)
                 continue
             
-            # 打印识别到的所有文�?
-            print(f"[悬停文本] OCR识别�?{len(result)} 个文本区�?")
+            # 打印识别到的所有文本
+            print(f"[悬停文本] OCR识别到 {len(result)} 个文本区域")
             for idx, item in enumerate(result):
                 _, text, conf = item
                 try:
                     conf_val = float(conf) if conf is not None else 0
-                    print(f"  [{idx}] '{text}' (置信�? {conf_val:.2f})")
+                    print(f"  [{idx}] '{text}' (置信度: {conf_val:.2f})")
                 except (ValueError, TypeError):
-                    print(f"  [{idx}] '{text}' (置信�? {conf})")
+                    print(f"  [{idx}] '{text}' (置信度: {conf})")
             
-            # 查找匹配的文�?
+            # 查找匹配的文本
             matches = []
             for item in result:
                 # item 格式: [box, text, confidence]

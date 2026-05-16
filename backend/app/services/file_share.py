@@ -218,6 +218,15 @@ class FileShareHandler(SimpleHTTPRequestHandler):
                 if field_name == 'path':
                     upload_path = content.decode('utf-8')
                 elif field_name == 'file' and filename:
+                    # 安全：filename 强制只取最终的文件名部分，并清理非法字符
+                    import os as _os
+                    filename = _os.path.basename(filename.replace('\\', '/'))
+                    # 过滤 Windows 非法字符与空文件名
+                    filename = ''.join(c for c in filename if c not in '\\/:*?"<>|').strip()
+                    if not filename:
+                        self._send_json({'success': False, 'error': '文件名无效'}, 400)
+                        return
+                    
                     # 保存文件
                     base_path = Path(self.share_path)
                     target_dir = base_path / upload_path.lstrip('/')
@@ -233,6 +242,13 @@ class FileShareHandler(SimpleHTTPRequestHandler):
                         target_dir.mkdir(parents=True, exist_ok=True)
                     
                     file_path = target_dir / filename
+                    
+                    # 二次检查：file_path 仍要在共享目录内
+                    try:
+                        file_path.resolve().relative_to(base_path.resolve())
+                    except ValueError:
+                        self._send_json({'success': False, 'error': '无效的文件路径'}, 400)
+                        return
                     
                     # 如果文件已存在，添加数字后缀
                     if file_path.exists():

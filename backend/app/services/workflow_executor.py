@@ -1089,22 +1089,44 @@ class WorkflowExecutor:
             node_data: 节点配置数据（包含用户配置的参数值）
         """
         module_name = module_def.get('display_name', module_def.get('name', '自定义模块'))
+        module_id = module_def.get('id') or module_name
         workflow_def = module_def.get('workflow')
         parameters_def = module_def.get('parameters', [])  # 参数定义列表
         outputs_def = module_def.get('outputs', [])  # 输出定义列表
         
+        # 循环引用检测：维护调用栈
+        if not hasattr(self, '_custom_module_stack'):
+            self._custom_module_stack: list[str] = []
+        if module_id in self._custom_module_stack:
+            error_msg = (
+                f"检测到自定义模块循环引用: "
+                f"{' -> '.join(self._custom_module_stack)} -> {module_id}"
+            )
+            await self._log(LogLevel.ERROR, error_msg, is_system_log=True)
+            return ModuleResult(success=False, error=error_msg)
+        # 限制最大深度，防止意外的深层嵌套
+        if len(self._custom_module_stack) >= 16:
+            error_msg = f"自定义模块嵌套层数过深(>16): {' -> '.join(self._custom_module_stack)}"
+            await self._log(LogLevel.ERROR, error_msg, is_system_log=True)
+            return ModuleResult(success=False, error=error_msg)
+        self._custom_module_stack.append(module_id)
+        
         if not workflow_def:
             error_msg = f"自定义模块 '{module_name}' 缺少工作流定义"
-            await self._log(LogLevel.ERROR, f"❌ {error_msg}", is_system_log=True)
+            await self._log(LogLevel.ERROR, error_msg, is_system_log=True)
+            self._custom_module_stack.pop()
             return ModuleResult(success=False, error=error_msg)
         
-        await self._log(LogLevel.INFO, f"🔧 开始执行自定义模块 [{module_name}]", is_system_log=True)
+        await self._log(LogLevel.INFO, f"开始执行自定义模块 [{module_name}]", is_system_log=True)
+        
+        # 在 try 之前先保存以保证 except 也能恢复
+        original_variables = self.context.variables.copy()
+        original_graph = getattr(self, 'graph', None)
+        original_executed_ids = self._executed_node_ids.copy() if hasattr(self, '_executed_node_ids') else set()
+        original_executing_ids = self._executing_node_ids.copy() if hasattr(self, '_executing_node_ids') else set()
+        original_pending_nodes = self._pending_nodes.copy() if hasattr(self, '_pending_nodes') else {}
         
         try:
-            # 1. 准备子工作流的变量上下文（传递参数）
-            # 保存当前变量状态
-            original_variables = self.context.variables.copy()
-            
             # 从节点配置中获取用户设置的参数值
             parameter_values = node_data.get('parameterValues', {})
             
@@ -1168,69 +1190,94 @@ class WorkflowExecutor:
             start_nodes = sub_graph.get_start_nodes()
             if not start_nodes:
                 error_msg = f"自定义模块 '{module_name}' 没有起始节点"
-                await self._log(LogLevel.ERROR, f"❌ {error_msg}", is_system_log=True)
+                await self._log(LogLevel.ERROR, error_msg, is_system_log=True)
+                # 恢复变量上下文（因为之前已设置了输入参数）
+                self.context.variables = original_variables
                 return ModuleResult(success=False, error=error_msg)
             
             # 5. 执行子工作流
-            # 保存当前执行图，临时替换为子工作流的图
-            original_graph = self.graph
+            # 临时替换为子工作流的图（外层已经保存了 original_graph 等）
             self.graph = sub_graph
-            
-            # 保存当前执行状态
-            original_executed_ids = self._executed_node_ids.copy()
-            original_executing_ids = self._executing_node_ids.copy()
-            original_pending_nodes = self._pending_nodes.copy()
             
             # 重置执行状态（仅针对子工作流）
             self._executed_node_ids = set()
             self._executing_node_ids = set()
             self._pending_nodes = {}
             
-            try:
-                # 执行子工作流的起始节点
-                await self._execute_parallel(start_nodes)
+            # 执行子工作流的起始节点
+            await self._execute_parallel(start_nodes)
+            
+            # 6. 提取输出变量
+            output_values = {}
+            for output_def in outputs_def:
+                output_name = output_def.get('name')
+                if not output_name:
+                    continue
                 
-                # 6. 提取输出变量
-                output_values = {}
-                for output_def in outputs_def:
-                    output_name = output_def.get('name')
-                    if not output_name:
-                        continue
-                    
-                    # 从上下文中获取输出变量的值
-                    output_value = self.context.get_variable(output_name)
-                    output_values[output_name] = output_value
-                    print(f"[DEBUG] 自定义模块输出: {output_name} = {output_value}")
-                
-                # 7. 恢复原始变量上下文，并设置输出变量
-                self.context.variables = original_variables
-                for output_name, output_value in output_values.items():
-                    self.context.set_variable(output_name, output_value)
-                
-                await self._log(LogLevel.INFO, f"✅ 自定义模块 [{module_name}] 执行完成", is_system_log=True)
-                return ModuleResult(
-                    success=True, 
-                    message=f"自定义模块 '{module_name}' 执行完成",
-                    data={'outputs': output_values}
-                )
-                
-            finally:
-                # 恢复原始执行图和状态
-                self.graph = original_graph
-                self._executed_node_ids = original_executed_ids
-                self._executing_node_ids = original_executing_ids
-                self._pending_nodes = original_pending_nodes
+                # 从上下文中获取输出变量的值
+                output_value = self.context.get_variable(output_name)
+                output_values[output_name] = output_value
+                print(f"[DEBUG] 自定义模块输出: {output_name} = {output_value}")
+            
+            # 7. 恢复原始变量上下文，并设置输出变量
+            self.context.variables = original_variables
+            for output_name, output_value in output_values.items():
+                self.context.set_variable(output_name, output_value)
+            
+            await self._log(LogLevel.INFO, f"自定义模块 [{module_name}] 执行完成", is_system_log=True)
+            return ModuleResult(
+                success=True, 
+                message=f"自定义模块 '{module_name}' 执行完成",
+                data={'outputs': output_values}
+            )
                 
         except Exception as e:
             import traceback
             error_msg = f"自定义模块 '{module_name}' 执行失败: {str(e)}\n{traceback.format_exc()}"
-            await self._log(LogLevel.ERROR, f"❌ {error_msg}", is_system_log=True)
+            await self._log(LogLevel.ERROR, error_msg, is_system_log=True)
             # 恢复原始变量上下文
             self.context.variables = original_variables
             return ModuleResult(success=False, error=error_msg)
+        finally:
+            # 恢复原始执行图和状态（无论成功失败）
+            if original_graph is not None:
+                self.graph = original_graph
+            self._executed_node_ids = original_executed_ids
+            self._executing_node_ids = original_executing_ids
+            self._pending_nodes = original_pending_nodes
+            # 弹出调用栈
+            try:
+                self._custom_module_stack.pop()
+            except Exception:
+                pass
 
     async def _execute_subflow_group(self, group_id: str, subflow_name: str = None) -> ModuleResult:
         """执行子流程分组内的模块"""
+        # 循环引用检测：维护调用栈
+        if not hasattr(self, '_subflow_stack'):
+            self._subflow_stack: list[str] = []
+        key = subflow_name or group_id or ''
+        if key and key in self._subflow_stack:
+            return ModuleResult(
+                success=False,
+                error=f"检测到子流程循环引用: {' -> '.join(self._subflow_stack)} -> {key}"
+            )
+        if len(self._subflow_stack) >= 32:
+            return ModuleResult(
+                success=False,
+                error=f"子流程嵌套层数过深(>32): {' -> '.join(self._subflow_stack)}"
+            )
+        self._subflow_stack.append(key)
+        try:
+            return await self._do_execute_subflow_group(group_id, subflow_name)
+        finally:
+            try:
+                self._subflow_stack.pop()
+            except Exception:
+                pass
+
+    async def _do_execute_subflow_group(self, group_id: str, subflow_name: str = None) -> ModuleResult:
+        """执行子流程分组内的模块（实际逻辑）"""
         # 找到子流程分组或子流程头 - 优先通过名称查找（因为导入后 ID 会变），ID 作为备用
         group_node = None
         is_header_mode = False

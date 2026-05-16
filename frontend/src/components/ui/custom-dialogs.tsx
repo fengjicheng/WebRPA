@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { CheckCircle2, XCircle, AlertTriangle, Info } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // 输入弹窗组件
 interface InputDialogProps {
@@ -163,41 +165,45 @@ export function AlertDialog({
     onOpenChange(false)
   }
 
-  // 根据variant设置图标和颜色
+  // 根据 variant 设置图标和颜色
   const getVariantStyles = () => {
     switch (variant) {
       case 'success':
         return {
-          icon: '✅',
+          Icon: CheckCircle2,
+          iconClass: 'text-green-600 dark:text-green-400',
           titleClass: 'text-green-600 dark:text-green-400',
         }
       case 'error':
         return {
-          icon: '❌',
+          Icon: XCircle,
+          iconClass: 'text-red-600 dark:text-red-400',
           titleClass: 'text-red-600 dark:text-red-400',
         }
       case 'warning':
         return {
-          icon: '⚠️',
+          Icon: AlertTriangle,
+          iconClass: 'text-yellow-600 dark:text-yellow-400',
           titleClass: 'text-yellow-600 dark:text-yellow-400',
         }
       default:
         return {
-          icon: '💡',
+          Icon: Info,
+          iconClass: 'text-blue-500 dark:text-blue-400',
           titleClass: '',
         }
     }
   }
 
-  const { icon, titleClass } = getVariantStyles()
+  const { Icon, iconClass, titleClass } = getVariantStyles()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
         <DialogHeader>
-          <DialogTitle className={titleClass}>
-            <span className="mr-2">{icon}</span>
-            {title}
+          <DialogTitle className={cn('flex items-center gap-2', titleClass)}>
+            <Icon className={cn('w-5 h-5', iconClass)} />
+            <span>{title}</span>
           </DialogTitle>
           <DialogDescription className="whitespace-pre-line">
             {description}

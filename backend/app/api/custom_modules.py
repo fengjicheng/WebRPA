@@ -47,7 +47,7 @@ def _save_module(module: CustomModule):
     file_path = _get_module_file_path(module.id)
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(module.dict(), f, ensure_ascii=False, indent=2, default=str)
+            json.dump(module.model_dump(), f, ensure_ascii=False, indent=2, default=str)
     except Exception as e:
         print(f"[CustomModules] 保存模块失败 {module.id}: {e}")
         raise
@@ -197,7 +197,7 @@ async def update_custom_module(module_id: str, update_data: CustomModuleUpdate):
             raise HTTPException(status_code=404, detail="模块不存在")
         
         # 更新字段
-        update_dict = update_data.dict(exclude_unset=True)
+        update_dict = update_data.model_dump(exclude_unset=True)
         for key, value in update_dict.items():
             setattr(module, key, value)
         

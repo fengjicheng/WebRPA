@@ -97,16 +97,20 @@ async def get_current_mouse_position():
 
 @router.get("/mouse-position")
 async def get_mouse_position():
-    """获取当前鼠标位置"""
+    """获取当前鼠标位置（统一返回 {success, x, y}）"""
     import ctypes
     
-    class POINT(ctypes.Structure):
-        _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-    
-    pt = POINT()
-    ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-    
-    return {"x": pt.x, "y": pt.y}
+    try:
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        
+        pt = POINT()
+        ok = ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+        if not ok:
+            return {"success": False, "error": "GetCursorPos 调用失败"}
+        return {"success": True, "x": pt.x, "y": pt.y}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # 鼠标坐标实时显示服务

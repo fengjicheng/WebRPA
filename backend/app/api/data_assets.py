@@ -312,17 +312,25 @@ async def rename_folder(request: RenameFolderRequest):
         raise HTTPException(status_code=400, detail="目标文件夹已存在")
     
     try:
-        # 重命名文件夹
-        os.rename(old_full_path, new_full_path)
+        # 跨盘符也要支持
+        import shutil
+        shutil.move(old_full_path, new_full_path)
         
-        # 更新所有该文件夹下的文件元数据
+        # 更新所有该文件夹下的文件元数据（精确前缀匹配，避免误命中相邻同前缀文件夹）
         new_rel_path = _get_relative_path(new_full_path)
+        old_rel = request.oldPath.rstrip('/').rstrip('\\')
+        old_rel_with_sep = old_rel + '/'
         for asset in data_assets.values():
-            if asset['folder'].startswith(request.oldPath):
-                # 更新文件夹路径
-                asset['folder'] = asset['folder'].replace(request.oldPath, new_rel_path, 1)
-                # 更新文件路径
-                asset['path'] = asset['path'].replace(old_full_path, new_full_path, 1)
+            af = asset['folder']
+            if af == old_rel:
+                asset['folder'] = new_rel_path
+            elif af.startswith(old_rel_with_sep):
+                asset['folder'] = new_rel_path + af[len(old_rel):]
+            
+            # 更新文件绝对路径，要求精确匹配旧目录前缀（防止 D:/u/A 错误命中 D:/u/AA）
+            ap = asset['path']
+            if ap == old_full_path or ap.startswith(old_full_path + os.sep) or ap.startswith(old_full_path + '/'):
+                asset['path'] = new_full_path + ap[len(old_full_path):]
         
         return {'success': True, 'newPath': new_rel_path}
     except Exception as e:
@@ -389,11 +397,16 @@ async def delete_asset(file_id: str):
     
     asset = data_assets[file_id]
     
-    # 删除文件
-    if os.path.exists(asset['path']):
-        os.remove(asset['path'])
+    # 删除文件（被占用时给出明确错误，且不破坏元数据）
+    try:
+        if os.path.exists(asset['path']):
+            os.remove(asset['path'])
+    except PermissionError as e:
+        raise HTTPException(status_code=409, detail=f"文件被占用，无法删除: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除文件失败: {e}")
     
-    # 删除元数据
+    # 文件成功删除后再清理元数据
     del data_assets[file_id]
     
     return {'message': '删除成功'}
@@ -421,8 +434,9 @@ async def rename_asset(file_id: str, newName: str):
         raise HTTPException(status_code=400, detail="文件名已存在")
     
     try:
-        # 重命名文件
-        os.rename(old_path, new_path)
+        # 跨盘符也要支持
+        import shutil
+        shutil.move(old_path, new_path)
         
         # 更新元数据
         asset['path'] = new_path

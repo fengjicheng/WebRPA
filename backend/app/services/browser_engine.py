@@ -15,7 +15,15 @@ _browser_type: str = 'msedge'
 _executable_path: str = ''
 _user_data_dir: Optional[str] = None
 _picker_active: bool = False
-_engine_lock = asyncio.Lock() if False else None  # 延迟初始化，避免事件循环问题
+# 启动/停止操作的并发锁（首次 await 时按需初始化，避免事件循环问题）
+_engine_lock: Optional[asyncio.Lock] = None
+
+
+def _get_engine_lock() -> asyncio.Lock:
+    global _engine_lock
+    if _engine_lock is None:
+        _engine_lock = asyncio.Lock()
+    return _engine_lock
 
 # 篡改猴脚本加载
 def _load_userscript():
@@ -188,101 +196,103 @@ async def start(
     global _playwright, _context, _page, _is_open
     global _browser_type, _executable_path, _user_data_dir
 
-    if is_open():
-        return True, ""
+    # 加锁避免并发 start 创建多个 playwright 实例
+    async with _get_engine_lock():
+        if is_open():
+            return True, ""
 
-    try:
-        _playwright = await async_playwright().start()
+        try:
+            _playwright = await async_playwright().start()
 
-        if browser_type == 'firefox':
-            engine = _playwright.firefox
-        else:
-            engine = _playwright.chromium
+            if browser_type == 'firefox':
+                engine = _playwright.firefox
+            else:
+                engine = _playwright.chromium
 
-        udd = _get_user_data_dir(browser_type, user_data_dir)
-        args_list = _build_launch_args(launch_args or '')
+            udd = _get_user_data_dir(browser_type, user_data_dir)
+            args_list = _build_launch_args(launch_args or '')
 
-        launch_kwargs = {
-            'user_data_dir': udd,
-            'headless': False,
-            'args': args_list,
-            'no_viewport': True,
-            'ignore_https_errors': True,
-        }
+            launch_kwargs = {
+                'user_data_dir': udd,
+                'headless': False,
+                'args': args_list,
+                'no_viewport': True,
+                'ignore_https_errors': True,
+            }
 
-        if executable_path:
-            launch_kwargs['executable_path'] = executable_path
-        elif browser_type in ('msedge', 'chrome'):
-            launch_kwargs['channel'] = browser_type
+            if executable_path:
+                launch_kwargs['executable_path'] = executable_path
+            elif browser_type in ('msedge', 'chrome'):
+                launch_kwargs['channel'] = browser_type
 
-        ctx = await engine.launch_persistent_context(**launch_kwargs)
-        ctx.set_default_timeout(0)
-        ctx.set_default_navigation_timeout(0)
+            ctx = await engine.launch_persistent_context(**launch_kwargs)
+            ctx.set_default_timeout(0)
+            ctx.set_default_navigation_timeout(0)
 
-        # 监听浏览器关闭事件
-        ctx.on("close", lambda: _on_browser_closed())
+            # 监听浏览器关闭事件
+            ctx.on("close", lambda: _on_browser_closed())
 
-        # 处理已有页面
-        if ctx.pages:
-            pg = ctx.pages[0]
-            for old in ctx.pages[1:]:
+            # 处理已有页面
+            if ctx.pages:
+                pg = ctx.pages[0]
+                for old in ctx.pages[1:]:
+                    try:
+                        await old.close()
+                    except:
+                        pass
                 try:
-                    await old.close()
+                    await pg.goto('about:blank', timeout=5000)
                 except:
                     pass
+            else:
+                pg = await ctx.new_page()
+
+            # 注入脚本
+            await _inject_userscript(pg)
+            pg.on("load", lambda: asyncio.create_task(_reinject_on_load(pg)))
+            ctx.on("page", lambda new_pg: asyncio.create_task(_on_new_page(new_pg)))
+
+            # 最大化窗口
             try:
-                await pg.goto('about:blank', timeout=5000)
+                cdp = await pg.context.new_cdp_session(pg)
+                windows = await cdp.send('Browser.getWindowForTarget')
+                window_id = windows.get('windowId')
+                if window_id:
+                    await cdp.send('Browser.setWindowBounds', {
+                        'windowId': window_id,
+                        'bounds': {'windowState': 'maximized'}
+                    })
+            except Exception as e:
+                print(f"[BrowserEngine] 最大化窗口失败: {e}")
+
+            try:
+                await pg.bring_to_front()
             except:
                 pass
-        else:
-            pg = await ctx.new_page()
 
-        # 注入脚本
-        await _inject_userscript(pg)
-        pg.on("load", lambda: asyncio.create_task(_reinject_on_load(pg)))
-        ctx.on("page", lambda new_pg: asyncio.create_task(_on_new_page(new_pg)))
+            _context = ctx
+            _page = pg
+            _is_open = True
+            _browser_type = browser_type
+            _executable_path = executable_path or ''
+            _user_data_dir = user_data_dir
 
-        # 最大化窗口
-        try:
-            cdp = await pg.context.new_cdp_session(pg)
-            windows = await cdp.send('Browser.getWindowForTarget')
-            window_id = windows.get('windowId')
-            if window_id:
-                await cdp.send('Browser.setWindowBounds', {
-                    'windowId': window_id,
-                    'bounds': {'windowState': 'maximized'}
-                })
+            print(f"[BrowserEngine] 浏览器已启动: type={browser_type}, udd={udd}")
+            return True, ""
+
         except Exception as e:
-            print(f"[BrowserEngine] 最大化窗口失败: {e}")
-
-        try:
-            await pg.bring_to_front()
-        except:
-            pass
-
-        _context = ctx
-        _page = pg
-        _is_open = True
-        _browser_type = browser_type
-        _executable_path = executable_path or ''
-        _user_data_dir = user_data_dir
-
-        print(f"[BrowserEngine] 浏览器已启动: type={browser_type}, udd={udd}")
-        return True, ""
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        try:
-            if _playwright:
-                await _playwright.stop()
-        except:
-            pass
-        _playwright = None
-        _context = None
-        _page = None
-        _is_open = False
-        return False, str(e)
+            import traceback
+            traceback.print_exc()
+            try:
+                if _playwright:
+                    await _playwright.stop()
+            except:
+                pass
+            _playwright = None
+            _context = None
+            _page = None
+            _is_open = False
+            return False, str(e)
 
 
 async def stop():
