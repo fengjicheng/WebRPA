@@ -78,11 +78,19 @@ class ProxyCaptureService:
         if self._master:
             try:
                 self._master.shutdown()
-            except:
+            except Exception:
+                pass
+        
+        # 等待代理线程退出，避免下次启动时端口仍被占用
+        if self._proxy_thread is not None:
+            try:
+                self._proxy_thread.join(timeout=3)
+            except Exception:
                 pass
         
         self.is_running = False
         self._master = None
+        self._proxy_thread = None
     
     def _run_proxy(self):
         """在独立线程中运行代理"""

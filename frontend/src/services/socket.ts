@@ -703,9 +703,13 @@ class SocketService {
 
   // 待绑定的外部监听器（用于 socket 尚未连接时）
   private pendingListeners: Array<{ event: string; callback: (...args: any[]) => void }> = []
+  // 持久外部监听器（重连后需要重新绑定）
+  private externalListeners: Array<{ event: string; callback: (...args: any[]) => void }> = []
 
   // 添加 on 方法，支持外部监听事件
   on(event: string, callback: (...args: any[]) => void) {
+    // 记录到 externalListeners，用于重连后重新绑定
+    this.externalListeners.push({ event, callback })
     if (this.socket) {
       this.socket.on(event, callback)
     } else {
@@ -719,19 +723,32 @@ class SocketService {
     if (this.socket) {
       this.socket.off(event, callback)
     }
-    // 同时从待绑定队列移除（避免下次连接重复绑定）
-    this.pendingListeners = this.pendingListeners.filter(
-      (l) => !(l.event === event && l.callback === callback)
-    )
+    // 同时从待绑定队列和持久监听器中移除
+    const matcher = (l: { event: string; callback: (...args: any[]) => void }) =>
+      !(l.event === event && l.callback === callback)
+    this.pendingListeners = this.pendingListeners.filter(matcher)
+    this.externalListeners = this.externalListeners.filter(matcher)
   }
 
-  // 内部：把待绑定的监听器一次性绑定到 socket
+  // 内部：把待绑定的监听器（含历史外部 listener）一次性绑定到 socket
   private bindPendingListeners() {
     if (!this.socket) return
+    // 1) 绑定待绑定的（首次）
     for (const l of this.pendingListeners) {
       this.socket.on(l.event, l.callback)
     }
     this.pendingListeners = []
+    // 2) 重连场景：external listeners 不在 pendingListeners 中，需要重新绑定
+    //    （connect 函数中 removeAllListeners 后所有事件都被清掉了，
+    //     externalListeners 永久保留，这里幂等地 on 上去）
+    //    因为 socket.io 的 on 会去重重复回调（实际 on 多次会注册多次），
+    //    所以先 off 一次再 on
+    for (const l of this.externalListeners) {
+      try {
+        this.socket.off(l.event, l.callback)
+      } catch {}
+      this.socket.on(l.event, l.callback)
+    }
   }
 
   // 停止所有音频/视频播放

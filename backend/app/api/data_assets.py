@@ -92,11 +92,19 @@ def _load_existing_files():
                 is_xls = ext.lower() == '.xls'
                 if is_xls:
                     wb = xlrd.open_workbook(file_path)
-                    sheet_names = wb.sheet_names()
+                    try:
+                        sheet_names = wb.sheet_names()
+                    finally:
+                        try:
+                            wb.release_resources()
+                        except Exception:
+                            pass
                 else:
                     wb = openpyxl.load_workbook(file_path, read_only=True)
-                    sheet_names = wb.sheetnames
-                    wb.close()
+                    try:
+                        sheet_names = wb.sheetnames
+                    finally:
+                        wb.close()
                 
                 # 获取文件信息
                 file_stat = os.stat(file_path)
@@ -154,12 +162,20 @@ async def upload_excel(file: UploadFile = File(...), folder: Optional[str] = Non
         if is_xls:
             # 使用xlrd读取旧版.xls文件
             wb = xlrd.open_workbook(file_path)
-            sheet_names = wb.sheet_names()
+            try:
+                sheet_names = wb.sheet_names()
+            finally:
+                try:
+                    wb.release_resources()
+                except Exception:
+                    pass
         else:
             # 使用openpyxl读取.xlsx文件
             wb = openpyxl.load_workbook(file_path, read_only=True)
-            sheet_names = wb.sheetnames
-            wb.close()
+            try:
+                sheet_names = wb.sheetnames
+            finally:
+                wb.close()
     except Exception as e:
         os.remove(file_path)
         raise HTTPException(status_code=400, detail=f"无法读取Excel文件: {str(e)}")
@@ -543,78 +559,83 @@ async def _read_excel_xlsx(file_path: str, request: ReadExcelRequest):
 async def _read_excel_xls(file_path: str, request: ReadExcelRequest):
     """使用xlrd读取.xls文件"""
     wb = xlrd.open_workbook(file_path)
-    
-    # 选择工作表
-    if request.sheetName:
-        if request.sheetName not in wb.sheet_names():
-            raise HTTPException(status_code=400, detail=f"工作表 '{request.sheetName}' 不存在")
-        ws = wb.sheet_by_name(request.sheetName)
-    else:
-        ws = wb.sheet_by_index(0)
-    
-    result = None
-    result_type = 'unknown'
-    
-    if request.readMode == 'cell':
-        if not request.cellAddress:
-            raise HTTPException(status_code=400, detail="单元格模式需要指定cellAddress")
-        # 解析单元格地址如 'A1' -> (0, 0)
-        col_str, row_str = '', ''
-        for c in request.cellAddress:
-            if c.isalpha():
-                col_str += c
-            else:
-                row_str += c
-        col_idx = _col_letter_to_index(col_str)
-        row_idx = int(row_str) - 1
-        value = ws.cell_value(row_idx, col_idx)
-        result = value if value != '' else ''  # xlrd空单元格返回空字符串
-        result_type = 'cell'
-    
-    elif request.readMode == 'row':
-        if request.rowIndex is None:
-            raise HTTPException(status_code=400, detail="行模式需要指定rowIndex")
-        row_idx = request.rowIndex - 1  # xlrd从0开始
-        row_data = ws.row_values(row_idx)
-        # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
-        row_data = [v if v != '' else '' for v in row_data]
-        result = row_data
-        result_type = 'array'
-    
-    elif request.readMode == 'column':
-        if request.columnIndex is None:
-            raise HTTPException(status_code=400, detail="列模式需要指定columnIndex")
-        col_idx = request.columnIndex
-        if isinstance(col_idx, str):
-            col_idx = _col_letter_to_index(col_idx)
+    try:
+        # 选择工作表
+        if request.sheetName:
+            if request.sheetName not in wb.sheet_names():
+                raise HTTPException(status_code=400, detail=f"工作表 '{request.sheetName}' 不存在")
+            ws = wb.sheet_by_name(request.sheetName)
         else:
-            col_idx = col_idx - 1  # xlrd从0开始
-        col_data = ws.col_values(col_idx)
-        # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
-        col_data = [v if v != '' else '' for v in col_data]
-        result = col_data
-        result_type = 'array'
-    
-    elif request.readMode == 'range':
-        if not request.startCell or not request.endCell:
-            raise HTTPException(status_code=400, detail="范围模式需要指定startCell和endCell")
-        # 解析范围
-        start_col, start_row = _parse_cell_address(request.startCell)
-        end_col, end_row = _parse_cell_address(request.endCell)
-        range_data = []
-        for r in range(start_row, end_row + 1):
-            row_data = []
-            for c in range(start_col, end_col + 1):
-                value = ws.cell_value(r, c)
-                row_data.append(value if value != '' else '')
-            range_data.append(row_data)
-        result = range_data
-        result_type = 'matrix'
-    
-    else:
-        raise HTTPException(status_code=400, detail=f"不支持的读取模式: {request.readMode}")
-    
-    return {'data': result, 'type': result_type}
+            ws = wb.sheet_by_index(0)
+        
+        result = None
+        result_type = 'unknown'
+        
+        if request.readMode == 'cell':
+            if not request.cellAddress:
+                raise HTTPException(status_code=400, detail="单元格模式需要指定cellAddress")
+            # 解析单元格地址如 'A1' -> (0, 0)
+            col_str, row_str = '', ''
+            for c in request.cellAddress:
+                if c.isalpha():
+                    col_str += c
+                else:
+                    row_str += c
+            col_idx = _col_letter_to_index(col_str)
+            row_idx = int(row_str) - 1
+            value = ws.cell_value(row_idx, col_idx)
+            result = value if value != '' else ''  # xlrd空单元格返回空字符串
+            result_type = 'cell'
+        
+        elif request.readMode == 'row':
+            if request.rowIndex is None:
+                raise HTTPException(status_code=400, detail="行模式需要指定rowIndex")
+            row_idx = request.rowIndex - 1  # xlrd从0开始
+            row_data = ws.row_values(row_idx)
+            # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
+            row_data = [v if v != '' else '' for v in row_data]
+            result = row_data
+            result_type = 'array'
+        
+        elif request.readMode == 'column':
+            if request.columnIndex is None:
+                raise HTTPException(status_code=400, detail="列模式需要指定columnIndex")
+            col_idx = request.columnIndex
+            if isinstance(col_idx, str):
+                col_idx = _col_letter_to_index(col_idx)
+            else:
+                col_idx = col_idx - 1  # xlrd从0开始
+            col_data = ws.col_values(col_idx)
+            # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
+            col_data = [v if v != '' else '' for v in col_data]
+            result = col_data
+            result_type = 'array'
+        
+        elif request.readMode == 'range':
+            if not request.startCell or not request.endCell:
+                raise HTTPException(status_code=400, detail="范围模式需要指定startCell和endCell")
+            # 解析范围
+            start_col, start_row = _parse_cell_address(request.startCell)
+            end_col, end_row = _parse_cell_address(request.endCell)
+            range_data = []
+            for r in range(start_row, end_row + 1):
+                row_data = []
+                for c in range(start_col, end_col + 1):
+                    value = ws.cell_value(r, c)
+                    row_data.append(value if value != '' else '')
+                range_data.append(row_data)
+            result = range_data
+            result_type = 'matrix'
+        
+        else:
+            raise HTTPException(status_code=400, detail=f"不支持的读取模式: {request.readMode}")
+        
+        return {'data': result, 'type': result_type}
+    finally:
+        try:
+            wb.release_resources()
+        except Exception:
+            pass
 
 
 def _col_letter_to_index(col_str: str) -> int:
@@ -709,29 +730,34 @@ def _preview_xlsx(file_path: str, sheet_name: Optional[str], max_rows: int, max_
 def _preview_xls(file_path: str, sheet_name: Optional[str], max_rows: int, max_cols: int):
     """预览xls文件"""
     wb = xlrd.open_workbook(file_path)
-    
-    if sheet_name:
-        if sheet_name not in wb.sheet_names():
-            raise HTTPException(status_code=400, detail=f"工作表 '{sheet_name}' 不存在")
-        ws = wb.sheet_by_name(sheet_name)
-    else:
-        ws = wb.sheet_by_index(0)
-    
-    data = []
-    rows_to_read = min(max_rows, ws.nrows)
-    cols_to_read = min(max_cols, ws.ncols)
-    
-    for row_idx in range(rows_to_read):
-        row_data = []
-        for col_idx in range(cols_to_read):
-            val = ws.cell_value(row_idx, col_idx)
-            row_data.append(str(val) if val is not None and val != '' else '')
-        data.append(row_data)
-    
-    return {
-        'data': data,
-        'totalRows': ws.nrows,
-        'totalCols': ws.ncols,
-        'previewRows': len(data),
-        'previewCols': cols_to_read,
-    }
+    try:
+        if sheet_name:
+            if sheet_name not in wb.sheet_names():
+                raise HTTPException(status_code=400, detail=f"工作表 '{sheet_name}' 不存在")
+            ws = wb.sheet_by_name(sheet_name)
+        else:
+            ws = wb.sheet_by_index(0)
+        
+        data = []
+        rows_to_read = min(max_rows, ws.nrows)
+        cols_to_read = min(max_cols, ws.ncols)
+        
+        for row_idx in range(rows_to_read):
+            row_data = []
+            for col_idx in range(cols_to_read):
+                val = ws.cell_value(row_idx, col_idx)
+                row_data.append(str(val) if val is not None and val != '' else '')
+            data.append(row_data)
+        
+        return {
+            'data': data,
+            'totalRows': ws.nrows,
+            'totalCols': ws.ncols,
+            'previewRows': len(data),
+            'previewCols': cols_to_read,
+        }
+    finally:
+        try:
+            wb.release_resources()
+        except Exception:
+            pass

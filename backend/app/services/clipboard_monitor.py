@@ -41,6 +41,14 @@ class ClipboardMonitorService:
         """启动剪贴板监听"""
         if self._running:
             return
+        # 如果残留旧线程，先彻底回收
+        if self._thread is not None and self._thread.is_alive():
+            try:
+                self._running = False
+                self._thread.join(timeout=2)
+            except Exception:
+                pass
+        self._thread = None
         
         self._running = True
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
@@ -51,7 +59,11 @@ class ClipboardMonitorService:
         """停止剪贴板监听"""
         self._running = False
         if self._thread:
-            self._thread.join(timeout=2)
+            try:
+                self._thread.join(timeout=2)
+            except Exception:
+                pass
+            self._thread = None
         print("[ClipboardMonitor] 剪贴板监听已停止")
     
     @staticmethod

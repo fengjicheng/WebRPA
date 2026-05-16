@@ -159,6 +159,9 @@ class MouseGestureService:
                 self.gesture_button = None
                 self.gesture_points = []
     
+    # 单个手势最多记录的轨迹点数（避免极速移动时无限增长）
+    MAX_GESTURE_POINTS = 5000
+    
     def _on_move(self, x: int, y: int):
         """鼠标移动事件处理"""
         if self.is_gesturing:
@@ -170,8 +173,9 @@ class MouseGestureService:
                 self.gesture_points = []
                 return
             
-            # 记录轨迹点
-            self.gesture_points.append((x, y))
+            # 记录轨迹点（限制最大数量）
+            if len(self.gesture_points) < self.MAX_GESTURE_POINTS:
+                self.gesture_points.append((x, y))
     
     def start(self, callback: Callable[[str, List[GestureDirection]], None], 
               min_distance: int = 50, gesture_timeout: float = 2.0) -> bool:

@@ -39,13 +39,15 @@ class WorkflowLogManager:
     
     def write_log(self, message: str):
         """
-        写入日志到文件
+        写入日志到文件（线程安全）
         """
-        if not self.is_workflow_running or not self.current_log_file:
-            return
+        with self.lock:
+            if not self.is_workflow_running or not self.current_log_file:
+                return
+            target_file = self.current_log_file
         
         try:
-            with open(self.current_log_file, 'a', encoding='utf-8') as f:
+            with open(target_file, 'a', encoding='utf-8') as f:
                 timestamp = datetime.now().strftime("%H:%M:%S")
                 f.write(f"[{timestamp}] {message}\n")
         except Exception as e:

@@ -108,12 +108,23 @@ async def _reinject_on_load(pg: Page):
 
 
 def _on_browser_closed():
-    """浏览器被手动关闭时的回调"""
+    """浏览器被手动关闭时的回调
+    
+    这是 sync 回调，由 Playwright 在浏览器关闭事件触发，
+    可能与 start/stop 并发，但因 Python GIL 保证单条赋值原子性，
+    此处仅做状态清理（不做 await 操作）。
+    """
     global _playwright, _context, _page, _is_open, _picker_active
     
     print("[BrowserEngine] 检测到浏览器被手动关闭，清理状态")
     
-    _is_open = False
+    # 仅当当前确实"已开"才清理，避免 race：
+    # 1) start 已经走完成功设置了 _is_open=True
+    # 2) close 事件触发到这里
+    # 3) 我们清理状态
+    # 这里的清理是幂等的，不影响后续的 start
+    if _is_open:
+        _is_open = False
     _picker_active = False
     _context = None
     _page = None
@@ -299,25 +310,27 @@ async def stop():
     """关闭浏览器引擎"""
     global _playwright, _context, _page, _is_open, _picker_active
 
-    _is_open = False
-    _picker_active = False
+    # 加锁与 start 互斥，避免并发关闭时状态错乱
+    async with _get_engine_lock():
+        _is_open = False
+        _picker_active = False
 
-    try:
-        if _context:
-            await _context.close()
-    except:
-        pass
-    _context = None
-    _page = None
+        try:
+            if _context:
+                await _context.close()
+        except Exception:
+            pass
+        _context = None
+        _page = None
 
-    try:
-        if _playwright:
-            await _playwright.stop()
-    except:
-        pass
-    _playwright = None
+        try:
+            if _playwright:
+                await _playwright.stop()
+        except Exception:
+            pass
+        _playwright = None
 
-    print("[BrowserEngine] 浏览器已关闭")
+        print("[BrowserEngine] 浏览器已关闭")
 
 
 async def navigate_to(url: str) -> dict:

@@ -177,8 +177,11 @@ class TriggerManager:
         try:
             self.hotkey_listener = keyboard.GlobalHotKeys(hotkey_map)
             self.hotkey_listener.start()
+            self.hotkey_listener_error = None
             print(f"[TriggerManager] 热键监听器已启动，监听 {len(hotkey_map)} 个热键")
         except Exception as e:
+            self.hotkey_listener = None
+            self.hotkey_listener_error = str(e)
             print(f"[TriggerManager] 热键监听器启动失败: {e}")
 
     # ==================== 文件监控触发器 ====================
@@ -358,7 +361,11 @@ class TriggerManager:
         print(f"[TriggerManager] 邮件监控已注销: {monitor_id}")
 
     async def _email_monitor_loop(self, monitor_id: str):
-        """邮件监控循环"""
+        """邮件监控循环
+        
+        IMAP 是同步阻塞操作，放到线程池里执行避免阻塞事件循环。
+        持续监控（不再因触发一次就退出）。
+        """
         try:
             while monitor_id in self.email_monitors:
                 monitor = self.email_monitors[monitor_id]
@@ -370,67 +377,74 @@ class TriggerManager:
                 subject_filter = monitor['subject_filter']
                 check_interval = monitor['check_interval']
                 callback = monitor['callback']
-                last_check_time = monitor['last_check_time']
-
-                try:
-                    # 连接IMAP服务器
-                    mail = imaplib.IMAP4_SSL(server, port)
-                    mail.login(account, password)
-                    mail.select('INBOX')
-
-                    # 搜索未读邮件
-                    status, messages = mail.search(None, 'UNSEEN')
-                    if status == 'OK':
+                
+                def _check_emails_sync():
+                    """同步执行 IMAP 操作，返回符合条件的邮件列表"""
+                    matched_emails = []
+                    mail = None
+                    try:
+                        mail = imaplib.IMAP4_SSL(server, port)
+                        mail.login(account, password)
+                        mail.select('INBOX')
+                        
+                        status, messages = mail.search(None, 'UNSEEN')
+                        if status != 'OK':
+                            return matched_emails
+                        
                         email_ids = messages[0].split()
-
                         for email_id in email_ids:
-                            # 获取邮件
                             status, msg_data = mail.fetch(email_id, '(RFC822)')
                             if status != 'OK':
                                 continue
-
-                            # 解析邮件
                             raw_email = msg_data[0][1]
                             msg = email.message_from_bytes(raw_email)
-
-                            # 获取邮件信息
                             from_addr = email.utils.parseaddr(msg.get('From', ''))[1]
                             subject = self._decode_email_header(msg.get('Subject', ''))
                             date_str = msg.get('Date', '')
-                            
-                            # 获取邮件正文
                             body = self._get_email_body(msg)
-
-                            # 应用过滤器
+                            
                             if from_filter and from_filter not in from_addr:
                                 continue
                             if subject_filter and subject_filter not in subject:
                                 continue
-
-                            # 触发回调
-                            email_data = {
+                            
+                            matched_emails.append({
                                 'from': from_addr,
                                 'subject': subject,
                                 'date': date_str,
                                 'body': body,
                                 'timestamp': datetime.now().isoformat()
-                            }
-                            callback(email_data)
-
+                            })
+                            
                             # 标记为已读
-                            mail.store(email_id, '+FLAGS', '\\Seen')
-
-                            # 更新最后检查时间
-                            monitor['last_check_time'] = time.time()
-
-                            # 触发后退出
-                            mail.close()
-                            mail.logout()
-                            return
-
-                    mail.close()
-                    mail.logout()
-
+                            try:
+                                mail.store(email_id, '+FLAGS', '\\Seen')
+                            except Exception:
+                                pass
+                    finally:
+                        if mail is not None:
+                            try:
+                                mail.close()
+                            except Exception:
+                                pass
+                            try:
+                                mail.logout()
+                            except Exception:
+                                pass
+                    return matched_emails
+                
+                try:
+                    loop = asyncio.get_running_loop()
+                    matched = await loop.run_in_executor(None, _check_emails_sync)
+                    monitor['last_check_time'] = time.time()
+                    
+                    for email_data in matched:
+                        try:
+                            res = callback(email_data)
+                            if asyncio.iscoroutine(res):
+                                await res
+                        except Exception as cb_err:
+                            print(f"[TriggerManager] 邮件回调失败: {cb_err}")
                 except Exception as e:
                     print(f"[TriggerManager] 邮件检查失败: {e}")
 

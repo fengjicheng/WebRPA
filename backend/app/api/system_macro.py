@@ -166,8 +166,20 @@ async def start_macro_recording(request: MacroStartRequest):
     mouse_listener = mouse.Listener(on_move=on_mouse_move, on_click=on_mouse_click, on_scroll=on_mouse_scroll)
     keyboard_listener = keyboard.Listener(on_press=on_key_press, on_release=on_key_release)
     
-    mouse_listener.start()
-    keyboard_listener.start()
+    # 启动两个 listener 并保证任一启动失败时清理已启动的
+    try:
+        mouse_listener.start()
+    except Exception as e:
+        return {"success": False, "error": f"启动鼠标监听失败: {e}"}
+    try:
+        keyboard_listener.start()
+    except Exception as e:
+        # 已启动的 mouse_listener 必须释放
+        try:
+            mouse_listener.stop()
+        except Exception:
+            pass
+        return {"success": False, "error": f"启动键盘监听失败: {e}"}
     
     macro_recording_state["mouse_listener"] = mouse_listener
     macro_recording_state["keyboard_listener"] = keyboard_listener
@@ -185,13 +197,22 @@ async def stop_macro_recording():
     
     macro_recording_state["is_recording"] = False
     
-    if macro_recording_state["mouse_listener"]:
-        macro_recording_state["mouse_listener"].stop()
-        macro_recording_state["mouse_listener"] = None
+    # 即使某个 listener.stop() 抛异常也要把另一个 stop 掉
+    ml = macro_recording_state["mouse_listener"]
+    kl = macro_recording_state["keyboard_listener"]
+    macro_recording_state["mouse_listener"] = None
+    macro_recording_state["keyboard_listener"] = None
     
-    if macro_recording_state["keyboard_listener"]:
-        macro_recording_state["keyboard_listener"].stop()
-        macro_recording_state["keyboard_listener"] = None
+    if ml:
+        try:
+            ml.stop()
+        except Exception as e:
+            print(f"[Macro] 停止鼠标监听异常: {e}")
+    if kl:
+        try:
+            kl.stop()
+        except Exception as e:
+            print(f"[Macro] 停止键盘监听异常: {e}")
     
     actions = macro_recording_state["actions"]
     

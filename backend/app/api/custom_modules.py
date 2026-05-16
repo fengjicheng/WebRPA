@@ -22,9 +22,30 @@ CUSTOM_MODULES_DIR = Path("backend/data/custom_modules")
 CUSTOM_MODULES_DIR.mkdir(parents=True, exist_ok=True)
 
 
+import re
+
+# 模块 ID 合法字符集（与 executors/custom_module.py 保持一致）
+_MODULE_ID_PATTERN = re.compile(r'^[A-Za-z0-9_\-\u4e00-\u9fa5]+$')
+
+
+def _validate_module_id(module_id: str) -> bool:
+    """校验 module_id 是否合法（防止路径穿越）"""
+    if not module_id or len(module_id) > 200:
+        return False
+    return bool(_MODULE_ID_PATTERN.match(module_id))
+
+
 def _get_module_file_path(module_id: str) -> Path:
-    """获取模块文件路径"""
-    return CUSTOM_MODULES_DIR / f"{module_id}.json"
+    """获取模块文件路径（校验 module_id 防止路径穿越）"""
+    if not _validate_module_id(module_id):
+        raise HTTPException(status_code=400, detail=f"模块ID无效: {module_id}")
+    base = CUSTOM_MODULES_DIR.resolve()
+    target = (CUSTOM_MODULES_DIR / f"{module_id}.json").resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"模块路径不安全: {module_id}")
+    return target
 
 
 def _load_module(module_id: str) -> Optional[CustomModule]:
@@ -141,9 +162,13 @@ async def create_custom_module(module_data: CustomModuleCreate):
                 print(f"[CustomModules] 节点数据: {node}")
                 raise HTTPException(status_code=400, detail=f"节点 {i} 缺少必需字段: {', '.join(missing_fields)}")
         
-        # 生成模块ID
+        # 生成模块ID（清理 name 中的非法字符，防止路径穿越）
         import uuid
-        module_id = f"custom_{module_data.name}_{uuid.uuid4().hex[:8]}"
+        # 只保留字母、数字、下划线、连字符、汉字
+        sanitized_name = re.sub(r'[^A-Za-z0-9_\-\u4e00-\u9fa5]', '_', module_data.name or '')[:50]
+        if not sanitized_name:
+            sanitized_name = 'module'
+        module_id = f"custom_{sanitized_name}_{uuid.uuid4().hex[:8]}"
         print(f"[CustomModules] 生成模块ID: {module_id}")
         
         # 检查名称是否已存在

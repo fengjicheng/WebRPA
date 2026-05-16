@@ -8,6 +8,8 @@ from app.models.workflow import LogLevel, LogEntry
 
 class LogManager:
     """日志管理器"""
+    # 日志最大数量上限，防止内存爆炸
+    MAX_LOGS = 50000
     
     def __init__(self):
         self.logs: list[LogEntry] = []
@@ -46,6 +48,10 @@ class LogManager:
         )
         
         self.logs.append(entry)
+        # 超过上限时丢弃最早 1/4，避免每次都做截断的开销
+        if len(self.logs) > self.MAX_LOGS:
+            drop = self.MAX_LOGS // 4
+            del self.logs[:drop]
         
         if self._on_log:
             await self._on_log(entry)

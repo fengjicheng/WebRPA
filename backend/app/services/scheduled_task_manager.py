@@ -222,7 +222,7 @@ class ScheduledTaskManager:
             'message': f'任务已加入执行队列: {task.name}',
             'task_id': task_id,
             'task_name': task.name,
-            'queue_size': self.task_queue.qsize()
+            'queue_size': self.task_queue.qsize() if self.task_queue is not None else 0
         }
     
     # ==================== 任务管理 ====================
@@ -746,9 +746,15 @@ class ScheduledTaskManager:
     def _save_tasks(self):
         """保存任务数据"""
         try:
-            data = [task.dict() for task in self.tasks.values()]
+            # 兼容 Pydantic v1/v2
+            data = []
+            for task in self.tasks.values():
+                if hasattr(task, 'model_dump'):
+                    data.append(task.model_dump())
+                else:
+                    data.append(task.dict())
             with open(self.tasks_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+                json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             print(f"[ScheduledTaskManager] 保存任务失败: {e}")
     
@@ -767,13 +773,34 @@ class ScheduledTaskManager:
                 print(f"[ScheduledTaskManager] 加载日志失败: {e}")
     
     def _save_logs(self):
-        """保存执行日志"""
+        """保存执行日志（带节流，避免高频写盘）"""
         try:
+            import time as _time
+            # 节流：100ms 内的多次调用合并
+            if not hasattr(self, '_last_save_logs_at'):
+                self._last_save_logs_at = 0.0
+            if not hasattr(self, '_pending_save_logs'):
+                self._pending_save_logs = False
+            
+            now = _time.time()
+            # 距上次保存不足 100ms 时，标记 pending 后续合并
+            if now - self._last_save_logs_at < 0.1:
+                self._pending_save_logs = True
+                return
+            self._last_save_logs_at = now
+            self._pending_save_logs = False
+            
             # 只保存最近1000条日志
             logs_to_save = sorted(self.logs, key=lambda x: x.start_time, reverse=True)[:1000]
-            data = [log.dict() for log in logs_to_save]
+            # 兼容 Pydantic v1/v2
+            data = []
+            for log in logs_to_save:
+                if hasattr(log, 'model_dump'):
+                    data.append(log.model_dump())
+                else:
+                    data.append(log.dict())
             with open(self.logs_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+                json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             print(f"[ScheduledTaskManager] 保存日志失败: {e}")
 

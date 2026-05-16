@@ -475,11 +475,22 @@ class WorkflowExecutor:
                 self._executing_node_ids.discard(node_id)
             return
         
-        result = await self._execute_node(node)
-        
-        async with self._node_lock:
-            self._executed_node_ids.add(node_id)
-            self._executing_node_ids.discard(node_id)
+        # 用 try/finally 保证 _executing_node_ids 在异常时也被释放，
+        # 避免 _pending_nodes 死锁等待已死的节点
+        result = None
+        try:
+            result = await self._execute_node(node)
+        except Exception:
+            # 节点执行抛出未处理异常时，标记为已执行（失败），
+            # 但仍然需要从 executing 集合中释放
+            async with self._node_lock:
+                self._executed_node_ids.add(node_id)
+                self._executing_node_ids.discard(node_id)
+            raise
+        else:
+            async with self._node_lock:
+                self._executed_node_ids.add(node_id)
+                self._executing_node_ids.discard(node_id)
         
         if self.should_stop:
             return
@@ -550,7 +561,9 @@ class WorkflowExecutor:
             next_nodes.extend(self.graph.adjacency.get(curr, []))
             next_nodes.extend(self.graph.error_branches.get(curr, []))
             if curr in self.graph.condition_branches:
-                next_nodes.extend(self.graph.condition_branches[curr].values())
+                # condition_branches[curr] 是 {handle: list[target]}，需要 flatten
+                for targets in self.graph.condition_branches[curr].values():
+                    next_nodes.extend(targets)
             if curr in self.graph.loop_branches:
                 for nids in self.graph.loop_branches[curr].values():
                     next_nodes.extend(nids)
@@ -1506,7 +1519,9 @@ class WorkflowExecutor:
             # 获取 curr 的所有后继节点
             next_nodes = list(self.graph.adjacency.get(curr, []))
             if curr in self.graph.condition_branches:
-                next_nodes.extend(self.graph.condition_branches[curr].values())
+                # condition_branches[curr] 是 {handle: list[target]}
+                for targets in self.graph.condition_branches[curr].values():
+                    next_nodes.extend(targets)
             if curr in self.graph.loop_branches:
                 for targets in self.graph.loop_branches[curr].values():
                     next_nodes.extend(targets)
@@ -1916,9 +1931,11 @@ class WorkflowExecutor:
             # 如果是条件节点，获取所有分支
             if node.type in ('condition', 'face_recognition', 'element_exists', 'element_visible', 'image_exists', 'phone_image_exists', 'probability_trigger'):
                 if node_id in self.graph.condition_branches:
-                    for branch_target in self.graph.condition_branches[node_id].values():
-                        if branch_target:
-                            next_nodes.append(branch_target)
+                    # condition_branches[node_id] 是 {handle: list[target_id]}
+                    for branch_targets in self.graph.condition_branches[node_id].values():
+                        for branch_target in branch_targets:
+                            if branch_target:
+                                next_nodes.append(branch_target)
             # 如果是循环节点，获取循环体和完成分支
             elif node.type in ('loop', 'foreach', 'infinite_loop', 'foreach_dict'):
                 if node_id in self.graph.loop_branches:
@@ -2095,9 +2112,11 @@ class WorkflowExecutor:
             # 如果是条件节点，获取所有分支
             if node.type in ('condition', 'face_recognition', 'element_exists', 'element_visible', 'image_exists', 'phone_image_exists', 'probability_trigger'):
                 if node_id in self.graph.condition_branches:
-                    for branch_target in self.graph.condition_branches[node_id].values():
-                        if branch_target:
-                            next_nodes.append(branch_target)
+                    # condition_branches[node_id] 是 {handle: list[target_id]}
+                    for branch_targets in self.graph.condition_branches[node_id].values():
+                        for branch_target in branch_targets:
+                            if branch_target:
+                                next_nodes.append(branch_target)
             # 如果是循环节点，获取循环体和完成分支
             elif node.type in ('loop', 'foreach', 'infinite_loop', 'foreach_dict'):
                 if node_id in self.graph.loop_branches:
@@ -2454,18 +2473,21 @@ class WorkflowExecutor:
         except Exception as e:
             print(f"终止 FFmpeg 进程时出错: {e}")
         
-        # 2. 取消所有正在运行的任务
-        for task in list(self._running_tasks):
+        # 2. 取消所有正在运行的任务（在锁内 snapshot 一份再取消）
+        async with self._node_lock:
+            running_snapshot = list(self._running_tasks)
+        for task in running_snapshot:
             if not task.done():
                 task.cancel()
         
-        # 等待任务取消完成（最多1秒）
-        if self._running_tasks:
+        # 等待任务取消完成（最多3秒）
+        if running_snapshot:
             try:
-                await asyncio.wait(list(self._running_tasks), timeout=1.0)
-            except:
+                await asyncio.wait(running_snapshot, timeout=3.0)
+            except Exception:
                 pass
-        self._running_tasks.clear()
+        async with self._node_lock:
+            self._running_tasks.clear()
         
         # 3. 强制关闭浏览器以中断正在进行的操作
         try:

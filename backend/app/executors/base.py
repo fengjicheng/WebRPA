@@ -125,6 +125,8 @@ class ExecutionContext:
     _variable_tracking: list[dict[str, Any]] = field(default_factory=list)  # 变量变化历史记录
     _current_node_id: Optional[str] = None  # 当前执行的节点ID
     _current_node_name: Optional[str] = None  # 当前执行的节点名称
+    # 待完成的回调任务集合（避免 create_task 后被 GC）
+    _pending_callback_tasks: set = field(default_factory=set)
     
     async def get_current_frame(self) -> Optional[Page]:
         """获取当前的frame（如果在iframe中）或page
@@ -341,7 +343,19 @@ class ExecutionContext:
                 # 在异步上下文中调用回调（仅当存在运行中的事件循环）
                 try:
                     asyncio.get_running_loop()
-                    asyncio.create_task(self._variable_update_callback(name, value))
+                    # 保存任务引用避免被 GC，并通过 done_callback 处理异常
+                    task = asyncio.create_task(self._variable_update_callback(name, value))
+                    self._pending_callback_tasks.add(task)
+                    
+                    def _on_done(t: asyncio.Task):
+                        self._pending_callback_tasks.discard(t)
+                        try:
+                            exc = t.exception()
+                            if exc is not None:
+                                print(f"变量更新回调失败: {exc}")
+                        except (asyncio.CancelledError, Exception):
+                            pass
+                    task.add_done_callback(_on_done)
                 except RuntimeError:
                     # 不在 async 上下文中，跳过通知
                     pass
@@ -503,6 +517,13 @@ class ExecutionContext:
             result = resolve_nested_variables(result, max_depth=5)
             
             return result
+        # 递归处理嵌套结构（dict/list/tuple），让搜索区域、坐标等结构支持变量引用
+        if isinstance(value, dict):
+            return {k: self.resolve_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [self.resolve_value(v) for v in value]
+        if isinstance(value, tuple):
+            return tuple(self.resolve_value(v) for v in value)
         return value
     
     def add_data_value(self, column: str, value: Any):

@@ -518,8 +518,10 @@ class ADBManager:
                 return False, f"输入中文失败: {str(e)}"
         else:
             # 纯英文、数字和符号，使用传统方法
-            # 转义特殊字符
-            text_escaped = text.replace(' ', '%s')
+            # 转义特殊字符 —— 必须先转义反斜杠，再转义其他字符，
+            # 否则后续 replace 引入的 \ 会被错误地再次翻倍
+            text_escaped = text.replace('\\', '\\\\')
+            text_escaped = text_escaped.replace(' ', '%s')
             text_escaped = text_escaped.replace('&', '\\&')
             text_escaped = text_escaped.replace('(', '\\(')
             text_escaped = text_escaped.replace(')', '\\)')
@@ -529,7 +531,8 @@ class ADBManager:
             text_escaped = text_escaped.replace(';', '\\;')
             text_escaped = text_escaped.replace('`', '\\`')
             text_escaped = text_escaped.replace('$', '\\$')
-            text_escaped = text_escaped.replace('\\', '\\\\')
+            text_escaped = text_escaped.replace('"', '\\"')
+            text_escaped = text_escaped.replace("'", "\\'")
             
             success, stdout, stderr = self._run_command(
                 device_args + ['shell', 'input', 'text', text_escaped]

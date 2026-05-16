@@ -1,5 +1,6 @@
 """全局浏览器管理器 - 通过 browser_engine 在主进程中共享 Playwright context"""
 import asyncio
+import concurrent.futures
 import json
 import threading
 import sys
@@ -51,10 +52,20 @@ def start_browser(
     fullscreen: bool = False,
     launch_args: Optional[str] = None,
 ) -> tuple[bool, str]:
-    """启动浏览器（在主进程 event loop 中运行）"""
+    """启动浏览器（在主进程 event loop 中运行）
+    
+    警告：sync 桥接，不要在 async 上下文中调用，会阻塞事件循环。
+    """
     try:
         from app.services import browser_engine
-        loop = asyncio.get_event_loop()
+        # 优先取当前已运行的 loop（避免 asyncio.get_event_loop 在 3.12+ 的弃用警告）
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                return False, "没有可用的事件循环"
         future = asyncio.run_coroutine_threadsafe(
             browser_engine.start(
                 browser_type=browser_type,
@@ -66,19 +77,32 @@ def start_browser(
             loop,
         )
         return future.result(timeout=60)
+    except concurrent.futures.TimeoutError:
+        return False, "启动浏览器超时（60秒）"
     except Exception as e:
         return False, str(e)
 
 
 def stop_browser():
-    """关闭浏览器"""
+    """关闭浏览器
+    
+    警告：sync 桥接，不要在 async 上下文中调用。
+    """
     global _picker_active
     _picker_active = False
     try:
         from app.services import browser_engine
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                return
         future = asyncio.run_coroutine_threadsafe(browser_engine.stop(), loop)
         future.result(timeout=15)
+    except concurrent.futures.TimeoutError:
+        print("[BrowserManager] stop_browser 超时")
     except Exception as e:
         print(f"[BrowserManager] stop_browser error: {e}")
 
@@ -86,12 +110,22 @@ def stop_browser():
 # =================== 命令 ===================
 
 def send_command(action: str, **kwargs) -> dict:
-    """发送命令到浏览器引擎（异步转同步）"""
+    """发送命令到浏览器引擎（异步转同步）
+    
+    警告：这个函数是 sync 桥接，会用 future.result(timeout=10) 同步等待。
+    在 async 上下文中不要调用本函数（会阻塞事件循环），应直接 await 对应的 async 实现。
+    """
     if not is_browser_open():
         return {"success": False, "error": "浏览器未打开"}
     try:
         from app.services import browser_engine
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                return {"success": False, "error": "没有可用的事件循环"}
 
         async def _run():
             if action == 'navigate':
@@ -115,7 +149,9 @@ def send_command(action: str, **kwargs) -> dict:
                 return {"success": False, "error": f"未知命令: {action}"}
 
         future = asyncio.run_coroutine_threadsafe(_run(), loop)
-        return future.result(timeout=30)
+        return future.result(timeout=10)
+    except concurrent.futures.TimeoutError:
+        return {"success": False, "error": "浏览器命令超时（10秒）"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 

@@ -32,6 +32,10 @@ def start_coordinate_overlay():
     """启动坐标显示"""
     global _overlay_process
     
+    # 如果存在但已退出，先清理状态
+    if _overlay_process is not None and _overlay_process.poll() is not None:
+        _overlay_process = None
+    
     if _overlay_process and _overlay_process.poll() is None:
         return {"success": True, "message": "坐标显示已在运行"}
     
@@ -51,6 +55,8 @@ def start_coordinate_overlay():
         )
         return {"success": True, "message": "坐标显示已启动"}
     except Exception as e:
+        # 启动失败时把状态清空，下次能重试
+        _overlay_process = None
         return {"success": False, "message": f"启动失败: {e}"}
 
 
@@ -58,12 +64,21 @@ def stop_coordinate_overlay():
     """停止坐标显示"""
     global _overlay_process
     
-    if _overlay_process:
+    if _overlay_process is not None:
         try:
-            _overlay_process.terminate()
-            _overlay_process = None
-        except:
+            if _overlay_process.poll() is None:
+                _overlay_process.terminate()
+                try:
+                    _overlay_process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    try:
+                        _overlay_process.kill()
+                    except Exception:
+                        pass
+        except Exception:
             pass
+        finally:
+            _overlay_process = None
     
     return {"success": True, "message": "坐标显示已停止"}
 

@@ -536,7 +536,11 @@ async def stop_workflow(workflow_id: str):
     
     await executor.stop()
     
-    await sio.emit('execution:stopped', {'workflowId': workflow_id})
+    if sio is not None:
+        try:
+            await sio.emit('execution:stopped', {'workflowId': workflow_id})
+        except Exception as e:
+            print(f"[stop_workflow] 发送 stopped 事件失败: {e}")
     
     return {"message": "工作流已停止"}
 

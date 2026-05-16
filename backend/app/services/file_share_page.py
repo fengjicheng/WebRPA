@@ -258,7 +258,7 @@ def get_browser_page(share_name: str, allow_write: bool = True) -> str:
                 .then(function(data) {
                     var list = document.getElementById("fileList");
                     if (!data.success) { 
-                        list.innerHTML = '<div class="empty"><div class="empty-icon">❌</div>' + (data.error || "加载失败") + '</div>'; 
+                        list.innerHTML = '<div class="empty"><div class="empty-icon">❌</div>' + escapeHtml(data.error || "加载失败") + '</div>'; 
                         return; 
                     }
                     if (data.items.length === 0) { 
@@ -296,7 +296,7 @@ def get_browser_page(share_name: str, allow_write: bool = True) -> str:
                     list.innerHTML = html;
                 })
                 .catch(function(err) {
-                    document.getElementById("fileList").innerHTML = '<div class="empty"><div class="empty-icon">❌</div>' + err.message + '</div>';
+                    document.getElementById("fileList").innerHTML = '<div class="empty"><div class="empty-icon">❌</div>' + escapeHtml(err && err.message ? err.message : '请求失败') + '</div>';
                 });
         }
         

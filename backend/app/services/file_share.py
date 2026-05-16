@@ -158,11 +158,22 @@ class FileShareHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(response.encode('utf-8'))
     
+    # 单次上传请求体最大值（默认 500MB），防止 OOM
+    MAX_UPLOAD_BODY_SIZE = 500 * 1024 * 1024
+    
     def _handle_upload(self):
         """处理文件上传"""
         try:
             content_type = self.headers.get('Content-Type', '')
             content_length = int(self.headers.get('Content-Length', 0))
+            
+            # 拒绝过大请求体
+            if content_length > self.MAX_UPLOAD_BODY_SIZE:
+                self._send_json({
+                    'success': False,
+                    'error': f'文件过大（最大允许 {self.MAX_UPLOAD_BODY_SIZE // (1024*1024)} MB）'
+                }, 413)
+                return
             
             if 'multipart/form-data' not in content_type:
                 self._send_json({'success': False, 'error': '无效的 Content-Type'}, 400)

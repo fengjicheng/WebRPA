@@ -14,7 +14,8 @@ class ExecutionGraph:
         self.adjacency: dict[str, list[str]] = defaultdict(list)  # node_id -> [next_node_ids]
         self.reverse_adjacency: dict[str, list[str]] = defaultdict(list)  # node_id -> [prev_node_ids]
         self.start_nodes: list[str] = []  # 没有入边的节点
-        self.condition_branches: dict[str, dict[str, str]] = {}  # condition_node_id -> {handle: target_node_id}
+        # condition_branches: source -> {handle: [target_ids]} 支持一对多
+        self.condition_branches: dict[str, dict[str, list[str]]] = {}
         self.loop_branches: dict[str, dict[str, list[str]]] = {}  # loop_node_id -> {handle: [target_node_ids]}
         self.error_branches: dict[str, list[str]] = {}  # node_id -> [error_handler_node_ids]
     
@@ -24,13 +25,12 @@ class ExecutionGraph:
     def get_next_nodes(self, node_id: str, handle: Optional[str] = None) -> list[str]:
         """获取下一个要执行的节点ID列表"""
         if handle and node_id in self.condition_branches:
-            # 条件分支
-            target = self.condition_branches[node_id].get(handle)
-            return [target] if target else []
+            # 条件分支（支持一个 handle 接多个下游）
+            return list(self.condition_branches[node_id].get(handle, []))
         if handle and node_id in self.loop_branches:
             # 循环分支
-            return self.loop_branches[node_id].get(handle, [])
-        return self.adjacency.get(node_id, [])
+            return list(self.loop_branches[node_id].get(handle, []))
+        return list(self.adjacency.get(node_id, []))
     
     def get_loop_body_nodes(self, node_id: str) -> list[str]:
         """获取循环体节点（loop handle）"""
@@ -88,6 +88,13 @@ class WorkflowParser:
         
         # 构建邻接表
         nodes_with_incoming = set()
+        # 用 set 去重每个 source 的下游边集合（同一对 source/target 不重复）
+        seen_adjacency: dict[str, set[str]] = defaultdict(set)
+        seen_reverse: dict[str, set[str]] = defaultdict(set)
+        seen_condition: dict[tuple, set[str]] = defaultdict(set)  # (source, handle) -> {targets}
+        seen_loop: dict[tuple, set[str]] = defaultdict(set)
+        seen_error: dict[str, set[str]] = defaultdict(set)
+        
         for edge in graph.edges:
             source_id = edge.source
             target_id = edge.target
@@ -95,14 +102,21 @@ class WorkflowParser:
             
             # 处理异常处理分支（所有模块的 error handle）
             if edge.sourceHandle == 'error':
-                if source_id not in graph.error_branches:
-                    graph.error_branches[source_id] = []
-                graph.error_branches[source_id].append(target_id)
+                if target_id not in seen_error[source_id]:
+                    seen_error[source_id].add(target_id)
+                    if source_id not in graph.error_branches:
+                        graph.error_branches[source_id] = []
+                    graph.error_branches[source_id].append(target_id)
             # 处理条件分支（condition、face_recognition、element_exists、element_visible、image_exists、phone_image_exists、probability_trigger 模块的 true/false/path1/path2）
             elif edge.sourceHandle and source_node and source_node.type in ('condition', 'face_recognition', 'element_exists', 'element_visible', 'image_exists', 'phone_image_exists', 'probability_trigger'):
-                if source_id not in graph.condition_branches:
-                    graph.condition_branches[source_id] = {}
-                graph.condition_branches[source_id][edge.sourceHandle] = target_id
+                handle = edge.sourceHandle
+                if target_id not in seen_condition[(source_id, handle)]:
+                    seen_condition[(source_id, handle)].add(target_id)
+                    if source_id not in graph.condition_branches:
+                        graph.condition_branches[source_id] = {}
+                    if handle not in graph.condition_branches[source_id]:
+                        graph.condition_branches[source_id][handle] = []
+                    graph.condition_branches[source_id][handle].append(target_id)
             # 处理循环分支（loop/foreach/infinite_loop/foreach_dict 模块的 loop/done）
             elif edge.sourceHandle and source_node and source_node.type in ('loop', 'foreach', 'infinite_loop', 'foreach_dict'):
                 if source_id not in graph.loop_branches:
@@ -114,11 +128,19 @@ class WorkflowParser:
                 elif handle == 'loop-done':
                     handle = 'done'
                 if handle in graph.loop_branches[source_id]:
-                    graph.loop_branches[source_id][handle].append(target_id)
+                    if target_id not in seen_loop[(source_id, handle)]:
+                        seen_loop[(source_id, handle)].add(target_id)
+                        graph.loop_branches[source_id][handle].append(target_id)
             else:
-                graph.adjacency[source_id].append(target_id)
+                # 普通邻接边去重
+                if target_id not in seen_adjacency[source_id]:
+                    seen_adjacency[source_id].add(target_id)
+                    graph.adjacency[source_id].append(target_id)
             
-            graph.reverse_adjacency[target_id].append(source_id)
+            # 反向邻接也去重
+            if source_id not in seen_reverse[target_id]:
+                seen_reverse[target_id].add(source_id)
+                graph.reverse_adjacency[target_id].append(source_id)
             nodes_with_incoming.add(target_id)
         
         # 找出起始节点（没有入边的节点）
@@ -154,6 +176,26 @@ class WorkflowParser:
         graph = self.parse(workflow)
         if not graph.start_nodes:
             errors.append("工作流没有起始节点（所有节点都有入边，可能存在循环）")
+        
+        # 检查条件分支节点的出边完整性
+        condition_types = {'condition', 'face_recognition', 'element_exists',
+                          'element_visible', 'image_exists', 'phone_image_exists',
+                          'probability_trigger'}
+        for node in workflow.nodes:
+            if node.type in condition_types:
+                branches = graph.condition_branches.get(node.id, {})
+                # 至少要有一个 true 分支或 path1 分支
+                has_true = bool(branches.get('true') or branches.get('path1'))
+                if not has_true and not branches:
+                    errors.append(f"条件节点 '{node.id}' ({node.type}) 没有任何输出分支")
+        
+        # 检查循环节点的出边完整性
+        loop_types = {'loop', 'foreach', 'infinite_loop', 'foreach_dict'}
+        for node in workflow.nodes:
+            if node.type in loop_types:
+                branches = graph.loop_branches.get(node.id, {})
+                if not branches.get('loop'):
+                    errors.append(f"循环节点 '{node.id}' ({node.type}) 缺少循环体（loop 出边）")
         
         return len(errors) == 0, errors
 
