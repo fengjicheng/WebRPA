@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 变量符号 x -->
+  <path d="M7 7l4 4m0 0l4 4m-4-4l4-4m-4 4l-4 4"/>
+  <!-- 追踪路径 -->
+  <path d="M3 3h18v18H3z" opacity="0.2"/>
+  <path d="M14 3h7v7"/>
+  <path d="M21 3l-7 7"/>
+  <!-- 时间线点 -->
+  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+  <circle cx="17" cy="17" r="1.5" fill="currentColor"/>
+  <circle cx="7" cy="17" r="1.5" fill="currentColor"/>
+</svg>

@@ -1,0 +1,813 @@
+"""工作流API路由"""
+import asyncio
+from datetime import datetime
+from typing import Optional
+from uuid import uuid4
+from pathlib import Path
+
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from app.models.workflow import Workflow, ExecutionResult, ExecutionStatus, LogEntry
+from app.services.workflow_executor import WorkflowExecutor
+from app.services.data_collector import DataExporter
+
+
+router = APIRouter(prefix="/api/workflows", tags=["workflows"])
+
+# Socket.IO实例将在运行时注入
+sio = None
+
+# 全局日志开关状态（从main.py移过来避免循环导入）
+log_enabled_by_client: dict[str, bool] = {}
+
+def set_sio(socketio_instance):
+    """设置Socket.IO实例（避免循环导入）"""
+    global sio
+    sio = socketio_instance
+
+def is_log_enabled() -> bool:
+    """检查是否有客户端连接"""
+    # 只要有客户端连接就发送日志，由前端决定是否显示
+    return len(log_enabled_by_client) > 0 or True  # 始终返回True，确保日志发送
+
+def set_log_enabled(sid: str, enabled: bool):
+    """设置客户端的日志开关状态"""
+    log_enabled_by_client[sid] = enabled
+
+def remove_log_enabled(sid: str):
+    """移除客户端的日志开关状态"""
+    if sid in log_enabled_by_client:
+        del log_enabled_by_client[sid]
+
+# 存储工作流和执行状态
+workflows_store: dict[str, Workflow] = {}
+executions_store: dict[str, WorkflowExecutor] = {}
+execution_results: dict[str, ExecutionResult] = {}
+execution_data: dict[str, list[dict]] = {}
+variable_tracking_store: dict[str, list[dict]] = {}  # 存储变量追踪记录
+
+# 全局变量存储（在工作流执行之间持久化）
+
+# 🔥 超高速批量日志发送 - 累积后批量发送，减少WebSocket传输次数
+log_batch_queue: dict[str, list[dict]] = {}
+log_batch_lock = asyncio.Lock()
+log_batch_tasks: dict[str, asyncio.Task] = {}
+BATCH_SIZE = 50  # 累积50条或5ms后发送
+BATCH_INTERVAL = 0.005  # 5ms
+
+async def batch_emit_log(workflow_id: str, log_data: dict):
+    """批量发送日志 - 累积后批量发送"""
+    async with log_batch_lock:
+        if workflow_id not in log_batch_queue:
+            log_batch_queue[workflow_id] = []
+        
+        log_batch_queue[workflow_id].append(log_data)
+        
+        # 如果累积够了，立即发送
+        if len(log_batch_queue[workflow_id]) >= BATCH_SIZE:
+            logs = log_batch_queue[workflow_id]
+            log_batch_queue[workflow_id] = []
+            await sio.emit('execution:log_batch', {
+                'workflowId': workflow_id,
+                'logs': logs
+            })
+        else:
+            # 启动定时发送任务
+            if workflow_id not in log_batch_tasks or log_batch_tasks[workflow_id].done():
+                log_batch_tasks[workflow_id] = asyncio.create_task(flush_log_batch_for_workflow(workflow_id))
+
+async def flush_log_batch_for_workflow(workflow_id: str):
+    """定时发送指定工作流的日志"""
+    await asyncio.sleep(BATCH_INTERVAL)
+    
+    async with log_batch_lock:
+        if workflow_id in log_batch_queue and log_batch_queue[workflow_id]:
+            logs = log_batch_queue[workflow_id]
+            log_batch_queue[workflow_id] = []
+            await sio.emit('execution:log_batch', {
+                'workflowId': workflow_id,
+                'logs': logs
+            })
+        
+        # 清理任务
+        if workflow_id in log_batch_tasks:
+            del log_batch_tasks[workflow_id]
+global_variables: dict[str, any] = {}
+
+
+class WorkflowCreate(BaseModel):
+    name: str
+    nodes: list[dict]
+    edges: list[dict]
+    variables: list[dict] = []
+
+
+class WorkflowUpdate(BaseModel):
+    name: Optional[str] = None
+    nodes: Optional[list[dict]] = None
+    edges: Optional[list[dict]] = None
+    variables: Optional[list[dict]] = None
+
+
+class BrowserConfig(BaseModel):
+    type: str = 'msedge'
+    executablePath: Optional[str] = None
+    userDataDir: Optional[str] = None
+    fullscreen: bool = False
+    autoCloseBrowser: bool = False
+    launchArgs: Optional[str] = None
+
+
+class ExecuteOptions(BaseModel):
+    headless: bool = False
+    browserConfig: Optional[BrowserConfig] = None
+
+
+@router.post("", response_model=dict)
+async def create_workflow(data: WorkflowCreate):
+    """创建工作流"""
+    workflow_id = str(uuid4())
+    
+    workflow = Workflow(
+        id=workflow_id,
+        name=data.name,
+        nodes=[],
+        edges=[],
+        variables=[],
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+    
+    # 转换节点和边
+    from app.models.workflow import WorkflowNode, WorkflowEdge, Variable, Position
+    
+    for node_data in data.nodes:
+        node = WorkflowNode(
+            id=node_data['id'],
+            type=node_data['type'],
+            position=Position(**node_data['position']),
+            data=node_data.get('data', {}),
+            style=node_data.get('style'),
+        )
+        workflow.nodes.append(node)
+    
+    for edge_data in data.edges:
+        edge = WorkflowEdge(
+            id=edge_data['id'],
+            source=edge_data['source'],
+            target=edge_data['target'],
+            sourceHandle=edge_data.get('sourceHandle'),
+            targetHandle=edge_data.get('targetHandle'),
+        )
+        workflow.edges.append(edge)
+    
+    for var_data in data.variables:
+        var = Variable(**var_data)
+        workflow.variables.append(var)
+    
+    workflows_store[workflow_id] = workflow
+    
+    return {"id": workflow_id, "message": "工作流创建成功"}
+
+
+@router.get("", response_model=list[dict])
+async def list_workflows():
+    """获取工作流列表"""
+    return [
+        {
+            "id": w.id,
+            "name": w.name,
+            "nodeCount": len(w.nodes),
+            "createdAt": w.created_at.isoformat(),
+            "updatedAt": w.updated_at.isoformat(),
+        }
+        for w in workflows_store.values()
+    ]
+
+
+@router.get("/{workflow_id}")
+async def get_workflow(workflow_id: str):
+    """获取单个工作流"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    return {
+        "id": workflow.id,
+        "name": workflow.name,
+        "nodes": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "position": {"x": n.position.x, "y": n.position.y},
+                "data": n.data,
+                "style": n.style,
+            }
+            for n in workflow.nodes
+        ],
+        "edges": [
+            {
+                "id": e.id,
+                "source": e.source,
+                "target": e.target,
+                "sourceHandle": e.sourceHandle,
+                "targetHandle": e.targetHandle,
+            }
+            for e in workflow.edges
+        ],
+        "variables": [
+            {
+                "name": v.name,
+                "value": v.value,
+                "type": v.type.value,
+                "scope": v.scope,
+            }
+            for v in workflow.variables
+        ],
+        "createdAt": workflow.created_at.isoformat(),
+        "updatedAt": workflow.updated_at.isoformat(),
+    }
+
+
+@router.put("/{workflow_id}")
+async def update_workflow(workflow_id: str, data: WorkflowUpdate):
+    """更新工作流"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    from app.models.workflow import WorkflowNode, WorkflowEdge, Variable, Position
+    
+    if data.name is not None:
+        workflow.name = data.name
+    
+    if data.nodes is not None:
+        workflow.nodes = []
+        for node_data in data.nodes:
+            node = WorkflowNode(
+                id=node_data['id'],
+                type=node_data['type'],
+                position=Position(**node_data['position']),
+                data=node_data.get('data', {}),
+                style=node_data.get('style'),
+            )
+            workflow.nodes.append(node)
+    
+    if data.edges is not None:
+        workflow.edges = []
+        for edge_data in data.edges:
+            edge = WorkflowEdge(
+                id=edge_data['id'],
+                source=edge_data['source'],
+                target=edge_data['target'],
+                sourceHandle=edge_data.get('sourceHandle'),
+                targetHandle=edge_data.get('targetHandle'),
+            )
+            workflow.edges.append(edge)
+    
+    if data.variables is not None:
+        workflow.variables = []
+        for var_data in data.variables:
+            var = Variable(**var_data)
+            workflow.variables.append(var)
+    
+    workflow.updated_at = datetime.now()
+    
+    return {"message": "工作流更新成功"}
+
+
+@router.delete("/{workflow_id}")
+async def delete_workflow(workflow_id: str):
+    """删除工作流"""
+    if workflow_id not in workflows_store:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    del workflows_store[workflow_id]
+    return {"message": "工作流删除成功"}
+
+
+@router.post("/{workflow_id}/execute")
+async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, options: ExecuteOptions = ExecuteOptions()):
+    """执行工作流"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    # 检查是否已在执行
+    if workflow_id in executions_store:
+        executor = executions_store[workflow_id]
+        if executor.is_running:
+            raise HTTPException(status_code=400, detail="工作流正在执行中")
+    
+    # 创建执行器
+    async def on_log(log: LogEntry):
+        # 检查是否有客户端启用了日志接收
+        if not is_log_enabled():
+            return
+        
+        # 判断是否是用户日志（打印日志模块）或系统日志（流程开始/结束）
+        is_user_log = log.details.get('is_user_log', False) if log.details else False
+        is_system_log = log.details.get('is_system_log', False) if log.details else False
+        
+        # 将日志添加到批处理队列
+        log_data = {
+            'id': log.id,
+            'timestamp': log.timestamp.isoformat(),
+            'level': log.level.value,
+            'nodeId': log.node_id,
+            'message': log.message,
+            'duration': log.duration,
+            'isUserLog': is_user_log,
+            'isSystemLog': is_system_log,
+        }
+        
+        # 使用批量发送机制
+        await batch_emit_log(workflow_id, log_data)
+    
+    async def on_node_start(node_id: str):
+        await sio.emit('execution:node_start', {
+            'workflowId': workflow_id,
+            'nodeId': node_id,
+        })
+    
+    async def on_node_complete(node_id: str, result):
+        await sio.emit('execution:node_complete', {
+            'workflowId': workflow_id,
+            'nodeId': node_id,
+            'success': result.success,
+            'duration': result.duration,
+            'error': result.error,
+            # 注意：不发送 input 和 output，因为数据量可能很大
+        })
+    
+    async def on_variable_update(name: str, value):
+        # 发送变量更新事件到前端
+        # 获取变量类型
+        var_type = 'null'
+        if value is not None:
+            if isinstance(value, bool):
+                var_type = 'boolean'
+            elif isinstance(value, int) or isinstance(value, float):
+                var_type = 'number'
+            elif isinstance(value, str):
+                var_type = 'string'
+            elif isinstance(value, list):
+                var_type = 'array'
+            elif isinstance(value, dict):
+                var_type = 'object'
+            else:
+                var_type = 'unknown'
+        
+        await sio.emit('execution:variable_update', {
+            'workflowId': workflow_id,
+            'name': name,
+            'value': value,
+            'type': var_type,
+        })
+    
+    async def on_data_row(row: dict):
+        await sio.emit('execution:data_row', {
+            'workflowId': workflow_id,
+            'row': row,
+        })
+    
+    executor = WorkflowExecutor(
+        workflow=workflow,
+        on_log=on_log,
+        on_node_start=on_node_start,
+        on_node_complete=on_node_complete,
+        on_variable_update=on_variable_update,
+        on_data_row=on_data_row,
+        headless=options.headless,
+        browser_config={
+            'type': options.browserConfig.type if options.browserConfig else 'msedge',
+            'executablePath': options.browserConfig.executablePath if options.browserConfig else None,
+            'userDataDir': options.browserConfig.userDataDir if options.browserConfig else None,
+            'fullscreen': options.browserConfig.fullscreen if options.browserConfig else False,
+            'launchArgs': options.browserConfig.launchArgs if options.browserConfig else None,
+        } if options.browserConfig else None,
+    )
+    
+    # 从全局变量存储中恢复变量
+    executor.context.variables.update(global_variables)
+    
+    executions_store[workflow_id] = executor
+    
+    # 在后台执行
+    async def run_execution():
+        try:
+            await sio.emit('execution:started', {'workflowId': workflow_id})
+            
+            print(f"[run_execution] 开始执行工作流: {workflow_id}")
+            result = await executor.execute()
+            print(f"[run_execution] 执行完成，结果: {result.status.value}")
+            
+            execution_results[workflow_id] = result
+            execution_data[workflow_id] = executor.get_collected_data()
+            
+            # 导出数据
+            if execution_data[workflow_id]:
+                exporter = DataExporter()
+                data_file = exporter.export_to_excel(execution_data[workflow_id])
+                result.data_file = data_file
+            
+            # 如果配置了自动关闭浏览器，则关闭
+            print(f"[run_execution] browserConfig: {options.browserConfig}")
+            if options.browserConfig:
+                print(f"[run_execution] autoCloseBrowser: {options.browserConfig.autoCloseBrowser}")
+            
+            if options.browserConfig and options.browserConfig.autoCloseBrowser:
+                try:
+                    print(f"[run_execution] 自动关闭浏览器（配置已启用）")
+                    await executor.cleanup()
+                except Exception as e:
+                    print(f"[run_execution] 关闭浏览器失败: {e}")
+            else:
+                print(f"[run_execution] 保持浏览器打开（配置已禁用或未配置）")
+            
+            print(f"[run_execution] 发送 execution:completed 事件")
+            # 限制发送的数据量，避免消息过大导致传输失败
+            collected_data_to_send = execution_data.get(workflow_id, [])
+            if len(collected_data_to_send) > 20:
+                collected_data_to_send = collected_data_to_send[:20]  # 只发送前20条
+            
+            await sio.emit('execution:completed', {
+                'workflowId': workflow_id,
+                'result': {
+                    'status': result.status.value,
+                    'executedNodes': result.executed_nodes,
+                    'failedNodes': result.failed_nodes,
+                    'dataFile': result.data_file,
+                },
+                'collectedData': collected_data_to_send,
+            })
+            print(f"[run_execution] execution:completed 事件已发送")
+            
+            # 等待一小段时间确保事件被传输
+            await asyncio.sleep(0.1)
+            
+            # 保存全局变量到持久化存储（在清理执行器之前）
+            if workflow_id in executions_store:
+                global_variables.update(executions_store[workflow_id].context.variables)
+                print(f"[run_execution] 已保存 {len(global_variables)} 个全局变量")
+            
+        except Exception as e:
+            print(f"[run_execution] 执行异常: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # 即使出现异常，也要发送 execution:completed 事件
+            await sio.emit('execution:completed', {
+                'workflowId': workflow_id,
+                'result': {
+                    'status': 'failed',
+                    'executedNodes': executor.executed_nodes if executor else 0,
+                    'failedNodes': executor.failed_nodes if executor else 1,
+                    'dataFile': None,
+                },
+                'collectedData': [],
+            })
+            print(f"[run_execution] execution:completed 事件已发送（异常情况）")
+        
+        finally:
+            # 在清理执行器之前保存变量追踪记录
+            if workflow_id in executions_store:
+                try:
+                    tracking_records = executions_store[workflow_id].context.get_variable_tracking()
+                    variable_tracking_store[workflow_id] = tracking_records
+                    print(f"[run_execution] 已保存 {len(tracking_records)} 条变量追踪记录")
+                except Exception as e:
+                    print(f"[run_execution] 保存变量追踪记录失败: {e}")
+            
+            # 清理执行器，但保留 execution_data 供前端下载完整数据使用
+            if workflow_id in executions_store:
+                del executions_store[workflow_id]
+            # 保留 execution_data 用于"下载数据"按钮，但限制总量防止内存泄漏
+            if len(execution_data) > 10:
+                # 删除最旧的（保留当前 workflow_id 对应的）
+                for old_key in list(execution_data.keys()):
+                    if old_key != workflow_id and len(execution_data) > 10:
+                        del execution_data[old_key]
+                    if len(execution_data) <= 10:
+                        break
+            # 保留 execution_results 一段时间供查询，但限制数量
+            if len(execution_results) > 10:
+                # 删除最旧的结果
+                oldest_key = next(iter(execution_results))
+                del execution_results[oldest_key]
+    
+    background_tasks.add_task(run_execution)
+    
+    return {"message": "工作流开始执行"}
+
+
+@router.post("/{workflow_id}/stop")
+async def stop_workflow(workflow_id: str):
+    """停止工作流执行"""
+    executor = executions_store.get(workflow_id)
+    if not executor:
+        raise HTTPException(status_code=404, detail="没有正在执行的工作流")
+    
+    if not executor.is_running:
+        raise HTTPException(status_code=400, detail="工作流未在执行")
+    
+    await executor.stop()
+    
+    await sio.emit('execution:stopped', {'workflowId': workflow_id})
+    
+    return {"message": "工作流已停止"}
+
+
+@router.get("/{workflow_id}/status")
+async def get_execution_status(workflow_id: str):
+    """获取执行状态"""
+    executor = executions_store.get(workflow_id)
+    result = execution_results.get(workflow_id)
+    
+    if executor and executor.is_running:
+        return {
+            "status": "running",
+            "executedNodes": executor.executed_nodes,
+            "failedNodes": executor.failed_nodes,
+        }
+    elif result:
+        return {
+            "status": result.status.value,
+            "executedNodes": result.executed_nodes,
+            "failedNodes": result.failed_nodes,
+            "dataFile": result.data_file,
+        }
+    else:
+        return {"status": "idle"}
+
+
+@router.get("/{workflow_id}/data")
+async def download_data(workflow_id: str):
+    """下载提取的数据"""
+    result = execution_results.get(workflow_id)
+    
+    if not result or not result.data_file:
+        raise HTTPException(status_code=404, detail="没有可下载的数据")
+    
+    file_path = Path(result.data_file)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="数据文件不存在")
+    
+    return FileResponse(
+        path=str(file_path),
+        filename=file_path.name,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+@router.get("/{workflow_id}/data/full")
+async def get_full_collected_data(workflow_id: str):
+    """获取本次执行收集到的完整数据（不限 20 条预览上限）"""
+    # 先看是否有已存在的执行结果
+    rows = execution_data.get(workflow_id)
+    
+    # 如果已经清理但仍持有 executor，从 executor 实时获取
+    if rows is None:
+        executor = executions_store.get(workflow_id)
+        if executor is not None:
+            try:
+                rows = executor.get_collected_data()
+            except Exception:
+                rows = None
+    
+    if rows is None:
+        raise HTTPException(status_code=404, detail="没有可下载的数据")
+    
+    # 收集所有列
+    columns: list[str] = []
+    seen = set()
+    for r in rows:
+        for k in r.keys():
+            if k not in seen:
+                seen.add(k)
+                columns.append(k)
+    
+    return {
+        "rows": rows,
+        "columns": columns,
+        "total": len(rows),
+    }
+
+
+@router.post("/import")
+async def import_workflow(data: dict):
+    """导入工作流"""
+    try:
+        workflow_id = data.get('id') or str(uuid4())
+        
+        from app.models.workflow import WorkflowNode, WorkflowEdge, Variable, Position
+        
+        workflow = Workflow(
+            id=workflow_id,
+            name=data.get('name', '导入的工作流'),
+            nodes=[],
+            edges=[],
+            variables=[],
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        
+        for node_data in data.get('nodes', []):
+            node = WorkflowNode(
+                id=node_data['id'],
+                type=node_data['type'],
+                position=Position(**node_data['position']),
+                data=node_data.get('data', {}),
+                style=node_data.get('style'),
+            )
+            workflow.nodes.append(node)
+        
+        for edge_data in data.get('edges', []):
+            edge = WorkflowEdge(
+                id=edge_data['id'],
+                source=edge_data['source'],
+                target=edge_data['target'],
+                sourceHandle=edge_data.get('sourceHandle'),
+                targetHandle=edge_data.get('targetHandle'),
+            )
+            workflow.edges.append(edge)
+        
+        # 导入变量（如果有）
+        for var_data in data.get('variables', []):
+            var = Variable(**var_data)
+            workflow.variables.append(var)
+            # 如果是全局变量，同时添加到全局变量存储中
+            if var.scope == 'global':
+                global_variables[var.name] = var.value
+                print(f"[import_workflow] 导入全局变量: {var.name} = {var.value}")
+        
+        workflows_store[workflow_id] = workflow
+        
+        return {"id": workflow_id, "message": "工作流导入成功"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"导入失败: {str(e)}")
+
+
+@router.get("/{workflow_id}/export")
+async def export_workflow(workflow_id: str):
+    """导出工作流"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    return {
+        "id": workflow.id,
+        "name": workflow.name,
+        "nodes": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "position": {"x": n.position.x, "y": n.position.y},
+                "data": n.data,
+                "style": n.style,
+            }
+            for n in workflow.nodes
+        ],
+        "edges": [
+            {
+                "id": e.id,
+                "source": e.source,
+                "target": e.target,
+                "sourceHandle": e.sourceHandle,
+                "targetHandle": e.targetHandle,
+            }
+            for e in workflow.edges
+        ],
+        "variables": [
+            {
+                "name": v.name,
+                "value": v.value,
+                "type": v.type.value,
+                "scope": v.scope,
+            }
+            for v in workflow.variables
+        ],
+        "createdAt": workflow.created_at.isoformat(),
+        "updatedAt": workflow.updated_at.isoformat(),
+    }
+
+
+@router.get("/{workflow_id}/export-playwright")
+async def export_workflow_playwright(workflow_id: str):
+    """导出工作流为 Playwright Python 代码"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+    
+    from app.services.playwright_exporter import export_workflow_to_playwright
+    
+    # 构建工作流数据
+    workflow_data = {
+        "id": workflow.id,
+        "name": workflow.name,
+        "nodes": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "position": {"x": n.position.x, "y": n.position.y},
+                "data": n.data,
+            }
+            for n in workflow.nodes
+        ],
+        "edges": [
+            {
+                "id": e.id,
+                "source": e.source,
+                "target": e.target,
+                "sourceHandle": e.sourceHandle,
+                "targetHandle": e.targetHandle,
+            }
+            for e in workflow.edges
+        ],
+        "variables": [
+            {
+                "name": v.name,
+                "value": v.value,
+                "type": v.type.value,
+            }
+            for v in workflow.variables
+        ],
+    }
+    
+    # 生成 Python 代码
+    python_code = export_workflow_to_playwright(workflow_data)
+    
+    return {
+        "code": python_code,
+        "filename": f"{workflow.name.replace(' ', '_')}_playwright.py",
+    }
+
+
+@router.get("/global-variables")
+async def get_global_variables():
+    """获取所有全局变量"""
+    return {
+        "variables": global_variables,
+        "count": len(global_variables)
+    }
+
+
+@router.delete("/global-variables")
+async def clear_global_variables():
+    """清空所有全局变量"""
+    global_variables.clear()
+    return {"message": "全局变量已清空"}
+
+
+@router.delete("/global-variables/{variable_name}")
+async def delete_global_variable(variable_name: str):
+    """删除指定的全局变量"""
+    if variable_name in global_variables:
+        del global_variables[variable_name]
+        return {"message": f"变量 {variable_name} 已删除"}
+    else:
+        raise HTTPException(status_code=404, detail="变量不存在")
+
+
+@router.get("/{workflow_id}/variable-tracking")
+async def get_variable_tracking(workflow_id: str):
+    """获取工作流的变量追踪记录"""
+    tracking_records = []
+    
+    # 优先从正在执行的执行器中获取
+    executor = executions_store.get(workflow_id)
+    if executor:
+        try:
+            tracking_records = executor.context.get_variable_tracking()
+        except Exception as e:
+            print(f"从执行器获取变量追踪记录失败: {e}")
+    
+    # 如果执行器不存在，从存储中获取（执行完成后的记录）
+    if not tracking_records and workflow_id in variable_tracking_store:
+        tracking_records = variable_tracking_store[workflow_id]
+    
+    return {
+        "tracking": tracking_records,
+        "count": len(tracking_records)
+    }
+
+
+@router.delete("/{workflow_id}/variable-tracking")
+async def clear_variable_tracking(workflow_id: str):
+    """清空工作流的变量追踪记录"""
+    # 清空正在执行的执行器中的记录
+    executor = executions_store.get(workflow_id)
+    if executor:
+        try:
+            executor.context.clear_variable_tracking()
+        except Exception as e:
+            print(f"清空执行器中的变量追踪记录失败: {e}")
+    
+    # 清空存储中的记录
+    if workflow_id in variable_tracking_store:
+        del variable_tracking_store[workflow_id]
+    
+    return {"message": "变量追踪记录已清空"}

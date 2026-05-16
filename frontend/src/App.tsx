@@ -1,0 +1,235 @@
+import { useEffect, useState } from 'react'
+import { WorkflowEditor } from '@/components/workflow/WorkflowEditor'
+import { InputPromptDialog } from '@/components/workflow/InputPromptDialog'
+import { MusicPlayerContainer } from '@/components/workflow/MusicPlayerContainer'
+import { VideoPlayerContainer } from '@/components/workflow/VideoPlayerContainer'
+import { ImageViewerContainer } from '@/components/workflow/ImageViewerContainer'
+import { UpdateDialog } from '@/components/workflow/UpdateDialog'
+import { MouseCoordinateOverlay } from '@/components/workflow/MouseCoordinateOverlay'
+import { socketService } from '@/services/socket'
+import { remoteService } from '@/services/remote'
+import { dataAssetApi, imageAssetApi, updateApiBase } from '@/services/api'
+import { preloadConfig } from '@/services/config'
+import { useWorkflowStore } from '@/store/workflowStore'
+import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import {
+  CURRENT_VERSION,
+  fetchLatestVersion,
+  hasNewVersion,
+} from '@/services/version'
+
+// 在模块加载时立即预加载配置
+preloadConfig().then(() => {
+  console.log('[Config] 配置预加载完成')
+})
+
+function App() {
+  const setDataAssets = useWorkflowStore((state) => state.setDataAssets)
+  const setImageAssets = useWorkflowStore((state) => state.setImageAssets)
+  const globalConfig = useGlobalConfigStore((state) => state.config)
+  
+  const [updateInfo, setUpdateInfo] = useState<{
+    show: boolean
+    latestVersion: string
+    downloadUrl: string
+  }>({
+    show: false,
+    latestVersion: '',
+    downloadUrl: '',
+  })
+
+  // 初始化：获取配置并加载已上传的Excel文件资源和图像资源
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // 1. 确保配置已加载
+        await preloadConfig()
+        
+        // 2. 更新 API 基础地址
+        updateApiBase()
+        
+        // 3. 配置更新完成后，连接 WebSocket（Socket会在连接时动态获取最新的后端地址）
+        socketService.connect()
+        
+        // 4. 加载Excel资源
+        const excelResult = await dataAssetApi.list()
+        if (excelResult.data) {
+          setDataAssets(excelResult.data)
+        }
+        
+        // 5. 加载图像资源
+        const imageResult = await imageAssetApi.list()
+        if (imageResult.data) {
+          setImageAssets(imageResult.data)
+        }
+      } catch (error) {
+        console.error('初始化失败:', error)
+      }
+    }
+    
+    init()
+    
+    // 清理函数
+    return () => {
+      socketService.disconnect()
+    }
+  }, [setDataAssets, setImageAssets])
+
+  // 拦截 F9 和 F10 快捷键，防止浏览器默认行为
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F9 和 F10 是 WebRPA 的快捷键，阻止浏览器默认行为
+      if (e.key === 'F9' || e.key === 'F10') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    
+    // 使用 capture 阶段拦截，确保在其他处理器之前执行
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+    }
+  }, [])
+
+  // 页面关闭时清理远程协助会话
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const session = remoteService.getSession()
+      if (session) {
+        // 使用 sendBeacon 确保请求能发出
+        const hubUrl = localStorage.getItem('workflow_hub_url') || 'https://hub.pmhs.top'
+        const clientId = localStorage.getItem('workflow_hub_client_id')
+        if (clientId) {
+          navigator.sendBeacon(
+            `${hubUrl}/api/remote/close`,
+            JSON.stringify({ clientId })
+          )
+        }
+      }
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      // 组件卸载时清理远程协助
+      remoteService.closeSession()
+    }
+  }, [])
+
+  // 检查版本更新
+  useEffect(() => {
+    // 如果配置中关闭了启动时检查更新，则不执行检查
+    if (!globalConfig.system.checkUpdateOnStartup) {
+      return
+    }
+
+    const checkUpdate = async () => {
+      const versionInfo = await fetchLatestVersion()
+      if (!versionInfo) return
+
+      // 检查是否有新版本
+      if (hasNewVersion(CURRENT_VERSION, versionInfo.version)) {
+        setUpdateInfo({
+          show: true,
+          latestVersion: versionInfo.version,
+          downloadUrl: versionInfo.downloadUrl,
+        })
+      }
+    }
+
+    // 延迟 1 秒检查，避免影响首屏加载
+    const timer = setTimeout(checkUpdate, 1000)
+    return () => clearTimeout(timer)
+  }, [globalConfig.system.checkUpdateOnStartup])
+
+  // 处理 URL 中的自动加载参数 (例如: /editor/xxxxx 或者 /?workflow=xxxxx)
+  useEffect(() => {
+    // 监听后端执行完毕的事件，如果是在监控模式下，自动关闭窗口
+    const handleExecutionCompleted = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auto_close') === 'true') {
+        console.log('[AutoClose] 执行完成，正在自动关闭监控页面...');
+        // 延迟一小会儿，让用户能看到最终状态
+        setTimeout(() => {
+          // 现代浏览器对于非 JS 打开的窗口（或者即便是 JS 打开但有些安全策略）可能拦截 window.close()
+          // 我们可以尝试替换页面内容作为备选方案
+          document.body.innerHTML = '<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background:#f5f5f5;">' +
+            '<h2 style="color:#4caf50;margin-bottom:10px;">✅ 计划任务执行完毕</h2>' +
+            '<p style="color:#666;">您可以安全地关闭此页面，或者它将在几秒后尝试自动关闭。</p>' +
+            '</div>';
+          
+          setTimeout(() => {
+            window.close();
+          }, 1000);
+        }, 3000);
+      }
+    };
+
+    socketService.on('execution:completed', handleExecutionCompleted);
+
+    // 等待初始化完成（通过检查是否有数据等或简单的延迟）
+    const timer = setTimeout(() => {
+      // 尝试从 URL 参数或路径中获取 workflow ID
+      const urlParams = new URLSearchParams(window.location.search);
+      let workflowId = urlParams.get('workflow');
+      
+      if (!workflowId) {
+        // 支持 /editor/xxx 甚至带有查询参数的情况
+        const path = window.location.pathname;
+        const match = path.match(/\/editor\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          workflowId = match[1];
+        }
+      }
+
+      if (workflowId) {
+        // 调用 store 中的加载方法
+        const store = useWorkflowStore.getState();
+        store.loadWorkflow(workflowId).then(() => {
+          console.log(`[AutoLoad] 成功从 URL 加载工作流: ${workflowId}`);
+          // 通知后端我们当前所在的工作流，这样日志和事件才能正确推送过来
+          socketService.setCurrentWorkflow(workflowId);
+        }).catch(err => {
+          console.error(`[AutoLoad] 从 URL 加载工作流失败:`, err);
+        });
+      }
+    }, 1000); // 缩短延迟，尽快加载
+
+    return () => {
+      clearTimeout(timer);
+      socketService.off('execution:completed', handleExecutionCompleted);
+    };
+  }, []);
+
+  const handleCloseUpdate = () => {
+    setUpdateInfo(prev => ({ ...prev, show: false }))
+  }
+
+  const handleSkipUpdate = () => {
+    setUpdateInfo(prev => ({ ...prev, show: false }))
+  }
+
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-background">
+      <WorkflowEditor />
+      <InputPromptDialog />
+      <MusicPlayerContainer />
+      <VideoPlayerContainer />
+      <ImageViewerContainer />
+      <UpdateDialog
+        isOpen={updateInfo.show}
+        currentVersion={CURRENT_VERSION}
+        latestVersion={updateInfo.latestVersion}
+        downloadUrl={updateInfo.downloadUrl}
+        onClose={handleCloseUpdate}
+        onSkip={handleSkipUpdate}
+      />
+      <MouseCoordinateOverlay />
+    </div>
+  )
+}
+
+export default App
