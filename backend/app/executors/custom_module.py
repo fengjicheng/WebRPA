@@ -5,15 +5,39 @@ from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_execu
 from typing import Dict, Any
 import json
 from pathlib import Path
+import os
+import re
 
 
-# 自定义模块存储目录
-CUSTOM_MODULES_DIR = Path("backend/data/custom_modules")
+# 自定义模块存储目录（使用绝对路径，避免依赖 cwd）
+# 该目录与 custom_modules.py API 保持一致
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
+CUSTOM_MODULES_DIR = _BACKEND_DIR / "data" / "custom_modules"
+
+
+# 校验 module_id 是否合法（只允许字母、数字、下划线、横线、UUID 格式）
+_MODULE_ID_PATTERN = re.compile(r'^[A-Za-z0-9_\-]+$')
 
 
 def load_custom_module_definition(module_id: str) -> Dict[str, Any]:
-    """加载自定义模块定义"""
-    file_path = CUSTOM_MODULES_DIR / f"{module_id}.json"
+    """加载自定义模块定义
+    
+    防御措施：
+    - 校验 module_id 只能包含安全字符
+    - 用 resolve() 后比较前缀防止路径穿越
+    """
+    if not module_id or not _MODULE_ID_PATTERN.match(module_id):
+        raise FileNotFoundError(f"自定义模块ID无效: {module_id}")
+    
+    base = CUSTOM_MODULES_DIR.resolve()
+    file_path = (CUSTOM_MODULES_DIR / f"{module_id}.json").resolve()
+    
+    # 防止路径穿越：要求 file_path 在 base 内
+    try:
+        file_path.relative_to(base)
+    except ValueError:
+        raise FileNotFoundError(f"自定义模块路径不安全: {module_id}")
+    
     if not file_path.exists():
         raise FileNotFoundError(f"自定义模块不存在: {module_id}")
     

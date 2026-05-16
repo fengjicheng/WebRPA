@@ -263,19 +263,16 @@ export const phoneApi = {
   // 兼容别名（部分组件用 getDevices）
   getDevices: () => apiRequest('/phone/devices'),
   screenshot: (deviceId: string) =>
-    apiRequest('/phone/screenshot', { method: 'POST', body: JSON.stringify({ device_id: deviceId }) }),
-  tap: (deviceId: string, x: number, y: number) =>
-    apiRequest('/phone/tap', { method: 'POST', body: JSON.stringify({ device_id: deviceId, x, y }) }),
-  // 测试坐标 - 实际就是 tap 一下
+    apiRequest(`/phone/screenshot?device_id=${encodeURIComponent(deviceId)}`),
+  // 设备详细信息（GET /phone/device/info?device_id=...）
+  getInfo: (deviceId: string) =>
+    apiRequest(`/phone/device/info?device_id=${encodeURIComponent(deviceId)}`),
+  // 测试坐标 - 实际调用 /coordinate-picker/test
   testCoordinate: (x: number, y: number, deviceId: string) =>
-    apiRequest('/phone/coordinate-picker/test', {
-      method: 'POST',
-      body: JSON.stringify({ x, y, device_id: deviceId }),
-    }),
-  swipe: (deviceId: string, x1: number, y1: number, x2: number, y2: number, duration?: number) =>
-    apiRequest('/phone/swipe', { method: 'POST', body: JSON.stringify({ device_id: deviceId, x1, y1, x2, y2, duration }) }),
-  inputText: (deviceId: string, text: string) =>
-    apiRequest('/phone/input-text', { method: 'POST', body: JSON.stringify({ device_id: deviceId, text }) }),
+    apiRequest(
+      `/phone/coordinate-picker/test?x=${x}&y=${y}&device_id=${encodeURIComponent(deviceId)}`,
+      { method: 'POST' }
+    ),
   startMirror: (deviceId: string, maxSize?: number, bitRate?: string, enablePointerLocation?: boolean) =>
     apiRequest('/phone/mirror/start', {
       method: 'POST',
@@ -298,8 +295,8 @@ export const phoneApi = {
         template_name: templateName,
       }),
     }),
-  getInfo: (deviceId: string) =>
-    apiRequest(`/phone/info/${deviceId}`),
+  // 注：tap/swipe/inputText 等模块级操作通过 workflow executor 实现，
+  // 不需要直接的 HTTP API。
 }
 
 // ==================== 定时任务 API ====================

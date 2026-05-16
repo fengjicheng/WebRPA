@@ -44,9 +44,10 @@ class DataCollector:
         """转换为Polars DataFrame
         
         把不能直接写入 Excel 的复杂类型（dict/list/tuple/set）序列化为 JSON 字符串，
-        避免 openpyxl 的 IllegalCharacterError 或 polars schema 冲突。
+        保留 datetime/date/time 等原生类型，避免 Excel 失去日期格式过滤能力。
         """
         import json
+        from datetime import datetime, date, time
         if not self.data:
             return pl.DataFrame()
         
@@ -55,12 +56,15 @@ class DataCollector:
                 return None
             if isinstance(v, (str, int, float, bool)):
                 return v
+            # 保留 datetime/date/time 等原生类型，让 polars/Excel 自己识别
+            if isinstance(v, (datetime, date, time)):
+                return v
             if isinstance(v, (list, dict, tuple, set)):
                 try:
                     return json.dumps(v, ensure_ascii=False, default=str)
                 except Exception:
                     return str(v)
-            # 其他对象（datetime、Path 等）转字符串
+            # 其他对象（Path 等）转字符串
             return str(v)
         
         # 确保所有行都有相同的列

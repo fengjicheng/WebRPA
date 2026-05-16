@@ -601,7 +601,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   const lastSelectedNodeIdRef = useRef<string | null | undefined>(selectedNodeId)
   useEffect(() => {
     if (lastSelectedNodeIdRef.current !== selectedNodeId) {
-      // 节点真正变化时，关闭还在运行的选择器
+      // 节点真正变化时，关闭还在运行的选择器及相关 UI
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
         pollingRef.current = null
@@ -614,9 +614,13 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         elementPickerApi.stop().catch(() => {})
         setIsPicking(false)
         setPickingField(null)
-        setShowSimilarDialog(false)
-        setSimilarResult(null)
       }
+      // 无条件关闭相似元素弹窗（即使 isPicking 已为 false）
+      setShowSimilarDialog(false)
+      setSimilarResult(null)
+      // 关闭可能残留的 URL 输入对话框
+      setShowUrlDialog(false)
+      setPendingField(null)
       if (isDesktopPicking) {
         desktopPickerApi.stop().catch(() => {})
         setIsDesktopPicking(false)
