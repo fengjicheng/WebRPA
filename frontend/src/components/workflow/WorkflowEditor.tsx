@@ -1541,7 +1541,7 @@ export function WorkflowEditor() {
             }}
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={15} size={1} />
+            <Background gap={20} size={1.2} color="hsl(var(--slate-300))" />
             <Controls />
             <MiniMap 
               nodeColor={(node) => {

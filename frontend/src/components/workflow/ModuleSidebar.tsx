@@ -2015,13 +2015,13 @@ export function ModuleSidebar() {
             </div>
 
             {/* 标签页切换 */}
-            <div className="flex gap-1 p-1 bg-[hsl(var(--muted))] rounded-md">
+            <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-md border border-[hsl(var(--slate-200))]">
               <button
                 onClick={() => setActiveTab('builtin')}
                 className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
                   activeTab === 'builtin'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft border border-[hsl(var(--brand-500)/0.25)]'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]'
                 }`}
               >
                 内置模块
@@ -2030,8 +2030,8 @@ export function ModuleSidebar() {
                 onClick={() => setActiveTab('custom')}
                 className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
                   activeTab === 'custom'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(280_60%_45%)] shadow-soft'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(280_60%_45%)] shadow-soft border border-[hsl(280_60%_55%/0.25)]'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]'
                 }`}
               >
                 自定义模块

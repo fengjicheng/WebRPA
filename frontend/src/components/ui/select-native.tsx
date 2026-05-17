@@ -10,7 +10,13 @@ const SelectNative = React.forwardRef<HTMLSelectElement, SelectProps>(
       <div className="relative">
         <select
           className={cn(
-            'flex h-9 w-full appearance-none rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 pr-8',
+            'flex h-8 w-full appearance-none rounded-[6px] border border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-50))] px-2.5 py-1 pr-8 text-[13px] ' +
+              'text-[hsl(var(--foreground))] ' +
+              'shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)] ' +
+              'transition-[border-color,background-color,box-shadow] duration-100 ' +
+              'hover:border-[hsl(var(--slate-300))] hover:bg-[hsl(var(--card))] cursor-pointer ' +
+              'focus-visible:outline-none focus-visible:border-[hsl(var(--brand-500))] focus-visible:bg-[hsl(var(--card))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--brand-500)/0.18)] ' +
+              'disabled:cursor-not-allowed disabled:opacity-50',
             className
           )}
           ref={ref}
@@ -18,7 +24,7 @@ const SelectNative = React.forwardRef<HTMLSelectElement, SelectProps>(
         >
           {children}
         </select>
-        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] pointer-events-none" />
       </div>
     )
   }

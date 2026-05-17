@@ -114,133 +114,133 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'system'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(var(--brand-600))] text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('system')}
           >
-            <Settings className={`w-4 h-4 ${activeTab === 'system' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--slate-500))]'}`} />
+            <Settings className={`w-4 h-4 ${activeTab === 'system' ? 'text-[hsl(var(--brand-600))]' : 'text-[hsl(var(--slate-500))]'}`} />
             系统
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'ai'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(270_60%_55%)] text-[hsl(270_60%_45%)] bg-[hsl(270_100%_97%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('ai')}
           >
-            <Brain className={`w-4 h-4 ${activeTab === 'ai' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(270_60%_55%)]'}`} />
+            <Brain className={`w-4 h-4 ${activeTab === 'ai' ? 'text-[hsl(270_60%_55%)]' : 'text-[hsl(270_60%_55%)]'}`} />
             AI对话
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiAssistant'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_45%)] bg-[hsl(214_100%_97%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('aiAssistant')}
           >
-            <Bot className={`w-4 h-4 ${activeTab === 'aiAssistant' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(217_91%_60%)]'}`} />
+            <Bot className={`w-4 h-4 ${activeTab === 'aiAssistant' ? 'text-[hsl(217_91%_60%)]' : 'text-[hsl(217_91%_60%)]'}`} />
             小助手
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiScraper'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(280_60%_55%)] text-[hsl(280_60%_45%)] bg-[hsl(280_100%_97%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('aiScraper')}
           >
-            <Brain className={`w-4 h-4 ${activeTab === 'aiScraper' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(280_60%_55%)]'}`} />
+            <Brain className={`w-4 h-4 ${activeTab === 'aiScraper' ? 'text-[hsl(280_60%_55%)]' : 'text-[hsl(280_60%_55%)]'}`} />
             AI智能
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'email'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(var(--info-500))] text-[hsl(199_89%_38%)] bg-[hsl(var(--info-50))]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('email')}
           >
-            <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--info-500))]'}`} />
+            <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-[hsl(var(--info-500))]' : 'text-[hsl(var(--info-500))]'}`} />
             邮件
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'workflow'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(var(--warning-500))] text-[hsl(32_95%_38%)] bg-[hsl(var(--warning-50))]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('workflow')}
           >
-            <Folder className={`w-4 h-4 ${activeTab === 'workflow' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--warning-500))]'}`} />
+            <Folder className={`w-4 h-4 ${activeTab === 'workflow' ? 'text-[hsl(var(--warning-500))]' : 'text-[hsl(var(--warning-500))]'}`} />
             存储
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'database'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('database')}
           >
-            <Database className={`w-4 h-4 ${activeTab === 'database' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(199_89%_48%)]'}`} />
+            <Database className={`w-4 h-4 ${activeTab === 'database' ? 'text-[hsl(199_89%_48%)]' : 'text-[hsl(199_89%_48%)]'}`} />
             数据库
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'display'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(var(--slate-600))] text-[hsl(var(--slate-700))] bg-[hsl(var(--slate-100))]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('display')}
           >
-            <Monitor className={`w-4 h-4 ${activeTab === 'display' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--slate-500))]'}`} />
+            <Monitor className={`w-4 h-4 ${activeTab === 'display' ? 'text-[hsl(var(--slate-700))]' : 'text-[hsl(var(--slate-500))]'}`} />
             显示
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'browser'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(var(--success-500))] text-[hsl(142_71%_28%)] bg-[hsl(var(--success-50))]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('browser')}
           >
-            <Globe className={`w-4 h-4 ${activeTab === 'browser' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--success-500))]'}`} />
+            <Globe className={`w-4 h-4 ${activeTab === 'browser' ? 'text-[hsl(var(--success-500))]' : 'text-[hsl(var(--success-500))]'}`} />
             浏览器
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'triggers'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(48_95%_50%)] text-[hsl(38_95%_38%)] bg-[hsl(48_100%_94%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('triggers')}
           >
-            <Zap className={`w-4 h-4 ${activeTab === 'triggers' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(48_95%_50%)]'}`} />
+            <Zap className={`w-4 h-4 ${activeTab === 'triggers' ? 'text-[hsl(38_95%_45%)]' : 'text-[hsl(48_95%_50%)]'}`} />
             触发器
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'qq'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_38%)] bg-[hsl(214_100%_97%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('qq')}
           >
-            <MessageCircle className={`w-4 h-4 ${activeTab === 'qq' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(217_91%_60%)]'}`} />
+            <MessageCircle className={`w-4 h-4 ${activeTab === 'qq' ? 'text-[hsl(217_91%_55%)]' : 'text-[hsl(217_91%_60%)]'}`} />
             QQ号
           </button>
           <button
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'feishu'
-                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
                 : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('feishu')}
           >
-            <MessageSquare className={`w-4 h-4 ${activeTab === 'feishu' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(199_89%_48%)]'}`} />
+            <MessageSquare className={`w-4 h-4 ${activeTab === 'feishu' ? 'text-[hsl(199_89%_48%)]' : 'text-[hsl(199_89%_48%)]'}`} />
             飞书
           </button>
         </div>

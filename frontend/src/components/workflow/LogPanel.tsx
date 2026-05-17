@@ -425,10 +425,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
           <div className="flex items-center gap-1">
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'logs' 
-                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium border-[hsl(var(--brand-500)/0.3)]' 
+                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('logs')}
             >
@@ -439,10 +439,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'data' 
-                  ? 'bg-[hsl(199_95%_94%)] text-[hsl(199_89%_38%)] font-medium' 
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(199_95%_94%)] text-[hsl(199_89%_38%)] font-medium border-[hsl(199_89%_48%/0.3)]' 
+                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('data')}
             >
@@ -453,10 +453,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'variables' 
-                  ? 'bg-[hsl(270_100%_95%)] text-[hsl(270_60%_45%)] font-medium' 
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(270_100%_95%)] text-[hsl(270_60%_45%)] font-medium border-[hsl(270_60%_55%/0.3)]' 
+                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('variables')}
             >
@@ -467,10 +467,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'assets' 
-                  ? 'bg-[hsl(var(--success-50))] text-[hsl(var(--success-500))] font-medium' 
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--success-50))] text-[hsl(142_71%_28%)] font-medium border-[hsl(var(--success-500)/0.3)]' 
+                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('assets')}
             >
@@ -481,10 +481,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'images' 
-                  ? 'bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-500))] font-medium' 
-                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--warning-50))] text-[hsl(32_95%_38%)] font-medium border-[hsl(var(--warning-500)/0.3)]' 
+                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('images')}
             >
