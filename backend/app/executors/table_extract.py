@@ -171,7 +171,7 @@ class ExtractTableDataExecutor(ModuleExecutor):
                             try:
                                 if cell.value:
                                     max_length = max(max_length, len(str(cell.value)))
-                            except:
+                            except Exception:
                                 pass
                         adjusted_width = min(max_length + 2, 50)
                         ws.column_dimensions[column_letter].width = adjusted_width

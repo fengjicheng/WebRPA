@@ -197,7 +197,7 @@ class ListMapExecutor(ModuleExecutor):
                 if not isinstance(item, (int, float)):
                     try:
                         item = float(item)
-                    except:
+                    except Exception:
                         continue
                 
                 if operation == 'multiply':

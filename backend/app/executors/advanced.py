@@ -66,7 +66,7 @@ class ApiRequestExecutor(ModuleExecutor):
             
             try:
                 response_data = response.json()
-            except:
+            except Exception:
                 response_data = response.text
             
             if variable_name:
@@ -281,7 +281,7 @@ class SelectDropdownExecutor(ModuleExecutor):
             
             try:
                 await context.page.wait_for_load_state('domcontentloaded', timeout=wait_timeout)
-            except:
+            except Exception:
                 pass
             
             await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
@@ -741,136 +741,140 @@ class ReadExcelExecutor(ModuleExecutor):
         import openpyxl
         
         wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
-        
-        if sheet_name:
-            if sheet_name not in wb.sheetnames:
-                wb.close()
-                raise Exception(f"工作表 '{sheet_name}' 不存在")
-            ws = wb[sheet_name]
-        else:
-            ws = wb.active
-        
-        result = None
-        result_type = 'unknown'
-        
-        if read_mode == 'cell':
-            if not cell_address:
-                wb.close()
-                raise Exception("单元格模式需要指定单元格地址")
-            cell = ws[cell_address]
-            result = cell.value
-            result_type = 'cell'
-        
-        elif read_mode == 'row':
-            if row_index is None or row_index < 1:
-                wb.close()
-                raise Exception("行模式需要指定有效的行号")
-            row_data = []
-            start_col_idx = 1
-            if start_col:
-                if isinstance(start_col, str) and start_col.isalpha():
-                    start_col_idx = openpyxl.utils.column_index_from_string(start_col)
-                else:
-                    start_col_idx = int(start_col)
-            for cell in ws[row_index]:
-                if cell.column >= start_col_idx:
-                    row_data.append(cell.value)
-            result = row_data
-            result_type = 'array'
-        
-        elif read_mode == 'column':
-            if not column_index:
-                wb.close()
-                raise Exception("列模式需要指定列号或列字母")
-            col_data = []
-            col_idx = column_index
-            if isinstance(col_idx, str) and col_idx.isalpha():
-                col_idx = openpyxl.utils.column_index_from_string(col_idx)
+        try:
+            if sheet_name:
+                if sheet_name not in wb.sheetnames:
+                    raise Exception(f"工作表 '{sheet_name}' 不存在")
+                ws = wb[sheet_name]
             else:
-                col_idx = int(col_idx)
-            for row in ws.iter_rows(min_row=start_row, min_col=col_idx, max_col=col_idx):
-                col_data.append(row[0].value)
-            result = col_data
-            result_type = 'array'
-        
-        elif read_mode == 'range':
-            if not start_cell or not end_cell:
+                ws = wb.active
+            
+            result = None
+            result_type = 'unknown'
+            
+            if read_mode == 'cell':
+                if not cell_address:
+                    raise Exception("单元格模式需要指定单元格地址")
+                cell = ws[cell_address]
+                result = cell.value
+                result_type = 'cell'
+            
+            elif read_mode == 'row':
+                if row_index is None or row_index < 1:
+                    raise Exception("行模式需要指定有效的行号")
+                row_data = []
+                start_col_idx = 1
+                if start_col:
+                    if isinstance(start_col, str) and start_col.isalpha():
+                        start_col_idx = openpyxl.utils.column_index_from_string(start_col)
+                    else:
+                        start_col_idx = int(start_col)
+                for cell in ws[row_index]:
+                    if cell.column >= start_col_idx:
+                        row_data.append(cell.value)
+                result = row_data
+                result_type = 'array'
+            
+            elif read_mode == 'column':
+                if not column_index:
+                    raise Exception("列模式需要指定列号或列字母")
+                col_data = []
+                col_idx = column_index
+                if isinstance(col_idx, str) and col_idx.isalpha():
+                    col_idx = openpyxl.utils.column_index_from_string(col_idx)
+                else:
+                    col_idx = int(col_idx)
+                for row in ws.iter_rows(min_row=start_row, min_col=col_idx, max_col=col_idx):
+                    col_data.append(row[0].value)
+                result = col_data
+                result_type = 'array'
+            
+            elif read_mode == 'range':
+                if not start_cell or not end_cell:
+                    raise Exception("范围模式需要指定起始和结束单元格")
+                range_data = []
+                for row in ws[f"{start_cell}:{end_cell}"]:
+                    row_data = [cell.value for cell in row]
+                    range_data.append(row_data)
+                result = range_data
+                result_type = 'matrix'
+            
+            return result, result_type
+        finally:
+            try:
                 wb.close()
-                raise Exception("范围模式需要指定起始和结束单元格")
-            range_data = []
-            for row in ws[f"{start_cell}:{end_cell}"]:
-                row_data = [cell.value for cell in row]
-                range_data.append(row_data)
-            result = range_data
-            result_type = 'matrix'
-        
-        wb.close()
-        return result, result_type
+            except Exception:
+                pass
     
     def _read_xls(self, file_path, sheet_name, read_mode, cell_address, row_index,
                   column_index, start_cell, end_cell, start_row, start_col):
         import xlrd
         
         wb = xlrd.open_workbook(file_path)
-        
-        if sheet_name:
-            if sheet_name not in wb.sheet_names():
-                raise Exception(f"工作表 '{sheet_name}' 不存在")
-            ws = wb.sheet_by_name(sheet_name)
-        else:
-            ws = wb.sheet_by_index(0)
-        
-        result = None
-        result_type = 'unknown'
-        
-        if read_mode == 'cell':
-            if not cell_address:
-                raise Exception("单元格模式需要指定单元格地址")
-            col_idx, row_idx = self._parse_cell_address(cell_address)
-            result = ws.cell_value(row_idx, col_idx)
-            result_type = 'cell'
-        
-        elif read_mode == 'row':
-            if row_index is None or row_index < 1:
-                raise Exception("行模式需要指定有效的行号")
-            row_data = ws.row_values(row_index - 1)
-            if start_col:
-                start_col_idx = 0
-                if isinstance(start_col, str) and start_col.isalpha():
-                    start_col_idx = self._col_letter_to_index(start_col)
-                else:
-                    start_col_idx = int(start_col) - 1
-                row_data = row_data[start_col_idx:]
-            result = row_data
-            result_type = 'array'
-        
-        elif read_mode == 'column':
-            if not column_index:
-                raise Exception("列模式需要指定列号或列字母")
-            col_idx = column_index
-            if isinstance(col_idx, str) and col_idx.isalpha():
-                col_idx = self._col_letter_to_index(col_idx)
+        try:
+            if sheet_name:
+                if sheet_name not in wb.sheet_names():
+                    raise Exception(f"工作表 '{sheet_name}' 不存在")
+                ws = wb.sheet_by_name(sheet_name)
             else:
-                col_idx = int(col_idx) - 1
-            col_data = ws.col_values(col_idx, start_rowx=start_row - 1)
-            result = col_data
-            result_type = 'array'
-        
-        elif read_mode == 'range':
-            if not start_cell or not end_cell:
-                raise Exception("范围模式需要指定起始和结束单元格")
-            start_col_idx, start_row_idx = self._parse_cell_address(start_cell)
-            end_col_idx, end_row_idx = self._parse_cell_address(end_cell)
-            range_data = []
-            for r in range(start_row_idx, end_row_idx + 1):
-                row_data = []
-                for c in range(start_col_idx, end_col_idx + 1):
-                    row_data.append(ws.cell_value(r, c))
-                range_data.append(row_data)
-            result = range_data
-            result_type = 'matrix'
-        
-        return result, result_type
+                ws = wb.sheet_by_index(0)
+            
+            result = None
+            result_type = 'unknown'
+            
+            if read_mode == 'cell':
+                if not cell_address:
+                    raise Exception("单元格模式需要指定单元格地址")
+                col_idx, row_idx = self._parse_cell_address(cell_address)
+                result = ws.cell_value(row_idx, col_idx)
+                result_type = 'cell'
+            
+            elif read_mode == 'row':
+                if row_index is None or row_index < 1:
+                    raise Exception("行模式需要指定有效的行号")
+                row_data = ws.row_values(row_index - 1)
+                if start_col:
+                    start_col_idx = 0
+                    if isinstance(start_col, str) and start_col.isalpha():
+                        start_col_idx = self._col_letter_to_index(start_col)
+                    else:
+                        start_col_idx = int(start_col) - 1
+                    row_data = row_data[start_col_idx:]
+                result = row_data
+                result_type = 'array'
+            
+            elif read_mode == 'column':
+                if not column_index:
+                    raise Exception("列模式需要指定列号或列字母")
+                col_idx = column_index
+                if isinstance(col_idx, str) and col_idx.isalpha():
+                    col_idx = self._col_letter_to_index(col_idx)
+                else:
+                    col_idx = int(col_idx) - 1
+                col_data = ws.col_values(col_idx, start_rowx=start_row - 1)
+                result = col_data
+                result_type = 'array'
+            
+            elif read_mode == 'range':
+                if not start_cell or not end_cell:
+                    raise Exception("范围模式需要指定起始和结束单元格")
+                start_col_idx, start_row_idx = self._parse_cell_address(start_cell)
+                end_col_idx, end_row_idx = self._parse_cell_address(end_cell)
+                range_data = []
+                for r in range(start_row_idx, end_row_idx + 1):
+                    row_data = []
+                    for c in range(start_col_idx, end_col_idx + 1):
+                        row_data.append(ws.cell_value(r, c))
+                    range_data.append(row_data)
+                result = range_data
+                result_type = 'matrix'
+            
+            return result, result_type
+        finally:
+            try:
+                wb.release_resources()
+            except Exception:
+                pass
     
     def _col_letter_to_index(self, col_str: str) -> int:
         result = 0
@@ -939,7 +943,7 @@ $image.Dispose()
                     
                     try:
                         Path(tmp_path).unlink()
-                    except:
+                    except Exception:
                         pass
                     
                     if result.returncode != 0:
@@ -1567,10 +1571,10 @@ class RealMouseClickExecutor(ModuleExecutor):
             # 设置 DPI 感知，确保坐标准确
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             user32 = ctypes.windll.user32
@@ -1705,10 +1709,10 @@ class RealMouseMoveExecutor(ModuleExecutor):
             # 设置 DPI 感知，确保坐标准确
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             user32 = ctypes.windll.user32
@@ -1780,10 +1784,10 @@ class RealMouseDragExecutor(ModuleExecutor):
             # 设置 DPI 感知，确保坐标准确
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             user32 = ctypes.windll.user32
@@ -2188,10 +2192,10 @@ class ClickImageExecutor(ModuleExecutor):
             # 设置 DPI 感知，确保坐标准确
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像（支持中文路径）
@@ -2343,10 +2347,10 @@ class ClickImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             user32 = ctypes.windll.user32
@@ -2679,7 +2683,7 @@ class NetworkCaptureExecutor(ModuleExecutor):
                 ip = s.getsockname()[0]
                 s.close()
                 return ip
-            except:
+            except Exception:
                 return "127.0.0.1"
         
         local_ip = get_local_ip()
@@ -2811,7 +2815,7 @@ class NetworkCaptureExecutor(ModuleExecutor):
             try:
                 proc = psutil.Process(pid)
                 return proc.name()
-            except:
+            except Exception:
                 return ""
         
         def capture_connections():
@@ -3508,10 +3512,10 @@ class MacroRecorderExecutor(ModuleExecutor):
             # 设置进程为 DPI 感知，确保坐标与录制时一致
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-            except:
+            except Exception:
                 try:
                     user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # SendInput 结构体定义
@@ -3612,7 +3616,7 @@ class MacroRecorderExecutor(ModuleExecutor):
             # 安装钩子
             try:
                 mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, mouse_hook_proc, None, 0)
-            except:
+            except Exception:
                 mouse_hook = None
             
             # mouse_event 常量
@@ -4089,7 +4093,7 @@ class ClickTextExecutor(ModuleExecutor):
                 elif match_mode == 'regex':
                     try:
                         is_match = bool(re.search(target_text, recognized_text))
-                    except:
+                    except Exception:
                         is_match = False
                 
                 if is_match:
@@ -4199,10 +4203,10 @@ class HoverImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像
@@ -4499,7 +4503,7 @@ class HoverTextExecutor(ModuleExecutor):
                 elif match_mode == 'regex':
                     try:
                         is_match = bool(re.search(target_text, recognized_text))
-                    except:
+                    except Exception:
                         is_match = False
                 
                 if is_match:

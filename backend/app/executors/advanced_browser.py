@@ -40,7 +40,7 @@ class SelectDropdownExecutor(ModuleExecutor):
             
             try:
                 await context.page.wait_for_load_state('domcontentloaded', timeout=wait_timeout)
-            except:
+            except Exception:
                 pass
             
             await pw_wait_for_element(context.page, escape_css_selector(selector), state='visible', timeout=wait_timeout)

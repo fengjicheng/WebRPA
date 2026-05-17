@@ -114,7 +114,7 @@ class DictMapValuesExecutor(ModuleExecutor):
                 if not isinstance(value, (int, float)):
                     try:
                         value = float(value)
-                    except:
+                    except Exception:
                         result[key] = value
                         continue
                 

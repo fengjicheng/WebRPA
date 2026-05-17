@@ -58,10 +58,10 @@ class MacroRecorderExecutor(ModuleExecutor):
             # 设置进程为 DPI 感知，确保坐标与录制时一致
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-            except:
+            except Exception:
                 try:
                     user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # SendInput 结构体定义
@@ -154,7 +154,7 @@ class MacroRecorderExecutor(ModuleExecutor):
             # 安装钩子
             try:
                 mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, mouse_hook_proc, None, 0)
-            except:
+            except Exception:
                 mouse_hook = None
             
             # mouse_event 常量

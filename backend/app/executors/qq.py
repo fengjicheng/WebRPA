@@ -449,7 +449,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
             poll_interval = float(poll_interval_raw)
             if poll_interval < 0.1:
                 poll_interval = 0.3
-        except:
+        except Exception:
             poll_interval = 0.3
         # 结果变量
         result_variable = config.get('resultVariable', 'qq_received_message')
@@ -540,7 +540,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
                         actual_sender_id = sender_obj.get('user_id') or sender_obj.get('uin') or 0
                         try:
                             actual_sender_id = int(actual_sender_id) if actual_sender_id else 0
-                        except:
+                        except Exception:
                             actual_sender_id = 0
                         
                         # 判断是否是自己发的消息（需要跳过）
@@ -550,7 +550,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
                         conversation_user_id = msg.get('user_id', 0)
                         try:
                             conversation_user_id = int(conversation_user_id) if conversation_user_id else 0
-                        except:
+                        except Exception:
                             conversation_user_id = 0
                         
                         # 获取消息内容
@@ -705,7 +705,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
                         
                         try:
                             peer_uin = int(peer_uin)
-                        except:
+                        except Exception:
                             continue
                         
                         is_private = chat_type == 1
@@ -734,7 +734,7 @@ class QQWaitMessageExecutor(ModuleExecutor):
                                 if is_group:
                                     msg['group_id'] = peer_uin
                                 messages.append(msg)
-                        except:
+                        except Exception:
                             pass
                             
             except Exception as e:

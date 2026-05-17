@@ -400,7 +400,7 @@ def stdin_reader():
             else:
                 cmd_queue.put(None)
                 break
-        except:
+        except Exception:
             break
 
 
@@ -626,14 +626,14 @@ async def main():
             for old_page in context.pages[1:]:
                 try:
                     await old_page.close()
-                except:
+                except Exception:
                     pass
             
             # 将第一个页面导航到空白页
             try:
                 await page.goto('about:blank', timeout=5000)
                 print(f"[BrowserProcess] 已清理所有旧标签页，浏览器已就绪", file=sys.stderr)
-            except:
+            except Exception:
                 pass
         else:
             # 没有页面时创建新页面
@@ -704,7 +704,7 @@ async def main():
         # 确保页面获得焦点
         try:
             await page.bring_to_front()
-        except:
+        except Exception:
             pass
         
         print(json.dumps({"status": "browser_opened"}), flush=True)
@@ -719,7 +719,7 @@ async def main():
             if picker_active:
                 try:
                     await pg.wait_for_load_state('domcontentloaded', timeout=5000)
-                except:
+                except Exception:
                     pass
                 try:
                     await pg.evaluate(PICKER_SCRIPT)
@@ -806,7 +806,7 @@ async def main():
                                 found = True
                                 page_index = i
                                 break
-                        except:
+                        except Exception:
                             continue
                     result["data"] = {"found": found, "pageIndex": page_index}
                 elif action == 'switch_to_page':
@@ -877,7 +877,7 @@ async def main():
                             page = context.pages[-1]
                         else:
                             page = await context.new_page()
-                    except:
+                    except Exception:
                         pass
                 print(json.dumps({"success": False, "error": error_msg}), flush=True)
     

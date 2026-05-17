@@ -136,7 +136,7 @@ def is_parent_alive():
             kernel32.CloseHandle(handle)
             return exit_code.value == 259  # STILL_ACTIVE
         return False
-    except:
+    except Exception:
         return False
 
 
@@ -304,13 +304,13 @@ def main():
     if len(sys.argv) > 1:
         try:
             g_parent_pid = int(sys.argv[1])
-        except:
+        except Exception:
             pass
     
     # DPI 感知
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except:
+    except Exception:
         pass
     
     wnd_proc_cb = WNDPROC(wnd_proc)

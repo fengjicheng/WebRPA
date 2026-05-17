@@ -173,7 +173,7 @@ def set_clipboard_text(text: str, max_retries: int = 3):
             # 确保剪贴板已关闭
             try:
                 win32clipboard.CloseClipboard()
-            except:
+            except Exception:
                 pass
             
             # 等待一小段时间确保剪贴板可用
@@ -232,7 +232,7 @@ def set_clipboard_file(file_path: str, max_retries: int = 3):
             # 确保剪贴板已关闭
             try:
                 win32clipboard.CloseClipboard()
-            except:
+            except Exception:
                 pass
             
             # 等待一小段时间确保剪贴板可用

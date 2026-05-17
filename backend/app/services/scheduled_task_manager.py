@@ -321,7 +321,7 @@ class ScheduledTaskManager:
             # 移除APScheduler任务
             try:
                 self.scheduler.remove_job(task.id)
-            except:
+            except Exception:
                 pass
         elif trigger.type == 'hotkey':
             # 移除热键触发器

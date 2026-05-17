@@ -158,7 +158,7 @@ class SapLoginExecutor(ModuleExecutor):
             # 最大化主窗口
             try:
                 ses.findById('wnd[0]').maximize()
-            except:
+            except Exception:
                 pass
 
             # 只保存可序列化的标识，不保存 COM 对象
@@ -365,7 +365,7 @@ class SapGetStatusMessageExecutor(ModuleExecutor):
             msg = s.findById(f'wnd[{wnd}]/sbar/pane[0]').text
             try:
                 mt = s.findById(f'wnd[{wnd}]/sbar').messageType
-            except:
+            except Exception:
                 mt = ''
             return {'message': msg, 'type': mt}
         finally:
@@ -425,9 +425,9 @@ class SapCloseWarningExecutor(ModuleExecutor):
                     # 优先尝试按“确定”按钮
                     try:
                         wnd.findById('tbar[0]/btn[0]').press()
-                    except:
+                    except Exception:
                         wnd.sendVKey(0)
-                except:
+                except Exception:
                     pass
         finally:
             pythoncom.CoUninitialize()

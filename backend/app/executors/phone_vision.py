@@ -294,7 +294,7 @@ class PhoneClickTextExecutor(ModuleExecutor):
                         elif match_mode == 'regex':
                             try:
                                 is_match = bool(re.search(target_text, recognized_text))
-                            except:
+                            except Exception:
                                 is_match = False
                         
                         if is_match:

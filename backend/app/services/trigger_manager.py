@@ -159,7 +159,7 @@ class TriggerManager:
         if self.hotkey_listener:
             try:
                 self.hotkey_listener.stop()
-            except:
+            except Exception:
                 pass
 
         # 如果没有热键，不启动监听器
@@ -476,12 +476,12 @@ class TriggerManager:
                     try:
                         body = part.get_payload(decode=True).decode('utf-8', errors='ignore')
                         break
-                    except:
+                    except Exception:
                         pass
         else:
             try:
                 body = msg.get_payload(decode=True).decode('utf-8', errors='ignore')
-            except:
+            except Exception:
                 pass
         return body
 

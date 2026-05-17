@@ -605,10 +605,10 @@ class ImageAddTextExecutor(ModuleExecutor):
             # 尝试使用系统字体
             try:
                 font = ImageFont.truetype("arial.ttf", font_size)
-            except:
+            except Exception:
                 try:
                     font = ImageFont.truetype("msyh.ttc", font_size)  # 微软雅黑
-                except:
+                except Exception:
                     font = ImageFont.load_default()
             
             draw.text((position_x, position_y), text, fill=font_color, font=font)
@@ -869,7 +869,7 @@ class ImageGetInfoExecutor(ModuleExecutor):
                     info["has_exif"] = True
                 else:
                     info["has_exif"] = False
-            except:
+            except Exception:
                 info["has_exif"] = False
             
             if result_variable:
@@ -934,7 +934,7 @@ class ImageRemoveBackgroundExecutor(ModuleExecutor):
                 # 尝试解析RGB值
                 try:
                     target_color = tuple(map(int, bg_color.split(',')))
-                except:
+                except Exception:
                     target_color = (255, 255, 255)
             
             # 计算颜色差异

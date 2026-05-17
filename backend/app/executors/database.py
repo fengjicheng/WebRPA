@@ -44,7 +44,7 @@ class DbConnectExecutor(ModuleExecutor):
             if connection_name in connections:
                 try:
                     connections[connection_name].close()
-                except:
+                except Exception:
                     pass
                 del connections[connection_name]
             
@@ -160,7 +160,7 @@ class DbExecuteExecutor(ModuleExecutor):
                 # 尝试获取结果（如果是SELECT语句）
                 try:
                     result = cursor.fetchall()
-                except:
+                except Exception:
                     result = None
             
             # 保存影响行数到变量

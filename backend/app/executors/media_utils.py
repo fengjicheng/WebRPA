@@ -279,7 +279,7 @@ async def run_ffmpeg_with_progress(
                 process.terminate()
                 try:
                     process.wait(timeout=2)
-                except:
+                except Exception:
                     process.kill()
             return False, "FFmpeg 执行超时"
         except asyncio.CancelledError:
@@ -288,7 +288,7 @@ async def run_ffmpeg_with_progress(
                 process.terminate()
                 try:
                     process.wait(timeout=2)
-                except:
+                except Exception:
                     process.kill()
             raise
         finally:
@@ -311,7 +311,7 @@ async def run_ffmpeg_with_progress(
             process.terminate()
             try:
                 process.wait(timeout=2)
-            except:
+            except Exception:
                 process.kill()
         raise
     except Exception as e:
@@ -357,7 +357,7 @@ def run_ffmpeg(args: list, timeout: int = 600) -> tuple[bool, str]:
             process.terminate()
             try:
                 process.wait(timeout=2)
-            except:
+            except Exception:
                 process.kill()
         return False, "FFmpeg执行超时"
     except Exception as e:

@@ -859,10 +859,10 @@ class ImageTriggerExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像

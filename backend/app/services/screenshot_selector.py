@@ -31,7 +31,7 @@ def create_screenshot_overlay():
         # 添加提示文字
         try:
             font = ImageFont.truetype("arial.ttf", 24)
-        except:
+        except Exception:
             font = ImageFont.load_default()
         
         text = "WebRPA 截图工具 - 使用鼠标框选区域"

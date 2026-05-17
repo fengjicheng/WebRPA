@@ -2182,28 +2182,28 @@ class WorkflowExecutor:
             if self.context.page:
                 try:
                     await self.context.page.close()
-                except:
+                except Exception:
                     pass
                 self.context.page = None
             
             if self.context.browser_context:
                 try:
                     await self.context.browser_context.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser_context = None
             
             if self.context.browser:
                 try:
                     await self.context.browser.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser = None
             
             if self.context._playwright:
                 try:
                     await self.context._playwright.stop()
-                except:
+                except Exception:
                     pass
                 self.context._playwright = None
             
@@ -2241,28 +2241,28 @@ class WorkflowExecutor:
             if self.context.page:
                 try:
                     await self.context.page.close()
-                except:
+                except Exception:
                     pass
                 self.context.page = None
 
             if self.context.browser_context:
                 try:
                     await self.context.browser_context.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser_context = None
 
             if self.context.browser:
                 try:
                     await self.context.browser.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser = None
 
             if self.context._playwright:
                 try:
                     await self.context._playwright.stop()
-                except:
+                except Exception:
                     pass
                 self.context._playwright = None
         except Exception as e:
@@ -2494,28 +2494,28 @@ class WorkflowExecutor:
             if self.context.page:
                 try:
                     await self.context.page.close()
-                except:
+                except Exception:
                     pass
                 self.context.page = None
             
             if self.context.browser_context:
                 try:
                     await self.context.browser_context.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser_context = None
             
             if self.context.browser:
                 try:
                     await self.context.browser.close()
-                except:
+                except Exception:
                     pass
                 self.context.browser = None
             
             if self.context._playwright:
                 try:
                     await self.context._playwright.stop()
-                except:
+                except Exception:
                     pass
                 self.context._playwright = None
         except Exception as e:

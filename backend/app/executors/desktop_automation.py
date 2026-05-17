@@ -64,7 +64,7 @@ class DesktopAppConnectExecutor(ModuleExecutor):
                                 if connect_value.lower() in process.exe().lower():
                                     window = win
                                     break
-                            except:
+                            except Exception:
                                 continue
                 else:
                     return ModuleResult(success=False, error=f"不支持的连接方式: {connect_type}")
@@ -692,7 +692,7 @@ class DesktopFindControlExecutor(ModuleExecutor):
                                 current_control = temp_control
                                 found = True
                                 break
-                        except:
+                        except Exception:
                             pass
                         await asyncio.sleep(0.3)
                     
@@ -835,7 +835,7 @@ class DesktopWaitControlExecutor(ModuleExecutor):
                         return ModuleResult(success=True, message="控件已出现")
                     elif wait_type == "disappear" and not exists:
                         return ModuleResult(success=True, message="控件已消失")
-                except:
+                except Exception:
                     if wait_type == "disappear":
                         return ModuleResult(success=True, message="控件已消失")
                 
@@ -968,7 +968,7 @@ class DesktopInputControlExecutor(ModuleExecutor):
                 try:
                     # 尝试使用 ValuePattern
                     control.GetValuePattern().SetValue("")
-                except:
+                except Exception:
                     # 如果不支持 ValuePattern，使用快捷键
                     control.SendKeys("{Ctrl}a{Delete}")
                     await asyncio.sleep(0.1)
@@ -979,7 +979,7 @@ class DesktopInputControlExecutor(ModuleExecutor):
             else:  # set
                 try:
                     control.GetValuePattern().SetValue(text)
-                except:
+                except Exception:
                     # 如果不支持 ValuePattern，回退到 SendKeys
                     control.SendKeys(text)
             
@@ -1035,21 +1035,21 @@ class DesktopGetTextExecutor(ModuleExecutor):
             try:
                 # 尝试 Name 属性
                 text = control.Name
-            except:
+            except Exception:
                 pass
             
             if not text:
                 try:
                     # 尝试 ValuePattern
                     text = control.GetValuePattern().Value
-                except:
+                except Exception:
                     pass
             
             if not text:
                 try:
                     # 尝试 TextPattern
                     text = control.GetTextPattern().DocumentRange.GetText()
-                except:
+                except Exception:
                     pass
             
             if save_to_variable:
@@ -1183,7 +1183,7 @@ class DesktopCheckboxExecutor(ModuleExecutor):
                 # 如果状态不匹配，则切换
                 if (checked and current_state == 0) or (not checked and current_state == 1):
                     toggle_pattern.Toggle()
-            except:
+            except Exception:
                 # 如果不支持 TogglePattern，使用点击
                 control.Click()
             
@@ -1238,7 +1238,7 @@ class DesktopRadioExecutor(ModuleExecutor):
             try:
                 selection_pattern = control.GetSelectionItemPattern()
                 selection_pattern.Select()
-            except:
+            except Exception:
                 # 如果不支持 SelectionItemPattern，使用点击
                 control.Click()
             
@@ -1371,7 +1371,7 @@ class DesktopScrollControlExecutor(ModuleExecutor):
                 elif direction == "left":
                     for _ in range(amount):
                         scroll_pattern.Scroll(auto.ScrollAmount.SmallDecrement, auto.ScrollAmount.NoAmount)
-            except:
+            except Exception:
                 # 如果不支持 ScrollPattern，使用滚轮
                 if direction == "down":
                     control.WheelDown(wheelTimes=amount)
@@ -1523,7 +1523,7 @@ class DesktopGetControlInfoExecutor(ModuleExecutor):
             # 尝试获取文本值
             try:
                 info["value"] = control.GetValuePattern().Value
-            except:
+            except Exception:
                 pass
             
             if save_to_variable:
@@ -1598,7 +1598,7 @@ class DesktopGetControlTreeExecutor(ModuleExecutor):
                         child_node = build_tree(child, depth + 1)
                         if child_node:
                             node["children"].append(child_node)
-                except:
+                except Exception:
                     pass
                 
                 return node
@@ -1740,7 +1740,7 @@ class DesktopAppWaitReadyExecutor(ModuleExecutor):
                                 return ModuleResult(success=True, message="应用已就绪")
                         else:
                             return ModuleResult(success=True, message="应用已就绪")
-                except:
+                except Exception:
                     pass
                 
                 await asyncio.sleep(0.5)
@@ -1874,11 +1874,11 @@ class DesktopSetValueExecutor(ModuleExecutor):
             # 尝试设置值
             try:
                 control.GetValuePattern().SetValue(str(value))
-            except:
+            except Exception:
                 # 如果不支持 ValuePattern，尝试使用 RangeValue
                 try:
                     control.GetRangeValuePattern().SetValue(float(value))
-                except:
+                except Exception:
                     return ModuleResult(success=False, error="控件不支持设置值")
             
             return ModuleResult(
@@ -2077,7 +2077,7 @@ class DesktopListOperateExecutor(ModuleExecutor):
                         message=f"已获取 {len(selected)} 个选中项",
                         data={"selected": selected, "count": len(selected)}
                     )
-                except:
+                except Exception:
                     return ModuleResult(success=False, error="控件不支持获取选中项")
             
             return ModuleResult(success=False, error=f"不支持的操作: {operation}")

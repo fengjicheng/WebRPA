@@ -63,7 +63,7 @@ def _get_user_data_dir(browser_type: str, custom_dir: Optional[str] = None) -> s
     if lock.exists():
         try:
             lock.unlink()
-        except:
+        except Exception:
             pass
     return str(p)
 
@@ -103,7 +103,7 @@ async def _reinject_on_load(pg: Page):
     if USERSCRIPT:
         try:
             await pg.evaluate(USERSCRIPT)
-        except:
+        except Exception:
             pass
 
 
@@ -249,11 +249,11 @@ async def start(
                 for old in ctx.pages[1:]:
                     try:
                         await old.close()
-                    except:
+                    except Exception:
                         pass
                 try:
                     await pg.goto('about:blank', timeout=5000)
-                except:
+                except Exception:
                     pass
             else:
                 pg = await ctx.new_page()
@@ -278,7 +278,7 @@ async def start(
 
             try:
                 await pg.bring_to_front()
-            except:
+            except Exception:
                 pass
 
             _context = ctx
@@ -297,7 +297,7 @@ async def start(
             try:
                 if _playwright:
                     await _playwright.stop()
-            except:
+            except Exception:
                 pass
             _playwright = None
             _context = None
@@ -370,7 +370,7 @@ async def find_page_by_url_async(url: str) -> dict:
         try:
             if norm(pg.url) == norm(url):
                 return {"success": True, "found": True, "pageIndex": i}
-        except:
+        except Exception:
             continue
     return {"success": True, "found": False, "pageIndex": -1}
 

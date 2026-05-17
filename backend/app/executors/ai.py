@@ -70,7 +70,7 @@ class AIChatExecutor(ModuleExecutor):
                     error_data = response.json()
                     if 'error' in error_data:
                         error_msg = error_data['error'].get('message', error_msg)
-                except:
+                except Exception:
                     pass
                 return ModuleResult(success=False, error=f"API请求失败 ({response.status_code}): {error_msg}")
             
@@ -273,7 +273,7 @@ class AIVisionExecutor(ModuleExecutor):
                     error_data = response.json()
                     if 'error' in error_data:
                         error_msg = error_data['error'].get('message', error_msg)
-                except:
+                except Exception:
                     pass
                 return ModuleResult(success=False, error=f"API请求失败 ({response.status_code}): {error_msg}")
             

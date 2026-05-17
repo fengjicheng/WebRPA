@@ -311,7 +311,7 @@ class ExecutionContext:
                         # 尝试JSON序列化
                         json.dumps(v)
                         return v
-                    except:
+                    except Exception:
                         return str(v)
                 else:
                     return str(v)

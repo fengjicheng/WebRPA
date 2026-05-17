@@ -9,10 +9,10 @@ import ctypes
 # 设置 DPI 感知，确保获取真实物理像素坐标
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-except:
+except Exception:
     try:
         ctypes.windll.user32.SetProcessDPIAware()
-    except:
+    except Exception:
         pass
 
 # 全局状态

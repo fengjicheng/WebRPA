@@ -107,7 +107,7 @@ async def refresh_napcat_qrcode():
     if qrcode_path.exists():
         try:
             qrcode_path.unlink()
-        except:
+        except Exception:
             pass
     
     def on_qrcode(qrcode_path: str):

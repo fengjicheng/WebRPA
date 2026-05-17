@@ -268,7 +268,7 @@ class OpenPageExecutor(ModuleExecutor):
                                 if lock_file.exists():
                                     try:
                                         lock_file.unlink()
-                                    except:
+                                    except Exception:
                                         pass
                     except Exception as e:
                         print(f"[OpenPage] 进程检查失败: {e}")
@@ -382,7 +382,7 @@ class OpenPageExecutor(ModuleExecutor):
                             for old_page in existing_pages[1:]:
                                 try:
                                     await old_page.close()
-                                except:
+                                except Exception:
                                     pass
                             print(f"[OpenPage] 第一次启动，复用第一个页面，已清理 {len(existing_pages) - 1} 个其他历史页面")
                         else:
@@ -600,7 +600,7 @@ class HoverElementExecutor(ModuleExecutor):
 
             try:
                 await element.wait_for(state='attached', timeout=wait_timeout)
-            except:
+            except Exception:
                 await pw_wait_for_element(current_page, selector, state='visible', timeout=wait_timeout)
 
             # 处理超时参数：0 表示不限制超时，None 表示使用 Playwright 默认超时
@@ -671,7 +671,7 @@ class InputTextExecutor(ModuleExecutor):
             
             try:
                 await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
-            except:
+            except Exception:
                 pass
 
             element, input_type = await self._find_input_element(context.page, selector)
@@ -729,11 +729,11 @@ class GetElementInfoExecutor(ModuleExecutor):
             
             try:
                 await element.wait_for(state='attached', timeout=wait_timeout)
-            except:
+            except Exception:
                 try:
                     await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
                     element = context.page.locator(format_selector(selector)).first
-                except:
+                except Exception:
                     pass
             
             if await element.count() == 0:
@@ -963,10 +963,10 @@ class WaitImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像
@@ -1138,7 +1138,7 @@ class PageLoadCompleteExecutor(ModuleExecutor):
                 # 尝试等待指定状态，超时时间设为0表示立即检查
                 await context.page.wait_for_load_state(check_state, timeout=100)
                 is_loaded = True
-            except:
+            except Exception:
                 is_loaded = False
             
             # 保存结果到变量
@@ -1202,7 +1202,7 @@ class SetVariableExecutor(ModuleExecutor):
                 if isinstance(result, float) and result.is_integer():
                     return int(result)
                 return result
-            except:
+            except Exception:
                 pass
         
         try:
@@ -2440,7 +2440,7 @@ class SwitchIframeExecutor(ModuleExecutor):
                                     # 等待嵌套iframe加载
                                     try:
                                         await nested_frame.wait_for_load_state('domcontentloaded', timeout=5000)
-                                    except:
+                                    except Exception:
                                         pass
                                     
                                     print(f"[SwitchIframe] 嵌套iframe URL: {nested_frame.url}")

@@ -364,7 +364,7 @@ class PDFExtractImagesExecutor(ModuleExecutor):
                                         
                                         img = Image.frombytes(mode, size, data)
                                         img.save(output_path)
-                                    except:
+                                    except Exception:
                                         # 如果失败，直接保存原始数据
                                         with open(output_path, 'wb') as f:
                                             f.write(data)

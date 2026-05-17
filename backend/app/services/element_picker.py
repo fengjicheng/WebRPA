@@ -111,7 +111,7 @@ class ElementPicker:
                             self._selected_element = result
                             page.evaluate("window.__elementPickerResult = null")
                         time.sleep(0.3)
-                    except:
+                    except Exception:
                         break
                 browser.close()
         except Exception as e:

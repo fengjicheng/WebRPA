@@ -58,7 +58,7 @@ async def api_start_picker(request: StartPickerRequest):
                         await pg.bring_to_front()
                         found = True
                         break
-                except:
+                except Exception:
                     continue
 
         if not found:

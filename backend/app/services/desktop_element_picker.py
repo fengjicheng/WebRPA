@@ -56,7 +56,7 @@ class DesktopElementPicker:
         if self.highlight_window:
             try:
                 self.highlight_window.destroy()
-            except:
+            except Exception:
                 pass
             self.highlight_window = None
         
@@ -111,7 +111,7 @@ class DesktopElementPicker:
                     if has_highlight and self.highlight_window:
                         try:
                             self.highlight_window.update()
-                        except:
+                        except Exception:
                             pass
                     continue
                 
@@ -147,7 +147,7 @@ class DesktopElementPicker:
                                     # 如果标题包含WebRPA相关关键词，跳过
                                     if window_title and any(keyword in window_title for keyword in ["WebRPA", "localhost", "127.0.0.1", "5173"]):
                                         skip_element = True
-                        except:
+                        except Exception:
                             pass
                         
                         # 如果是WebRPA窗口，清空当前元素并跳过高亮
@@ -157,7 +157,7 @@ class DesktopElementPicker:
                             if has_highlight and self.highlight_window:
                                 try:
                                     self.highlight_window.withdraw()
-                                except:
+                                except Exception:
                                     pass
                             time.sleep(0.01)
                             continue
@@ -194,7 +194,7 @@ class DesktopElementPicker:
                 try:
                     self.highlight_window.destroy()
                     self.highlight_window = None
-                except:
+                except Exception:
                     pass
                 
         except Exception as e:
@@ -242,27 +242,27 @@ class DesktopElementPicker:
             # 基本属性
             try:
                 info['name'] = element.Name or ''
-            except:
+            except Exception:
                 pass
             
             try:
                 info['class_name'] = element.ClassName or ''
-            except:
+            except Exception:
                 pass
             
             try:
                 info['control_type'] = element.ControlTypeName or ''
-            except:
+            except Exception:
                 pass
             
             try:
                 info['automation_id'] = element.AutomationId or ''
-            except:
+            except Exception:
                 pass
             
             try:
                 info['handle'] = element.NativeWindowHandle
-            except:
+            except Exception:
                 pass
             
             # 位置信息
@@ -274,28 +274,28 @@ class DesktopElementPicker:
                     'width': rect.width(),
                     'height': rect.height()
                 }
-            except:
+            except Exception:
                 pass
             
             # 状态信息
             try:
                 info['is_visible'] = element.IsVisible
-            except:
+            except Exception:
                 pass
             
             try:
                 info['is_enabled'] = element.IsEnabled
-            except:
+            except Exception:
                 pass
             
             try:
                 info['is_offscreen'] = element.IsOffscreen
-            except:
+            except Exception:
                 pass
             
             try:
                 info['has_keyboard_focus'] = element.HasKeyboardFocus
-            except:
+            except Exception:
                 pass
             
             # 支持的模式
@@ -305,39 +305,39 @@ class DesktopElementPicker:
                     try:
                         element.GetValuePattern()
                         patterns.append('Value')
-                    except:
+                    except Exception:
                         pass
                 
                 if hasattr(element, 'GetTogglePattern'):
                     try:
                         element.GetTogglePattern()
                         patterns.append('Toggle')
-                    except:
+                    except Exception:
                         pass
                 
                 if hasattr(element, 'GetSelectionItemPattern'):
                     try:
                         element.GetSelectionItemPattern()
                         patterns.append('SelectionItem')
-                    except:
+                    except Exception:
                         pass
                 
                 if hasattr(element, 'GetScrollPattern'):
                     try:
                         element.GetScrollPattern()
                         patterns.append('Scroll')
-                    except:
+                    except Exception:
                         pass
                 
                 if hasattr(element, 'GetTextPattern'):
                     try:
                         element.GetTextPattern()
                         patterns.append('Text')
-                    except:
+                    except Exception:
                         pass
                 
                 info['patterns'] = patterns
-            except:
+            except Exception:
                 pass
             
             # 元素路径
@@ -373,7 +373,7 @@ class DesktopElementPicker:
                 if not parent or not parent.Exists(0, 0):
                     break
                 current = parent
-            except:
+            except Exception:
                 break
         
         return path

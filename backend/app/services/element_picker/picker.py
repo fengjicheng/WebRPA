@@ -87,7 +87,7 @@ class ElementPicker:
                 self._process.stdin.write(json.dumps({"action": "get_selected"}) + "\n")
                 self._process.stdin.flush()
                 await asyncio.sleep(0.1)
-            except:
+            except Exception:
                 pass
         
         result = self._selected_element
@@ -101,7 +101,7 @@ class ElementPicker:
                 self._process.stdin.write(json.dumps({"action": "get_similar"}) + "\n")
                 self._process.stdin.flush()
                 await asyncio.sleep(0.1)
-            except:
+            except Exception:
                 pass
         
         result = self._similar_elements
@@ -114,16 +114,16 @@ class ElementPicker:
             try:
                 self._process.stdin.write(json.dumps({"action": "quit"}) + "\n")
                 self._process.stdin.flush()
-            except:
+            except Exception:
                 pass
             
             try:
                 self._process.terminate()
                 self._process.wait(timeout=3)
-            except:
+            except Exception:
                 try:
                     self._process.kill()
-                except:
+                except Exception:
                     pass
             
             self._process = None

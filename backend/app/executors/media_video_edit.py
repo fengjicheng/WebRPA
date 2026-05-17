@@ -209,7 +209,7 @@ class MergeMediaExecutor(ModuleExecutor):
             if list_file and os.path.exists(list_file):
                 try:
                     os.unlink(list_file)
-                except:
+                except Exception:
                     pass
 
 

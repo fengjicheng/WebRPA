@@ -190,7 +190,7 @@ class NetworkCaptureExecutor(ModuleExecutor):
             try:
                 proc = psutil.Process(pid)
                 return proc.name()
-            except:
+            except Exception:
                 return ""
         
         def capture_connections():

@@ -16,10 +16,10 @@ def _cleanup_overlay():
         try:
             _overlay_process.terminate()
             _overlay_process.wait(timeout=1)
-        except:
+        except Exception:
             try:
                 _overlay_process.kill()
-            except:
+            except Exception:
                 pass
         _overlay_process = None
 

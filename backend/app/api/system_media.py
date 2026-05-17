@@ -176,7 +176,7 @@ async def convert_audio(request: AudioConvertRequest):
             
             try:
                 temp_input.unlink()
-            except:
+            except Exception:
                 pass
             
             if result.returncode != 0:
@@ -346,7 +346,7 @@ async def convert_video(request: VideoConvertRequest):
         if temp_download and temp_download.exists():
             try:
                 temp_download.unlink()
-            except:
+            except Exception:
                 pass
         
         if result.returncode != 0:
@@ -439,7 +439,7 @@ async def convert_image(request: ImageConvertRequest):
         if temp_download and temp_download.exists():
             try:
                 temp_download.unlink()
-            except:
+            except Exception:
                 pass
         
         if result.returncode != 0:

@@ -44,10 +44,10 @@ async def start_macro_recording(request: MacroStartRequest):
     
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    except:
+    except Exception:
         try:
             ctypes.windll.user32.SetProcessDPIAware()
-        except:
+        except Exception:
             pass
     
     class POINT(ctypes.Structure):
@@ -130,7 +130,7 @@ async def start_macro_recording(request: MacroStartRequest):
                 vk_code = key.value.vk
             else:
                 vk_code = ord(key.char.upper()) if hasattr(key, 'char') and key.char else 0
-        except:
+        except Exception:
             vk_code = 0
         
         if vk_code in (0x78, 0x79):
@@ -153,7 +153,7 @@ async def start_macro_recording(request: MacroStartRequest):
                 vk_code = key.value.vk
             else:
                 vk_code = ord(key.char.upper()) if hasattr(key, 'char') and key.char else 0
-        except:
+        except Exception:
             vk_code = 0
         
         if vk_code in (0x78, 0x79):
@@ -250,7 +250,7 @@ async def start_macro_hotkey_listener():
     if macro_recording_state.get("hotkey_listener"):
         try:
             macro_recording_state["hotkey_listener"].stop()
-        except:
+        except Exception:
             pass
         macro_recording_state["hotkey_listener"] = None
     
@@ -274,7 +274,7 @@ async def start_macro_hotkey_listener():
             elif vk_code == 0x79:
                 if macro_recording_state["is_recording"]:
                     macro_recording_state["pending_stop"] = True
-        except:
+        except Exception:
             pass
         return True
     
@@ -294,7 +294,7 @@ async def stop_macro_hotkey_listener():
     if macro_recording_state.get("hotkey_listener"):
         try:
             macro_recording_state["hotkey_listener"].stop()
-        except:
+        except Exception:
             pass
         macro_recording_state["hotkey_listener"] = None
     

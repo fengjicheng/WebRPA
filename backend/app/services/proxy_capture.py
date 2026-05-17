@@ -140,7 +140,7 @@ class ProxyCaptureService:
             # 运行代理
             try:
                 loop.run_until_complete(self._master.run())
-            except:
+            except Exception:
                 pass
             finally:
                 loop.close()

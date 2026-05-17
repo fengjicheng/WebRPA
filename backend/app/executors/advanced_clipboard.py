@@ -61,7 +61,7 @@ $image.Dispose()
                     
                     try:
                         Path(tmp_path).unlink()
-                    except:
+                    except Exception:
                         pass
                     
                     if result.returncode != 0:

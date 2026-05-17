@@ -72,7 +72,7 @@ class CameraRecordManager:
                     width, height = map(int, resolution.split('x'))
                     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
                     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-                except:
+                except Exception:
                     pass
             
             # 获取实际分辨率
@@ -226,7 +226,7 @@ class ScreenRecordManager:
         
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
-        except:
+        except Exception:
             pass
         
         screen = ImageGrab.grab()

@@ -322,7 +322,7 @@ async def run_ffmpeg_with_progress(
                 process.terminate()
                 try:
                     process.wait(timeout=2)
-                except:
+                except Exception:
                     process.kill()
             return False, "FFmpeg 执行超时"
         except asyncio.CancelledError:
@@ -331,7 +331,7 @@ async def run_ffmpeg_with_progress(
                 process.terminate()
                 try:
                     process.wait(timeout=2)
-                except:
+                except Exception:
                     process.kill()
             raise
         finally:
@@ -354,7 +354,7 @@ async def run_ffmpeg_with_progress(
             process.terminate()
             try:
                 process.wait(timeout=2)
-            except:
+            except Exception:
                 process.kill()
         raise
     except Exception as e:
@@ -400,7 +400,7 @@ def run_ffmpeg(args: list, timeout: int = 600) -> tuple[bool, str]:
             process.terminate()
             try:
                 process.wait(timeout=2)
-            except:
+            except Exception:
                 process.kill()
         return False, "FFmpeg执行超时"
     except Exception as e:
@@ -981,7 +981,7 @@ class MergeMediaExecutor(ModuleExecutor):
             if list_file and os.path.exists(list_file):
                 try:
                     os.unlink(list_file)
-                except:
+                except Exception:
                     pass
 
 
@@ -1267,10 +1267,10 @@ class ImageOCRExecutor(ModuleExecutor):
                     # 设置 DPI 感知，确保坐标准确
                     try:
                         ctypes.windll.shcore.SetProcessDpiAwareness(2)
-                    except:
+                    except Exception:
                         try:
                             ctypes.windll.user32.SetProcessDPIAware()
-                        except:
+                        except Exception:
                             pass
                     
                     # 使用 Windows API 截图（更准确，支持 DPI 缩放）
@@ -2293,7 +2293,7 @@ class ScreenRecordManager:
         # 设置DPI感知
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
-        except:
+        except Exception:
             pass
         
         # 获取屏幕尺寸

@@ -57,7 +57,7 @@ class FirecrawlScrapeExecutor(ModuleExecutor):
                     if wait_for:
                         try:
                             await page.wait_for_selector(wait_for, timeout=5000)
-                        except:
+                        except Exception:
                             pass
                     
                     # 获取 HTML 内容

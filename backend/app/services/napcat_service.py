@@ -195,7 +195,7 @@ class NapCatService:
             if "QQ.exe" in result.stdout:
                 qq_already_running = True
                 print("[NapCat] 检测到已有 QQ 进程在运行，将启动新的 QQ 实例（支持多开）")
-        except:
+        except Exception:
             pass
         
         try:
@@ -483,7 +483,7 @@ class NapCatService:
                 try:
                     self.process.terminate()
                     self.process.wait(timeout=5)
-                except:
+                except Exception:
                     if self.process:
                         self.process.kill()
                 self.process = None
@@ -578,7 +578,7 @@ class NapCatService:
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
                 qq_running = "QQ.exe" in result.stdout
-            except:
+            except Exception:
                 pass
         
         # 检查 OneBot API 是否可用（这是判断 NapCat 是否真正运行的关键）
@@ -632,7 +632,7 @@ class NapCatService:
                             webui_match = re.search(r'http://127\.0\.0\.1:6099/webui\?token=\S+', content)
                             if webui_match:
                                 self.webui_url = webui_match.group(0)
-                    except:
+                    except Exception:
                         pass
         
         # 判断 NapCat 是否真正运行：

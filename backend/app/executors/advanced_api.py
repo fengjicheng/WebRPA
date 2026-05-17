@@ -160,7 +160,7 @@ class JsonParseExecutor(ModuleExecutor):
                 try:
                     i = int(idx)
                     current = current[i] if isinstance(current, list) and -len(current) <= i < len(current) else None
-                except:
+                except Exception:
                     return None
             elif '[' in part:
                 prop = part[:part.index('[')]

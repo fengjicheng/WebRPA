@@ -343,7 +343,7 @@ class GlobalHotkeyService:
                 0,
                 0
             )
-        except:
+        except Exception:
             pass
         
         if self._thread:

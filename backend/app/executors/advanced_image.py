@@ -54,10 +54,10 @@ class ClickImageExecutor(ModuleExecutor):
             # 设置 DPI 感知，确保坐标准确
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像（支持中文路径）
@@ -215,10 +215,10 @@ class ClickImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             user32 = ctypes.windll.user32
@@ -366,10 +366,10 @@ class HoverImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像
@@ -588,10 +588,10 @@ class DragImageExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取源图像
@@ -842,10 +842,10 @@ class ImageExistsExecutor(ModuleExecutor):
             # 设置 DPI 感知
             try:
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
-            except:
+            except Exception:
                 try:
                     ctypes.windll.user32.SetProcessDPIAware()
-                except:
+                except Exception:
                     pass
             
             # 读取模板图像

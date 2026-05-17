@@ -134,7 +134,7 @@ async def list_workflows(config: WorkflowFolderConfig):
                             data = json.load(f)
                             if 'name' in data:
                                 workflow_name = data['name']
-                    except:
+                    except Exception:
                         pass
                     
                     workflows.append(LocalWorkflowInfo(

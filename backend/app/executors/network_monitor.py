@@ -82,7 +82,7 @@ class NetworkMonitor:
         if self._listener and self.page:
             try:
                 self.page.remove_listener("request", self._listener)
-            except:
+            except Exception:
                 pass
         
         self.is_active = False

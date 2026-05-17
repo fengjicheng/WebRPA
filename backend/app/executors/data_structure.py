@@ -218,7 +218,7 @@ class ListExportExecutor(ModuleExecutor):
                     try:
                         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                             f.write(separator)  # 追加模式时先加分隔符
-                    except:
+                    except Exception:
                         pass
                 f.write(content)
             

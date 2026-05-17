@@ -6,10 +6,10 @@ from pynput import mouse, keyboard
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)
-except:
+except Exception:
     try:
         ctypes.windll.user32.SetProcessDPIAware()
-    except:
+    except Exception:
         pass
 
 
@@ -111,14 +111,14 @@ class PhoneCoordinatePicker:
                 self.ctrl_pressed = True
             elif key == keyboard.Key.esc:
                 self.stop()
-        except:
+        except Exception:
             pass
     
     def on_key_release(self, key):
         try:
             if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
                 self.ctrl_pressed = False
-        except:
+        except Exception:
             pass
     
     def start(self, callback: Optional[Callable[[int, int], None]] = None):

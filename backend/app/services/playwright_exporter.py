@@ -250,7 +250,7 @@ class PlaywrightExporter:
                     if var_type == 'number':
                         try:
                             value = float(value) if '.' in str(value) else int(value)
-                        except:
+                        except Exception:
                             value = 0
                     elif var_type == 'boolean':
                         value = str(value).lower() in ('true', '1', 'yes')
@@ -258,13 +258,13 @@ class PlaywrightExporter:
                         if isinstance(value, str):
                             try:
                                 value = json.loads(value)
-                            except:
+                            except Exception:
                                 value = []
                     elif var_type == 'object':
                         if isinstance(value, str):
                             try:
                                 value = json.loads(value)
-                            except:
+                            except Exception:
                                 value = {}
                     self._add_line(f'variables["{name}"] = {repr(value)}')
         else:

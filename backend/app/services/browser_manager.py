@@ -431,7 +431,7 @@ async def _stop_picker_engine() -> dict:
                         window.__elementPickerSimilar = null;
                     }
                 """)
-            except:
+            except Exception:
                 pass
     return {"success": True, "data": {"message": "选择器已停止"}}
 

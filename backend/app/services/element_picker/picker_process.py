@@ -304,7 +304,7 @@ async def main():
     if lock_file.exists():
         try:
             lock_file.unlink()
-        except:
+        except Exception:
             pass
     
     playwright = await async_playwright().start()
@@ -334,7 +334,7 @@ async def main():
                 no_viewport=True,  # 使用 no_viewport 让页面自适应窗口大小
                 ignore_https_errors=True,
             )
-        except:
+        except Exception:
             import tempfile
             temp_dir = tempfile.mkdtemp(prefix="picker_data_")
             context = await playwright.chromium.launch_persistent_context(
@@ -361,7 +361,7 @@ async def main():
         for old_page in existing_pages:
             try:
                 await old_page.close()
-            except:
+            except Exception:
                 pass
         
         # 创建新页面
@@ -378,7 +378,7 @@ async def main():
         async def inject_script(pg):
             try:
                 await pg.evaluate(PICKER_SCRIPT)
-            except:
+            except Exception:
                 pass
         
         # 监听新页面
@@ -388,7 +388,7 @@ async def main():
             try:
                 await pg.wait_for_load_state("domcontentloaded")
                 await inject_script(pg)
-            except:
+            except Exception:
                 pass
         
         # 注入脚本到当前页面
@@ -414,7 +414,7 @@ async def main():
                     else:
                         cmd_queue.put(None)
                         break
-                except:
+                except Exception:
                     break
         
         reader_thread = threading.Thread(target=stdin_reader, daemon=True)
@@ -449,12 +449,12 @@ async def main():
         if context:
             try:
                 await context.close()
-            except:
+            except Exception:
                 pass
         if playwright:
             try:
                 await playwright.stop()
-            except:
+            except Exception:
                 pass
         print(json.dumps({"status": "closed"}), flush=True)
 

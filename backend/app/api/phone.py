@@ -253,7 +253,7 @@ def _focus_scrcpy_window():
                     try:
                         win32gui.SetForegroundWindow(hwnd)
                         print(f"[API] ✅ 已置顶并聚焦 Scrcpy 窗口")
-                    except:
+                    except Exception:
                         # 如果 SetForegroundWindow 失败，使用备用方法
                         # 通过模拟 Alt 键来绕过 Windows 的前台窗口限制
                         import win32api

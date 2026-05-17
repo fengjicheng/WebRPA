@@ -154,7 +154,7 @@ class VarsProxy:
 _vars_json = os.environ.get('WEBRPA_VARS', '{{}}')
 try:
     _all_vars = json.loads(_vars_json)
-except:
+except Exception:
     _all_vars = {{}}
 
 # 创建 vars 对象，用户可以通过 vars.变量名 访问所有变量
@@ -254,7 +254,7 @@ except Exception as e:
                     try:
                         process.kill()
                         await process.wait()
-                    except:
+                    except Exception:
                         pass
                     
                     return ModuleResult(
@@ -326,12 +326,12 @@ except Exception as e:
                 if temp_script and os.path.exists(temp_script):
                     try:
                         os.unlink(temp_script)
-                    except:
+                    except Exception:
                         pass
                 if temp_output_file and os.path.exists(temp_output_file.name):
                     try:
                         os.unlink(temp_output_file.name)
-                    except:
+                    except Exception:
                         pass
         
         except Exception as e:
