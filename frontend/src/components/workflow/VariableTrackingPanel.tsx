@@ -396,7 +396,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
                       className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200
                         ${isSelected 
                           ? 'bg-orange-100 text-orange-700 shadow-sm' 
-                          : 'hover:bg-white text-gray-700'}`}
+                          : 'hover:bg-white text-gray-700 has-hover-only'}`}
                     >
                       <div className="font-medium text-sm truncate">{variable}</div>
                       <div className="text-xs text-gray-500 mt-1 flex items-center justify-between">
@@ -468,7 +468,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
                           {isLongValue && (
                             <button
                               onClick={() => toggleRecordExpanded(index)}
-                              className="p-1 rounded hover:bg-gray-100 transition-colors"
+                              className="p-1 rounded hover:bg-gray-100 transition-colors has-hover-only"
                               title={isExpanded ? '收起' : '展开'}
                             >
                               {isExpanded ? (

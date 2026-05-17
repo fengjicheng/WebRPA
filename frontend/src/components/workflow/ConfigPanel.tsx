@@ -857,7 +857,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         {isCollapsed ? (
           <button 
             type="button"
-            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >
@@ -877,7 +877,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               </div>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors"
+                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors has-hover-only"
                 title="收起"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -2045,7 +2045,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         {isCollapsed ? (
           <button 
             type="button"
-            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >

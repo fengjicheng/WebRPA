@@ -212,7 +212,7 @@ function ModuleSearch({
                 setIsExpanded(false)
                 handleClear()
               }}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors has-hover-only"
               title="关闭 (ESC)"
             >
               <ChevronUp className="w-4 h-4" />

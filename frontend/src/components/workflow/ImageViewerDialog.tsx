@@ -251,7 +251,7 @@ export function ImageViewerDialog({ imageUrl, autoClose, displayTime, onClose }:
             缩小
           </Button>
           <button
-            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 rounded has-hover-only"
+            className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 rounded"
             onClick={resetZoom}
             title="重置缩放"
           >

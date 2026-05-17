@@ -59,15 +59,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       outline:
         'bg-[hsl(var(--slate-50))] text-[hsl(var(--foreground))] ' +
         'border border-[hsl(var(--slate-200))] shadow-xs ' +
-        'hover:bg-[hsl(var(--card))] hover:border-[hsl(var(--slate-300))] hover:shadow-soft ' +
+        'hover:bg-[hsl(var(--card))] hover:border-[hsl(var(--slate-300))] hover:shadow-soft' +
         'active:bg-[hsl(var(--slate-100))]',
       secondary:
         'bg-[hsl(var(--slate-100))] text-[hsl(var(--foreground))] border border-[hsl(var(--slate-200))] ' +
         'hover:bg-[hsl(var(--slate-200))] hover:border-[hsl(var(--slate-300))]',
       ghost:
-        'text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]',
+        'bg-[hsl(var(--brand-50)/0.6)] text-[hsl(var(--foreground))] border border-[hsl(var(--brand-500)/0.2)] ' +
+        'hover:bg-[hsl(var(--brand-100))] hover:border-[hsl(var(--brand-500)/0.4)]',
       subtle:
-        'bg-transparent text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]',
+        'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border border-[hsl(var(--slate-200))] ' +
+        'hover:bg-[hsl(var(--slate-200))] hover:text-[hsl(var(--foreground))]',
       link:
         'text-[hsl(var(--primary))] underline-offset-4 hover:underline px-0 h-auto',
       tonal:

@@ -1813,7 +1813,7 @@ function ModuleItem({
               <button
                 key={color.name}
                 onClick={() => handleColorSelect(color.value)}
-                className="flex flex-col items-center gap-1 p-2 rounded hover:bg-gray-50 transition-colors"
+                className="flex flex-col items-center gap-1 p-2 rounded hover:bg-gray-50 transition-colors has-hover-only"
                 title={color.name}
               >
                 <div 
@@ -1973,7 +1973,7 @@ export function ModuleSidebar() {
       {isCollapsed ? (
         <button 
           type="button"
-          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
+          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
           onClick={() => setIsCollapsed(false)}
           title="展开模块列表"
         >
@@ -2007,7 +2007,7 @@ export function ModuleSidebar() {
               </div>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors"
+                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors has-hover-only"
                 title="收起"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -2051,7 +2051,7 @@ export function ModuleSidebar() {
                     />
                     {searchQuery && (
                       <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors has-hover-only"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
                         onClick={() => setSearchQuery('')}
                       >
                         <X className="w-4 h-4" />

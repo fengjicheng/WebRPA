@@ -392,7 +392,7 @@ export function VariablePanel() {
                         e.stopPropagation()
                         toggleExpand(variable.name)
                       }}
-                      className="p-1 hover:bg-muted rounded transition-colors"
+                      className="p-1 hover:bg-muted rounded transition-colors has-hover-only"
                     >
                       {expandedVars.has(variable.name) ? (
                         <ChevronDown className="w-3 h-3" />

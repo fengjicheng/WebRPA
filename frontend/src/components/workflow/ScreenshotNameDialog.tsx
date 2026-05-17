@@ -48,7 +48,7 @@ export function ScreenshotNameDialog({
           </div>
           <button
             onClick={onCancel}
-            className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors has-hover-only"
+            className="w-8 h-8 rounded-lg hover:bg-white/20 "
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -144,7 +144,7 @@ export function ScreenshotErrorDialog({
           </div>
           <button
             onClick={onCancel}
-            className="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition-colors has-hover-only"
+            className="w-8 h-8 rounded-lg hover:bg-white/20 "
           >
             <X className="w-5 h-5 text-white" />
           </button>

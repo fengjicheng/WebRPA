@@ -634,14 +634,18 @@ input[type="range"].slider-thumb::-moz-range-thumb {
 
 /* ============ 全局兜底：可点击按钮可见性 ============
    配合脚本改造：所有原生 button + 仅有 hover:bg-* 没有默认 bg 的，
-   通过 .has-hover-only 标记类获得浅灰底兜底。
-   开发者也可以主动加 .has-hover-only 让任何元素拥有此样式。 */
+   通过 .has-hover-only 标记类获得彩色品牌底兜底，一眼能看出"是按钮"。 */
 button.has-hover-only,
 .has-hover-only {
-  background-color: hsl(var(--slate-100));
-  border: 1px solid hsl(var(--slate-200));
-  transition: background-color 120ms ease, border-color 120ms ease;
+  background-color: hsl(var(--brand-50));
+  border: 1px solid hsl(var(--brand-500) / 0.3);
+  color: hsl(var(--brand-700));
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 .has-hover-only:hover {
-  border-color: hsl(var(--slate-300));
+  background-color: hsl(var(--brand-100));
+  border-color: hsl(var(--brand-500) / 0.5);
+}
+.has-hover-only:active {
+  transform: translateY(1px);
 }

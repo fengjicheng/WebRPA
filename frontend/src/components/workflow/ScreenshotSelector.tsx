@@ -169,7 +169,7 @@ export function ScreenshotSelector({
           </div>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors has-hover-only"
+            className="p-2 hover:bg-white/20 "
           >
             <X className="w-5 h-5" />
           </button>

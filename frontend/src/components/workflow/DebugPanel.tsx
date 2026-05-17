@@ -143,7 +143,7 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
                     {isComplex && (
                       <button
                         onClick={() => toggleExpand(variable.name)}
-                        className="flex-shrink-0 p-0.5 hover:bg-gray-200 rounded transition-colors"
+                        className="flex-shrink-0 p-0.5 hover:bg-gray-200 rounded transition-colors has-hover-only"
                       >
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4 text-gray-600" />
@@ -161,7 +161,7 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
                   </div>
                   <button
                     onClick={() => copyValue(variable.name, variable.value)}
-                    className="flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors"
+                    className="flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors has-hover-only"
                     title="复制变量值"
                   >
                     {isCopied ? (

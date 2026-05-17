@@ -174,7 +174,7 @@ export function ExecutionDetailsPanel({ isOpen, onClose, executions }: Execution
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     <button
                       onClick={() => toggleExpand(exec.nodeId)}
-                      className="flex-shrink-0 p-0.5 hover:bg-white/70 rounded transition-colors mt-0.5"
+                      className="flex-shrink-0 p-0.5 hover:bg-white/70 rounded transition-colors mt-0.5 has-hover-only"
                     >
                       {isExpanded ? (
                         <ChevronDown className="w-4 h-4 text-gray-600" />

@@ -2684,7 +2684,7 @@ function MacroActionEditDialog({
               <button
                 type="button"
                 className={`w-full px-3 py-2 text-sm border rounded flex items-center justify-center gap-2 ${
-                  isPicking ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                  isPicking ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50 has-hover-only'
                 }`}
                 onClick={handlePickPosition}
                 disabled={isPicking}
@@ -2920,7 +2920,7 @@ function MacroAddActionDialog({
               <button
                 type="button"
                 className={`w-full px-3 py-2 text-sm border rounded flex items-center justify-center gap-2 ${
-                  isPicking ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'
+                  isPicking ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50 has-hover-only'
                 }`}
                 onClick={handlePickPosition}
                 disabled={isPicking}

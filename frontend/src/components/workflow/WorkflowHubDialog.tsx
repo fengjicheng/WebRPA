@@ -2577,7 +2577,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
               <div className="p-6 overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold">编辑工作流</h3>
-                  <button onClick={cancelEdit} className="p-1 hover:bg-gray-100 rounded has-hover-only">
+                  <button onClick={cancelEdit} className="p-1 hover:bg-gray-100 rounded">
                     <X className="w-5 h-5" />
                   </button>
                 </div>

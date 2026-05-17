@@ -210,7 +210,7 @@ export function QuickModulePicker({
                       <button
                         key={module.type + (module.customModuleId || '')}
                         onClick={() => handleModuleClick(module)}
-                        className="w-full flex items-center gap-2.5 px-2 h-8 rounded text-left hover:bg-[hsl(var(--brand-50))] group transition-colors"
+                        className="w-full flex items-center gap-2.5 px-2 h-8 rounded text-left hover:bg-[hsl(var(--brand-50))] group transition-colors has-hover-only"
                       >
                         <Icon className="w-4 h-4 text-[hsl(var(--muted-foreground))] flex-shrink-0 group-hover:text-[hsl(var(--brand-600))]" />
                         <span className="flex-1 text-[12.5px] text-[hsl(var(--foreground))] truncate">

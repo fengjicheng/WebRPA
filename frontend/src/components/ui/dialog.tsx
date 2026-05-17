@@ -51,7 +51,7 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Close
         className={
           'absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-[6px] ' +
-          'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))] ' +
+          'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]' +
           'transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ' +
           'disabled:pointer-events-none'
         }

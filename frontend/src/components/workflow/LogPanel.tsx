@@ -658,7 +658,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   />
                   {logSearchQuery && (
                     <button
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-blue-100 text-muted-foreground hover:text-blue-600 transition-all has-hover-only"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-blue-100 text-muted-foreground hover:text-blue-600 transition-all"
                       onClick={() => setLogSearchQuery('')}
                     >
                       <X className="w-3.5 h-3.5" />
@@ -669,7 +669,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   <Filter className="w-3.5 h-3.5 text-blue-500" />
                   <button
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    className="h-7 px-2 text-xs border rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+                    className="h-7 px-2 text-xs border rounded hover:bg-gray-50 transition-colors flex items-center gap-1 has-hover-only"
                   >
                     <span>筛选 ({logLevelFilters.size})</span>
                     <ChevronDown className="w-3 h-3" />

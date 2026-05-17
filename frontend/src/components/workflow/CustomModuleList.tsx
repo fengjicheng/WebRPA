@@ -174,7 +174,7 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
           <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={(e) => handleToggleFavorite(module, e)}
-              className="p-1 rounded hover:bg-gray-200 transition-colors"
+              className="p-1 rounded hover:bg-gray-200 transition-colors has-hover-only"
               title={module.is_favorite ? '取消收藏' : '收藏'}
             >
               {module.is_favorite ? (
@@ -185,14 +185,14 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
             </button>
             <button
               onClick={() => handleDoubleClick(module)}
-              className="p-1 rounded hover:bg-gray-200 transition-colors"
+              className="p-1 rounded hover:bg-gray-200 transition-colors has-hover-only"
               title="编辑"
             >
               <Edit className="w-4 h-4 text-gray-600" />
             </button>
             <button
               onClick={(e) => handleDelete(module, e)}
-              className="p-1 rounded hover:bg-red-100 transition-colors"
+              className="p-1 rounded hover:bg-red-100 transition-colors has-hover-only"
               title="删除"
             >
               <Trash2 className="w-4 h-4 text-red-600" />
