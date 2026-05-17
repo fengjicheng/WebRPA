@@ -861,13 +861,20 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >
-            <ChevronLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+              <ChevronLeft className="w-4 h-4" />
+            </span>
             <Settings className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
           </button>
         ) : (
           <>
             <div className="p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">配置面板</h2>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+                  <Settings className="w-4 h-4" />
+                </span>
+                <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">配置面板</h2>
+              </div>
               <button
                 onClick={() => setIsCollapsed(true)}
                 className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors"
@@ -2042,7 +2049,9 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >
-            <ChevronLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+              <ChevronLeft className="w-4 h-4" />
+            </span>
             <Settings className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             <span className="text-[10px] text-[hsl(var(--muted-foreground))]" style={{ writingMode: 'vertical-rl' }}>
               {moduleTypeLabels[nodeData.moduleType]}
@@ -2051,9 +2060,14 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         ) : (
           <>
             <div className="bg-[hsl(var(--card))] p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">{moduleTypeLabels[nodeData.moduleType]}</h2>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">节点配置</p>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))] flex-shrink-0">
+                  <Settings className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">{moduleTypeLabels[nodeData.moduleType]}</h2>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">节点配置</p>
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <Button 

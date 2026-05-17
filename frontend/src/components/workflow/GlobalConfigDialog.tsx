@@ -119,7 +119,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             }`}
             onClick={() => setActiveTab('system')}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className={`w-4 h-4 ${activeTab === 'system' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--slate-500))]'}`} />
             系统
           </button>
           <button
@@ -130,7 +130,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             }`}
             onClick={() => setActiveTab('ai')}
           >
-            <Brain className="w-4 h-4" />
+            <Brain className={`w-4 h-4 ${activeTab === 'ai' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(270_60%_55%)]'}`} />
             AI对话
           </button>
           <button
@@ -141,7 +141,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             }`}
             onClick={() => setActiveTab('aiAssistant')}
           >
-            <Bot className="w-4 h-4" />
+            <Bot className={`w-4 h-4 ${activeTab === 'aiAssistant' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(217_91%_60%)]'}`} />
             小助手
           </button>
           <button
@@ -152,7 +152,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             }`}
             onClick={() => setActiveTab('aiScraper')}
           >
-            <Brain className="w-4 h-4" />
+            <Brain className={`w-4 h-4 ${activeTab === 'aiScraper' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(280_60%_55%)]'}`} />
             AI智能
           </button>
           <button
@@ -163,84 +163,84 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             }`}
             onClick={() => setActiveTab('email')}
           >
-            <Mail className="w-4 h-4" />
+            <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--info-500))]'}`} />
             邮件
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'workflow'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('workflow')}
           >
-            <Folder className="w-4 h-4" />
+            <Folder className={`w-4 h-4 ${activeTab === 'workflow' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--warning-500))]'}`} />
             存储
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'database'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('database')}
           >
-            <Database className="w-4 h-4" />
+            <Database className={`w-4 h-4 ${activeTab === 'database' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(199_89%_48%)]'}`} />
             数据库
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'display'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('display')}
           >
-            <Monitor className="w-4 h-4" />
+            <Monitor className={`w-4 h-4 ${activeTab === 'display' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--slate-500))]'}`} />
             显示
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'browser'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('browser')}
           >
-            <Globe className="w-4 h-4" />
+            <Globe className={`w-4 h-4 ${activeTab === 'browser' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(var(--success-500))]'}`} />
             浏览器
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'triggers'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('triggers')}
           >
-            <Zap className="w-4 h-4" />
+            <Zap className={`w-4 h-4 ${activeTab === 'triggers' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(48_95%_50%)]'}`} />
             触发器
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'qq'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('qq')}
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className={`w-4 h-4 ${activeTab === 'qq' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(217_91%_60%)]'}`} />
             QQ号
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'feishu'
-                ? 'border-blue-500 text-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('feishu')}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className={`w-4 h-4 ${activeTab === 'feishu' ? 'text-[hsl(var(--primary))]' : 'text-[hsl(199_89%_48%)]'}`} />
             飞书
           </button>
         </div>

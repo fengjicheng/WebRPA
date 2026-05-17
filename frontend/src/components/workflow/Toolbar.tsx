@@ -3,6 +3,7 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { cn } from '@/lib/utils'
 import { workflowApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 import { getBackendBaseUrl } from '@/services/config'
@@ -1076,15 +1077,28 @@ export function Toolbar() {
         </>
       )}
 
-      {/* 工作流名称 */}
-      <Input
-        value={name}
-        onChange={(e) => setWorkflowName(e.target.value)}
-        onFocus={handleNameFocus}
-        onBlur={handleNameBlur}
-        className="w-32 sm:w-44 md:w-56 h-7 text-[12.5px]"
-        placeholder="工作流名称"
-      />
+      {/* 工作流名称 + 状态指示 */}
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'w-2 h-2 rounded-full transition-colors flex-shrink-0',
+            isRunning
+              ? 'bg-[hsl(var(--success-500))] shadow-[0_0_0_3px_hsl(var(--success-500)/0.18)]'
+              : hasUnsavedChanges
+              ? 'bg-[hsl(var(--warning-500))]'
+              : 'bg-[hsl(var(--slate-300))]'
+          )}
+          title={isRunning ? '运行中' : hasUnsavedChanges ? '有未保存的更改' : '空闲'}
+        />
+        <Input
+          value={name}
+          onChange={(e) => setWorkflowName(e.target.value)}
+          onFocus={handleNameFocus}
+          onBlur={handleNameBlur}
+          className="w-32 sm:w-44 md:w-56 h-7 text-[12.5px]"
+          placeholder="工作流名称"
+        />
+      </div>
 
       <div className="hidden md:block h-5 w-px bg-[hsl(var(--border))]" />
 
@@ -1093,7 +1107,7 @@ export function Toolbar() {
         {!isRunning ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="default" noMotion>
+              <Button size="sm" variant="success" noMotion>
                 <Play className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">运行</span>
                 <span className="hidden lg:inline text-[10px] opacity-70 font-normal">F5</span>
@@ -1102,11 +1116,11 @@ export function Toolbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-44">
               <DropdownMenuItem onClick={handleRun}>
-                <Play className="w-3.5 h-3.5 mr-2" />
+                <Play className="w-3.5 h-3.5 mr-2 text-[hsl(var(--success-500))]" />
                 运行 (F5)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleRunHeadless}>
-                <EyeOff className="w-3.5 h-3.5 mr-2" />
+                <EyeOff className="w-3.5 h-3.5 mr-2 text-[hsl(var(--muted-foreground))]" />
                 无头运行
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1118,7 +1132,7 @@ export function Toolbar() {
             onClick={handleStop}
             noMotion
           >
-            <Square className="w-3.5 h-3.5" />
+            <Square className="w-3.5 h-3.5 fill-current" />
             <span className="hidden sm:inline">停止</span>
             <span className="hidden lg:inline text-[10px] opacity-70 font-normal">Shift+F5</span>
           </Button>
@@ -1130,9 +1144,8 @@ export function Toolbar() {
       {/* 文件操作 - 大屏幕显示全部，小屏幕使用下拉菜单 */}
       <div className="hidden lg:flex items-center gap-1">
         <Button 
-          variant="outline" 
+          variant="default" 
           size="sm" 
-          className="" 
           onClick={() => {
             console.log('[Toolbar] 保存按钮被点击')
             handleSave()
@@ -1144,19 +1157,17 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="" 
           onClick={handleOpen}
         >
-          <FolderOpen className="w-4 h-4 mr-1" />
+          <FolderOpen className="w-4 h-4 mr-1 text-[hsl(var(--warning-500))]" />
           打开
         </Button>
         <Button 
           variant="outline" 
           size="sm" 
-          className="" 
           onClick={() => setShowExportDialog(true)}
         >
-          <Code className="w-4 h-4 mr-1" />
+          <Code className="w-4 h-4 mr-1 text-[hsl(var(--info-500))]" />
           导出
         </Button>
       </div>
@@ -1176,15 +1187,15 @@ export function Toolbar() {
           <DropdownMenuLabel>文件操作</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => handleSave()}>
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
             保存
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleOpen}>
-            <FolderOpen className="w-4 h-4 mr-2" />
+            <FolderOpen className="w-4 h-4 mr-2 text-[hsl(var(--warning-500))]" />
             打开
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setShowExportDialog(true)}>
-            <Code className="w-4 h-4 mr-2" />
+            <Code className="w-4 h-4 mr-2 text-[hsl(var(--info-500))]" />
             导出
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -1252,11 +1263,10 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="" 
           onClick={() => setShowWorkflowHub(true)}
           title="工作流仓库"
         >
-          <Package className="w-4 h-4 sm:mr-1" />
+          <Package className="w-4 h-4 sm:mr-1 text-[hsl(217_91%_60%)]" />
           <span className="hidden lg:inline">工作流仓库</span>
         </Button>
 
@@ -1264,11 +1274,10 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="" 
           onClick={() => setShowAutoBrowser(true)}
           title="自动化浏览器"
         >
-          <Globe className="w-4 h-4 sm:mr-1" />
+          <Globe className="w-4 h-4 sm:mr-1 text-[hsl(var(--success-500))]" />
           <span className="hidden lg:inline">自动化浏览器</span>
         </Button>
 
@@ -1276,10 +1285,9 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="" 
           onClick={() => setShowGlobalConfig(true)}
         >
-          <Settings className="w-3.5 h-3.5" />
+          <Settings className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
           <span className="hidden sm:inline">全局配置</span>
         </Button>
 
@@ -1299,20 +1307,20 @@ export function Toolbar() {
             <DropdownMenuLabel>工具与功能</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowVariableTracking(true)}>
-              <Activity className="w-4 h-4 mr-2" />
+              <Activity className="w-4 h-4 mr-2 text-[hsl(var(--info-500))]" />
               变量追踪
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowPhoneMirror(true)}>
-              <Smartphone className="w-4 h-4 mr-2" />
+              <Smartphone className="w-4 h-4 mr-2 text-[hsl(var(--success-500))]" />
               手机镜像
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowScheduledTasks(true)}>
-              <Clock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 mr-2 text-[hsl(var(--warning-500))]" />
               计划任务
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowDocumentation(true)}>
-              <BookOpen className="w-4 h-4 mr-2" />
+              <BookOpen className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
               教学文档
             </DropdownMenuItem>
           </DropdownMenuContent>

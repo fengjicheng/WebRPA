@@ -1977,7 +1977,9 @@ export function ModuleSidebar() {
           onClick={() => setIsCollapsed(false)}
           title="展开模块列表"
         >
-          <ChevronRight className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+          <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+            <ChevronRight className="w-4 h-4" />
+          </span>
           {moduleCategories.slice(0, 8).map((category) => (
             <div
               key={category.name}
@@ -1995,9 +1997,10 @@ export function ModuleSidebar() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
+                  <Puzzle className="w-4 h-4 text-[hsl(var(--brand-600))]" />
                   <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">模块列表</h2>
-                  <span className="text-xs text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] px-1.5 py-0.5 rounded-full">
-                    共 {totalModulesCount} 个
+                  <span className="text-xs text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))] px-1.5 py-0.5 rounded-full font-medium">
+                    {totalModulesCount}
                   </span>
                 </div>
                 <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">拖拽模块到画布添加</p>
@@ -2012,12 +2015,12 @@ export function ModuleSidebar() {
             </div>
 
             {/* 标签页切换 */}
-            <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
+            <div className="flex gap-1 p-1 bg-[hsl(var(--muted))] rounded-md">
               <button
                 onClick={() => setActiveTab('builtin')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
                   activeTab === 'builtin'
-                    ? 'bg-[hsl(var(--brand-600))] text-white'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
                     : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
                 }`}
               >
@@ -2025,9 +2028,9 @@ export function ModuleSidebar() {
               </button>
               <button
                 onClick={() => setActiveTab('custom')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
                   activeTab === 'custom'
-                    ? 'bg-[hsl(var(--brand-600))] text-white'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(280_60%_45%)] shadow-soft'
                     : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
                 }`}
               >
@@ -2039,16 +2042,16 @@ export function ModuleSidebar() {
               <>
                 <div className="flex items-center gap-2">
                   <div className="relative group flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-blue-500" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--muted-foreground))] transition-colors group-focus-within:text-[hsl(var(--brand-500))]" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="搜索模块..."
-                      className="pl-8 h-8 text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white/80"
+                      className="pl-8 h-8 text-sm"
                     />
                     {searchQuery && (
                       <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
                         onClick={() => setSearchQuery('')}
                       >
                         <X className="w-4 h-4" />
@@ -2058,10 +2061,10 @@ export function ModuleSidebar() {
                   {/* 收藏筛选按钮 */}
                   <button
                     onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                    className={`flex items-center justify-center h-8 w-8 rounded-md transition-all duration-200 ${
+                    className={`flex items-center justify-center h-8 w-8 rounded-md transition-colors ${
                       showFavoritesOnly
-                        ? 'bg-yellow-100 text-yellow-600 border border-yellow-300'
-                        : 'bg-gray-100 text-gray-500 hover:bg-yellow-50 hover:text-yellow-500'
+                        ? 'bg-[hsl(48_100%_94%)] text-[hsl(45_93%_47%)] border border-[hsl(45_93%_47%/0.3)]'
+                        : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(48_100%_94%)] hover:text-[hsl(45_93%_47%)]'
                     }`}
                     title={showFavoritesOnly ? `收藏 (${favoriteModules.length}) - 点击显示全部` : `收藏 (${favoriteModules.length})`}
                   >
@@ -2069,8 +2072,8 @@ export function ModuleSidebar() {
                   </button>
                 </div>
                 {searchQuery && (
-                  <p className="text-xs text-muted-foreground animate-fade-in">
-                    找到 <span className="text-gradient font-semibold">{filteredModulesCount}</span> 个模块
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] animate-fade-in">
+                    找到 <span className="text-[hsl(var(--brand-700))] font-semibold">{filteredModulesCount}</span> 个模块
                   </p>
                 )}
               </>

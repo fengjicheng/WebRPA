@@ -2,7 +2,17 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'subtle'
+  variant?:
+    | 'default'      // 主品牌色（蓝，主操作）
+    | 'destructive'  // 危险红（删除/停止）
+    | 'outline'      // 描边
+    | 'secondary'    // 次级
+    | 'ghost'        // 透明
+    | 'link'         // 文字链接
+    | 'subtle'       // 弱调
+    | 'success'      // 成功绿（运行/启动/创建）
+    | 'warning'      // 警告橙（待确认）
+    | 'info'         // 信息青（下载/查看）
   size?: 'default' | 'sm' | 'lg' | 'icon' | 'xs'
   /** 兼容旧调用：禁用动效（新版本无装饰性动效，此参数仅作兼容占位） */
   noMotion?: boolean
@@ -31,6 +41,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]',
       link:
         'text-[hsl(var(--primary))] underline-offset-4 hover:underline px-0 h-auto',
+      success:
+        'bg-[hsl(var(--success-500))] text-white hover:brightness-110 active:brightness-95 shadow-sm',
+      warning:
+        'bg-[hsl(var(--warning-500))] text-white hover:brightness-110 active:brightness-95 shadow-sm',
+      info:
+        'bg-[hsl(var(--info-500))] text-white hover:brightness-110 active:brightness-95 shadow-sm',
     }
 
     const sizes: Record<NonNullable<ButtonProps['size']>, string> = {
