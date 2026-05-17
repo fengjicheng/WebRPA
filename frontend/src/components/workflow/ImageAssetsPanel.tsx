@@ -527,7 +527,7 @@ export function ImageAssetsPanel() {
       >
         <div className="flex flex-col items-center gap-1">
           {/* 小预览图 */}
-          <div className="w-10 h-10 rounded bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
+          <div className="bg-[hsl(var(--card))] w-10 h-10 rounded flex items-center justify-center overflow-hidden">
             <img
               src={`${API_BASE}/api/image-assets/${asset.id}/thumbnail`}
               alt={asset.originalName}
@@ -571,7 +571,7 @@ export function ImageAssetsPanel() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white relative">
+    <div className="bg-[hsl(var(--card))] h-full flex flex-col to-white relative">
       {/* 面包屑导航 */}
       {currentPath && (
         <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b text-xs">
@@ -703,7 +703,7 @@ export function ImageAssetsPanel() {
             <>
               {/* 文件右键菜单：重命名、删除 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
                 onClick={() => {
                   if (contextMenu.assetId) {
                     const asset = imageAssets.find(a => a.id === contextMenu.assetId)
@@ -720,7 +720,7 @@ export function ImageAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   if (contextMenu.assetId) handleDeleteAsset(contextMenu.assetId)
                   setContextMenu(null)
@@ -734,7 +734,7 @@ export function ImageAssetsPanel() {
             <>
               {/* 空白区域右键菜单：上传、新建文件夹、删除所有文件 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-purple-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-purple-700"
                 onClick={() => {
                   fileInputRef.current?.click()
                   setContextMenu(null)
@@ -744,7 +744,7 @@ export function ImageAssetsPanel() {
                 上传图像
               </button>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
                 onClick={() => {
                   setIsCreatingFolder(true)
                   setContextMenu(null)
@@ -755,7 +755,7 @@ export function ImageAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   handleDeleteAllFiles()
                   setContextMenu(null)
@@ -769,7 +769,7 @@ export function ImageAssetsPanel() {
             <>
               {/* 文件夹右键菜单：上传到此文件夹、重命名、删除 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-purple-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-purple-700"
                 onClick={() => {
                   const targetFolder = contextMenu.folder
                   const originalHandler = fileInputRef.current?.onchange
@@ -829,7 +829,7 @@ export function ImageAssetsPanel() {
                 上传到此文件夹
               </button>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
                 onClick={() => {
                   setEditingFolder(contextMenu.folder)
                   setEditFolderName(contextMenu.folder.split('/').pop() || '')
@@ -841,7 +841,7 @@ export function ImageAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   handleDeleteFolder(contextMenu.folder)
                   setContextMenu(null)
@@ -880,7 +880,7 @@ export function ImageAssetsPanel() {
       
       {/* 悬浮的快捷键提示 - 固定在右下角 */}
       <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200 shadow-lg backdrop-blur-sm">
+        <div className="bg-[hsl(var(--card))] flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 shadow-lg backdrop-blur-sm">
           <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />

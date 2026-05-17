@@ -165,7 +165,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       }}
     >
       {/* 顶部装饰线 */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400 rounded-t-lg" />
+      <div className="bg-[hsl(var(--card))] absolute top-0 left-0 right-0 h-1 rounded-t-lg" />
       
       {/* 折叠按钮 - 右上角 */}
       <button
@@ -183,7 +183,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       {/* 主体内容 */}
       <div className="flex items-center gap-3">
         {/* 图标 */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
+        <div className="bg-[hsl(var(--card))] flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center shadow-md">
           <Workflow className="w-5 h-5 text-white" />
         </div>
         

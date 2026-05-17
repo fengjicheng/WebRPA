@@ -465,7 +465,7 @@ export function ExcelAssetsPanel() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white">
+    <div className="bg-[hsl(var(--card))] h-full flex flex-col to-white">
       {/* 面包屑导航 */}
       {currentPath && (
         <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b text-xs">
@@ -608,7 +608,7 @@ export function ExcelAssetsPanel() {
             <>
               {/* 文件右键菜单：重命名、删除 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
                 onClick={() => {
                   if (contextMenu.assetId) {
                     const asset = dataAssets.find(a => a.id === contextMenu.assetId)
@@ -625,7 +625,7 @@ export function ExcelAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   if (contextMenu.assetId) handleDeleteAsset(contextMenu.assetId)
                   setContextMenu(null)
@@ -639,7 +639,7 @@ export function ExcelAssetsPanel() {
             <>
               {/* 空白区域右键菜单：上传、新建文件夹、删除所有文件 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
                 onClick={() => {
                   fileInputRef.current?.click()
                   setContextMenu(null)
@@ -649,7 +649,7 @@ export function ExcelAssetsPanel() {
                 上传文件
               </button>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
                 onClick={() => {
                   setIsCreatingFolder(true)
                   setContextMenu(null)
@@ -660,7 +660,7 @@ export function ExcelAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   handleDeleteAllFiles()
                   setContextMenu(null)
@@ -674,7 +674,7 @@ export function ExcelAssetsPanel() {
             <>
               {/* 文件夹右键菜单：上传到此文件夹、重命名、删除 */}
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-green-700"
                 onClick={() => {
                   const targetFolder = contextMenu.folder
                   const originalHandler = fileInputRef.current?.onchange
@@ -729,7 +729,7 @@ export function ExcelAssetsPanel() {
                 上传到此文件夹
               </button>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-gray-700 hover:text-orange-700"
                 onClick={() => {
                   setEditingFolder(contextMenu.folder)
                   setEditFolderName(contextMenu.folder.split('/').pop() || '')
@@ -741,7 +741,7 @@ export function ExcelAssetsPanel() {
               </button>
               <div className="h-px bg-gray-200 my-1 mx-2"></div>
               <button
-                className="w-full px-4 py-2 text-sm text-left hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
+                className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full px-4 py-2 text-sm text-left flex items-center gap-2.5 transition-all duration-150 text-red-600 hover:text-red-700"
                 onClick={() => {
                   handleDeleteFolder(contextMenu.folder)
                   setContextMenu(null)

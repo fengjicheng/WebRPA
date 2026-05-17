@@ -198,14 +198,14 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-cyan-50 via-blue-50/50 to-cyan-50 flex-shrink-0">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500">
+            <div className="bg-[hsl(var(--card))] p-1.5 rounded-lg">
               <Globe className="w-4 h-4 text-white" />
             </div>
             <h3 className="font-medium text-gradient">自动化浏览器</h3>
             {browserOpen && (
-              <span className="px-2 py-0.5 text-xs bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 rounded-full border border-green-200/50">
+              <span className="bg-[hsl(var(--card))] px-2 py-0.5 text-xs text-green-700 rounded-full border border-green-200/50">
                 已打开
               </span>
             )}
@@ -218,7 +218,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
         {/* 内容 - 添加滚动条 */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* 说明 */}
-          <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200/50 rounded-xl text-sm text-blue-800">
+          <div className="bg-[hsl(var(--card))] p-3 border border-blue-200/50 rounded-xl text-sm text-blue-800">
             <p className="font-medium mb-1">功能说明：</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>在此浏览器中登录的账号，运行工作流时会自动保持登录状态</li>
@@ -234,9 +234,9 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
           {browserOpen && (
             <>
               {/* Alt+X 快捷键提示 */}
-              <div className="p-3 bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border border-orange-200/50 rounded-xl">
+              <div className="bg-[hsl(var(--card))] p-3 border border-orange-200/50 rounded-xl">
                 <div className="flex items-start gap-2">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                  <div className="bg-[hsl(var(--card))] flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center">
                     <span className="text-white text-lg"></span>
                   </div>
                   <div className="flex-1 min-w-0">

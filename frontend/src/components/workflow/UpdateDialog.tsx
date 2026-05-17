@@ -40,7 +40,7 @@ export function UpdateDialog({
     <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
         {/* 头部 */}
-        <div className="relative p-6 bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 text-white">
+        <div className="bg-[hsl(var(--brand-600))] relative p-6 text-white">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/20 transition-colors"
@@ -66,7 +66,7 @@ export function UpdateDialog({
               <p className="text-lg font-semibold text-gray-600">{currentVersion}</p>
             </div>
             <div className="px-4">
-              <div className="w-8 h-0.5 bg-gradient-to-r from-gray-300 to-blue-400 relative">
+              <div className="bg-[hsl(var(--card))] w-8 h-0.5 relative">
                 <div className="absolute -right-1 -top-1 w-0 h-0 border-t-4 border-b-4 border-l-6 border-transparent border-l-blue-400" />
               </div>
             </div>
@@ -93,7 +93,7 @@ export function UpdateDialog({
               暂不更新
             </Button>
             <Button
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+              className="bg-[hsl(var(--brand-600))] flex-1 text-white"
               onClick={handleDownload}
             >
               <Download className="w-4 h-4 mr-2" />

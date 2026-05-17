@@ -853,26 +853,24 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
 
   if (!selectedNode || !nodeData) {
     return (
-      <aside className={`border-l bg-card flex flex-col transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
+      <aside className={`border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ${isCollapsed ? 'w-12' : 'w-80'}`}>
         {isCollapsed ? (
-          <div 
-            className="flex flex-col items-center py-4 gap-3 cursor-pointer hover:bg-cyan-50/50 transition-colors h-full"
+          <button 
+            type="button"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
             onClick={() => setIsCollapsed(false)}
-            title="点击展开配置面板"
+            title="展开配置面板"
           >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md">
-              <ChevronLeft className="w-4 h-4" />
-            </div>
-            <div className="w-px h-4 bg-gray-200" />
-            <Settings className="w-5 h-5 text-muted-foreground/50" />
-          </div>
+            <ChevronLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+            <Settings className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+          </button>
         ) : (
           <>
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-sm font-medium">配置面板</h2>
+            <div className="p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">配置面板</h2>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200"
+                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors"
                 title="收起"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -880,7 +878,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="text-center animate-fade-in">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+                <div className="bg-[hsl(var(--card))] w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
                   <Crosshair className="w-8 h-8 text-muted-foreground/40" />
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -2036,28 +2034,26 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         />
       )}
       
-      <aside className={`border-l bg-gradient-to-b from-white to-cyan-50/20 flex flex-col animate-slide-in-right transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
+      <aside className={`border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ${isCollapsed ? 'w-12' : 'w-80'}`}>
         {isCollapsed ? (
-          <div 
-            className="flex flex-col items-center py-4 gap-3 cursor-pointer hover:bg-cyan-50/50 transition-colors h-full"
+          <button 
+            type="button"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
             onClick={() => setIsCollapsed(false)}
-            title="点击展开配置面板"
+            title="展开配置面板"
           >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md">
-              <ChevronLeft className="w-4 h-4" />
-            </div>
-            <div className="w-px h-4 bg-gray-200" />
-            <Settings className="w-5 h-5 text-blue-500" />
-            <span className="text-[10px] text-muted-foreground writing-mode-vertical" style={{ writingMode: 'vertical-rl' }}>
+            <ChevronLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+            <Settings className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+            <span className="text-[10px] text-[hsl(var(--muted-foreground))]" style={{ writingMode: 'vertical-rl' }}>
               {moduleTypeLabels[nodeData.moduleType]}
             </span>
-          </div>
+          </button>
         ) : (
           <>
-            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-blue-50/30 via-cyan-50/30 to-teal-50/30">
+            <div className="bg-[hsl(var(--card))] p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-medium text-gradient">{moduleTypeLabels[nodeData.moduleType]}</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">节点配置</p>
+                <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">{moduleTypeLabels[nodeData.moduleType]}</h2>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">节点配置</p>
               </div>
               <div className="flex items-center gap-1">
                 <Button 
@@ -2178,9 +2174,9 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
 
                 {/* 变量使用提示 */}
                 <div className="pt-4 border-t">
-                  <div className="p-3 bg-gradient-to-r from-blue-50 via-cyan-50/50 to-teal-50 rounded-xl border border-blue-200/30 shadow-sm">
+                  <div className="bg-[hsl(var(--card))] p-3 rounded-xl border border-blue-200/30 shadow-sm">
                     <p className="text-xs text-muted-foreground">
-                      提示：在任意输入框中使用 <code className="bg-gradient-to-r from-blue-100 to-cyan-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">{'{变量名}'}</code> 来引用变量值
+                      提示：在任意输入框中使用 <code className="bg-[hsl(var(--card))] px-1.5 py-0.5 rounded text-blue-600 font-mono">{'{变量名}'}</code> 来引用变量值
                     </p>
                   </div>
                 </div>

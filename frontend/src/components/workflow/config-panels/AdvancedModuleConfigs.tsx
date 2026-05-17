@@ -4057,7 +4057,7 @@ export function ImageExistsConfig({ data, onChange }: { data: NodeData; onChange
 export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; onChange: (key: string, value: unknown) => void; renderSelectorInput: (id: string, label: string, placeholder: string) => React.JSX.Element }) {
   return (
     <div className="space-y-4">
-      <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-l-4 border-blue-500">
+      <div className="bg-[hsl(var(--card))] p-3 rounded-lg border-l-4 border-blue-500">
         <p className="text-sm text-gray-700 font-medium mb-1">
           元素存在判断
         </p>
@@ -4089,7 +4089,7 @@ export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; o
 export function ElementVisibleConfig({ renderSelectorInput }: { data: NodeData; onChange: (key: string, value: unknown) => void; renderSelectorInput: (id: string, label: string, placeholder: string) => React.JSX.Element }) {
   return (
     <div className="space-y-4">
-      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
+      <div className="bg-[hsl(var(--card))] p-3 rounded-lg border-l-4 border-green-500">
         <p className="text-sm text-gray-700 font-medium mb-1">
           👁️ 元素可见判断
         </p>

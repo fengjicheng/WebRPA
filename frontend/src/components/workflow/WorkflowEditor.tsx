@@ -1485,7 +1485,7 @@ export function WorkflowEditor() {
           {isDraggingFile && (
             <div className="absolute inset-0 z-50 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none animate-fade-in">
               <div className="glass-strong rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-scale-in">
-                <div className="p-4 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
+                <div className="bg-[hsl(var(--card))] p-4 rounded-full shadow-lg">
                   <FileJson className="w-10 h-10 text-white" />
                 </div>
                 <div className="text-center">
@@ -1613,7 +1613,7 @@ export function WorkflowEditor() {
               </div>
               <button
                 onClick={() => setShowBrowserBusyDialog(false)}
-                className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-all"
+                className="bg-[hsl(var(--brand-600))] w-full py-2 px-4 text-white rounded-lg font-medium transition-all"
               >
                 我知道了
               </button>
@@ -1644,7 +1644,7 @@ export function WorkflowEditor() {
               </div>
               <button
                 onClick={() => setShowBrowserClosedDialog(false)}
-                className="w-full py-2 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-all"
+                className="bg-[hsl(var(--brand-600))] w-full py-2 px-4 text-white rounded-lg font-medium transition-all"
               >
                 我知道了
               </button>

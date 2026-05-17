@@ -96,7 +96,7 @@ export function ExecutionDetailsPanel({ isOpen, onClose, executions }: Execution
   return (
     <div className="fixed right-0 top-0 h-full w-[600px] bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col">
       {/* 头部 */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+      <div className="bg-[hsl(var(--card))] flex items-center justify-between p-4 border-b border-gray-200">
         <div>
           <h3 className="font-semibold text-gray-900">执行详情</h3>
           <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">

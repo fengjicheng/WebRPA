@@ -1232,12 +1232,12 @@ const moduleKeywords: Record<ModuleType, string[]> = {
 const moduleCategories = [
   // ===== 浏览器自动化 =====
   {
-    name: '🌐 页面操作',
+    name: '页面操作',
     color: 'bg-blue-500',
     modules: ['open_page', 'use_opened_page', 'close_page', 'refresh_page', 'go_back', 'go_forward', 'inject_javascript', 'switch_iframe', 'switch_to_main', 'switch_tab'] as ModuleType[],
   },
   {
-    name: '🖱️ 元素交互',
+    name: '元素交互',
     color: 'bg-indigo-500',
     modules: ['click_element', 'hover_element', 'input_text', 'select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'handle_dialog', 'upload_file'] as ModuleType[],
   },
@@ -1252,12 +1252,12 @@ const moduleCategories = [
     modules: ['element_exists', 'element_visible'] as ModuleType[],
   },
   {
-    name: '📥 数据采集',
+    name: '数据采集',
     color: 'bg-emerald-500',
     modules: ['get_element_info', 'screenshot', 'save_image', 'download_file', 'extract_table_data'] as ModuleType[],
   },
   {
-    name: '⏱️ 等待控制',
+    name: '⏱ 等待控制',
     color: 'bg-cyan-500',
     modules: ['wait', 'wait_element', 'wait_image', 'wait_page_load', 'page_load_complete'] as ModuleType[],
   },
@@ -1268,12 +1268,12 @@ const moduleCategories = [
   },
   // ===== 桌面自动化 =====
   {
-    name: '🖱️ 鼠标模拟',
+    name: '鼠标模拟',
     color: 'bg-violet-500',
     modules: ['real_mouse_click', 'real_mouse_move', 'real_mouse_drag', 'real_mouse_scroll', 'get_mouse_position'] as ModuleType[],
   },
   {
-    name: '⌨️ 键盘模拟',
+    name: '⌨ 键盘模拟',
     color: 'bg-purple-500',
     modules: ['real_keyboard', 'keyboard_action'] as ModuleType[],
   },
@@ -1283,12 +1283,12 @@ const moduleCategories = [
     modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image', 'image_exists'] as ModuleType[],
   },
   {
-    name: '📷 屏幕操作',
+    name: '屏幕操作',
     color: 'bg-pink-500',
     modules: ['screenshot_screen', 'screen_record', 'window_focus', 'camera_capture', 'camera_record'] as ModuleType[],
   },
   {
-    name: '🎹 宏录制',
+    name: '宏录制',
     color: 'bg-fuchsia-500',
     modules: ['macro_recorder'] as ModuleType[],
   },
@@ -1309,7 +1309,7 @@ const moduleCategories = [
     modules: ['set_variable', 'increment_decrement', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
   },
   {
-    name: '✂️ 文本处理',
+    name: '文本处理',
     color: 'bg-lime-600',
     modules: ['string_concat', 'string_replace', 'string_split', 'string_join', 'string_trim', 'string_case', 'string_substring', 'regex_extract'] as ModuleType[],
   },
@@ -1319,7 +1319,7 @@ const moduleCategories = [
     modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'foreach', 'foreach_dict', 'dict_operation', 'dict_get', 'dict_keys'] as ModuleType[],
   },
   {
-    name: '📐 列表运算',
+    name: '列表运算',
     color: 'bg-emerald-600',
     modules: ['list_sum', 'list_average', 'list_max', 'list_min', 'list_sort', 'list_unique', 'list_slice'] as ModuleType[],
   },
@@ -1329,12 +1329,12 @@ const moduleCategories = [
     modules: ['list_reverse', 'list_find', 'list_count', 'list_filter', 'list_map', 'list_merge', 'list_flatten', 'list_chunk', 'list_remove_empty', 'list_intersection', 'list_union', 'list_difference', 'list_cartesian_product', 'list_shuffle', 'list_sample'] as ModuleType[],
   },
   {
-    name: '📖 字典高级操作',
+    name: '字典高级操作',
     color: 'bg-teal-600',
     modules: ['dict_merge', 'dict_filter', 'dict_map_values', 'dict_invert', 'dict_sort', 'dict_deep_copy', 'dict_get_path', 'dict_flatten'] as ModuleType[],
   },
   {
-    name: '🔢 数学运算',
+    name: '数学运算',
     color: 'bg-cyan-600',
     modules: ['math_round', 'math_base_convert', 'math_floor', 'math_modulo', 'math_abs', 'math_sqrt', 'math_power', 'math_log', 'math_trig', 'math_exp', 'math_gcd', 'math_lcm', 'math_factorial', 'math_permutation', 'math_percentage', 'math_clamp', 'math_random_advanced'] as ModuleType[],
   },
@@ -1349,49 +1349,49 @@ const moduleCategories = [
     modules: ['table_add_row', 'table_add_column', 'table_set_cell', 'table_get_cell', 'table_delete_row', 'table_clear', 'table_export', 'read_excel'] as ModuleType[],
   },
   {
-    name: '🗄️ MySQL数据库',
+    name: 'MySQL数据库',
     color: 'bg-sky-600',
     modules: ['db_connect', 'db_query', 'db_execute', 'db_insert', 'db_update', 'db_delete', 'db_close'] as ModuleType[],
   },
   {
-    name: '🗄️ Oracle数据库',
+    name: 'Oracle数据库',
     color: 'bg-red-600',
     modules: ['oracle_connect', 'oracle_query', 'oracle_execute', 'oracle_insert', 'oracle_update', 'oracle_delete', 'oracle_disconnect'] as ModuleType[],
   },
   {
-    name: '🗄️ PostgreSQL数据库',
+    name: 'PostgreSQL数据库',
     color: 'bg-blue-600',
     modules: ['postgresql_connect', 'postgresql_query', 'postgresql_execute', 'postgresql_insert', 'postgresql_update', 'postgresql_delete', 'postgresql_disconnect'] as ModuleType[],
   },
   {
-    name: '🗄️ MongoDB数据库',
+    name: 'MongoDB数据库',
     color: 'bg-green-600',
     modules: ['mongodb_connect', 'mongodb_find', 'mongodb_insert', 'mongodb_update', 'mongodb_delete', 'mongodb_disconnect'] as ModuleType[],
   },
   {
-    name: '🗄️ SQL Server数据库',
+    name: 'SQL Server数据库',
     color: 'bg-indigo-600',
     modules: ['sqlserver_connect', 'sqlserver_query', 'sqlserver_execute', 'sqlserver_insert', 'sqlserver_update', 'sqlserver_delete', 'sqlserver_disconnect'] as ModuleType[],
   },
   {
-    name: '🗄️ SQLite数据库',
+    name: 'SQLite数据库',
     color: 'bg-cyan-600',
     modules: ['sqlite_connect', 'sqlite_query', 'sqlite_execute', 'sqlite_insert', 'sqlite_update', 'sqlite_delete', 'sqlite_disconnect'] as ModuleType[],
   },
   {
-    name: '🗄️ Redis数据库',
+    name: 'Redis数据库',
     color: 'bg-rose-600',
     modules: ['redis_connect', 'redis_get', 'redis_set', 'redis_del', 'redis_hget', 'redis_hset', 'redis_disconnect'] as ModuleType[],
   },
   // ===== 流程控制 =====
   {
-    name: '🔀 流程控制',
+    name: '流程控制',
     color: 'bg-orange-500',
     modules: ['condition', 'loop', 'break_loop', 'continue_loop', 'stop_workflow', 'scheduled_task', 'subflow'] as ModuleType[],
   },
   // ===== 触发器 =====
   {
-    name: '⚡ 触发器',
+    name: '触发器',
     color: 'bg-yellow-500',
     modules: ['webhook_trigger', 'hotkey_trigger', 'file_watcher_trigger', 'email_trigger', 'api_trigger', 'mouse_trigger', 'image_trigger', 'sound_trigger', 'face_trigger', 'gesture_trigger', 'element_change_trigger', 'probability_trigger'] as ModuleType[],
   },
@@ -1413,7 +1413,7 @@ const moduleCategories = [
   },
   // ===== 媒体处理 =====
   {
-    name: '🔄 格式工厂',
+    name: '格式工厂',
     color: 'bg-rose-600',
     modules: ['image_format_convert', 'video_format_convert', 'audio_format_convert', 'video_to_audio', 'video_to_gif', 'batch_format_convert'] as ModuleType[],
   },
@@ -1423,12 +1423,12 @@ const moduleCategories = [
     modules: ['format_convert', 'compress_video', 'trim_video', 'merge_media', 'rotate_video', 'video_speed', 'extract_frame', 'add_subtitle', 'resize_video', 'download_m3u8'] as ModuleType[],
   },
   {
-    name: '🎵 音频编辑',
+    name: '音频编辑',
     color: 'bg-violet-600',
     modules: ['extract_audio', 'adjust_volume', 'audio_to_text'] as ModuleType[],
   },
   {
-    name: '🖼️ 图像编辑',
+    name: '图像编辑',
     color: 'bg-pink-600',
     modules: ['compress_image', 'image_resize', 'image_crop', 'image_rotate', 'image_flip', 'image_blur', 'image_sharpen', 'image_brightness', 'image_contrast', 'image_color_balance', 'image_add_text', 'image_merge', 'image_thumbnail', 'image_filter', 'image_grayscale', 'image_round_corners', 'image_remove_bg'] as ModuleType[],
   },
@@ -1439,7 +1439,7 @@ const moduleCategories = [
   },
   // ===== AI能力 =====
   {
-    name: '🤖 AI对话',
+    name: 'AI对话',
     color: 'bg-violet-700',
     modules: ['ai_chat', 'ai_vision'] as ModuleType[],
   },
@@ -1449,7 +1449,7 @@ const moduleCategories = [
     modules: ['ai_generate_image', 'ai_generate_video'] as ModuleType[],
   },
   {
-    name: '🧠 AI爬虫',
+    name: 'AI爬虫',
     color: 'bg-purple-700',
     modules: ['ai_smart_scraper', 'ai_element_selector', 'firecrawl_scrape', 'firecrawl_map', 'firecrawl_crawl'] as ModuleType[],
   },
@@ -1460,22 +1460,22 @@ const moduleCategories = [
   },
   // ===== 网络通信 =====
   {
-    name: '🌐 网络请求',
+    name: '网络请求',
     color: 'bg-sky-700',
     modules: ['api_request', 'webhook_request', 'send_email'] as ModuleType[],
   },
   {
-    name: '📢 多渠道通知',
+    name: '多渠道通知',
     color: 'bg-amber-600',
     modules: ['notify_discord', 'notify_telegram', 'notify_dingtalk', 'notify_wecom', 'notify_feishu', 'notify_bark', 'notify_slack', 'notify_msteams', 'notify_pushover', 'notify_pushbullet', 'notify_gotify', 'notify_serverchan', 'notify_pushplus', 'notify_webhook', 'notify_ntfy', 'notify_matrix', 'notify_rocketchat'] as ModuleType[],
   },
   {
-    name: '💬 QQ机器人',
+    name: 'QQ机器人',
     color: 'bg-blue-500',
     modules: ['qq_send_message', 'qq_send_image', 'qq_send_file', 'qq_wait_message', 'qq_get_friends', 'qq_get_groups', 'qq_get_group_members', 'qq_get_login_info'] as ModuleType[],
   },
   {
-    name: '💚 微信机器人',
+    name: '微信机器人',
     color: 'bg-green-500',
     modules: ['wechat_send_message', 'wechat_send_file'] as ModuleType[],
   },
@@ -1485,12 +1485,12 @@ const moduleCategories = [
     modules: ['feishu_bitable_write', 'feishu_bitable_read', 'feishu_sheet_write', 'feishu_sheet_read'] as ModuleType[],
   },
   {
-    name: '🔐 SSH远程操作',
+    name: 'SSH远程操作',
     color: 'bg-slate-600',
     modules: ['ssh_connect', 'ssh_execute_command', 'ssh_upload_file', 'ssh_download_file', 'ssh_disconnect'] as ModuleType[],
   },
   {
-    name: '🏢 SAP自动化',
+    name: 'SAP自动化',
     color: 'bg-blue-800',
     modules: ['sap_login', 'sap_logout', 'sap_run_tcode', 'sap_set_field_value', 'sap_get_field_value', 'sap_click_button', 'sap_send_vkey', 'sap_get_status_message', 'sap_get_title', 'sap_close_warning', 'sap_set_checkbox', 'sap_select_combobox', 'sap_read_gridview', 'sap_export_gridview_excel', 'sap_set_focus', 'sap_maximize_window'] as ModuleType[],
   },
@@ -1500,7 +1500,7 @@ const moduleCategories = [
     modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_image_exists', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
   },
   {
-    name: '🔗 网络共享',
+    name: '网络共享',
     color: 'bg-cyan-500',
     modules: ['share_folder', 'share_file', 'stop_share', 'start_screen_share', 'stop_screen_share'] as ModuleType[],
   },
@@ -1511,7 +1511,7 @@ const moduleCategories = [
     modules: ['file_hash_compare', 'file_diff_compare', 'folder_hash_compare', 'folder_diff_compare'] as ModuleType[],
   },
   {
-    name: '🔐 加密编码',
+    name: '加密编码',
     color: 'bg-indigo-800',
     modules: ['md5_encrypt', 'sha_encrypt', 'url_encode_decode', 'random_password_generator'] as ModuleType[],
   },
@@ -1527,7 +1527,7 @@ const moduleCategories = [
   },
   // ===== 辅助功能 =====
   {
-    name: '📢 消息通知',
+    name: '消息通知',
     color: 'bg-amber-700',
     modules: ['print_log', 'play_sound', 'system_notification', 'text_to_speech', 'export_log'] as ModuleType[],
   },
@@ -1537,7 +1537,7 @@ const moduleCategories = [
     modules: ['play_music', 'play_video', 'view_image'] as ModuleType[],
   },
   {
-    name: '💬 用户交互',
+    name: '用户交互',
     color: 'bg-cyan-800',
     modules: ['input_prompt'] as ModuleType[],
   },
@@ -1726,7 +1726,7 @@ function ModuleItem({
       <div
         style={customStyle}
         className={`flex items-center gap-2 rounded-md 
-          hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 
+          hover:bg-[hsl(var(--muted))] 
           transition-all duration-200 ease-out
           hover:translate-x-1 hover:shadow-sm
           group
@@ -1968,45 +1968,43 @@ export function ModuleSidebar() {
   }
 
   return (
-    <aside className={`border-r bg-gradient-to-b from-white to-blue-50/30 flex flex-col animate-slide-in-left transition-all duration-300 group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}>
+    <aside className={`border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}>
       {/* 收起状态下的图标列表 */}
       {isCollapsed ? (
-        <div 
-          className="flex flex-col items-center py-4 gap-3 cursor-pointer hover:bg-blue-50/50 transition-colors h-full"
+        <button 
+          type="button"
+          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
           onClick={() => setIsCollapsed(false)}
-          title="点击展开模块列表"
+          title="展开模块列表"
         >
-          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md">
-            <ChevronRight className="w-4 h-4" />
-          </div>
-          <div className="w-px h-4 bg-gray-200" />
+          <ChevronRight className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
           {moduleCategories.slice(0, 8).map((category) => (
             <div
               key={category.name}
-              className={`w-2.5 h-2.5 rounded-full ${category.color} hover:scale-125 transition-transform`}
+              className={`w-2 h-2 rounded-full ${category.color}`}
               title={category.name}
             />
           ))}
           {moduleCategories.length > 8 && (
-            <span className="text-[10px] text-muted-foreground">+{moduleCategories.length - 8}</span>
+            <span className="text-[10px] text-[hsl(var(--muted-foreground))]">+{moduleCategories.length - 8}</span>
           )}
-        </div>
+        </button>
       ) : (
         <>
-          <div className="p-4 border-b bg-gradient-to-r from-blue-50/50 to-cyan-50/50 space-y-3">
+          <div className="bg-[hsl(var(--card))] p-4 border-b border-[hsl(var(--border))] space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-medium text-gradient">模块列表</h2>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                  <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">模块列表</h2>
+                  <span className="text-xs text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] px-1.5 py-0.5 rounded-full">
                     共 {totalModulesCount} 个
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">拖拽模块到画布添加</p>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">拖拽模块到画布添加</p>
               </div>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200"
+                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors"
                 title="收起"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -2017,20 +2015,20 @@ export function ModuleSidebar() {
             <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
               <button
                 onClick={() => setActiveTab('builtin')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'builtin'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-[hsl(var(--brand-600))] text-white'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
                 }`}
               >
                 内置模块
               </button>
               <button
                 onClick={() => setActiveTab('custom')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'custom'
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-[hsl(var(--brand-600))] text-white'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'
                 }`}
               >
                 自定义模块
@@ -2097,9 +2095,7 @@ export function ModuleSidebar() {
                       style={{ animationDelay: `${categoryIndex * 30}ms` }}
                     >
                       <button
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md 
-                          hover:bg-gradient-to-r hover:from-transparent hover:to-blue-50/50 
-                          transition-all duration-200 group"
+                        className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:from-transparent transition-all duration-200 group"
                         onClick={() => toggleCategory(category.name)}
                       >
                         <div className={`transition-transform duration-200 ${expanded ? 'rotate-0' : '-rotate-90'}`}>

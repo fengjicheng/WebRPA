@@ -216,14 +216,12 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden
-        animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
         
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-white">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b border-gray-200 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 
-              flex items-center justify-center shadow-lg">
+            <div className="bg-[hsl(var(--card))] w-10 h-10 rounded-lg flex items-center justify-center shadow-lg">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -322,8 +320,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
 
           {/* 过滤器面板 */}
           {showFilters && (
-            <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 grid grid-cols-3 gap-4
-              animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 grid grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
               
               {/* 变量名过滤 */}
               <div>
@@ -434,8 +431,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
                   return (
                     <div
                       key={index}
-                      className="bg-white rounded-lg border border-gray-200 hover:border-orange-300 
-                        transition-all duration-200 hover:shadow-md overflow-hidden"
+                      className="bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition-all duration-200 hover:shadow-md overflow-hidden"
                     >
                       <div className="p-4">
                         {/* 记录头部 */}

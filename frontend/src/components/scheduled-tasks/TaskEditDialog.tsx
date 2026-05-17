@@ -672,7 +672,7 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
           
           {/* Webhook触发器配置 */}
           {triggerType === 'webhook' && (
-            <div className="space-y-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <div className="bg-[hsl(var(--card))] space-y-4 p-4 rounded-lg border border-green-200">
               <div className="space-y-2">
                 <Label>Webhook路径</Label>
                 <Input

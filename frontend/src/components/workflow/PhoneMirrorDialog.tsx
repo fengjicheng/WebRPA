@@ -147,7 +147,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-emerald-50 to-green-50">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <Smartphone className="w-6 h-6 text-emerald-600" />
             <h2 className="text-xl font-semibold text-gray-900">手机屏幕镜像</h2>
@@ -333,7 +333,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
                             <Button
                               onClick={() => startMirror(device.id)}
                               disabled={isLoading}
-                              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400"
+                              className="bg-[hsl(var(--card))]"
                             >
                               {isLoading ? (
                                 <>

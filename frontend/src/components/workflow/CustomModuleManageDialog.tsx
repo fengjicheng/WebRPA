@@ -102,7 +102,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
           {/* 头部 */}
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md">
+              <div className="bg-[hsl(var(--brand-600))] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-md">
                 <Package className="w-5 h-5" />
               </div>
               <div>
@@ -162,7 +162,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                     className="p-4 rounded-lg border border-border bg-white hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-sm">
+                      <div className="bg-[hsl(var(--brand-600))] flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-sm">
                         <Package className="w-6 h-6" />
                       </div>
                       <div className="flex-1 min-w-0">

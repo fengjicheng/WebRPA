@@ -254,7 +254,7 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-emerald-50 to-green-50">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <Crop className="w-6 h-6 text-emerald-600" />
             <h2 className="text-xl font-semibold text-gray-900">截图并裁剪模板</h2>
@@ -378,7 +378,7 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
                 <Button
                   onClick={saveCroppedTemplate}
                   disabled={!cropArea || !templateName.trim() || saving}
-                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400"
+                  className="bg-[hsl(var(--card))]"
                 >
                   {saving ? (
                     <>
@@ -400,7 +400,7 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
               <p className="text-gray-600 mb-4">点击下方按钮开始截图</p>
               <Button
                 onClick={captureScreenshot}
-                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400"
+                className="bg-[hsl(var(--card))]"
               >
                 <Camera className="w-4 h-4 mr-2" />
                 截取手机屏幕

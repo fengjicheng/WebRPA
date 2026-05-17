@@ -475,16 +475,16 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
         isCollapsed ? 'h-10' : 'h-64'
       )}
     >
-      <div className="h-10 px-2 sm:px-4 flex items-center justify-between border-b bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-[length:200%_100%] animate-gradient overflow-x-auto">
+      <div className="bg-[hsl(var(--card))] h-10 px-2 sm:px-4 flex items-center justify-between border-b border-[hsl(var(--border))] overflow-x-auto">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           {/* 分页标签 - 响应式显示 */}
           <div className="flex items-center gap-1">
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-all duration-200 border whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
                 activeTab === 'logs' 
-                  ? 'bg-white text-blue-600 border-white shadow-md' 
-                  : 'text-white/90 hover:bg-white/20 border-transparent hover:scale-105'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
+                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('logs')}
             >
@@ -495,10 +495,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-all duration-200 border whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
                 activeTab === 'data' 
-                  ? 'bg-white text-blue-600 border-white shadow-md' 
-                  : 'text-white/90 hover:bg-white/20 border-transparent hover:scale-105'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
+                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('data')}
             >
@@ -509,10 +509,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-all duration-200 border whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
                 activeTab === 'variables' 
-                  ? 'bg-white text-blue-600 border-white shadow-md' 
-                  : 'text-white/90 hover:bg-white/20 border-transparent hover:scale-105'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
+                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('variables')}
             >
@@ -523,10 +523,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-all duration-200 border whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
                 activeTab === 'assets' 
-                  ? 'bg-white text-blue-600 border-white shadow-md' 
-                  : 'text-white/90 hover:bg-white/20 border-transparent hover:scale-105'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
+                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('assets')}
             >
@@ -537,10 +537,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             </button>
             <button
               className={cn(
-                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-all duration-200 border whitespace-nowrap',
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap',
                 activeTab === 'images' 
-                  ? 'bg-white text-blue-600 border-white shadow-md' 
-                  : 'text-white/90 hover:bg-white/20 border-transparent hover:scale-105'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium' 
+                  : 'text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]'
               )}
               onClick={() => setActiveTab('images')}
             >
@@ -559,56 +559,56 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 className={cn(
                   'h-7 px-2 text-xs rounded-md flex items-center gap-1.5 transition-colors border',
                   verboseLog 
-                    ? 'bg-green-500 text-white border-green-600 hover:bg-green-600' 
-                    : 'bg-white/90 text-gray-500 border-white/50 hover:bg-white'
+                    ? 'bg-[hsl(var(--success-50))] text-[hsl(var(--success-500))] border-[hsl(var(--success-500)/0.25)]' 
+                    : 'bg-transparent text-[hsl(var(--muted-foreground))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]'
                 )}
                 onClick={() => setVerboseLog(!verboseLog)}
                 title={verboseLog ? '切换为简洁日志' : '切换为详细日志'}
               >
                 {verboseLog ? (
                   <>
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-[hsl(var(--success-500))]" />
                     详细日志
                   </>
                 ) : (
                   <>
-                    <span className="w-2 h-2 rounded-full bg-gray-400" />
+                    <span className="w-2 h-2 rounded-full bg-[hsl(var(--slate-400))]" />
                     简洁日志
                   </>
                 )}
               </button>
-              <Button variant="outline" size="sm" className="h-7 text-xs bg-white/90 border-white/50 text-blue-700 hover:bg-white" onClick={handleExportLogs} title="下载日志">
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportLogs} title="下载日志">
                 <Download className="w-3.5 h-3.5 mr-1" />
                 下载
               </Button>
-              <Button variant="outline" size="icon" className="h-7 w-7 bg-white/90 border-white/50 text-red-500 hover:bg-white" onClick={clearLogs} title="清空日志">
+              <Button variant="outline" size="icon" className="h-7 w-7 text-[hsl(var(--danger-500))]" onClick={clearLogs} title="清空日志">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </>
           )}
           {activeTab === 'data' && (
             <>
-              <Button variant="outline" size="sm" className="h-7 text-xs bg-white/90 border-white/50 text-cyan-600 hover:bg-white" onClick={handleAddRow}>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleAddRow}>
                 <Plus className="w-3.5 h-3.5 mr-1" />行
               </Button>
               {isAddingColumn ? (
                 <div className="flex items-center gap-1">
                   <Input value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)}
-                    placeholder="列名" className="w-20 h-7 text-xs bg-white" onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()} />
-                  <Button size="icon" variant="outline" className="h-7 w-7 bg-white/90 border-white/50 text-cyan-600 hover:bg-white" onClick={handleAddColumn}><Check className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="outline" className="h-7 w-7 bg-white/90 border-white/50 text-gray-500 hover:bg-white" onClick={() => setIsAddingColumn(false)}><X className="w-3.5 h-3.5" /></Button>
+                    placeholder="列名" className="w-20 h-7 text-xs" onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()} />
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={handleAddColumn}><Check className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setIsAddingColumn(false)}><X className="w-3.5 h-3.5" /></Button>
                 </div>
               ) : (
-                <Button variant="outline" size="sm" className="h-7 text-xs bg-white/90 border-white/50 text-cyan-600 hover:bg-white" onClick={() => setIsAddingColumn(true)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsAddingColumn(true)}>
                   <Plus className="w-3.5 h-3.5 mr-1" />列
                 </Button>
               )}
-              <Button variant="outline" size="icon" className="h-7 w-7 bg-white/90 border-white/50 text-red-500 hover:bg-white" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
-              <Button variant="outline" size="icon" className="h-7 w-7 bg-white/90 border-white/50 text-blue-600 hover:bg-white" onClick={handleDownloadCSV} title="下载预览数据(最多20条)"><Download className="w-4 h-4" /></Button>
+              <Button variant="outline" size="icon" className="h-7 w-7 text-[hsl(var(--danger-500))]" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
+              <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleDownloadCSV} title="下载预览数据(最多20条)"><Download className="w-4 h-4" /></Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs bg-white border-white/50 text-emerald-700 hover:bg-emerald-50"
+                className="h-7 text-xs"
                 onClick={handleDownloadFullData}
                 disabled={downloading || !currentExecutionWorkflowId}
                 title="下载本次执行收集到的完整数据（不受20条限制）"
@@ -623,11 +623,11 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               {isAddingVar ? (
                 <div className="flex items-center gap-1">
                   <Input value={newVarName} onChange={(e) => setNewVarName(e.target.value)}
-                    placeholder="变量名" className="w-20 h-7 text-xs bg-white" />
+                    placeholder="变量名" className="w-20 h-7 text-xs" />
                   <Select 
                     value={newVarType} 
                     onChange={(e) => setNewVarType(e.target.value as VariableType)}
-                    className="w-16 h-7 text-xs bg-white"
+                    className="w-16 h-7 text-xs"
                   >
                     <option value="string">字符串</option>
                     <option value="number">数字</option>
@@ -639,7 +639,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                     <Select 
                       value={newVarValue || 'false'} 
                       onChange={(e) => setNewVarValue(e.target.value)}
-                      className="w-16 h-7 text-xs bg-white"
+                      className="w-16 h-7 text-xs"
                     >
                       <option value="true">true</option>
                       <option value="false">false</option>
@@ -647,14 +647,14 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   ) : (
                     <Input value={newVarValue} onChange={(e) => setNewVarValue(e.target.value)}
                       placeholder={newVarType === 'number' ? '0' : newVarType === 'array' ? '[]' : newVarType === 'object' ? '{}' : '值'} 
-                      className="w-20 h-7 text-xs bg-white" 
+                      className="w-20 h-7 text-xs" 
                       onKeyDown={(e) => e.key === 'Enter' && handleAddVariable()} />
                   )}
-                  <Button size="icon" variant="outline" className="h-7 w-7 bg-white/95 border-white/50 text-emerald-600 hover:bg-white" onClick={handleAddVariable}><Check className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="outline" className="h-7 w-7 bg-white/95 border-white/50 text-gray-500 hover:bg-white" onClick={() => setIsAddingVar(false)}><X className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={handleAddVariable}><Check className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setIsAddingVar(false)}><X className="w-3.5 h-3.5" /></Button>
                 </div>
               ) : (
-                <Button variant="outline" size="sm" className="h-7 text-xs bg-white/95 border-white/50 text-emerald-600 hover:bg-white hover:scale-105 transition-all" onClick={() => setIsAddingVar(true)}>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsAddingVar(true)}>
                   <Plus className="w-3.5 h-3.5 mr-1" />添加变量
                 </Button>
               )}
@@ -664,7 +664,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-7 text-xs bg-white/95 border-white/50 text-green-600 hover:bg-white hover:scale-105 transition-all" 
+              className="h-7 text-xs" 
               onClick={() => {
                 // 调用ExcelAssetsPanel的上传函数
                 if ((window as any).__excelUploadTrigger) {
@@ -680,7 +680,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              className="h-7 text-xs bg-white/95 border-white/50 text-purple-600 hover:bg-white hover:scale-105 transition-all" 
+              className="h-7 text-xs" 
               onClick={() => {
                 // 调用ImageAssetsPanel的上传函数
                 if ((window as any).__imageUploadTrigger) {
@@ -692,7 +692,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               上传图像
             </Button>
           )}
-          <Button variant="outline" size="icon" className="h-7 w-7 bg-white/95 border-white/50 text-gray-600 hover:bg-white hover:scale-105 transition-all" onClick={() => setIsCollapsed(!isCollapsed)} title={isCollapsed ? '展开' : '收起'}>
+          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setIsCollapsed(!isCollapsed)} title={isCollapsed ? '展开' : '收起'}>
             {isCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
         </div>
@@ -832,8 +832,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   <div className="h-full flex flex-col items-center justify-center animate-fade-in">
                     {logs.length === 0 ? (
                       <>
-                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                          <FileText className="w-8 h-8 text-blue-400" />
+                        <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                          <FileText className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
                         </div>
                         <p className="text-sm text-muted-foreground">暂无日志</p>
                         <p className="text-xs text-muted-foreground/70 mt-2 text-center px-4">
@@ -842,8 +842,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                       </>
                     ) : (
                       <>
-                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-                          <Search className="w-8 h-8 text-blue-400" />
+                        <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                          <Search className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
                         </div>
                         <p className="text-sm text-muted-foreground">未找到匹配的日志</p>
                         <p className="text-xs text-muted-foreground mt-1">试试其他关键词或筛选条件</p>
@@ -889,8 +889,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <ScrollArea className="flex-1 p-2">
                 {collectedData.length === 0 && columns.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-fade-in">
-                    <div className="w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mb-3">
-                      <FileSpreadsheet className="w-8 h-8 text-cyan-400" />
+                    <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                      <FileSpreadsheet className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
                     </div>
                     <p className="text-sm">暂无数据</p>
                     <p className="text-xs mt-1">执行工作流后，收集的数据将显示在这里</p>
@@ -958,8 +958,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             <ScrollArea className="h-full p-2">
               {variables.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-fade-in">
-                  <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-3">
-                    <Variable className="w-8 h-8 text-purple-400" />
+                  <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                    <Variable className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
                   </div>
                   <p className="text-sm">暂无全局变量</p>
                   <p className="text-xs mt-1">点击"添加变量"创建全局变量</p>
@@ -1043,10 +1043,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
       {renameDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-[420px] mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500" />
+            <div className="bg-[hsl(var(--card))] h-1.5" />
             <div className="p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="bg-[hsl(var(--card))] w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
                   <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
@@ -1056,13 +1056,13 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   <p className="text-xs text-gray-500">检测到变量引用需要更新</p>
                 </div>
               </div>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-4 mb-5">
+              <div className="bg-[hsl(var(--card))] rounded-xl p-4 mb-5">
                 <div className="flex items-center justify-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
                     <span className="text-xs text-gray-500">原名</span>
                     <code className="text-sm font-mono font-semibold text-red-600">{'{' + renameDialog.oldName + '}'}</code>
                   </div>
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md">
+                  <div className="bg-[hsl(var(--card))] flex items-center justify-center w-8 h-8 rounded-full shadow-md">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -1090,7 +1090,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 </button>
                 <button
                   onClick={handleConfirmRename}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98]"
+                  className="bg-[hsl(var(--brand-600))] flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
                 >
                   全部更新
                 </button>

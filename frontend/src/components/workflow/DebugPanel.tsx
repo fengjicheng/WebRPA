@@ -90,7 +90,7 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
   return (
     <div className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col">
       {/* 头部 */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+      <div className="bg-[hsl(var(--card))] flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <h3 className="font-semibold text-gray-900">变量监控</h3>

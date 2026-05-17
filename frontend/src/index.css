@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 /* ============================================================
-   WebRPA 设计系统 - 专业、克制、现代化
-   ------------------------------------------------------------
+   WebRPA 设计系统 - 专业、克制、现代化（强制浅色）
    原则：
    - 颜色与层级语义化，避免过度饱和的渐变作为主色
    - 动画只用于反馈状态变化（聚焦、出现、消失），不用于装饰
    - 圆角统一、阴影克制、字号阶梯清晰
-   - 暗色模式与系统主题联动（prefers-color-scheme）
    - 多端：桌面优先，平板/手机响应式
+   注：因为 167 个老组件大量硬编码 bg-white/text-gray，
+       项目暂只提供浅色主题，不跟随系统暗色（避免黑白割裂）
    ============================================================ */
 
 :root {
-  color-scheme: light;
+  color-scheme: light only;
 
   /* 中性灰阶（slate 系，专业、低饱和） */
   --slate-50: 210 20% 98%;
@@ -27,7 +27,7 @@
   --slate-900: 222 47% 11%;
   --slate-950: 229 84% 5%;
 
-  /* 品牌色：稳重的蓝（不再用青色霓虹） */
+  /* 品牌色：稳重的蓝 */
   --brand-50: 214 100% 97%;
   --brand-100: 214 95% 93%;
   --brand-500: 217 91% 55%;
@@ -44,7 +44,7 @@
   --info-500: 199 89% 48%;
   --info-50: 199 95% 96%;
 
-  /* shadcn 标准 token（保持兼容） */
+  /* shadcn 标准 token（兼容） */
   --background: var(--slate-50);
   --foreground: var(--slate-900);
   --card: 0 0% 100%;
@@ -65,18 +65,18 @@
   --input: var(--slate-200);
   --ring: var(--brand-500);
 
-  /* 圆角阶梯（克制） */
+  /* 圆角阶梯 */
   --radius-sm: 4px;
   --radius: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* 阴影阶梯（专业级，低高度） */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 8px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 12px 20px -6px rgb(0 0 0 / 0.10), 0 4px 8px -4px rgb(0 0 0 / 0.06);
-  --shadow-xl: 0 20px 40px -10px rgb(0 0 0 / 0.12), 0 8px 16px -8px rgb(0 0 0 / 0.06);
+  /* 阴影阶梯（专业级、低高度） */
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 8px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 20px -6px rgb(15 23 42 / 0.10), 0 4px 8px -4px rgb(15 23 42 / 0.06);
+  --shadow-xl: 0 20px 40px -10px rgb(15 23 42 / 0.12), 0 8px 16px -8px rgb(15 23 42 / 0.06);
 
   /* 字号阶梯 */
   --text-xs: 11px;
@@ -85,56 +85,6 @@
   --text-md: 14px;
   --text-lg: 16px;
   --text-xl: 18px;
-}
-
-.dark,
-:root.dark {
-  color-scheme: dark;
-  --background: var(--slate-950);
-  --foreground: var(--slate-50);
-  --card: var(--slate-900);
-  --card-foreground: var(--slate-50);
-  --popover: var(--slate-900);
-  --popover-foreground: var(--slate-50);
-  --primary: var(--brand-500);
-  --primary-foreground: 0 0% 100%;
-  --secondary: var(--slate-800);
-  --secondary-foreground: var(--slate-50);
-  --muted: var(--slate-800);
-  --muted-foreground: var(--slate-400);
-  --accent: var(--slate-800);
-  --accent-foreground: var(--slate-50);
-  --destructive: 0 63% 45%;
-  --destructive-foreground: 0 0% 100%;
-  --border: var(--slate-800);
-  --input: var(--slate-800);
-  --ring: var(--brand-500);
-}
-
-/* 系统暗色偏好（仅当 .dark 类未显式设置时生效） */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    color-scheme: dark;
-    --background: var(--slate-950);
-    --foreground: var(--slate-50);
-    --card: var(--slate-900);
-    --card-foreground: var(--slate-50);
-    --popover: var(--slate-900);
-    --popover-foreground: var(--slate-50);
-    --primary: var(--brand-500);
-    --primary-foreground: 0 0% 100%;
-    --secondary: var(--slate-800);
-    --secondary-foreground: var(--slate-50);
-    --muted: var(--slate-800);
-    --muted-foreground: var(--slate-400);
-    --accent: var(--slate-800);
-    --accent-foreground: var(--slate-50);
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 0 0% 100%;
-    --border: var(--slate-800);
-    --input: var(--slate-800);
-    --ring: var(--brand-500);
-  }
 }
 
 /* ----- 全局基础 ----- */
@@ -146,6 +96,12 @@ html, body, #root {
   height: 100%;
 }
 
+html {
+  /* 显式声明浅色，防止系统级强制暗色 */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -155,22 +111,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'tnum' 1, 'cv11' 1; /* 等宽数字 */
+  font-feature-settings: 'tnum' 1;
 }
 
-/* 等宽（代码、表格内的数字） */
 code, pre, kbd, samp {
   font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'SF Mono', Consolas, 'Menlo', monospace;
   font-size: 0.92em;
 }
 
-/* 选中样式 */
 ::selection {
   background: hsl(var(--brand-500) / 0.18);
   color: hsl(var(--foreground));
 }
 
-/* 焦点环：键盘导航专用（无副作用） */
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
@@ -184,7 +137,6 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* 移除 button 的默认外观，防止 input/button 在不同浏览器上不一致 */
 button {
   background: none;
   border: none;
@@ -193,43 +145,13 @@ button {
   cursor: pointer;
 }
 
-/* ============================================================
-   动画：仅保留必要的状态反馈（无装饰性动画）
-   ============================================================ */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes spinSubtle {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+/* ----- 动画（仅状态反馈） ----- */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 .animate-fade-in { animation: fadeIn 160ms ease-out; }
 .animate-fade-in-up { animation: fadeInUp 200ms ease-out; }
@@ -237,20 +159,15 @@ button {
 .animate-slide-in-right { animation: slideInRight 220ms ease-out; }
 .animate-slide-in-left { animation: slideInLeft 220ms ease-out; }
 
-/* 减少动效偏好（系统级无障碍） */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* ============================================================
-   滚动条（克制、低存在感）
-   ============================================================ */
+/* ----- 滚动条（克制） ----- */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -278,9 +195,7 @@ button {
 
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 
-/* ============================================================
-   工具类：玻璃 / 表面 / 文本渐变
-   ============================================================ */
+/* ----- 工具类 ----- */
 .surface-1 {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
@@ -301,27 +216,25 @@ button {
   border: 1px solid hsl(var(--border) / 0.7);
 }
 
+.glass-strong {
+  background: hsl(var(--card) / 0.92);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border: 1px solid hsl(var(--border));
+}
+
 .text-gradient {
-  background: linear-gradient(135deg, hsl(var(--brand-700)) 0%, hsl(var(--brand-500)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: hsl(var(--brand-700));
+  font-weight: 600;
 }
 
-.text-muted {
-  color: hsl(var(--muted-foreground));
-}
-
-/* 阴影类（专业级、低高度） */
-.shadow-xs  { box-shadow: var(--shadow-xs); }
+.shadow-xs { box-shadow: var(--shadow-xs); }
 .shadow-soft { box-shadow: var(--shadow-sm); }
-.shadow-pop  { box-shadow: var(--shadow-md); }
+.shadow-pop { box-shadow: var(--shadow-md); }
 .shadow-pop-lg { box-shadow: var(--shadow-lg); }
 .shadow-pop-xl { box-shadow: var(--shadow-xl); }
 
-/* ============================================================
-   状态徽章 / 标签
-   ============================================================ */
+/* ----- 状态徽章 ----- */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -364,9 +277,15 @@ button {
   border-color: hsl(var(--danger-500) / 0.25);
 }
 
-/* ============================================================
-   ReactFlow（克制处理：不再用霓虹、毛玻璃过强）
-   ============================================================ */
+/* ----- ReactFlow 克制处理 ----- */
+.react-flow {
+  background-color: hsl(var(--background));
+}
+
+.react-flow__background {
+  background-color: hsl(var(--background));
+}
+
 .react-flow__controls {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
@@ -383,17 +302,9 @@ button {
   transition: background 120ms ease !important;
 }
 
-.react-flow__controls-button:last-child {
-  border-bottom: none !important;
-}
-
-.react-flow__controls-button:hover {
-  background: hsl(var(--muted)) !important;
-}
-
-.react-flow__controls-button svg {
-  fill: currentColor !important;
-}
+.react-flow__controls-button:last-child { border-bottom: none !important; }
+.react-flow__controls-button:hover { background: hsl(var(--muted)) !important; }
+.react-flow__controls-button svg { fill: currentColor !important; }
 
 .react-flow__minimap {
   background: hsl(var(--card)) !important;
@@ -440,33 +351,15 @@ button {
   transform: scale(1.15);
 }
 
-.react-flow__node {
-  transition: filter 120ms ease;
-}
+.react-flow__node { transition: filter 120ms ease; }
+.react-flow__node:hover { filter: drop-shadow(0 4px 8px rgb(15 23 42 / 0.10)); }
+.react-flow__node.selected { filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.45)); }
 
-.react-flow__node:hover {
-  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.10));
-}
-
-.react-flow__node.selected {
-  filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.45));
-}
-
-/* group / note 节点保持背景层级 */
 .react-flow__node-groupNode,
-.react-flow__node-noteNode {
-  z-index: -1 !important;
-}
+.react-flow__node-noteNode { z-index: -1 !important; }
 
-.react-flow__background {
-  background-color: hsl(var(--background));
-}
-
-/* ============================================================
-   Tooltip（统一样式）
-   ============================================================ */
-[role="tooltip"],
-.tooltip {
+/* ----- Tooltip / 骨架 / 状态点 ----- */
+[role="tooltip"], .tooltip {
   background: hsl(var(--slate-900));
   color: hsl(var(--slate-50));
   font-size: var(--text-xs);
@@ -475,29 +368,13 @@ button {
   box-shadow: var(--shadow-md);
 }
 
-.dark [role="tooltip"],
-.dark .tooltip {
-  background: hsl(var(--slate-700));
-}
-
-/* ============================================================
-   骨架屏
-   ============================================================ */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 0%,
-    hsl(var(--muted-foreground) / 0.12) 50%,
-    hsl(var(--muted)) 100%
-  );
+  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.12) 50%, hsl(var(--muted)) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: var(--radius);
 }
 
-/* ============================================================
-   状态指示点
-   ============================================================ */
 .status-dot {
   display: inline-block;
   width: 8px;
@@ -505,61 +382,27 @@ button {
   border-radius: 999px;
   flex-shrink: 0;
 }
-
 .status-dot-running { background: hsl(var(--brand-500)); box-shadow: 0 0 0 2px hsl(var(--brand-500) / 0.18); }
 .status-dot-success { background: hsl(var(--success-500)); }
 .status-dot-warning { background: hsl(var(--warning-500)); }
 .status-dot-danger  { background: hsl(var(--danger-500)); }
 .status-dot-idle    { background: hsl(var(--slate-400)); }
 
-/* ============================================================
-   响应式断点 - 多端适配（桌面优先，小屏自适应）
-   ============================================================ */
+/* ----- 多端响应式 ----- */
 @media (max-width: 768px) {
-  body {
-    font-size: 14px;
-  }
-  /* 全局右侧抽屉在小屏下变全宽 */
+  body { font-size: 14px; }
   .responsive-drawer-right {
     width: 100% !important;
     left: 0 !important;
   }
 }
 
-/* 高 DPI 屏幕优化 */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  body {
-    -webkit-font-smoothing: antialiased;
-  }
-}
-
-/* ============================================================
-   Markdown / 富文本（小助手回复内容用得到）
-   ============================================================ */
-.prose-compact {
-  font-size: var(--text-md);
-  line-height: 1.6;
-  word-break: break-word;
-}
-
-.prose-compact p {
-  margin: 0 0 0.6em 0;
-}
-
-.prose-compact p:last-child {
-  margin-bottom: 0;
-}
-
-.prose-compact ul,
-.prose-compact ol {
-  margin: 0 0 0.6em 1.4em;
-  padding: 0;
-}
-
-.prose-compact li {
-  margin-bottom: 0.2em;
-}
-
+/* ----- Markdown / 富文本 ----- */
+.prose-compact { font-size: var(--text-md); line-height: 1.6; word-break: break-word; }
+.prose-compact p { margin: 0 0 0.6em 0; }
+.prose-compact p:last-child { margin-bottom: 0; }
+.prose-compact ul, .prose-compact ol { margin: 0 0 0.6em 1.4em; padding: 0; }
+.prose-compact li { margin-bottom: 0.2em; }
 .prose-compact code {
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
@@ -567,7 +410,6 @@ button {
   border-radius: 4px;
   font-size: 0.88em;
 }
-
 .prose-compact pre {
   background: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
@@ -576,59 +418,17 @@ button {
   overflow-x: auto;
   margin: 0.5em 0;
 }
-
-.prose-compact pre code {
-  background: none;
-  border: none;
-  padding: 0;
-}
-
+.prose-compact pre code { background: none; border: none; padding: 0; }
 .prose-compact a {
   color: hsl(var(--brand-600));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.prose-compact strong { font-weight: 600; }
 
-.prose-compact strong {
-  font-weight: 600;
-}
-
-/* ============================================================
-   工具栏 / 侧边栏 / 节点 - 通用克制样式
-   ============================================================ */
-.toolbar-btn {
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.module-item {
-  transition: background 120ms ease, border-color 120ms ease;
-}
-
-.module-item:hover {
-  background: hsl(var(--muted));
-}
-
-.log-item {
-  transition: background 100ms ease;
-}
-
-.log-item:hover {
-  background: hsl(var(--muted) / 0.6);
-}
-
-/* ============================================================
-   兼容性占位类（旧代码引用，但渲染为简洁中性效果）
-   - 使旧组件不重写也能马上更专业
-   ============================================================ */
-.gradient-primary {
-  background: hsl(var(--brand-600));
-  color: white;
-}
-
-.gradient-primary-soft {
-  background: hsl(var(--brand-50));
-  color: hsl(var(--brand-700));
-}
+/* ----- 兼容旧类名（保留布局，移除装饰） ----- */
+.gradient-primary { background: hsl(var(--brand-600)); color: white; }
+.gradient-primary-soft { background: hsl(var(--brand-50)); color: hsl(var(--brand-700)); }
 
 .gradient-mesh,
 .gradient-purple-blue,
@@ -679,12 +479,9 @@ button {
   background: hsl(var(--brand-700));
 }
 
-.shadow-glow,
-.shadow-glow-lg {
-  box-shadow: var(--shadow-md);
-}
+.shadow-glow, .shadow-glow-lg { box-shadow: var(--shadow-md); }
 
-/* 旧动画类降级为温和反馈 */
+/* 装饰类全部降级为温和淡入 */
 .animate-pulse-glow,
 .animate-shimmer,
 .animate-float,
@@ -700,7 +497,7 @@ button {
   animation: fadeIn 200ms ease-out;
 }
 
-/* hover 类降级为简单背景过渡 */
+/* hover 类降级 */
 .hover-lift,
 .hover-scale,
 .hover-glow,
@@ -717,68 +514,9 @@ button {
   background: hsl(var(--muted));
 }
 
-.hover-lift:hover {
-  box-shadow: var(--shadow-sm);
-}
+.hover-lift:hover { box-shadow: var(--shadow-sm); }
 
-/* 渐变文字动画类降级为静态品牌色文字 */
-.text-gradient-animated {
-  color: hsl(var(--brand-600));
-}
-
-/* 装饰性动画类全部禁用为无操作 */
-.btn-glow,
-.btn-glow:hover,
-.btn-ripple,
-.input-focus-ring,
-.input-animated,
-.border-flow,
-.flip-card,
-.ripple-effect,
-.empty-state-icon,
-.icon-spin-hover,
-.typewriter,
-.cursor-blink,
-.tooltip-modern,
-.gradient-border-card,
-.gradient-hover,
-.gradient-underline,
-.gradient-icon-bg,
-.gradient-progress,
-.gradient-divider,
-.gradient-divider-vertical,
-.gradient-shadow,
-.gradient-shadow-lg,
-.gradient-focus,
-.glass-strong,
-.divider-gradient,
-.border-gradient,
-.pulse-border,
-.underline-hover,
-.btn-press,
-.skeleton-wave,
-.selection-highlight,
-.tab-indicator,
-.count-up,
-.variable-tag,
-.config-input,
-.input-modern,
-.card-modern,
-.dragging,
-.drop-zone-active,
-.progress-bar,
-.status-success,
-.status-error,
-.panel-collapse {
-  /* 保留布局，移除装饰性效果 */
-}
-
-.glass-strong {
-  background: hsl(var(--card) / 0.92);
-  backdrop-filter: saturate(180%) blur(16px);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  border: 1px solid hsl(var(--border));
-}
+.text-gradient-animated { color: hsl(var(--brand-600)); }
 
 .input-modern,
 .input-animated {
@@ -801,10 +539,7 @@ button {
   border-radius: var(--radius-md);
 }
 
-.divider-gradient {
-  height: 1px;
-  background: hsl(var(--border));
-}
+.divider-gradient { height: 1px; background: hsl(var(--border)); }
 
 .border-gradient {
   border: 1px solid hsl(var(--border));
@@ -839,9 +574,7 @@ button {
   border-radius: var(--radius);
 }
 
-/* ============================================================
-   滑动条样式（自定义 range input）
-   ============================================================ */
+/* ----- 滑动条 ----- */
 input[type="range"].slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -868,9 +601,7 @@ input[type="range"].slider-thumb::-webkit-slider-thumb {
   transition: transform 120ms ease;
 }
 
-input[type="range"].slider-thumb::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
+input[type="range"].slider-thumb::-webkit-slider-thumb:hover { transform: scale(1.1); }
 
 input[type="range"].slider-thumb::-moz-range-track {
   height: 4px;

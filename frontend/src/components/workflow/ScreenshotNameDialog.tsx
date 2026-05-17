@@ -36,7 +36,7 @@ export function ScreenshotNameDialog({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-[500px] max-w-[90vw] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* 标题栏 */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 flex items-center justify-between">
+        <div className="bg-[hsl(var(--card))] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <ImageIcon className="w-6 h-6 text-white" />
@@ -91,7 +91,7 @@ export function ScreenshotNameDialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            className="min-w-[100px] bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            className="bg-[hsl(var(--card))] min-w-[100px]"
           >
             确定
           </Button>
@@ -130,7 +130,7 @@ export function ScreenshotErrorDialog({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-[500px] max-w-[90vw] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* 标题栏 */}
-        <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
+        <div className="bg-[hsl(var(--card))] px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <AlertCircle className="w-6 h-6 text-white" />
@@ -185,7 +185,7 @@ export function ScreenshotErrorDialog({
           <Button
             onClick={handleRetry}
             disabled={retrying}
-            className="min-w-[120px] bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700"
+            className="bg-[hsl(var(--card))] min-w-[120px]"
           >
             {retrying ? (
               <>

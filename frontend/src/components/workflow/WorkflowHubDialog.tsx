@@ -1236,7 +1236,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-purple-700 to-purple-900 text-white">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b border-[hsl(var(--border))]">
           <div className="flex items-center gap-3">
             <Package className="w-6 h-6" />
             <h2 className="text-xl font-bold">工作流仓库</h2>

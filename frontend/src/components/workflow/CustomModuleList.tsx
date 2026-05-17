@@ -239,7 +239,7 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
             <Button
               onClick={onCreateNew}
               size="sm"
-              className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              className="bg-[hsl(var(--brand-600))] flex-1 text-white"
             >
               <Plus className="w-4 h-4 mr-1" />
               创建模块

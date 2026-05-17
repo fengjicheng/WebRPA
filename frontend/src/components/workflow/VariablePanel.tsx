@@ -43,12 +43,12 @@ function RenameConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-[420px] mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* 顶部渐变装饰 */}
-        <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500" />
+        <div className="bg-[hsl(var(--card))] h-1.5" />
         
         <div className="p-6">
           {/* 图标和标题 */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <div className="bg-[hsl(var(--card))] w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
@@ -60,13 +60,13 @@ function RenameConfirmDialog({
           </div>
           
           {/* 变量变更展示 */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-4 mb-5">
+          <div className="bg-[hsl(var(--card))] rounded-xl p-4 mb-5">
             <div className="flex items-center justify-center gap-3">
               <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
                 <span className="text-xs text-gray-500">原名</span>
                 <code className="text-sm font-mono font-semibold text-red-600">{'{' + oldName + '}'}</code>
               </div>
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md">
+              <div className="bg-[hsl(var(--card))] flex items-center justify-center w-8 h-8 rounded-full shadow-md">
                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -98,7 +98,7 @@ function RenameConfirmDialog({
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98]"
+              className="bg-[hsl(var(--brand-600))] flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
             >
               全部更新
             </button>
@@ -295,8 +295,8 @@ export function VariablePanel() {
   }
 
   return (
-    <div className="h-full flex flex-col animate-fade-in bg-gradient-to-b from-white to-emerald-50/20">
-      <div className="p-3 border-b bg-gradient-to-r from-emerald-50/50 via-cyan-50/30 to-blue-50/50">
+    <div className="bg-[hsl(var(--card))] h-full flex flex-col animate-fade-in from-white">
+      <div className="bg-[hsl(var(--card))] p-3 border-b">
         <h3 className="text-sm font-medium mb-2 text-gradient">全局变量</h3>
         <div className="space-y-2">
           <div className="flex gap-2">
@@ -358,7 +358,7 @@ export function VariablePanel() {
       <ScrollArea className="flex-1 p-2">
         {variables.length === 0 ? (
           <div className="text-center py-8 animate-fade-in">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center">
+            <div className="bg-[hsl(var(--card))] w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center">
               <Plus className="w-6 h-6 text-muted-foreground/40" />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -495,7 +495,7 @@ export function VariablePanel() {
       </ScrollArea>
 
       {/* 变量引用语法提示 */}
-      <div className="p-2 border-t bg-gradient-to-r from-blue-50/50 to-cyan-50/50">
+      <div className="bg-[hsl(var(--card))] p-2 border-t">
         <p className="text-[10px] text-muted-foreground leading-relaxed">
           <span className="font-medium text-blue-600">引用语法：</span>
           <code className="bg-blue-100 px-1 rounded text-blue-700">{'{变量名}'}</code> · 

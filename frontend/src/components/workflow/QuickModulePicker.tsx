@@ -116,7 +116,7 @@ export function QuickModulePicker({
             }}
           >
             {/* 头部 */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+            <div className="bg-[hsl(var(--card))] flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="font-semibold text-gray-900">
                 {favoritesOnly ? '收藏的模块' : '快速选择模块'}
               </h3>

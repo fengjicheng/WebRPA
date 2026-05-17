@@ -75,9 +75,9 @@ export function CustomModuleConfig({ data, onChange }: CustomModuleConfigProps) 
   return (
     <div className="space-y-4">
       {/* 模块信息 */}
-      <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+      <div className="bg-[hsl(var(--card))] p-4 rounded-lg border border-purple-200">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+          <div className="bg-[hsl(var(--brand-600))] w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0">
             <Package className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">

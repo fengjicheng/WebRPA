@@ -1241,7 +1241,7 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
   
   return (
     <>
-      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
+      <div className="bg-[hsl(var(--card))] p-3 rounded-lg border-l-4 border-green-500">
         <p className="text-sm text-gray-700 font-medium mb-1">
           🐍 Python脚本执行
         </p>
@@ -1714,7 +1714,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
             <button
               type="button"
               onClick={convertToSubflowHeader}
-              className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+              className="bg-[hsl(var(--brand-600))] w-full px-4 py-2 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
             >
               '转换为函数头形式'
             </button>

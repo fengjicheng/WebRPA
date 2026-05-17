@@ -148,9 +148,9 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in">
         {/* 标题栏 */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 via-cyan-50/50 to-blue-50">
+        <div className="bg-[hsl(var(--card))] flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+            <div className="bg-[hsl(var(--card))] p-1.5 rounded-lg">
               <FileJson className="w-4 h-4 text-white" />
             </div>
             <h3 className="font-semibold text-gradient">打开本地工作流</h3>
@@ -161,7 +161,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
         </div>
 
         {/* 工具栏 */}
-        <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50/30 flex items-center gap-2">
+        <div className="bg-[hsl(var(--card))] p-3 border-b flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -184,7 +184,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
         </div>
 
         {/* 文件夹路径 */}
-        <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-blue-50/50 text-xs text-gray-600 truncate">
+        <div className="bg-[hsl(var(--card))] px-4 py-2 text-xs text-gray-600 truncate">
           {currentFolder || '加载中...'}
         </div>
 

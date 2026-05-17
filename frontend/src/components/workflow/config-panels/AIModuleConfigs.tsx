@@ -482,7 +482,7 @@ export function AISmartScraperConfig({ data, onChange }: { data: NodeData; onCha
         </Select>
       </div>
       
-      <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+      <div className="bg-[hsl(var(--card))] p-3 border border-purple-200 rounded-lg">
         <p className="text-xs text-purple-900">
           <strong>🤖 AI智能爬虫</strong><br/>
           • 优点：用自然语言描述即可提取数据，适应网页结构变化<br/>
@@ -649,7 +649,7 @@ export function AIElementSelectorConfig({ data, onChange }: { data: NodeData; on
         </Select>
       </div>
       
-      <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
+      <div className="bg-[hsl(var(--card))] p-3 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-900">
           <strong>AI智能元素选择器</strong><br/>
           • 优点：即使网页结构变化，也能准确找到元素<br />
@@ -788,7 +788,7 @@ export function FirecrawlScrapeConfig({ data, onChange }: { data: NodeData; onCh
         />
       </div>
       
-      <div className="p-3 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg">
+      <div className="bg-[hsl(var(--card))] p-3 border border-orange-200 rounded-lg">
         <p className="text-xs text-orange-900">
           <strong>Firecrawl AI 单页数据抓取</strong><br/>
           • 智能提取网页结构化数据<br />
@@ -869,7 +869,7 @@ export function FirecrawlMapConfig({ data, onChange }: { data: NodeData; onChang
         </Select>
       </div>
       
-      <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
+      <div className="bg-[hsl(var(--card))] p-3 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-900">
           <strong>🗺️ Firecrawl AI 网站链接抓取</strong><br/>
           • 智能发现网站的所有链接<br />
@@ -1034,7 +1034,7 @@ export function FirecrawlCrawlConfig({ data, onChange }: { data: NodeData; onCha
         </Select>
       </div>
       
-      <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+      <div className="bg-[hsl(var(--card))] p-3 border border-purple-200 rounded-lg">
         <p className="text-xs text-purple-900">
           <strong>🕷️ Firecrawl AI 全站数据抓取</strong><br/>
           • 智能爬取整个网站的数据<br />
