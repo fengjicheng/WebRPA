@@ -239,7 +239,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900">已连接的设备</h3>
               <Button
-                variant="outline"
+                variant="tonal-success"
                 size="sm"
                 onClick={loadDevices}
                 disabled={refreshing}

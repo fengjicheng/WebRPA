@@ -260,7 +260,7 @@ export function EditCustomModuleDialog({ open, onClose, module, onEditWorkflow }
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium">输入参数</h3>
-              <Button onClick={addParameter} size="sm" variant="outline">
+              <Button onClick={addParameter} size="sm" variant="tonal-success">
                 <Plus className="w-4 h-4 mr-1" />
                 添加参数
               </Button>
@@ -352,7 +352,7 @@ export function EditCustomModuleDialog({ open, onClose, module, onEditWorkflow }
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium">输出变量</h3>
-              <Button onClick={addOutput} size="sm" variant="outline">
+              <Button onClick={addOutput} size="sm" variant="tonal-success">
                 <Plus className="w-4 h-4 mr-1" />
                 添加输出
               </Button>

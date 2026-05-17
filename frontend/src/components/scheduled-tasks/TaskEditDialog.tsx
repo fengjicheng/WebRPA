@@ -824,7 +824,7 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
               </Button>
             ) : (
               <Button
-                variant="outline"
+                variant="tonal-success"
                 onClick={handleExecute}
                 disabled={!currentTask.enabled}
                 className="gap-1"

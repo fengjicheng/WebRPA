@@ -87,7 +87,7 @@ export function WeChatSendFileConfig({ data, onChange }: { data: NodeData; onCha
           />
           <Button
             type="button"
-            variant="outline"
+            variant="tonal-warning"
             size="icon"
             className="shrink-0"
             onClick={async () => {

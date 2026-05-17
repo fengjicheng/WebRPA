@@ -427,71 +427,71 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'logs' 
-                  ? 'bg-[hsl(var(--brand-600))] text-white font-medium border-[hsl(var(--brand-700))] shadow-soft' 
-                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))] hover:border-[hsl(var(--brand-500)/0.4)]'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium border-[hsl(var(--brand-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))]'
               )}
               onClick={() => setActiveTab('logs')}
             >
-              <FileText className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'logs' ? 'text-white' : 'text-[hsl(217_91%_60%)]')} />
+              <FileText className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'logs' ? 'text-[hsl(var(--brand-600))]' : 'text-[hsl(217_91%_60%)]')} />
               <span className="hidden sm:inline">执行日志</span>
               <span className="sm:hidden">日志</span>
-              <span className="text-[10px] sm:text-xs opacity-80">({logs.length})</span>
+              <span className="text-[10px] sm:text-xs opacity-70">({logs.length})</span>
             </button>
             <button
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'data' 
-                  ? 'bg-[hsl(var(--brand-600))] text-white font-medium border-[hsl(var(--brand-700))] shadow-soft' 
-                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))] hover:border-[hsl(var(--brand-500)/0.4)]'
+                  ? 'bg-[hsl(199_95%_94%)] text-[hsl(199_89%_38%)] font-medium border-[hsl(199_89%_48%/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(199_95%_94%)] hover:text-[hsl(199_89%_38%)]'
               )}
               onClick={() => setActiveTab('data')}
             >
-              <FileSpreadsheet className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'data' ? 'text-white' : 'text-[hsl(199_70%_55%)]')} />
+              <FileSpreadsheet className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'data' ? 'text-[hsl(199_89%_48%)]' : 'text-[hsl(199_70%_55%)]')} />
               <span className="hidden sm:inline">数据表格</span>
               <span className="sm:hidden">数据</span>
-              <span className="text-[10px] sm:text-xs opacity-80">({collectedData.length})</span>
+              <span className="text-[10px] sm:text-xs opacity-70">({collectedData.length})</span>
             </button>
             <button
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'variables' 
-                  ? 'bg-[hsl(var(--brand-600))] text-white font-medium border-[hsl(var(--brand-700))] shadow-soft' 
-                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))] hover:border-[hsl(var(--brand-500)/0.4)]'
+                  ? 'bg-[hsl(270_100%_95%)] text-[hsl(270_60%_45%)] font-medium border-[hsl(270_60%_55%/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(270_100%_95%)] hover:text-[hsl(270_60%_45%)]'
               )}
               onClick={() => setActiveTab('variables')}
             >
-              <Variable className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'variables' ? 'text-white' : 'text-[hsl(270_50%_60%)]')} />
+              <Variable className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'variables' ? 'text-[hsl(270_60%_55%)]' : 'text-[hsl(270_50%_60%)]')} />
               <span className="hidden sm:inline">全局变量</span>
               <span className="sm:hidden">变量</span>
-              <span className="text-[10px] sm:text-xs opacity-80">({variables.length})</span>
+              <span className="text-[10px] sm:text-xs opacity-70">({variables.length})</span>
             </button>
             <button
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'assets' 
-                  ? 'bg-[hsl(var(--brand-600))] text-white font-medium border-[hsl(var(--brand-700))] shadow-soft' 
-                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))] hover:border-[hsl(var(--brand-500)/0.4)]'
+                  ? 'bg-[hsl(var(--success-50))] text-[hsl(142_71%_28%)] font-medium border-[hsl(var(--success-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--success-50))] hover:text-[hsl(142_71%_28%)]'
               )}
               onClick={() => setActiveTab('assets')}
             >
-              <Database className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'assets' ? 'text-white' : 'text-[hsl(142_50%_50%)]')} />
+              <Database className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'assets' ? 'text-[hsl(var(--success-500))]' : 'text-[hsl(142_50%_50%)]')} />
               <span className="hidden md:inline">Excel资源</span>
               <span className="md:hidden">Excel</span>
-              <span className="text-[10px] sm:text-xs opacity-80">({dataAssets.length})</span>
+              <span className="text-[10px] sm:text-xs opacity-70">({dataAssets.length})</span>
             </button>
             <button
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'images' 
-                  ? 'bg-[hsl(var(--brand-600))] text-white font-medium border-[hsl(var(--brand-700))] shadow-soft' 
-                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))] hover:border-[hsl(var(--brand-500)/0.4)]'
+                  ? 'bg-[hsl(var(--warning-50))] text-[hsl(32_95%_38%)] font-medium border-[hsl(var(--warning-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--warning-50))] hover:text-[hsl(32_95%_38%)]'
               )}
               onClick={() => setActiveTab('images')}
             >
-              <ImageIcon className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'images' ? 'text-white' : 'text-[hsl(32_70%_55%)]')} />
+              <ImageIcon className={cn('w-3 h-3 sm:w-3.5 sm:h-3.5', activeTab === 'images' ? 'text-[hsl(var(--warning-500))]' : 'text-[hsl(32_70%_55%)]')} />
               <span className="hidden md:inline">图像资源</span>
               <span className="md:hidden">图像</span>
-              <span className="text-[10px] sm:text-xs opacity-80">({useWorkflowStore.getState().imageAssets.length})</span>
+              <span className="text-[10px] sm:text-xs opacity-70">({useWorkflowStore.getState().imageAssets.length})</span>
             </button>
           </div>
         </div>
@@ -594,7 +594,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                       className="w-20 h-7 text-xs" 
                       onKeyDown={(e) => e.key === 'Enter' && handleAddVariable()} />
                   )}
-                  <Button size="icon" variant="outline" className="h-7 w-7" onClick={handleAddVariable}><Check className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="tonal-success" className="h-7 w-7" onClick={handleAddVariable}><Check className="w-3.5 h-3.5" /></Button>
                   <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setIsAddingVar(false)}><X className="w-3.5 h-3.5" /></Button>
                 </div>
               ) : (

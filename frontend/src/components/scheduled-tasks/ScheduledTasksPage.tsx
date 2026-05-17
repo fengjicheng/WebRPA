@@ -330,7 +330,7 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
                     </Button>
                   ) : (
                     <Button
-                      variant="outline"
+                      variant="tonal-success"
                       size="sm"
                       onClick={() => handleExecute(task)}
                       disabled={!task.enabled}
@@ -350,7 +350,7 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
                     日志
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="tonal-warning"
                     size="sm"
                     onClick={() => setEditingTask(task)}
                     className="gap-1"
@@ -358,7 +358,7 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
                     <Edit className="w-3 h-3" />
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="tonal-danger"
                     size="sm"
                     onClick={() => handleDelete(task)}
                     className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"

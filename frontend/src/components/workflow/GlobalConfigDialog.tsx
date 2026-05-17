@@ -1343,7 +1343,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                         />
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="tonal-warning"
                           size="icon"
                           className="shrink-0 border-gray-300"
                           onClick={async () => {
@@ -1570,7 +1570,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
         {/* 底部按钮 */}
         <div className="flex items-center justify-between p-4 border-t">
           <Button
-            variant="outline"
+            variant="tonal-success"
             size="sm"
             className="border-gray-300 text-gray-700 hover:bg-gray-100"
             onClick={handleReset}

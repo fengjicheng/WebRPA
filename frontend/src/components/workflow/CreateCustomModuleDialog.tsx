@@ -311,7 +311,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
               <h3 className="text-sm font-medium">输入参数</h3>
               <Button
                 type="button"
-                variant="outline"
+                variant="tonal-success"
                 size="sm"
                 onClick={addParameter}
               >
@@ -428,7 +428,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
               <h3 className="text-sm font-medium">输出变量</h3>
               <Button
                 type="button"
-                variant="outline"
+                variant="tonal-success"
                 size="sm"
                 onClick={addOutput}
               >

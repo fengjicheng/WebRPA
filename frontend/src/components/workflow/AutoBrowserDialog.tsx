@@ -285,7 +285,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
                 <Button variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50" onClick={handleCloseBrowser} disabled={loading}>
                   关闭浏览器
                 </Button>
-                <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50" onClick={checkStatus}>
+                <Button variant="tonal-success" className="border-gray-200 text-gray-600 hover:bg-gray-50" onClick={checkStatus}>
                   <RefreshCw className="w-4 h-4" />
                 </Button>
               </>

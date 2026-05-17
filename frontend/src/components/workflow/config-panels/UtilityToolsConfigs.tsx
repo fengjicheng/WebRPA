@@ -67,7 +67,7 @@ export function FileHashCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/files/file1.txt"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'file1Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'file1Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -81,7 +81,7 @@ export function FileHashCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/files/file2.txt"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'file2Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'file2Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -120,7 +120,7 @@ export function FileDiffCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/files/file1.txt"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'file1Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'file1Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -134,7 +134,7 @@ export function FileDiffCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/files/file2.txt"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'file2Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'file2Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -172,7 +172,7 @@ export function FolderHashCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/folder1"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'folder1Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'folder1Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -186,7 +186,7 @@ export function FolderHashCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/folder2"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'folder2Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'folder2Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -217,7 +217,7 @@ export function FolderDiffCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/folder1"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'folder1Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'folder1Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -231,7 +231,7 @@ export function FolderDiffCompareConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/folder2"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'folder2Path')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'folder2Path')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -700,7 +700,7 @@ export function PrinterCallConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'filePath', '文档文件|*.pdf;*.docx;*.doc;*.jpg;*.png')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'filePath', '文档文件|*.pdf;*.docx;*.doc;*.jpg;*.png')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>

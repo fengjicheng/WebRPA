@@ -128,7 +128,7 @@ export function ReadExcelConfig({ data, onChange }: ReadExcelConfigProps) {
             {selectedAsset && (
               <Button
                 type="button"
-                variant="outline"
+                variant="tonal-info"
                 size="sm"
                 onClick={() => setPreviewOpen(true)}
                 title="可视化选择"
@@ -156,7 +156,7 @@ export function ReadExcelConfig({ data, onChange }: ReadExcelConfigProps) {
               {selectedAsset && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="tonal-info"
                   size="sm"
                   onClick={() => setPreviewOpen(true)}
                   title="可视化选择"
@@ -191,7 +191,7 @@ export function ReadExcelConfig({ data, onChange }: ReadExcelConfigProps) {
               {selectedAsset && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="tonal-info"
                   size="sm"
                   onClick={() => setPreviewOpen(true)}
                   title="可视化选择"
@@ -223,7 +223,7 @@ export function ReadExcelConfig({ data, onChange }: ReadExcelConfigProps) {
               {selectedAsset && (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="tonal-info"
                   size="sm"
                   onClick={() => setPreviewOpen(true)}
                   className="h-7 text-xs"

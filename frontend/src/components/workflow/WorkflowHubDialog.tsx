@@ -1350,7 +1350,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                   <option value="popular">最受欢迎</option>
                   <option value="downloads">下载最多</option>
                 </Select>
-                <Button variant="outline" size="sm" onClick={forceRefresh} disabled={loading}>
+                <Button variant="tonal-success" size="sm" onClick={forceRefresh} disabled={loading}>
                   <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                   刷新
                 </Button>
@@ -1469,7 +1469,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     <span className="font-medium">我发布的工作流</span>
                     <span className="text-sm text-gray-500">({myWorkflows.length})</span>
                   </div>
-                  <Button variant="outline" size="sm" onClick={loadMyWorkflows} disabled={myWorkflowsLoading}>
+                  <Button variant="tonal-success" size="sm" onClick={loadMyWorkflows} disabled={myWorkflowsLoading}>
                     <RefreshCw className={`w-4 h-4 mr-1 ${myWorkflowsLoading ? 'animate-spin' : ''}`} />
                     刷新
                   </Button>
@@ -1517,7 +1517,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     <Package className="w-12 h-12 mb-4 text-gray-300" />
                     <p>你还没有发布过工作流</p>
                     <Button
-                      variant="outline"
+                      variant="tonal-success"
                       size="sm"
                       className="mt-4"
                       onClick={() => setActiveTab('publish')}
@@ -1570,7 +1570,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                           </div>
                           <div className="flex gap-2 ml-4">
                             <Button
-                              variant="outline"
+                              variant="tonal-warning"
                               size="sm"
                               onClick={() => startEditWorkflow(workflow)}
                             >
@@ -2131,7 +2131,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                             {remoteAssistCode}
                           </div>
                           <Button
-                            variant="outline"
+                            variant="tonal-info"
                             size="sm"
                             onClick={() => {
                               navigator.clipboard.writeText(remoteAssistCode)

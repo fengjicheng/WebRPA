@@ -51,7 +51,7 @@ export function MarkdownToHTMLConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/readme.md"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -81,7 +81,7 @@ export function MarkdownToHTMLConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/styles/custom.css"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'cssFile', 'CSS文件|*.css')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'cssFile', 'CSS文件|*.css')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -111,7 +111,7 @@ export function HTMLToMarkdownConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/page.html"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'HTML文件|*.html;*.htm')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'HTML文件|*.html;*.htm')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -157,7 +157,7 @@ export function MarkdownToPDFConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/readme.md"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -204,7 +204,7 @@ export function MarkdownToDocxConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/readme.md"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -226,7 +226,7 @@ export function MarkdownToDocxConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/templates/template.docx"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'referenceDoc', 'Word文件|*.docx')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'referenceDoc', 'Word文件|*.docx')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -256,7 +256,7 @@ export function DocxToMarkdownConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/document.docx"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Word文件|*.docx')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Word文件|*.docx')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -302,7 +302,7 @@ export function HTMLToDocxConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/page.html"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'HTML文件|*.html;*.htm')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'HTML文件|*.html;*.htm')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -340,7 +340,7 @@ export function DocxToHTMLConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/document.docx"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Word文件|*.docx')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Word文件|*.docx')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -386,7 +386,7 @@ export function MarkdownToEPUBConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/book.md"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Markdown文件|*.md')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -448,7 +448,7 @@ export function EPUBToMarkdownConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/books/book.epub"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'EPUB文件|*.epub')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'EPUB文件|*.epub')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -486,7 +486,7 @@ export function LaTeXToPDFConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/paper.tex"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'LaTeX文件|*.tex')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'LaTeX文件|*.tex')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -532,7 +532,7 @@ export function RSTToHTMLConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/readme.rst"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'RST文件|*.rst')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'RST文件|*.rst')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -578,7 +578,7 @@ export function OrgToHTMLConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/docs/notes.org"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Org文件|*.org')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath', 'Org文件|*.org')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -624,7 +624,7 @@ export function UniversalDocConvertConfig({ config, updateConfig }: ConfigProps)
             placeholder="C:/docs/document.md"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'inputPath')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'inputPath')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>

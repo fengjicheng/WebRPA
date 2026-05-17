@@ -70,7 +70,7 @@ export function PDFToImagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -84,7 +84,7 @@ export function PDFToImagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="留空则保存到PDF所在目录"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -153,7 +153,7 @@ export function ImagesToPDFConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/output/result.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputPath')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputPath')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -204,7 +204,7 @@ export function PDFMergeConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/output/merged.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputPath')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputPath')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -234,7 +234,7 @@ export function PDFSplitConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -248,7 +248,7 @@ export function PDFSplitConfig({ config, updateConfig }: ConfigProps) {
             placeholder="留空则保存到PDF所在目录"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -295,7 +295,7 @@ export function PDFExtractTextConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -341,7 +341,7 @@ export function PDFExtractImagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -355,7 +355,7 @@ export function PDFExtractImagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="留空则保存到PDF所在目录"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -397,7 +397,7 @@ export function PDFEncryptConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -477,7 +477,7 @@ export function PDFDecryptConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/encrypted.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -523,7 +523,7 @@ export function PDFAddWatermarkConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -621,7 +621,7 @@ export function PDFRotateConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -676,7 +676,7 @@ export function PDFDeletePagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -723,7 +723,7 @@ export function PDFGetInfoConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -754,7 +754,7 @@ export function PDFCompressConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -800,7 +800,7 @@ export function PDFInsertPagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/target.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'targetPdf', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'targetPdf', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -814,7 +814,7 @@ export function PDFInsertPagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/source.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'sourcePdf', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'sourcePdf', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -870,7 +870,7 @@ export function PDFReorderPagesConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -917,7 +917,7 @@ export function PDFAddHeaderFooterConfig({ config, updateConfig }: ConfigProps) 
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -993,7 +993,7 @@ export function PDFToWordConfig({ config, updateConfig }: ConfigProps) {
             placeholder="C:/documents/file.pdf"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFile(updateConfig, 'pdfPath', 'PDF文件|*.pdf')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>
@@ -1007,7 +1007,7 @@ export function PDFToWordConfig({ config, updateConfig }: ConfigProps) {
             placeholder="留空则保存到PDF所在目录"
             className="flex-1"
           />
-          <Button type="button" variant="outline" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
+          <Button type="button" variant="tonal-warning" size="icon" onClick={() => selectFolder(updateConfig, 'outputDir')}>
             <FolderOpen className="w-4 h-4" />
           </Button>
         </div>

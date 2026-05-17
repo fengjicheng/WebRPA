@@ -270,11 +270,11 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
             variableReferenceFormat="vars.变量名"
             moduleType="python_script"
           />
-          <Button size="sm" variant="outline" onClick={handleReset}>
+          <Button size="sm" variant="tonal-success" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-1" />
             重置
           </Button>
-          <Button size="sm" variant="outline" onClick={handleCopy}>
+          <Button size="sm" variant="tonal-success" onClick={handleCopy}>
             {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
             {copied ? '已复制' : '复制'}
           </Button>

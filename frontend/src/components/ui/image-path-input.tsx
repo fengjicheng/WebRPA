@@ -127,7 +127,7 @@ export function ImagePathInput({ value, onChange, className, placeholder = 'è¾“å
         />
         <Button
           type="button"
-          variant="outline"
+          variant="tonal-warning"
           size="icon"
           onClick={handleFileSelect}
           className="shrink-0"

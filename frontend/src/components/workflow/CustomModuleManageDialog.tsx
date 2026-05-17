@@ -127,7 +127,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                 className="flex-1"
               />
               <Button
-                variant="outline"
+                variant="tonal-success"
                 onClick={() => document.getElementById('import-module-file')?.click()}
                 disabled={importing}
               >
@@ -183,7 +183,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="tonal-warning"
                           onClick={() => onEdit(module)}
                           title="编辑"
                         >
@@ -191,7 +191,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="tonal-info"
                           onClick={() => handleDuplicate(module)}
                           title="复制"
                         >
@@ -199,7 +199,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="tonal-info"
                           onClick={() => handleExport(module)}
                           title="导出"
                         >
@@ -207,7 +207,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="tonal-danger"
                           onClick={() => handleDelete(module)}
                           title="删除"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"

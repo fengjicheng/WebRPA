@@ -114,7 +114,7 @@ export function TaskLogsDialog({ task, open, onClose }: TaskLogsDialogProps) {
           <h2 className="text-xl font-bold text-gray-900">执行日志 - {task.name}</h2>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="tonal-success"
               size="sm"
               onClick={loadLogs}
               disabled={loading}

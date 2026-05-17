@@ -247,7 +247,7 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
             <Button
               onClick={onManage}
               size="sm"
-              variant="outline"
+              variant="tonal-warning"
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -267,7 +267,7 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
                   <Button
                     onClick={onCreateNew}
                     size="sm"
-                    variant="outline"
+                    variant="tonal-success"
                     className="mt-3"
                   >
                     <Plus className="w-4 h-4 mr-1" />

@@ -205,7 +205,7 @@ function QRCodeDialog({
               </div>
 
               {/* 刷新按钮 */}
-              <Button variant="outline" size="sm" onClick={refreshQRCode} disabled={refreshing}>
+              <Button variant="tonal-success" size="sm" onClick={refreshQRCode} disabled={refreshing}>
                 <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? '刷新中...' : '刷新二维码'}
               </Button>
@@ -799,7 +799,7 @@ export function QQSendFileConfig({ data, onChange }: { data: NodeData; onChange:
           />
           <Button
             type="button"
-            variant="outline"
+            variant="tonal-warning"
             size="icon"
             className="shrink-0"
             onClick={async () => {
