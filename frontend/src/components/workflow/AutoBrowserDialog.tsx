@@ -210,7 +210,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/50 rounded-md transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-white/50 rounded-md transition-colors has-hover-only">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>

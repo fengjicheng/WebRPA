@@ -159,7 +159,7 @@ export function QuickModulePicker({
           </h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-[hsl(var(--muted))] rounded transition-colors"
+            className="p-1 hover:bg-[hsl(var(--muted))] rounded transition-colors has-hover-only"
             title="关闭 (Esc)"
           >
             <X className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />

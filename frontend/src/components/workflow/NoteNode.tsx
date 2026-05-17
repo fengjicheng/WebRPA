@@ -170,7 +170,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
             >
               <div className="relative" ref={colorPickerRef}>
                 <button
-                  className="p-1 rounded hover:bg-black/10"
+                  className="p-1 rounded hover:bg-black/10 has-hover-only"
                   onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker) }}
                   onMouseDown={(e) => e.stopPropagation()}
                   title="选择颜色"
@@ -203,7 +203,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                 )}
               </div>
               <button
-                className="p-1 rounded hover:bg-black/10"
+                className="p-1 rounded hover:bg-black/10 has-hover-only"
                 onClick={(e) => { e.stopPropagation(); handleFontSizeChange(-1) }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="减小字体"
@@ -212,7 +212,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
               </button>
               <span className="text-xs min-w-[18px] text-center" style={{ color: colorConfig.border }}>{localFontSize}</span>
               <button
-                className="p-1 rounded hover:bg-black/10"
+                className="p-1 rounded hover:bg-black/10 has-hover-only"
                 onClick={(e) => { e.stopPropagation(); handleFontSizeChange(1) }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="增大字体"

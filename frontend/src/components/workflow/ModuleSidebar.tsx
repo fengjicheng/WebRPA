@@ -1973,7 +1973,7 @@ export function ModuleSidebar() {
       {isCollapsed ? (
         <button 
           type="button"
-          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
+          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
           onClick={() => setIsCollapsed(false)}
           title="展开模块列表"
         >
@@ -2051,7 +2051,7 @@ export function ModuleSidebar() {
                     />
                     {searchQuery && (
                       <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors has-hover-only"
                         onClick={() => setSearchQuery('')}
                       >
                         <X className="w-4 h-4" />

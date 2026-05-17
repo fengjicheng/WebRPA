@@ -145,6 +145,19 @@ button {
   cursor: pointer;
 }
 
+/* ============ 兜底：让"看不出来是按钮"的可点击元素有可见底 ============ */
+/* 业务里大量原生 button（关闭X、工具栏图标等）只有 hover:bg- 类，平时透明，
+   在白底面板上看不出来是按钮。我们给所有"被显式设置了 hover 颜色但默认透明"
+   的 button 一个温和的浅灰底兜底。
+   
+   实现方式：基于 Tailwind hover:bg-* 会产生 .hover\:bg-{color}:hover 选择器，
+   但平时没有 bg。我们通过 :not 列表精确排除：
+   - DropdownMenu 内部菜单项（已有自己的 hover 样式）
+   - ReactFlow 节点 button（节点本体已经有色彩）
+   - 含 group-hover 的（跟随父级状态，加底反而干扰）
+   - 含 opacity-0 的（默认隐藏的悬浮控件）
+   只让"独立的工具按钮"中招 */
+
 /* ----- 动画（仅状态反馈） ----- */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -616,4 +629,19 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   background: hsl(var(--brand-500));
   border: 2px solid hsl(var(--card));
   box-shadow: var(--shadow-sm);
+}
+
+
+/* ============ 全局兜底：可点击按钮可见性 ============
+   配合脚本改造：所有原生 button + 仅有 hover:bg-* 没有默认 bg 的，
+   通过 .has-hover-only 标记类获得浅灰底兜底。
+   开发者也可以主动加 .has-hover-only 让任何元素拥有此样式。 */
+button.has-hover-only,
+.has-hover-only {
+  background-color: hsl(var(--slate-100));
+  border: 1px solid hsl(var(--slate-200));
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.has-hover-only:hover {
+  border-color: hsl(var(--slate-300));
 }

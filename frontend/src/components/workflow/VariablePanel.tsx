@@ -426,7 +426,7 @@ export function VariablePanel() {
                       ) : (
                         <button
                           type="button"
-                          className="px-2 py-1 rounded border border-transparent hover:border-blue-300 hover:bg-blue-50 cursor-text transition-all duration-150 text-left"
+                          className="px-2 py-1 rounded border border-transparent hover:border-blue-300 hover:bg-blue-50 cursor-text transition-all duration-150 text-left has-hover-only"
                           title="点击编辑变量名"
                           onMouseDown={(e) => {
                             e.stopPropagation()

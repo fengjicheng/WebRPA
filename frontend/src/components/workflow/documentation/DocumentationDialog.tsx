@@ -289,7 +289,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                     {searchResults.map((result, idx) => (
                       <button
                         key={`${result.docId}-${idx}`}
-                        className="w-full text-left p-2 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors"
+                        className="w-full text-left p-2 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors has-hover-only"
                         onClick={() => selectSearchResult(result.docId)}
                       >
                         <div className="text-xs text-gray-400 mb-0.5">{result.title}</div>

@@ -2264,7 +2264,7 @@ function MacroRecordDialog({
         <div className="flex justify-end gap-2 px-4 py-3 border-t bg-gray-50">
           <button
             type="button"
-            className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100 text-gray-700"
+            className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100 text-gray-700 has-hover-only"
             onClick={onClose}
           >
             取消
@@ -2516,34 +2516,34 @@ function MacroEditDialog({
                   <span className="flex-1 text-sm">{getActionDescription(action)}</span>
                   <div className="flex gap-1">
                     <button
-                      className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-100 rounded"
+                      className="p-1 text-gray-500 hover:text-blue-500 hover:bg-blue-100 rounded has-hover-only"
                       onClick={() => startEdit(index)}
                       title="编辑"
                     >
                       ✏️
                     </button>
                     <button
-                      className="p-1 text-gray-500 hover:text-green-500 hover:bg-green-100 rounded"
+                      className="p-1 text-gray-500 hover:text-green-500 hover:bg-green-100 rounded has-hover-only"
                       onClick={() => duplicateAction(index)}
                       title="复制"
                     >
                                           </button>
                     <button
-                      className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded has-hover-only"
                       onClick={() => moveUp(index)}
                       title="上移"
                     >
                       ⬆️
                     </button>
                     <button
-                      className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded has-hover-only"
                       onClick={() => moveDown(index)}
                       title="下移"
                     >
                       ⬇️
                     </button>
                     <button
-                      className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-100 rounded"
+                      className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-100 rounded has-hover-only"
                       onClick={() => deleteAction(index)}
                       title="删除"
                     >
@@ -2559,7 +2559,7 @@ function MacroEditDialog({
         {/* 底部 */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t bg-gray-50">
           <button
-            className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100"
+            className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100 has-hover-only"
             onClick={onClose}
           >
             取消
@@ -2787,7 +2787,7 @@ function MacroActionEditDialog({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <button className="px-3 py-1 text-sm border rounded hover:bg-gray-100" onClick={onClose}>
+          <button className="px-3 py-1 text-sm border rounded hover:bg-gray-100 has-hover-only" onClick={onClose}>
             取消
           </button>
           <button className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600" onClick={onSave}>
@@ -3023,7 +3023,7 @@ function MacroAddActionDialog({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <button className="px-3 py-1 text-sm border rounded hover:bg-gray-100" onClick={onClose}>
+          <button className="px-3 py-1 text-sm border rounded hover:bg-gray-100 has-hover-only" onClick={onClose}>
             取消
           </button>
           <button

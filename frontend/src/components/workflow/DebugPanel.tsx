@@ -100,7 +100,7 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
         </div>
         <button
           onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          className="p-1 hover:bg-gray-100 rounded transition-colors has-hover-only"
         >
           <X className="w-5 h-5 text-gray-500" />
         </button>

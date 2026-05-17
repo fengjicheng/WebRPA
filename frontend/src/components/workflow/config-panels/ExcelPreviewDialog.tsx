@@ -236,7 +236,7 @@ export function ExcelPreviewDialog({
               {getSelectionHint()} | 共 {totalRows} 行 × {totalCols} 列
             </p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded has-hover-only">
             <X className="w-5 h-5" />
           </button>
         </div>

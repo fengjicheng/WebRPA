@@ -1314,7 +1314,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                 <Settings className="w-4 h-4" />
               </button>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded">
+            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded has-hover-only">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1669,7 +1669,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                               </div>
                               <button
                                 onClick={handleClearUpload}
-                                className="p-1 hover:bg-green-100 rounded text-green-600"
+                                className="p-1 hover:bg-green-100 rounded text-green-600 has-hover-only"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -2575,7 +2575,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
               <div className="p-6 overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold">编辑工作流</h3>
-                  <button onClick={cancelEdit} className="p-1 hover:bg-gray-100 rounded">
+                  <button onClick={cancelEdit} className="p-1 hover:bg-gray-100 rounded has-hover-only">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -2712,7 +2712,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                               </div>
                               <button
                                 onClick={handleClearEditUpload}
-                                className="p-1 hover:bg-green-100 rounded text-green-600"
+                                className="p-1 hover:bg-green-100 rounded text-green-600 has-hover-only"
                               >
                                 <X className="w-4 h-4" />
                               </button>

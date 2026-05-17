@@ -43,7 +43,7 @@ export function UpdateDialog({
         <div className="bg-[hsl(var(--brand-600))] relative p-6 text-white">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/20 transition-colors has-hover-only"
           >
             <X className="w-5 h-5" />
           </button>

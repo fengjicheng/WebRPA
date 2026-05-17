@@ -112,7 +112,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              className="p-2 rounded-lg hover:bg-accent transition-colors has-hover-only"
             >
               <X className="w-5 h-5" />
             </button>

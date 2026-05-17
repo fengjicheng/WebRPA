@@ -227,14 +227,14 @@ function ModuleSearch({
               <div className="flex gap-1">
                 <button
                   onClick={handlePrevious}
-                  className="px-2 py-1 hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 hover:bg-gray-100 rounded transition-colors has-hover-only"
                   title="上一个 (Shift+F3)"
                 >
                   ↑
                 </button>
                 <button
                   onClick={handleNext}
-                  className="px-2 py-1 hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 hover:bg-gray-100 rounded transition-colors has-hover-only"
                   title="下一个 (F3)"
                 >
                   ↓

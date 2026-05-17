@@ -57,7 +57,7 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
     <div className={`rounded-[6px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] border-l-2 ${statusClasses.bar} overflow-hidden`}>
       <button
         type="button"
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[12px] hover:bg-[hsl(var(--muted))] transition-colors"
+        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[12px] hover:bg-[hsl(var(--muted))] transition-colors has-hover-only"
         onClick={() => setExpanded((v) => !v)}
       >
         <span className={statusClasses.icon}>{statusClasses.el}</span>

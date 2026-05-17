@@ -254,7 +254,7 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
               {lineCount} 行
             </span>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded has-hover-only">
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -857,7 +857,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         {isCollapsed ? (
           <button 
             type="button"
-            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >
@@ -2045,7 +2045,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         {isCollapsed ? (
           <button 
             type="button"
-            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
+            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full has-hover-only"
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >

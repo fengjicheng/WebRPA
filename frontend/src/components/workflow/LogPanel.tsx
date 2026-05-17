@@ -658,7 +658,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   />
                   {logSearchQuery && (
                     <button
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-blue-100 text-muted-foreground hover:text-blue-600 transition-all"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-blue-100 text-muted-foreground hover:text-blue-600 transition-all has-hover-only"
                       onClick={() => setLogSearchQuery('')}
                     >
                       <X className="w-3.5 h-3.5" />
