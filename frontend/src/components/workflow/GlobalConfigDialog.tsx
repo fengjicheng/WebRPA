@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
-import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2 } from 'lucide-react'
+import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot } from 'lucide-react'
 import { systemApi } from '@/services/api'
 import { getBackendBaseUrl } from '@/services/config'
 
@@ -13,7 +13,7 @@ interface GlobalConfigDialogProps {
   onClose: () => void
 }
 
-type TabType = 'system' | 'ai' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu'
+type TabType = 'system' | 'ai' | 'aiAssistant' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu'
 
 // 浏览器选项
 const browserOptions: { value: BrowserType; label: string; description: string }[] = [
@@ -29,6 +29,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
     updateSystemConfig,
     updateAIConfig, 
     updateAIScraperConfig, 
+    updateAIAssistantConfig,
     updateEmailConfig, 
     updateEmailTriggerConfig,
     updateApiTriggerConfig,
@@ -131,6 +132,17 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
           >
             <Brain className="w-4 h-4" />
             AI对话
+          </button>
+          <button
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+              activeTab === 'aiAssistant'
+                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+            }`}
+            onClick={() => setActiveTab('aiAssistant')}
+          >
+            <Bot className="w-4 h-4" />
+            小助手
           </button>
           <button
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
@@ -351,6 +363,130 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     placeholder="设定AI的角色和行为..."
                     className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black"
                   />
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'aiAssistant' && (
+            <>
+              <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-blue-50 via-cyan-50 to-teal-50 border border-blue-100">
+                <div className="flex items-start gap-2">
+                  <Bot className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900 mb-0.5">WebRPA 小助手</div>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      内置的全能 AI 助手，能够回答 WebRPA 相关问题、帮你搭建/运行工作流、配置全局设置。
+                      未配置时会自动回退使用「AI对话」的配置。
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">API地址</Label>
+                  <Input
+                    value={config.aiAssistant?.apiUrl || ''}
+                    onChange={(e) => updateAIAssistantConfig({ apiUrl: e.target.value })}
+                    placeholder="https://api.openai.com/v1/chat/completions"
+                    className="bg-white text-black border-gray-300"
+                  />
+                  <p className="text-xs text-gray-500">
+                    支持 OpenAI 兼容协议（OpenAI / 智谱 / Deepseek / Groq / Ollama 等）。
+                    可填基础地址（如 https://api.openai.com/v1），系统会自动补全。
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">API密钥</Label>
+                  <Input
+                    type="password"
+                    value={config.aiAssistant?.apiKey || ''}
+                    onChange={(e) => updateAIAssistantConfig({ apiKey: e.target.value })}
+                    placeholder="sk-xxx"
+                    className="bg-white text-black border-gray-300"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">模型名称</Label>
+                  <Input
+                    value={config.aiAssistant?.model || ''}
+                    onChange={(e) => updateAIAssistantConfig({ model: e.target.value })}
+                    placeholder="gpt-4o-mini / glm-4-plus / deepseek-chat"
+                    className="bg-white text-black border-gray-300"
+                  />
+                  <p className="text-xs text-gray-500">
+                    建议使用支持 Function Calling 的模型，例如 gpt-4o-mini、glm-4-plus、deepseek-chat、qwen-plus
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">温度</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={config.aiAssistant?.temperature ?? 0.7}
+                      onChange={(e) => updateAIAssistantConfig({ temperature: parseFloat(e.target.value) || 0.7 })}
+                      className="bg-white text-black border-gray-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">最大Token</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={config.aiAssistant?.maxTokens ?? 4000}
+                      onChange={(e) => updateAIAssistantConfig({ maxTokens: parseInt(e.target.value) || 4000 })}
+                      className="bg-white text-black border-gray-300"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-700">附加系统提示词（可选）</Label>
+                  <textarea
+                    value={config.aiAssistant?.systemPrompt || ''}
+                    onChange={(e) => updateAIAssistantConfig({ systemPrompt: e.target.value })}
+                    placeholder="为小助手追加额外的角色设定或行为约束（小助手已内置 WebRPA 的全部知识，留空即可）"
+                    className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black"
+                  />
+                </div>
+                <div className="space-y-3 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium text-gray-700">启用 Skills 工具调用</Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        让小助手能够直接操作 WebRPA（搭建/运行工作流、修改配置等）。
+                        关闭后小助手只能进行问答。
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={config.aiAssistant?.enableTools ?? true}
+                        onChange={(e) => updateAIAssistantConfig({ enableTools: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium text-gray-700">自动批准工具调用</Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        开启后小助手的工具调用会立即执行，无需人工确认。建议熟悉后再开启。
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={config.aiAssistant?.autoApprove ?? false}
+                        onChange={(e) => updateAIAssistantConfig({ autoApprove: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
             </>

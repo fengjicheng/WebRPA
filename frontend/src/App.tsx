@@ -6,6 +6,8 @@ import { VideoPlayerContainer } from '@/components/workflow/VideoPlayerContainer
 import { ImageViewerContainer } from '@/components/workflow/ImageViewerContainer'
 import { UpdateDialog } from '@/components/workflow/UpdateDialog'
 import { MouseCoordinateOverlay } from '@/components/workflow/MouseCoordinateOverlay'
+import { AIAssistantPanel } from '@/components/ai-assistant/AIAssistantPanel'
+import { AIAssistantButton } from '@/components/ai-assistant/AIAssistantButton'
 import { socketService } from '@/services/socket'
 import { remoteService } from '@/services/remote'
 import { dataAssetApi, imageAssetApi, updateApiBase } from '@/services/api'
@@ -244,6 +246,8 @@ function App() {
         onSkip={handleSkipUpdate}
       />
       <MouseCoordinateOverlay />
+      <AIAssistantPanel />
+      <AIAssistantButton />
     </div>
   )
 }

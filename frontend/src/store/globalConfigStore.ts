@@ -32,6 +32,17 @@ export interface GlobalConfig {
     apiKey: string
     azureEndpoint: string
   }
+  // WebRPA小助手配置
+  aiAssistant: {
+    apiUrl: string         // OpenAI 兼容 API 地址（支持基础地址或完整 chat/completions URL）
+    apiKey: string
+    model: string
+    temperature: number
+    maxTokens: number
+    systemPrompt: string   // 用户追加的系统提示词
+    enableTools: boolean   // 启用 Skills 工具调用
+    autoApprove: boolean   // 自动批准工具调用（不弹确认）
+  }
   // 发送邮件模块默认配置
   email: {
     senderEmail: string
@@ -116,6 +127,7 @@ interface GlobalConfigState {
   updateSystemConfig: (config: Partial<GlobalConfig['system']>) => void
   updateAIConfig: (config: Partial<GlobalConfig['ai']>) => void
   updateAIScraperConfig: (config: Partial<GlobalConfig['aiScraper']>) => void
+  updateAIAssistantConfig: (config: Partial<GlobalConfig['aiAssistant']>) => void
   updateEmailConfig: (config: Partial<GlobalConfig['email']>) => void
   updateEmailTriggerConfig: (config: Partial<GlobalConfig['emailTrigger']>) => void
   updateApiTriggerConfig: (config: Partial<GlobalConfig['apiTrigger']>) => void
@@ -148,6 +160,16 @@ const defaultConfig: GlobalConfig = {
     llmModel: 'llama3.2',
     apiKey: '',
     azureEndpoint: '',
+  },
+  aiAssistant: {
+    apiUrl: '',
+    apiKey: '',
+    model: '',
+    temperature: 0.7,
+    maxTokens: 4000,
+    systemPrompt: '',
+    enableTools: true,
+    autoApprove: false,
   },
   email: {
     senderEmail: '',
@@ -240,6 +262,18 @@ export const useGlobalConfigStore = create<GlobalConfigState>()(
           config: {
             ...get().config,
             aiScraper: { ...get().config.aiScraper, ...aiScraperConfig },
+          },
+        })
+      },
+
+      updateAIAssistantConfig: (aiAssistantConfig) => {
+        set({
+          config: {
+            ...get().config,
+            aiAssistant: {
+              ...(get().config.aiAssistant || defaultConfig.aiAssistant),
+              ...aiAssistantConfig,
+            },
           },
         })
       },
@@ -350,6 +384,7 @@ export const useGlobalConfigStore = create<GlobalConfigState>()(
             ...persisted?.config,
             system: persisted?.config?.system || defaultConfig.system,
             aiScraper: persisted?.config?.aiScraper || defaultConfig.aiScraper,
+            aiAssistant: persisted?.config?.aiAssistant || defaultConfig.aiAssistant,
             workflow: persisted?.config?.workflow || defaultConfig.workflow,
             database: persisted?.config?.database || defaultConfig.database,
             qq: persisted?.config?.qq || defaultConfig.qq,
