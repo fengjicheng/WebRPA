@@ -1155,7 +1155,7 @@ export function Toolbar() {
           保存
         </Button>
         <Button 
-          variant="tonal-warning" 
+          variant="warning" 
           size="sm" 
           onClick={handleOpen}
         >
@@ -1163,7 +1163,7 @@ export function Toolbar() {
           打开
         </Button>
         <Button 
-          variant="tonal-info" 
+          variant="info" 
           size="sm" 
           onClick={() => setShowExportDialog(true)}
         >
@@ -1265,15 +1265,15 @@ export function Toolbar() {
           size="sm" 
           onClick={() => setShowWorkflowHub(true)}
           title="工作流仓库"
-          className="!bg-[hsl(280_100%_96%)] !text-[hsl(280_60%_45%)] !border-[hsl(280_60%_55%/0.3)] hover:!bg-[hsl(280_100%_92%)]"
+          className="!bg-[hsl(280_60%_55%)] !text-white !border-[hsl(280_60%_45%)] hover:!bg-[hsl(280_60%_48%)] hover:!border-[hsl(280_60%_38%)] shadow-soft"
         >
           <Package className="w-4 h-4 sm:mr-1" />
           <span className="hidden lg:inline">工作流仓库</span>
         </Button>
 
-        {/* 自动化浏览器 - 绿色 */}
+        {/* 自动化浏览器 - 蓝色 */}
         <Button 
-          variant="tonal-success" 
+          variant="default" 
           size="sm" 
           onClick={() => setShowAutoBrowser(true)}
           title="自动化浏览器"
@@ -1282,13 +1282,13 @@ export function Toolbar() {
           <span className="hidden lg:inline">自动化浏览器</span>
         </Button>
 
-        {/* 全局配置 - 中性灰 */}
+        {/* 全局配置 - 橙色 */}
         <Button 
-          variant="outline" 
+          variant="warning" 
           size="sm" 
           onClick={() => setShowGlobalConfig(true)}
         >
-          <Settings className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
+          <Settings className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">全局配置</span>
         </Button>
 
