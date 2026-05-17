@@ -406,7 +406,7 @@ export function AIAssistantPanel() {
             <Wrench className="w-2.5 h-2.5" />
             <span>{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
           </div>
-          <span>WebRPA 小助手 · 鸣航</span>
+          <span>WebRPA 小助手</span>
         </div>
       </div>
     </div>

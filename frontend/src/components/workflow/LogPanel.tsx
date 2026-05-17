@@ -30,6 +30,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { LogLevel, VariableType } from '@/types'
 import { ExcelAssetsPanel } from './ExcelAssetsPanel'
 import { ImageAssetsPanel } from './ImageAssetsPanel'
+import { LogList } from './LogList'
+import { DataTable } from './DataTable'
 
 interface LogPanelProps {
   onLogClick?: (nodeId: string) => void
@@ -68,8 +70,6 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
   const logEndRef = useRef<HTMLDivElement>(null)
 
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null)
-  const [editValue, setEditValue] = useState('')
   const [newColumnName, setNewColumnName] = useState('')
   const [isAddingColumn, setIsAddingColumn] = useState(false)
   
@@ -177,38 +177,6 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
   }
 
   // 数据表格相关方法
-  const formatCellValue = (value: unknown): string => {
-    if (value === null || value === undefined) return ''
-    if (typeof value === 'object') {
-      try {
-        return JSON.stringify(value)
-      } catch {
-        return String(value)
-      }
-    }
-    return String(value)
-  }
-
-  const startEdit = (rowIndex: number, colName: string, value: unknown) => {
-    setEditingCell({ row: rowIndex, col: colName })
-    setEditValue(formatCellValue(value))
-  }
-
-  const saveEdit = () => {
-    if (editingCell) {
-      const row = { ...collectedData[editingCell.row] }
-      row[editingCell.col] = editValue
-      updateDataRow(editingCell.row, row)
-      setEditingCell(null)
-      setEditValue('')
-    }
-  }
-
-  const cancelEdit = () => {
-    setEditingCell(null)
-    setEditValue('')
-  }
-
   const handleAddRow = () => {
     const newRow: DataRow = {}
     columns.forEach(col => { newRow[col] = '' })
@@ -439,30 +407,6 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     renameVariable(renameDialog.oldName, renameDialog.newName)
     setRenameDialog(null)
     setEditingVarName(null)
-  }
-
-  const levelColors = {
-    debug: 'text-gray-500',
-    info: 'text-blue-500',
-    warning: 'text-yellow-500',
-    error: 'text-red-500',
-    success: 'text-green-500',
-  }
-
-  // 高亮搜索关键词
-  const highlightText = (text: string, query: string) => {
-    if (!query.trim()) return text
-    const lowerText = text.toLowerCase()
-    const lowerQuery = query.toLowerCase()
-    const index = lowerText.indexOf(lowerQuery)
-    if (index === -1) return text
-    return (
-      <>
-        {text.slice(0, index)}
-        <span className="bg-yellow-200 rounded px-0.5">{text.slice(index, index + query.length)}</span>
-        {text.slice(index + query.length)}
-      </>
-    )
   }
 
   return (
@@ -827,130 +771,62 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 </div>
               </div>
               
-              <ScrollArea className="flex-1 p-2">
-                {filteredLogs.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center animate-fade-in">
-                    {logs.length === 0 ? (
-                      <>
-                        <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
-                          <FileText className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">暂无日志</p>
-                        <p className="text-xs text-muted-foreground/70 mt-2 text-center px-4">
-                          提示：默认只显示"打印日志"模块的内容，开启"详细日志"可查看所有模块执行日志
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
-                          <Search className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">未找到匹配的日志</p>
-                        <p className="text-xs text-muted-foreground mt-1">试试其他关键词或筛选条件</p>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {filteredLogs.map((log, i) => (
-                      <motion.div
-                        key={log.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 30, delay: Math.min(i * 0.02, 0.3) }}
-                        className={cn(
-                          'text-xs font-mono px-3 py-1.5 rounded-lg break-words transition-colors border border-transparent',
-                          log.nodeId
-                            ? 'hover:bg-blue-50 cursor-pointer hover:border-blue-300 hover:shadow-sm'
-                            : 'hover:bg-muted/30'
-                        )}
-                        onClick={() => handleLogClick(log.nodeId)}
-                        title={log.nodeId ? '点击定位到对应模块' : undefined}
-                      >
-                        <span className="text-muted-foreground">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
-                        <span className={cn(levelColors[log.level], 'font-semibold')}>[{log.level.toUpperCase()}]</span>{' '}
-                        <span className="break-all">{logSearchQuery ? highlightText(log.message, logSearchQuery) : log.message}</span>
-                        {log.duration !== undefined && log.duration !== null && <span className="text-blue-500 ml-2">({log.duration.toFixed(2)}ms)</span>}
-                        {log.nodeId && (
-                          <span className="ml-2 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      </span>
-                        )}
-                      </motion.div>
-                    ))}
-                    <div ref={logEndRef} />
-                  </div>
-                )}
-              </ScrollArea>
+              {filteredLogs.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center animate-fade-in">
+                  {logs.length === 0 ? (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                        <FileText className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">暂无日志</p>
+                      <p className="text-xs text-muted-foreground/70 mt-2 text-center px-4">
+                        提示：默认只显示"打印日志"模块的内容，开启"详细日志"可查看所有模块执行日志
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                        <Search className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">未找到匹配的日志</p>
+                      <p className="text-xs text-muted-foreground mt-1">试试其他关键词或筛选条件</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <LogList
+                  logs={filteredLogs}
+                  searchQuery={logSearchQuery}
+                  onLogClick={handleLogClick}
+                />
+              )}
             </div>
           )}
 
           {activeTab === 'data' && (
             <div className="h-full flex flex-col">
-              <ScrollArea className="flex-1 p-2">
-                {collectedData.length === 0 && columns.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-fade-in">
-                    <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
-                      <FileSpreadsheet className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
-                    </div>
-                    <p className="text-sm">暂无数据</p>
-                    <p className="text-xs mt-1">执行工作流后，收集的数据将显示在这里</p>
-                    <p className="text-xs text-muted-foreground/70 mt-2 text-center px-4">
-                      此处最多实时预览20条数据，完整数据请点击"下载数据"按钮或使用"导出数据表"模块导出
-                    </p>
+              {collectedData.length === 0 && columns.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground animate-fade-in">
+                  <div className="w-16 h-16 rounded-full bg-[hsl(var(--muted))] flex items-center justify-center mb-3">
+                    <FileSpreadsheet className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          <th className="border px-2 py-1.5 text-left font-medium w-10">#</th>
-                          {columns.map(col => (
-                            <th key={col} className="border px-2 py-1.5 text-left font-medium min-w-[100px]">
-                              <div className="flex items-center justify-between gap-1">
-                                <span>{col}</span>
-                                <Button variant="ghost" size="icon" className="w-5 h-5 opacity-50 hover:opacity-100" onClick={() => handleDeleteColumn(col)}>
-                                  <X className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </th>
-                          ))}
-                          <th className="border px-2 py-1.5 w-12">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {collectedData.map((row, rowIndex) => (
-                            <tr key={rowIndex} className="hover:bg-muted/30">
-                              <td className="border px-2 py-1 text-muted-foreground">{rowIndex + 1}</td>
-                              {columns.map(col => (
-                                <td key={col} className="border px-2 py-1 cursor-pointer hover:bg-muted/50" onClick={() => startEdit(rowIndex, col, row[col])}>
-                                  {editingCell?.row === rowIndex && editingCell?.col === col ? (
-                                    <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-6 text-xs" autoFocus
-                                      onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }} onBlur={saveEdit} />
-                                  ) : (
-                                    <div className="flex items-center justify-between group">
-                                      <span className="truncate max-w-[150px]" title={formatCellValue(row[col])}>{formatCellValue(row[col])}</span>
-                                      <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-50" />
-                                    </div>
-                                  )}
-                                </td>
-                              ))}
-                              <td className="border px-2 py-1 text-center">
-                                <Button variant="ghost" size="icon" className="w-5 h-5" onClick={() => deleteDataRow(rowIndex)}>
-                                  <Trash2 className="w-3 h-3 text-destructive" />
-                                </Button>
-                              </td>
-                            </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {collectedData.length >= 20 && (
-                      <p className="mt-2 text-xs text-muted-foreground text-center">
-                        此处仅展示前 20 条数据用于预览，完整数据请点击右上角"下载数据"按钮，或使用"导出数据表"模块导出为 Excel
-                      </p>
-                    )}
-                  </div>
-                )}
-              </ScrollArea>
+                  <p className="text-sm">暂无数据</p>
+                  <p className="text-xs mt-1">执行工作流后，收集的数据将显示在这里</p>
+                  <p className="text-xs text-muted-foreground/70 mt-2 text-center px-4">
+                    此处最多实时预览20条数据，完整数据请点击"下载数据"按钮或使用"导出数据表"模块导出
+                  </p>
+                </div>
+              ) : (
+                <DataTable
+                  data={collectedData}
+                  columns={columns}
+                  onEdit={(rowIndex, col, value) => {
+                    updateDataRow(rowIndex, { ...collectedData[rowIndex], [col]: value })
+                  }}
+                  onDeleteRow={(rowIndex) => deleteDataRow(rowIndex)}
+                  onDeleteColumn={(col) => handleDeleteColumn(col)}
+                />
+              )}
             </div>
           )}
 

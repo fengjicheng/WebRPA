@@ -1257,7 +1257,7 @@ const moduleCategories = [
     modules: ['get_element_info', 'screenshot', 'save_image', 'download_file', 'extract_table_data'] as ModuleType[],
   },
   {
-    name: '⏱ 等待控制',
+    name: '等待控制',
     color: 'bg-cyan-500',
     modules: ['wait', 'wait_element', 'wait_image', 'wait_page_load', 'page_load_complete'] as ModuleType[],
   },
@@ -1273,7 +1273,7 @@ const moduleCategories = [
     modules: ['real_mouse_click', 'real_mouse_move', 'real_mouse_drag', 'real_mouse_scroll', 'get_mouse_position'] as ModuleType[],
   },
   {
-    name: '⌨ 键盘模拟',
+    name: '键盘模拟',
     color: 'bg-purple-500',
     modules: ['real_keyboard', 'keyboard_action'] as ModuleType[],
   },

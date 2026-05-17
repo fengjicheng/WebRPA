@@ -365,7 +365,68 @@ class SocketService {
       // useWorkflowStore.setState({ variables: [] })
     })
 
-    // 日志消息 - 完全实时显示，立即添加，不使用任何批处理！
+    // ============ 日志批处理缓冲（高性能） ============
+    // 后端短时间内可能推送大量日志，直接 setState 会导致主线程被 React 渲染塞满。
+    // 我们把所有日志先放入缓冲队列，每 80ms（或队列 ≥ 200 条）合并后一次性更新 store。
+    // 这样无论后端多快，前端始终保持 ≥ 12fps 的批处理节奏，体感丝滑。
+    const LOG_BATCH_INTERVAL_MS = 80
+    const LOG_BATCH_MAX_SIZE = 200
+    let logBuffer: Array<{ level: LogLevel; message: string; nodeId?: string; duration?: number }> = []
+    let logFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+    const flushLogBuffer = () => {
+      if (logBuffer.length === 0) return
+      const batch = logBuffer
+      logBuffer = []
+      if (logFlushTimer !== null) {
+        clearTimeout(logFlushTimer)
+        logFlushTimer = null
+      }
+      try {
+        useWorkflowStore.getState().addLogBatch(batch)
+      } catch (e) {
+        console.error('[Socket] flush log buffer failed:', e)
+      }
+    }
+
+    const scheduleLogFlush = () => {
+      if (logBuffer.length >= LOG_BATCH_MAX_SIZE) {
+        // 缓冲区过大立即冲刷，防止内存堆积
+        flushLogBuffer()
+        return
+      }
+      if (logFlushTimer !== null) return
+      logFlushTimer = setTimeout(flushLogBuffer, LOG_BATCH_INTERVAL_MS)
+    }
+
+    // 浏览器错误检测（提取为公共函数，单/批量入口共用）
+    const detectBrowserError = (level: LogLevel, message: string) => {
+      if (level !== 'error' || !message) return
+      const browserClosedPatterns = [
+        'Target page, context or browser has been closed',
+        'browser has been closed',
+        'Browser closed',
+        'Page closed',
+      ]
+      const browserStartFailedPatterns = [
+        'launch_persistent_context',
+        '无法启动持久化浏览器',
+        '浏览器数据目录被占用',
+        'user-data-dir',
+        '浏览器启动后立即关闭',
+        '打开浏览器失败',
+        '浏览器启动超时',
+      ]
+      const isBrowserClosed = browserClosedPatterns.some((p) => message.includes(p))
+      const isBrowserStartFailed = browserStartFailedPatterns.some((p) => message.includes(p))
+      if (isBrowserClosed && !isBrowserStartFailed && isExecuting && this.browserClosedCallback) {
+        this.browserClosedCallback()
+      } else if (isBrowserStartFailed && this.browserBusyCallback) {
+        this.browserBusyCallback()
+      }
+    }
+
+    // 单条日志消息 - 走缓冲，不直接 setState
     this.socket.on('execution:log', (data: {
       workflowId: string
       log: {
@@ -375,74 +436,30 @@ class SocketService {
         nodeId?: string
         message: string
         duration?: number
-        isUserLog?: boolean  // 是否是用户打印的日志（打印日志模块）
-        isSystemLog?: boolean  // 是否是系统日志（流程开始/结束等）
+        isUserLog?: boolean
+        isSystemLog?: boolean
       }
     }) => {
-      console.log('[Socket] 收到日志:', data.log.message, '| level:', data.log.level, '| isUserLog:', data.log.isUserLog, '| isSystemLog:', data.log.isSystemLog)
       const verboseLog = useWorkflowStore.getState().verboseLog
-      console.log('[Socket] verboseLog 状态:', verboseLog)
       const log = data.log
-      
-      // 检测浏览器相关错误
-      if (log.level === 'error' && log.message) {
-        // 浏览器被关闭的模式（运行中用户手动关闭浏览器）- 只在执行中才触发
-        const browserClosedPatterns = [
-          'Target page, context or browser has been closed',
-          'browser has been closed',
-          'Browser closed',
-          'Page closed',
-        ]
-        
-        // 浏览器启动失败/被占用的模式（启动时出错）
-        const browserStartFailedPatterns = [
-          'launch_persistent_context',
-          '无法启动持久化浏览器',
-          '浏览器数据目录被占用',
-          'user-data-dir',
-          '浏览器启动后立即关闭',
-          '打开浏览器失败',
-          '浏览器启动超时',
-        ]
-        
-        const isBrowserClosed = browserClosedPatterns.some(pattern => 
-          log.message.includes(pattern)
-        )
-        const isBrowserStartFailed = browserStartFailedPatterns.some(pattern => 
-          log.message.includes(pattern)
-        )
-        
-        // 如果是运行中浏览器被关闭（不是启动失败），触发浏览器关闭回调
-        if (isBrowserClosed && !isBrowserStartFailed && isExecuting && this.browserClosedCallback) {
-          this.browserClosedCallback()
-        }
-        // 启动时浏览器启动失败/被占用才弹窗提示
-        else if (isBrowserStartFailed && this.browserBusyCallback) {
-          this.browserBusyCallback()
-        }
-      }
-      
-      // 简洁日志模式下，只显示：用户日志、系统日志、以及任何错误级别日志（报错必须显示）
-      // 重要：错误日志必须始终显示，不管是否为简洁模式！
+
+      detectBrowserError(log.level, log.message)
+
+      // 简洁日志模式过滤（错误/警告 + 用户日志 + 系统日志 必显示）
       if (!verboseLog && !log.isUserLog && !log.isSystemLog && log.level !== 'error' && log.level !== 'warning') {
-        console.log('[Socket] 日志被过滤（简洁模式）')
         return
       }
-      
-      console.log('[Socket] 日志通过过滤，准备添加到 store')
-      
-      // 立即添加日志，完全实时，不使用任何批处理或延迟！
-      useWorkflowStore.getState().addLog({
+
+      logBuffer.push({
         level: log.level,
         message: log.message,
         nodeId: log.nodeId,
         duration: log.duration,
       })
-      
-      console.log('[Socket] 日志已添加到 store')
+      scheduleLogFlush()
     })
 
-    // 批量日志消息 - 超高性能批量处理
+    // 批量日志消息 - 也走同一缓冲队列，避免双路径竞争
     this.socket.on('execution:log_batch', (data: {
       workflowId: string
       logs: Array<{
@@ -457,56 +474,19 @@ class SocketService {
       }>
     }) => {
       const verboseLog = useWorkflowStore.getState().verboseLog
-      const filteredLogs = data.logs.filter(log => {
-        // 检测浏览器相关错误
-        if (log.level === 'error' && log.message) {
-          const browserClosedPatterns = [
-            'Target page, context or browser has been closed',
-            'browser has been closed',
-            'Browser closed',
-            'Page closed',
-          ]
-          
-          const browserStartFailedPatterns = [
-            'launch_persistent_context',
-            '无法启动持久化浏览器',
-            '浏览器数据目录被占用',
-            'user-data-dir',
-            '浏览器启动后立即关闭',
-            '打开浏览器失败',
-            '浏览器启动超时',
-          ]
-          
-          const isBrowserClosed = browserClosedPatterns.some(pattern => 
-            log.message.includes(pattern)
-          )
-          const isBrowserStartFailed = browserStartFailedPatterns.some(pattern => 
-            log.message.includes(pattern)
-          )
-          
-          if (isBrowserClosed && !isBrowserStartFailed && isExecuting && this.browserClosedCallback) {
-            this.browserClosedCallback()
-          } else if (isBrowserStartFailed && this.browserBusyCallback) {
-            this.browserBusyCallback()
-          }
-        }
-        
-        // 简洁日志模式下过滤 - 但错误和警告必须显示！
+      for (const log of data.logs) {
+        detectBrowserError(log.level, log.message)
         if (!verboseLog && !log.isUserLog && !log.isSystemLog && log.level !== 'error' && log.level !== 'warning') {
-          return false
+          continue
         }
-        return true
-      })
-      
-      // 批量添加日志 - 一次性更新，避免多次渲染
-      if (filteredLogs.length > 0) {
-        useWorkflowStore.getState().addLogBatch(filteredLogs.map(log => ({
+        logBuffer.push({
           level: log.level,
           message: log.message,
           nodeId: log.nodeId,
           duration: log.duration,
-        })))
+        })
       }
+      scheduleLogFlush()
     })
 
     // 输入弹窗请求
@@ -587,6 +567,9 @@ class SocketService {
       collectedData?: Record<string, unknown>[]
     }) => {
       console.log('[Socket] 收到 execution:completed 事件 - 后端执行完成！', data)
+      
+      // 立即冲刷日志缓冲，确保完成日志和最后的执行日志全部显示
+      flushLogBuffer()
       
       // 停止接收实时数据行
       isExecuting = false
