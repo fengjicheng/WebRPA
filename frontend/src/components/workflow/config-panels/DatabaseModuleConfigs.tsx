@@ -343,7 +343,7 @@ export function DbDeleteConfig({ data, onChange }: ConfigProps) {
           onChange={(v) => onChange('where', v)}
           placeholder="id = 1"
         />
-        <p className="text-xs text-amber-600">⚠️ 警告：如果不指定WHERE条件，将删除表中所有数据！</p>
+        <p className="text-xs text-amber-600">警告：如果不指定WHERE条件，将删除表中所有数据！</p>
       </div>
       
       <div className="space-y-2">

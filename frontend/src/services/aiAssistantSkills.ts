@@ -183,6 +183,88 @@ export async function executeClientAction(
         return { success: true, message: `已聚焦节点 ${nodeId}` }
       }
 
+      case 'undo': {
+        const s = useWorkflowStore.getState()
+        if (!s.canUndo()) return { success: false, error: '没有可撤销的步骤' }
+        s.undo()
+        return { success: true, message: '已撤销' }
+      }
+
+      case 'redo': {
+        const s = useWorkflowStore.getState()
+        if (!s.canRedo()) return { success: false, error: '没有可重做的步骤' }
+        s.redo()
+        return { success: true, message: '已重做' }
+      }
+
+      case 'rename_workflow': {
+        const name = payload.name as string
+        if (!name) return { success: false, error: '缺少 name' }
+        useWorkflowStore.getState().setWorkflowNameWithHistory(name)
+        return { success: true, message: `已改名为「${name}」` }
+      }
+
+      case 'add_variable': {
+        const name = payload.name as string
+        const value = payload.value
+        const type = (payload.type as any) || 'string'
+        const scope = (payload.scope as any) || 'global'
+        if (!name) return { success: false, error: '缺少变量名' }
+        useWorkflowStore.getState().addVariable({ name, value, type, scope })
+        return { success: true, message: `已新增变量 ${name}` }
+      }
+
+      case 'update_variable': {
+        const name = payload.name as string
+        const value = payload.value
+        if (!name) return { success: false, error: '缺少变量名' }
+        useWorkflowStore.getState().updateVariable(name, value)
+        return { success: true, message: `已更新变量 ${name}` }
+      }
+
+      case 'delete_variable': {
+        const name = payload.name as string
+        if (!name) return { success: false, error: '缺少变量名' }
+        useWorkflowStore.getState().deleteVariable(name)
+        return { success: true, message: `已删除变量 ${name}` }
+      }
+
+      case 'clear_logs': {
+        useWorkflowStore.getState().clearLogs()
+        return { success: true, message: '已清空日志' }
+      }
+
+      case 'clear_data': {
+        useWorkflowStore.getState().clearCollectedData()
+        return { success: true, message: '已清空数据' }
+      }
+
+      case 'switch_bottom_panel': {
+        const tab = payload.tab as any
+        if (!tab) return { success: false, error: '缺少 tab' }
+        useWorkflowStore.getState().setBottomPanelTab(tab)
+        return { success: true, message: `已切换到 ${tab} 面板` }
+      }
+
+      case 'get_workflow_detail': {
+        // 给 LLM 返回详细工作流（节点的完整 data）
+        const s = useWorkflowStore.getState()
+        return {
+          success: true,
+          data: {
+            name: s.name,
+            nodes: s.nodes.map((n) => ({
+              id: n.id,
+              type: n.type,
+              position: n.position,
+              data: n.data,
+            })),
+            edges: s.edges,
+            variables: s.variables,
+          },
+        }
+      }
+
       // === 全局配置 ===
       case 'update_global_config': {
         const section = payload.section as string

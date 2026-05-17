@@ -80,7 +80,7 @@ export function SwitchIframeConfig({
 
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-xs text-blue-700">
-          💡 切换到iframe后，后续的元素操作将在该iframe内执行，直到切换回主页面或切换到其他iframe
+          切换到iframe后，后续的元素操作将在该iframe内执行，直到切换回主页面或切换到其他iframe
         </p>
       </div>
     </>
@@ -93,12 +93,12 @@ export function SwitchToMainConfig() {
     <div className="space-y-4">
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-xs text-blue-700">
-          💡 此模块将操作上下文切换回主页面，后续的元素操作将在主页面执行
+          此模块将操作上下文切换回主页面，后续的元素操作将在主页面执行
         </p>
       </div>
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <p className="text-xs text-amber-700">
-          ⚠️ 如果当前不在iframe中，此操作不会产生任何效果
+          如果当前不在iframe中，此操作不会产生任何效果
         </p>
       </div>
     </div>

@@ -155,7 +155,7 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
             />
           ) : (
             <span>
-              {isSubflow && '📦 '}
+              {isSubflow && ''}
               {nodeData.label || (isSubflow ? '未命名子流程' : '')}
             </span>
           )}

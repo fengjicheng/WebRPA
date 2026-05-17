@@ -168,7 +168,7 @@ export function DeleteFileConfig({ data, onChange }: ConfigProps) {
         />
       </div>
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-        <p className="text-xs text-amber-800">⚠️ 警告：删除操作不可恢复，请谨慎使用</p>
+        <p className="text-xs text-amber-800">警告：删除操作不可恢复，请谨慎使用</p>
       </div>
     </div>
   )

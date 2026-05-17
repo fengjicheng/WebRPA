@@ -90,7 +90,7 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
   }
 
   const getSummary = () => {
-    if (nodeData.moduleType === 'subflow' && nodeData.subflowName) return `📦 ${nodeData.subflowName}`
+    if (nodeData.moduleType === 'subflow' && nodeData.subflowName) return `${nodeData.subflowName}`
     if (nodeData.url) return nodeData.url as string
     if (nodeData.selector) return nodeData.selector as string
     if (nodeData.text) return nodeData.text as string

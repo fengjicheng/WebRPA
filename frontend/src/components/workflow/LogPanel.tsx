@@ -755,7 +755,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                               onChange={() => toggleLogLevelFilter('debug')}
                               className="rounded"
                             />
-                            <span className="text-gray-600">🔍 调试</span>
+                            <span className="text-gray-600">调试</span>
                           </label>
                           <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
                             <input
@@ -782,7 +782,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                               onChange={() => toggleLogLevelFilter('warning')}
                               className="rounded"
                             />
-                            <span className="text-yellow-600">⚠ 警告</span>
+                            <span className="text-yellow-600">警告</span>
                           </label>
                           <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
                             <input
@@ -873,8 +873,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                         {log.duration !== undefined && log.duration !== null && <span className="text-blue-500 ml-2">({log.duration.toFixed(2)}ms)</span>}
                         {log.nodeId && (
                           <span className="ml-2 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            📍
-                          </span>
+                                                      </span>
                         )}
                       </motion.div>
                     ))}

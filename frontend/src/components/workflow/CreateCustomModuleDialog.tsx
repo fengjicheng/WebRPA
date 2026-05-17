@@ -26,7 +26,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
-  const [icon, setIcon] = useState('📦')
+  const [icon, setIcon] = useState('')
   const [color, setColor] = useState('#8B5CF6')
   const [category, setCategory] = useState('自定义')
   const [tags, setTags] = useState('')
@@ -40,7 +40,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
     setName('')
     setDisplayName('')
     setDescription('')
-    setIcon('📦')
+    setIcon('')
     setColor('#8B5CF6')
     setCategory('自定义')
     setTags('')
@@ -246,7 +246,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
                   id="icon"
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  placeholder="📦"
+                  placeholder=""
                   maxLength={2}
                 />
               </div>
@@ -504,7 +504,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
             
             {/* 参数使用说明 */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-              <h4 className="text-sm font-medium text-blue-900">💡 参数使用说明</h4>
+              <h4 className="text-sm font-medium text-blue-900">参数使用说明</h4>
               <div className="text-xs text-blue-800 space-y-1">
                 <p><strong>1. 如何在工作流中使用输入参数？</strong></p>
                 <p className="ml-3">在工作流的任何模块中，使用 <code className="bg-blue-100 px-1 rounded">{'{{参数名}}'}</code> 来引用输入参数</p>

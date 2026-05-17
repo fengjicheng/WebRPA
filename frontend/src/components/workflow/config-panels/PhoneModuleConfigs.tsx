@@ -312,13 +312,13 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
       
       if (result.success) {
         setAdbKeyboardStatus('installed')
-        setStatusMessage('✅ ADBKeyboard 安装成功！')
+        setStatusMessage('ADBKeyboard 安装成功！')
         setTimeout(() => setStatusMessage(''), 3000)
       } else {
-        setStatusMessage(`❌ 安装失败: ${result.error}`)
+        setStatusMessage(`安装失败: ${result.error}`)
       }
     } catch (error) {
-      setStatusMessage(`❌ 安装失败: ${error}`)
+      setStatusMessage(`安装失败: ${error}`)
     } finally {
       setInstalling(false)
     }
@@ -422,10 +422,10 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 重要提示
+          重要提示
         </p>
         <p className="text-xs text-amber-800">
-          • 使用前请先用「📱 点击」模块点击输入框，确保输入框已获得焦点
+          • 使用前请先用「点击」模块点击输入框，确保输入框已获得焦点
         </p>
         <p className="text-xs text-amber-800">
           • 默认仅支持输入英文、数字和符号
@@ -473,11 +473,11 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
         {adbKeyboardStatus === 'installed' && (
           <div className="space-y-2">
             <p className="text-xs text-green-700 font-semibold">
-              ✅ ADBKeyboard 已安装，现在可以输入中文了！
+              ADBKeyboard 已安装，现在可以输入中文了！
             </p>
             <div className="p-2 bg-green-100 border border-green-300 rounded space-y-1">
               <p className="text-xs font-semibold text-green-900">
-                💡 使用提示
+                使用提示
               </p>
               <p className="text-xs text-green-800">
                 • 系统会在输入中文时自动切换到 ADBKeyboard，输入完成后自动恢复原输入法
@@ -512,10 +512,10 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 其他输入中文的方案
+          其他输入中文的方案
         </p>
         <p className="text-xs text-blue-800">
-          1. 使用「📱 点击」+ 手动输入
+          1. 使用「点击」+ 手动输入
         </p>
         <p className="text-xs text-blue-700 ml-3">
           先点击输入框，暂停工作流，手动输入中文
@@ -524,7 +524,7 @@ export function PhoneInputTextConfig({ data, onChange }: { data: NodeData; onCha
           2. 使用剪贴板方案
         </p>
         <p className="text-xs text-blue-700 ml-3">
-          使用「📱 写入剪贴板」+ 「📱 按键操作」粘贴
+          使用「写入剪贴板」+ 「按键操作」粘贴
         </p>
       </div>
     </>
@@ -648,7 +648,7 @@ export function PhoneStartMirrorConfig({ data, onChange }: { data: NodeData; onC
       </div>
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          💡 屏幕镜像会打开一个新窗口显示手机画面，可以在电脑上直接操作手机
+          屏幕镜像会打开一个新窗口显示手机画面，可以在电脑上直接操作手机
         </p>
       </div>
     </>
@@ -687,7 +687,7 @@ export function PhoneInstallAppConfig({ data, onChange }: { data: NodeData; onCh
 
       <div className="p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-red-900">
-          ⚠️ 重要提示：必须开启 USB 安装
+          重要提示：必须开启 USB 安装
         </p>
         <p className="text-xs text-red-800">
           在使用此功能前，请确保已在手机上开启「USB 安装」选项：
@@ -750,7 +750,7 @@ export function PhoneStartAppConfig({ data, onChange }: { data: NodeData; onChan
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 两种启动方式
+          两种启动方式
         </p>
         <p className="text-xs text-blue-800">
           <strong>方式1：使用包名（推荐）</strong>
@@ -777,7 +777,7 @@ export function PhoneStartAppConfig({ data, onChange }: { data: NodeData; onChan
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 注意事项
+          注意事项
         </p>
         <p className="text-xs text-amber-800">
           • 使用应用名称时，只会搜索第三方应用（不包括系统应用）
@@ -812,7 +812,7 @@ export function PhoneStopAppConfig({ data, onChange }: { data: NodeData; onChang
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          💡 停止应用会强制关闭应用进程，类似于在系统设置中"强行停止"
+          停止应用会强制关闭应用进程，类似于在系统设置中"强行停止"
         </p>
       </div>
     </>
@@ -841,7 +841,7 @@ export function PhoneUninstallAppConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-xs text-red-800">
-          ⚠️ 卸载操作不可恢复，请谨慎使用
+          卸载操作不可恢复，请谨慎使用
         </p>
       </div>
     </>
@@ -1018,7 +1018,7 @@ export function PhoneClickImageConfig({ data, onChange }: { data: NodeData; onCh
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用提示
+          使用提示
         </p>
         <p className="text-xs text-blue-800">
           • 图像文件应该是手机屏幕上要查找的元素截图
@@ -1121,7 +1121,7 @@ export function PhoneClickTextConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用提示
+          使用提示
         </p>
         <p className="text-xs text-blue-800">
           • 使用 RapidOCR 进行文本识别，支持中文
@@ -1216,7 +1216,7 @@ export function PhoneWaitImageConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用提示
+          使用提示
         </p>
         <p className="text-xs text-blue-800">
           • 此模块会持续检查手机屏幕，直到图像出现或超时
@@ -1275,7 +1275,7 @@ export function PhoneSetVolumeConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用提示
+          使用提示
         </p>
         <p className="text-xs text-blue-800">
           • 媒体音量：影响音乐、视频等媒体播放
@@ -1322,7 +1322,7 @@ export function PhoneSetBrightnessConfig({ data, onChange }: { data: NodeData; o
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 注意事项
+          注意事项
         </p>
         <p className="text-xs text-amber-800">
           • 此操作会自动关闭手机的自动亮度功能
@@ -1337,7 +1337,7 @@ export function PhoneSetBrightnessConfig({ data, onChange }: { data: NodeData; o
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 常用亮度值
+          常用亮度值
         </p>
         <p className="text-xs text-blue-800">
           • 最暗：0-50
@@ -1401,13 +1401,13 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       if (result.success) {
         setClipperStatus('installed')
-        setStatusMessage('✅ Clipper 安装成功！')
+        setStatusMessage('Clipper 安装成功！')
         setTimeout(() => setStatusMessage(''), 3000)
       } else {
-        setStatusMessage(`❌ 安装失败: ${result.error}`)
+        setStatusMessage(`安装失败: ${result.error}`)
       }
     } catch (error) {
-      setStatusMessage(`❌ 安装失败: ${error}`)
+      setStatusMessage(`安装失败: ${error}`)
     } finally {
       setInstalling(false)
     }
@@ -1437,7 +1437,7 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
       <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-purple-900">
-            📋 Clipper 应用状态
+            Clipper 应用状态
           </p>
           {clipperStatus === 'checking' && (
             <span className="text-xs text-purple-600">检查中...</span>
@@ -1463,7 +1463,7 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
               disabled={installing}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-md transition-colors"
             >
-              {installing ? '正在安装...' : '🚀 一键安装 Clipper'}
+              {installing ? '正在安装...' : '一键安装 Clipper'}
             </button>
           </>
         )}
@@ -1471,11 +1471,11 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
         {clipperStatus === 'installed' && (
           <div className="space-y-2">
             <p className="text-xs text-green-700 font-semibold">
-              ✅ Clipper 已安装，可以正常使用剪贴板功能。
+              Clipper 已安装，可以正常使用剪贴板功能。
             </p>
             <div className="pl-3 border-l-2 border-green-300 space-y-1">
               <p className="text-xs text-green-800">
-                📌 使用说明：
+                使用说明：
               </p>
               <p className="text-xs text-green-700">
                 1. 安装后启动 Clipper APP 并赋予权限
@@ -1510,10 +1510,10 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用场景
+          使用场景
         </p>
         <p className="text-xs text-blue-800">
-          • 配合「📱 按键操作」中的粘贴功能，实现中文输入
+          • 配合「按键操作」中的粘贴功能，实现中文输入
         </p>
         <p className="text-xs text-blue-800">
           • 在应用间传递文本内容
@@ -1525,7 +1525,7 @@ export function PhoneSetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 注意事项
+          注意事项
         </p>
         <p className="text-xs text-amber-800">
           • 部分设备需要安装 Clipper 应用才能使用剪贴板功能
@@ -1580,13 +1580,13 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       if (result.success) {
         setClipperStatus('installed')
-        setStatusMessage('✅ Clipper 安装成功！')
+        setStatusMessage('Clipper 安装成功！')
         setTimeout(() => setStatusMessage(''), 3000)
       } else {
-        setStatusMessage(`❌ 安装失败: ${result.error}`)
+        setStatusMessage(`安装失败: ${result.error}`)
       }
     } catch (error) {
-      setStatusMessage(`❌ 安装失败: ${error}`)
+      setStatusMessage(`安装失败: ${error}`)
     } finally {
       setInstalling(false)
     }
@@ -1615,7 +1615,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
       <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-purple-900">
-            📋 Clipper 应用状态
+            Clipper 应用状态
           </p>
           {clipperStatus === 'checking' && (
             <span className="text-xs text-purple-600">检查中...</span>
@@ -1641,7 +1641,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
               disabled={installing}
               className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-md transition-colors"
             >
-              {installing ? '正在安装...' : '🚀 一键安装 Clipper'}
+              {installing ? '正在安装...' : '一键安装 Clipper'}
             </button>
           </>
         )}
@@ -1649,11 +1649,11 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
         {clipperStatus === 'installed' && (
           <div className="space-y-2">
             <p className="text-xs text-green-700 font-semibold">
-              ✅ Clipper 已安装，可以正常使用剪贴板功能。
+              Clipper 已安装，可以正常使用剪贴板功能。
             </p>
             <div className="pl-3 border-l-2 border-green-300 space-y-1">
               <p className="text-xs text-green-800">
-                📌 使用说明：
+                使用说明：
               </p>
               <p className="text-xs text-green-700">
                 1. 安装后启动 Clipper APP 并赋予权限
@@ -1688,7 +1688,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用场景
+          使用场景
         </p>
         <p className="text-xs text-blue-800">
           • 获取用户在手机上复制的内容
@@ -1703,7 +1703,7 @@ export function PhoneGetClipboardConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 注意事项
+          注意事项
         </p>
         <p className="text-xs text-amber-800">
           • 部分设备需要安装 Clipper 应用才能使用剪贴板功能
@@ -1770,7 +1770,7 @@ export function PhoneImageExistsConfig({ data, onChange }: { data: NodeData; onC
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-amber-900">
-          ⚠️ 重要提示
+          重要提示
         </p>
         <p className="text-xs text-amber-800">
           • 请使用从相同分辨率手机截取的图像作为模板
@@ -1785,7 +1785,7 @@ export function PhoneImageExistsConfig({ data, onChange }: { data: NodeData; onC
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用说明
+          使用说明
         </p>
         <p className="text-xs text-blue-800">
           • 此模块类似条件判断，有两个分支输出点

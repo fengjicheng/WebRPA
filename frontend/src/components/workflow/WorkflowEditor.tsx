@@ -1110,7 +1110,7 @@ export function WorkflowEditor() {
             customModuleId: data.moduleId,
             customModuleName: data.moduleName,
             label: data.displayName || data.moduleName,  // 使用display_name作为标签
-            icon: data.icon || '📦',  // 自定义图标
+            icon: data.icon || '',  // 自定义图标
             color: data.color || '#8B5CF6',  // 自定义颜色
             description: data.description || '',  // 描述
           })
@@ -1448,7 +1448,7 @@ export function WorkflowEditor() {
     if (connection.source === connection.target) {
       addLog({
         level: 'error',
-        message: '❌ 不允许将模块连接到自己！'
+        message: '不允许将模块连接到自己！'
       })
       return false
     }

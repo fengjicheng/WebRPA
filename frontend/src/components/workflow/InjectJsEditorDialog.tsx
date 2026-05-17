@@ -39,12 +39,12 @@ const DEFAULT_CODE = `// 在页面中注入并执行 JavaScript 代码
 document.body.style.background = "lightblue";
 
 // 示例3：修改页面标题
-// document.title = "✅ JS脚本注入成功";
+// document.title = "JS脚本注入成功";
 
 // 示例4：在页面上显示提示框
 // const div = document.createElement('div');
 // div.style.cssText = 'position:fixed;top:20px;right:20px;background:green;color:white;padding:20px;font-size:18px;z-index:999999;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,0.1);';
-// div.textContent = '✅ 脚本执行成功';
+// div.textContent = '脚本执行成功';
 // document.body.appendChild(div);
 
 // 示例5：获取页面信息（使用 return 返回数据）

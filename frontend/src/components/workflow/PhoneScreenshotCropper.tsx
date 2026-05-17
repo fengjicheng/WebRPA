@@ -215,7 +215,7 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
         }
         
         // 显示成功提示
-        const successMsg = `✅ 模板"${templateName.trim()}"已保存至图像资源！您可以继续截取其他模板，或关闭对话框。`
+        const successMsg = `模板"${templateName.trim()}"已保存至图像资源！您可以继续截取其他模板，或关闭对话框。`
         setSuccess(successMsg)
         
         // 清空输入框，但保留选区，方便用户继续框选其他区域

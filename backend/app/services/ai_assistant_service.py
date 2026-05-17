@@ -264,33 +264,67 @@ async def chat_once(
     )
     session.messages.append(user_msg)
 
-    # 2. 给会话起标题（首次提问时）
-    if session.title == "新对话" and len([m for m in session.messages if m.role == MessageRole.USER]) == 1:
-        session.title = user_message_text.strip()[:30] or "新对话"
+    # 2. 给会话起标题（首次提问时，自动从问题生成简短标题）
+    user_message_count = sum(1 for m in session.messages if m.role == MessageRole.USER)
+    if user_message_count == 1 and (session.title in ("", "新对话") or not session.title):
+        # 简单清洗：截 26 字符内、剔除换行
+        title = user_message_text.strip().split("\n")[0]
+        if len(title) > 26:
+            title = title[:26] + "…"
+        session.title = title or "新对话"
 
     # 3. 构造系统提示词（每次重新构造，让最新的工作流上下文生效）
     workflow_summary = ""
     if workflow_context:
         try:
             wf_name = workflow_context.get("name") or "未命名工作流"
-            node_count = len(workflow_context.get("nodes") or [])
-            edge_count = len(workflow_context.get("edges") or [])
-            current_id = workflow_context.get("currentExecutionWorkflowId") or workflow_context.get("workflowId") or ""
-            workflow_summary = (
-                f"- 当前画布：{wf_name}（{node_count} 个节点，{edge_count} 条连线）\n"
-                f"- 工作流 ID：{current_id or '（未运行）'}\n"
+            nodes = workflow_context.get("nodes") or []
+            edges = workflow_context.get("edges") or []
+            current_id = (
+                workflow_context.get("currentExecutionWorkflowId")
+                or workflow_context.get("workflowId")
+                or ""
             )
-            # 节点类型摘要（让 AI 知道画布上有哪些模块）
+            variables = workflow_context.get("variables") or []
+
+            workflow_summary = (
+                f"- 当前画布：{wf_name}（{len(nodes)} 个节点，{len(edges)} 条连线）\n"
+                f"- 工作流 ID：{current_id or '（未保存或未运行）'}\n"
+            )
+
+            # 节点类型分布
             type_counter: dict[str, int] = {}
-            for n in (workflow_context.get("nodes") or []):
+            for n in nodes:
                 t = n.get("type") or "unknown"
                 type_counter[t] = type_counter.get(t, 0) + 1
             if type_counter:
+                top_types = sorted(type_counter.items(), key=lambda x: -x[1])[:12]
                 workflow_summary += "- 节点类型分布：" + ", ".join(
-                    f"{t}×{c}" for t, c in sorted(type_counter.items(), key=lambda x: -x[1])[:10]
-                )
-        except Exception:
-            pass
+                    f"{t}×{c}" for t, c in top_types
+                ) + "\n"
+
+            # 节点 ID 与 label 映射（让 LLM 能精确引用节点）
+            if 0 < len(nodes) <= 50:
+                workflow_summary += "- 节点清单（id - type - label）：\n"
+                for n in nodes[:50]:
+                    nid = n.get("id", "?")
+                    nt = n.get("type", "?")
+                    label = ""
+                    data = n.get("data") or {}
+                    if isinstance(data, dict):
+                        label = data.get("label") or data.get("customName") or ""
+                    workflow_summary += f"  - {nid} - {nt} - {label}\n"
+
+            # 变量
+            if variables:
+                workflow_summary += f"- 当前变量（{len(variables)} 个）：\n"
+                for v in variables[:20]:
+                    if isinstance(v, dict):
+                        vn = v.get("name", "")
+                        vt = v.get("type", "?")
+                        workflow_summary += f"  - {vn} ({vt})\n"
+        except Exception as e:
+            workflow_summary = f"（解析工作流上下文失败：{e}）"
 
     # 4. 加载长期记忆摘要
     memory_summary = ""

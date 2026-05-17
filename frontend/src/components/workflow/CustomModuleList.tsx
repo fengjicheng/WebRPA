@@ -142,7 +142,7 @@ export function CustomModuleList({ onCreateNew, onManage, onDragStart, onEditWor
             className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm text-base"
             style={{ backgroundColor: module.color || '#8B5CF6' }}
           >
-            {module.icon || '📦'}
+            {module.icon || ''}
           </div>
 
           {/* 内容 */}

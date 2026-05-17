@@ -2180,7 +2180,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
                 <div className="pt-4 border-t">
                   <div className="p-3 bg-gradient-to-r from-blue-50 via-cyan-50/50 to-teal-50 rounded-xl border border-blue-200/30 shadow-sm">
                     <p className="text-xs text-muted-foreground">
-                      💡 提示：在任意输入框中使用 <code className="bg-gradient-to-r from-blue-100 to-cyan-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">{'{变量名}'}</code> 来引用变量值
+                      提示：在任意输入框中使用 <code className="bg-gradient-to-r from-blue-100 to-cyan-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">{'{变量名}'}</code> 来引用变量值
                     </p>
                   </div>
                 </div>

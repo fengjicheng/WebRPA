@@ -503,7 +503,7 @@ export function VariablePanel() {
           <code className="bg-blue-100 px-1 rounded text-blue-700">{'{字典[键名]}'}</code>
         </p>
         <p className="text-[10px] text-muted-foreground mt-1">
-          💡 点击变量名可重命名，Delete 键可删除
+          点击变量名可重命名，Delete 键可删除
         </p>
       </div>
       

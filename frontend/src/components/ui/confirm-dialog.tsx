@@ -28,71 +28,72 @@ export function ConfirmDialog({
 
   const isAlertOnly = type === 'alert'
 
-  const getIcon = () => {
+  const icon = (() => {
     switch (type) {
       case 'warning':
-        return <AlertTriangle className="w-6 h-6 text-orange-500" />
+        return <AlertTriangle className="w-4 h-4" />
       case 'alert':
-        return <Info className="w-6 h-6 text-blue-500" />
+        return <Info className="w-4 h-4" />
       case 'success':
-        return <CheckCircle2 className="w-6 h-6 text-green-500" />
+        return <CheckCircle2 className="w-4 h-4" />
       default:
-        return <HelpCircle className="w-6 h-6 text-blue-500" />
+        return <HelpCircle className="w-4 h-4" />
     }
-  }
+  })()
 
-  const getTitle = () => {
-    if (title) return title
+  const iconBg = (() => {
     switch (type) {
       case 'warning':
-        return '警告'
-      case 'alert':
-        return '提示'
+        return 'bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-500))]'
       case 'success':
-        return '成功'
+        return 'bg-[hsl(var(--success-50))] text-[hsl(var(--success-500))]'
       default:
-        return '确认'
+        return 'bg-[hsl(var(--info-50))] text-[hsl(var(--info-500))]'
     }
-  }
+  })()
+
+  const titleText = title ?? {
+    warning: '警告',
+    alert: '提示',
+    success: '成功',
+    confirm: '确认',
+  }[type]
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">
-        <div className="p-6 bg-gradient-to-br from-white via-white to-blue-50/30">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 mt-0.5">
-              {getIcon()}
+    <div
+      className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-fade-in"
+      onClick={() => {
+        if (!isAlertOnly && onCancel) onCancel()
+      }}
+    >
+      <div
+        className="bg-[hsl(var(--card))] rounded-[10px] border border-[hsl(var(--border))] shadow-pop-xl w-full max-w-sm overflow-hidden animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${iconBg}`}>
+              {icon}
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {getTitle()}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <h3 className="text-[14px] font-semibold text-[hsl(var(--foreground))] mb-1">
+                {titleText}
               </h3>
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+              <p className="text-[12.5px] leading-relaxed text-[hsl(var(--muted-foreground))] whitespace-pre-wrap">
                 {message}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-b-lg border-t">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 bg-[hsl(var(--muted))] border-t border-[hsl(var(--border))]">
           {!isAlertOnly && onCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-300 text-gray-700 hover:bg-white"
-              onClick={onCancel}
-            >
+            <Button variant="outline" size="sm" onClick={onCancel}>
               {cancelText}
             </Button>
           )}
           <Button
             size="sm"
-            className={
-              type === 'warning'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white'
-                : type === 'success'
-                ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white'
-                : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
-            }
+            variant={type === 'warning' ? 'destructive' : 'default'}
             onClick={onConfirm}
           >
             {confirmText}

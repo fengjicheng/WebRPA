@@ -176,7 +176,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
                   </p>
                   
                   <div className="mt-3 pt-3 border-t border-blue-200">
-                    <p className="font-semibold text-blue-900 mb-1.5">📍 指针位置辅助功能</p>
+                    <p className="font-semibold text-blue-900 mb-1.5">指针位置辅助功能</p>
                     <p className="mb-2">
                       启用后，手机屏幕上会自动显示"指针位置"信息，帮助您精准定位坐标：
                     </p>
@@ -188,11 +188,11 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
                         查看屏幕<span className="font-medium">左上角的 X 和 Y 坐标值</span>，即为当前触摸点的精确坐标
                       </li>
                       <li className="text-orange-700 font-medium">
-                        ⚠️ 注意：必须保持长按状态，一旦松手，左上角显示的就会变成 dX 和 dY（滑动距离），而不是坐标位置
+                        注意：必须保持长按状态，一旦松手，左上角显示的就会变成 dX 和 dY（滑动距离），而不是坐标位置
                       </li>
                     </ul>
                     <p className="mt-2 text-xs text-blue-600">
-                      💡 提示：关闭镜像窗口后，指针位置显示会自动关闭
+                      提示：关闭镜像窗口后，指针位置显示会自动关闭
                     </p>
                   </div>
                 </div>

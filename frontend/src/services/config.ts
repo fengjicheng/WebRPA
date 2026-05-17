@@ -9,7 +9,7 @@ let configLoadPromise: Promise<void> | null = null
 
 // 从配置文件加载端口（只加载一次）
 async function loadConfigFromFile(): Promise<void> {
-  // ⚠️ 注意：不再检查缓存，每次都重新加载，确保获取最新配置
+  // 注意：不再检查缓存，每次都重新加载，确保获取最新配置
   console.log('[Config] 开始加载配置文件...')
   
   try {
@@ -20,7 +20,7 @@ async function loadConfigFromFile(): Promise<void> {
       const port = Number(urlPort)
       if (Number.isFinite(port) && port > 0) {
         cachedBackendPort = String(port)
-        console.log('[Config] ✅ 从URL参数读取端口:', cachedBackendPort)
+        console.log('[Config] 从URL参数读取端口:', cachedBackendPort)
         return
       }
     }
@@ -31,7 +31,7 @@ async function loadConfigFromFile(): Promise<void> {
     console.log('[Config] 尝试读取配置文件:', configUrl)
     
     const response = await fetch(configUrl, {
-      cache: 'no-store',  // 🔥 强制不使用缓存
+      cache: 'no-store',  // 强制不使用缓存
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -49,22 +49,22 @@ async function loadConfigFromFile(): Promise<void> {
       
       if (Number.isFinite(configPort) && configPort > 0) {
         cachedBackendPort = String(configPort)
-        console.log('[Config] ✅ 从配置文件读取端口:', cachedBackendPort)
+        console.log('[Config] 从配置文件读取端口:', cachedBackendPort)
         return
       }
     }
   } catch (error) {
-    console.error('[Config] ❌ 读取配置文件失败:', error)
+    console.error('[Config] 读取配置文件失败:', error)
   }
   
   // 如果都失败了，使用默认端口
   cachedBackendPort = '8000'
-  console.log('[Config] ⚠️ 使用默认端口:', cachedBackendPort)
+  console.log('[Config] 使用默认端口:', cachedBackendPort)
 }
 
 // 确保配置已加载（返回Promise）
 function ensureConfigLoaded(): Promise<void> {
-  // 🔥 每次都重新加载配置，不使用Promise缓存
+  // 每次都重新加载配置，不使用Promise缓存
   configLoadPromise = loadConfigFromFile()
   return configLoadPromise
 }

@@ -55,7 +55,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🔍 元素操作 - 紫色 =====
+  // ===== 元素操作 - 紫色 =====
 
   get_child_elements: 'border-purple-500 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
 
@@ -91,7 +91,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🔧 高级操作 - 天蓝色 =====
+  // ===== 高级操作 - 天蓝色 =====
 
   network_capture: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
 
@@ -125,7 +125,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🎯 图像/文字识别点击 - 玫瑰色 =====
+  // ===== 图像/文字识别点击 - 玫瑰色 =====
 
   click_image: 'border-rose-500 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
@@ -141,7 +141,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🔍 元素判断 - 靛蓝色 =====
+  // ===== 元素判断 - 靛蓝色 =====
 
   element_exists: 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
@@ -169,7 +169,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🖥️ 系统控制 - 灰色 =====
+  // ===== 系统控制 - 灰色 =====
 
   shutdown_system: 'border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
 
@@ -179,7 +179,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📋 剪贴板 - 石板色 =====
+  // ===== 剪贴板 - 石板色 =====
 
   set_clipboard: 'border-stone-600 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100',
 
@@ -187,7 +187,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📝 变量操作 - 青绿色 =====
+  // ===== 变量操作 - 青绿色 =====
 
   set_variable: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
@@ -241,7 +241,7 @@ export const moduleColors: Record<string, string> = {
 
   
 
-  // ===== 📊 统计分析 - 青绿色 =====
+  // ===== 统计分析 - 青绿色 =====
 
   stat_median: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
@@ -285,7 +285,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📋 列表/字典 - 绿色 =====
+  // ===== 列表/字典 - 绿色 =====
 
   list_operation: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
@@ -363,7 +363,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📊 数据表格 - 天蓝色 =====
+  // ===== 数据表格 - 天蓝色 =====
 
   table_add_row: 'border-sky-500 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
 
@@ -547,7 +547,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📁 文件管理 - 琥珀色 =====
+  // ===== 文件管理 - 琥珀色 =====
 
   list_files: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
@@ -573,7 +573,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📄 PDF处理 - 红色 =====
+  // ===== PDF处理 - 红色 =====
 
   pdf_to_images: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
@@ -609,7 +609,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📋 文档转换 - 橙色 =====
+  // ===== 文档转换 - 橙色 =====
 
   markdown_to_html: 'border-orange-600 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
 
@@ -655,7 +655,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🎬 视频编辑 - 紫色 =====
+  // ===== 视频编辑 - 紫色 =====
 
   format_convert: 'border-purple-600 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
 
@@ -727,7 +727,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🎨 图像工具 - 紫红色 =====
+  // ===== 图像工具 - 紫红色 =====
 
   add_watermark: 'border-fuchsia-600 bg-fuchsia-100 dark:bg-fuchsia-900 text-fuchsia-900 dark:text-fuchsia-100',
 
@@ -767,7 +767,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🔍 AI识别 - 紫红色 =====
+  // ===== AI识别 - 紫红色 =====
 
   ocr_captcha: 'border-fuchsia-700 bg-fuchsia-100 dark:bg-fuchsia-900 text-fuchsia-900 dark:text-fuchsia-100',
 
@@ -817,7 +817,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📱 手机自动化 - 青色 =====
+  // ===== 手机自动化 - 青色 =====
 
   phone_tap: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
@@ -879,7 +879,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🛠️ 实用工具 - 石板色 =====
+  // ===== 实用工具 - 石板色 =====
 
   file_hash_compare: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
@@ -911,7 +911,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🎭 辅助工具 - 灰色 =====
+  // ===== 辅助工具 - 灰色 =====
 
   print_log: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
 
@@ -975,7 +975,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 🖥️ 桌面应用自动化 - 石板色 =====
+  // ===== 桌面应用自动化 - 石板色 =====
   desktop_app_start: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_app_connect: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_app_close: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
@@ -1001,7 +1001,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📝 分组/备注 - 特殊颜色 =====
+  // ===== 分组/备注 - 特殊颜色 =====
 
   group: 'border-gray-400 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
 
@@ -1009,7 +1009,7 @@ export const moduleColors: Record<string, string> = {
 
 
 
-  // ===== 📊 飞书自动化 - 蓝色 =====
+  // ===== 飞书自动化 - 蓝色 =====
 
   feishu_bitable_write: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
@@ -1051,7 +1051,7 @@ export const moduleColors: Record<string, string> = {
   sap_set_focus: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
   sap_maximize_window: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
 
-  // ===== 📊 Allure测试报告 - 青色 =====
+  // ===== Allure测试报告 - 青色 =====
   allure_init: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
   allure_start_test: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
   allure_add_step: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
@@ -1059,7 +1059,7 @@ export const moduleColors: Record<string, string> = {
   allure_stop_test: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
   allure_generate_report: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  // ===== 🖥️ 桌面应用自动化 - 石板色 =====
+  // ===== 桌面应用自动化 - 石板色 =====
   desktop_app_get_info: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
   desktop_app_wait_ready: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
   desktop_window_list: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',

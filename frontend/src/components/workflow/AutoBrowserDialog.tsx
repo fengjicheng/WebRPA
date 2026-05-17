@@ -225,7 +225,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
               <li>支持元素选择器，选中后自动复制选择器到剪贴板</li>
               <li>相似元素选择会自动使用 {'{index}'} 变量替换变化部分</li>
               <li className="font-medium text-cyan-700">
-                💡 按 <kbd className="px-1.5 py-0.5 bg-cyan-100 border border-cyan-300 rounded text-[10px] font-mono">Alt+X</kbd> 可使用高级元素选择器（推荐）
+                按 <kbd className="px-1.5 py-0.5 bg-cyan-100 border border-cyan-300 rounded text-[10px] font-mono">Alt+X</kbd> 可使用高级元素选择器（推荐）
               </li>
             </ul>
           </div>

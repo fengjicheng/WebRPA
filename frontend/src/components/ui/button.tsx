@@ -1,66 +1,51 @@
 import * as React from 'react'
-import { motion, type HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
-  size?: 'default' | 'sm' | 'lg' | 'icon'
-  /** 是否禁用动效（如在高频更新的场景中） */
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'subtle'
+  size?: 'default' | 'sm' | 'lg' | 'icon' | 'xs'
+  /** 兼容旧调用：禁用动效（新版本无装饰性动效，此参数仅作兼容占位） */
   noMotion?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', noMotion = false, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50'
+  ({ className, variant = 'default', size = 'default', noMotion: _noMotion, ...props }, ref) => {
+    const base =
+      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[6px] text-[13px] font-medium ' +
+      'transition-[background-color,border-color,color,box-shadow] duration-100 ' +
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-1 focus-visible:ring-offset-[hsl(var(--background))] ' +
+      'disabled:pointer-events-none disabled:opacity-50 select-none'
 
-    const variants = {
-      default: 'bg-blue-600 text-white shadow hover:bg-blue-700 active:bg-blue-800',
-      destructive: 'bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800',
-      outline: 'border-2 border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100',
-      secondary: 'bg-gray-200 text-gray-900 shadow-sm hover:bg-gray-300 active:bg-gray-400',
-      ghost: 'hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200',
-      link: 'text-blue-600 underline-offset-4 hover:underline',
+    const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
+      default:
+        'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--brand-700))] active:bg-[hsl(var(--brand-700))]',
+      destructive:
+        'bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:opacity-90 active:opacity-95',
+      outline:
+        'border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]',
+      secondary:
+        'bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:bg-[hsl(var(--muted))]',
+      ghost:
+        'text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]',
+      subtle:
+        'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]',
+      link:
+        'text-[hsl(var(--primary))] underline-offset-4 hover:underline px-0 h-auto',
     }
 
-    const sizes = {
-      default: 'h-9 px-4 py-2',
-      sm: 'h-8 rounded-md px-3 text-xs',
-      lg: 'h-10 rounded-md px-8',
-      icon: 'h-9 w-9',
+    const sizes: Record<NonNullable<ButtonProps['size']>, string> = {
+      xs: 'h-6 px-2 text-[11px] gap-1',
+      sm: 'h-7 px-2.5 text-[12px]',
+      default: 'h-8 px-3',
+      lg: 'h-10 px-5 text-[14px]',
+      icon: 'h-8 w-8 p-0',
     }
-
-    const combinedClass = cn(baseStyles, variants[variant], sizes[size], className)
-
-    if (noMotion || props.disabled) {
-      return (
-        <button
-          className={combinedClass}
-          ref={ref}
-          {...props}
-        />
-      )
-    }
-
-    // 把 onDrag/onDragStart/onDragEnd 等会与 framer-motion 冲突的事件剔除，
-    // 避免 React 的 DragEvent 与 motion 的 PanInfo 类型冲突
-    const {
-      onDrag: _onDrag,
-      onDragStart: _onDragStart,
-      onDragEnd: _onDragEnd,
-      onAnimationStart: _onAnimationStart,
-      onAnimationEnd: _onAnimationEnd,
-      onAnimationIteration: _onAnimationIteration,
-      ...motionProps
-    } = props
 
     return (
-      <motion.button
-        className={combinedClass}
-        ref={ref as React.Ref<HTMLButtonElement>}
-        whileHover={{ scale: 1.03, y: -1 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        {...(motionProps as HTMLMotionProps<'button'>)}
+      <button
+        ref={ref}
+        className={cn(base, variants[variant], sizes[size], className)}
+        {...props}
       />
     )
   }

@@ -304,7 +304,7 @@ class SocketService {
       this.socket = null
     }
 
-    // 🔥 每次连接时都动态获取最新的后端地址
+    // 每次连接时都动态获取最新的后端地址
     const socketUrl = getBackendBaseUrl()
     console.log('[Socket] 连接到后端:', socketUrl)
 
@@ -361,11 +361,11 @@ class SocketService {
       store.setCurrentExecutionWorkflowId(data.workflowId)
       // 清空之前的数据
       store.clearCollectedData()
-      // ❌ 不要清空变量列表！变量应该保留，由后端的 variable_update 事件更新
+      // 不要清空变量列表！变量应该保留，由后端的 variable_update 事件更新
       // useWorkflowStore.setState({ variables: [] })
     })
 
-    // 日志消息 - 🔥 完全实时显示，立即添加，不使用任何批处理！
+    // 日志消息 - 完全实时显示，立即添加，不使用任何批处理！
     this.socket.on('execution:log', (data: {
       workflowId: string
       log: {
@@ -379,7 +379,7 @@ class SocketService {
         isSystemLog?: boolean  // 是否是系统日志（流程开始/结束等）
       }
     }) => {
-      console.log('[Socket] 🔥 收到日志:', data.log.message, '| level:', data.log.level, '| isUserLog:', data.log.isUserLog, '| isSystemLog:', data.log.isSystemLog)
+      console.log('[Socket] 收到日志:', data.log.message, '| level:', data.log.level, '| isUserLog:', data.log.isUserLog, '| isSystemLog:', data.log.isSystemLog)
       const verboseLog = useWorkflowStore.getState().verboseLog
       console.log('[Socket] verboseLog 状态:', verboseLog)
       const log = data.log
@@ -425,13 +425,13 @@ class SocketService {
       // 简洁日志模式下，只显示：用户日志、系统日志、以及任何错误级别日志（报错必须显示）
       // 重要：错误日志必须始终显示，不管是否为简洁模式！
       if (!verboseLog && !log.isUserLog && !log.isSystemLog && log.level !== 'error' && log.level !== 'warning') {
-        console.log('[Socket] ❌ 日志被过滤（简洁模式）')
+        console.log('[Socket] 日志被过滤（简洁模式）')
         return
       }
       
-      console.log('[Socket] ✅ 日志通过过滤，准备添加到 store')
+      console.log('[Socket] 日志通过过滤，准备添加到 store')
       
-      // 🔥 立即添加日志，完全实时，不使用任何批处理或延迟！
+      // 立即添加日志，完全实时，不使用任何批处理或延迟！
       useWorkflowStore.getState().addLog({
         level: log.level,
         message: log.message,
@@ -439,10 +439,10 @@ class SocketService {
         duration: log.duration,
       })
       
-      console.log('[Socket] ✅ 日志已添加到 store')
+      console.log('[Socket] 日志已添加到 store')
     })
 
-    // 批量日志消息 - 🚀 超高性能批量处理
+    // 批量日志消息 - 超高性能批量处理
     this.socket.on('execution:log_batch', (data: {
       workflowId: string
       logs: Array<{
@@ -586,15 +586,15 @@ class SocketService {
       }
       collectedData?: Record<string, unknown>[]
     }) => {
-      console.log('[Socket] 🔥 收到 execution:completed 事件 - 后端执行完成！', data)
+      console.log('[Socket] 收到 execution:completed 事件 - 后端执行完成！', data)
       
-      // 🔥 停止接收实时数据行
+      // 停止接收实时数据行
       isExecuting = false
       
       const status = data.result.status as 'completed' | 'failed' | 'stopped'
-      console.log('[Socket] 🔥 立即设置执行状态为:', status)
+      console.log('[Socket] 立即设置执行状态为:', status)
       
-      // 🔥 立即更新所有状态
+      // 立即更新所有状态
       const store = useWorkflowStore.getState()
       store.setExecutionStatus(status)
       // 确保 currentExecutionWorkflowId 已设置（即使错过了 execution:started）
@@ -602,27 +602,27 @@ class SocketService {
         store.setCurrentExecutionWorkflowId(data.workflowId)
       }
       
-      // 🔥 处理收集的数据（如果有）
+      // 处理收集的数据（如果有）
       if (data.collectedData && data.collectedData.length > 0) {
         console.log('[Socket] 收到收集的数据:', data.collectedData.length, '条')
         store.setCollectedData(data.collectedData)
       }
       
-      // 🔥 触发全局事件，通知所有组件执行已完成
+      // 触发全局事件，通知所有组件执行已完成
       window.dispatchEvent(new CustomEvent('execution:completed', { 
         detail: { status, executedNodes: data.result.executedNodes, failedNodes: data.result.failedNodes } 
       }))
       
-      // 🔥 停止所有音频播放
+      // 停止所有音频播放
       this.stopAllAudio()
       
-      // 🔥 添加完成日志
+      // 添加完成日志
       store.addLog({
         level: status === 'completed' ? 'success' : 'error',
-        message: `🎉 执行${status === 'completed' ? '完成' : '失败'}，共执行 ${data.result.executedNodes} 个节点，失败 ${data.result.failedNodes} 个`,
+        message: `执行${status === 'completed' ? '完成' : '失败'}，共执行 ${data.result.executedNodes} 个节点，失败 ${data.result.failedNodes} 个`,
       })
       
-      console.log('[Socket] 🔥 前端状态已全部更新完成！')
+      console.log('[Socket] 前端状态已全部更新完成！')
     })
 
     // 数据行收集 - 实时显示
@@ -647,43 +647,43 @@ class SocketService {
     
     // 热键触发运行工作流
     this.socket.on('hotkey:run_workflow', (_data: { workflowId: string }) => {
-      console.log('[Socket] ✅ 收到 hotkey:run_workflow 事件')
+      console.log('[Socket] 收到 hotkey:run_workflow 事件')
       // 触发全局事件，让 Toolbar 组件处理
       window.dispatchEvent(new CustomEvent('hotkey:run'))
-      console.log('[Socket] ✅ 已触发 window 的 hotkey:run 事件')
+      console.log('[Socket] 已触发 window 的 hotkey:run 事件')
     })
     
     // 热键触发停止工作流
     this.socket.on('hotkey:stop_workflow', (_data: { workflowId: string }) => {
-      console.log('[Socket] ✅ 收到 hotkey:stop_workflow 事件')
+      console.log('[Socket] 收到 hotkey:stop_workflow 事件')
       window.dispatchEvent(new CustomEvent('hotkey:stop'))
-      console.log('[Socket] ✅ 已触发 window 的 hotkey:stop 事件')
+      console.log('[Socket] 已触发 window 的 hotkey:stop 事件')
     })
     
     // 热键提示没有活动工作流
     this.socket.on('hotkey:no_workflow', () => {
-      console.log('[Socket] ✅ 收到 hotkey:no_workflow 事件 - 没有活动的工作流')
+      console.log('[Socket] 收到 hotkey:no_workflow 事件 - 没有活动的工作流')
     })
     
     // 热键触发开始录制宏 (F9)
     this.socket.on('hotkey:macro_start', () => {
-      console.log('[Socket] ✅ 收到 hotkey:macro_start 事件')
+      console.log('[Socket] 收到 hotkey:macro_start 事件')
       window.dispatchEvent(new CustomEvent('hotkey:macro_start'))
-      console.log('[Socket] ✅ 已触发 window 的 hotkey:macro_start 事件')
+      console.log('[Socket] 已触发 window 的 hotkey:macro_start 事件')
     })
     
     // 热键触发停止录制宏 (F10)
     this.socket.on('hotkey:macro_stop', () => {
-      console.log('[Socket] ✅ 收到 hotkey:macro_stop 事件')
+      console.log('[Socket] 收到 hotkey:macro_stop 事件')
       window.dispatchEvent(new CustomEvent('hotkey:macro_stop'))
-      console.log('[Socket] ✅ 已触发 window 的 hotkey:macro_stop 事件')
+      console.log('[Socket] 已触发 window 的 hotkey:macro_stop 事件')
     })
     
     // 热键触发截图 (Ctrl+Shift+F12)
     this.socket.on('hotkey:screenshot', () => {
-      console.log('[Socket] ✅ 收到 hotkey:screenshot 事件')
+      console.log('[Socket] 收到 hotkey:screenshot 事件')
       window.dispatchEvent(new CustomEvent('hotkey:screenshot'))
-      console.log('[Socket] ✅ 已触发 window 的 hotkey:screenshot 事件')
+      console.log('[Socket] 已触发 window 的 hotkey:screenshot 事件')
     })
   }
 
@@ -795,9 +795,9 @@ class SocketService {
     console.log('[Socket] 准备设置当前工作流ID:', workflowId, '| Socket已连接:', this.socket?.connected)
     if (this.socket?.connected) {
       this.socket.emit('set_current_workflow', { workflowId })
-      console.log('[Socket] ✅ 已发送 set_current_workflow 事件')
+      console.log('[Socket] 已发送 set_current_workflow 事件')
     } else {
-      console.log('[Socket] ❌ Socket未连接，无法发送 set_current_workflow 事件')
+      console.log('[Socket] Socket未连接，无法发送 set_current_workflow 事件')
     }
   }
 }

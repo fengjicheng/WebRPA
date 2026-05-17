@@ -1137,7 +1137,7 @@ export function TableClearConfig() {
     <>
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs text-amber-800">
-          ⚠️ 此操作将清空数据表格中的所有数据，无法恢复
+          此操作将清空数据表格中的所有数据，无法恢复
         </p>
       </div>
       <p className="text-xs text-muted-foreground">

@@ -137,7 +137,7 @@ notification.style.cssText = \`
   font-size: 16px;
   font-weight: 500;
 \`;
-notification.textContent = '✅ 操作成功';
+notification.textContent = '操作成功';
 document.body.appendChild(notification);
 setTimeout(() => notification.remove(), 3000);
 
@@ -485,7 +485,7 @@ ${currentCode}
               {variables.length > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm font-medium text-blue-800 mb-2">
-                    📦 当前工作流中的变量：
+                    当前工作流中的变量：
                   </p>
                   <div className="max-h-48 overflow-y-auto space-y-1 pr-2">
                     {variables.map(v => (
@@ -504,7 +504,7 @@ ${currentCode}
               {/* 使用说明 */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p className="text-sm font-medium text-gray-800 mb-2">
-                  💡 使用说明：
+                  使用说明：
                 </p>
                 <ul className="text-xs text-gray-600 space-y-1 list-disc list-inside">
                   <li>描述您想要实现的功能，AI会自动生成代码</li>

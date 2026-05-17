@@ -321,7 +321,7 @@ export function AISmartScraperConfig({ data, onChange }: { data: NodeData; onCha
     <>
       <div className="p-3 bg-red-50 border-2 border-red-300 rounded-lg mb-4">
         <p className="text-sm text-red-900 font-semibold mb-2">
-          🧪 实验性功能 - 不推荐生产使用
+          实验性功能 - 不推荐生产使用
         </p>
         <p className="text-xs text-red-800 space-y-1">
           <strong>已知问题：</strong><br />
@@ -502,7 +502,7 @@ export function AIElementSelectorConfig({ data, onChange }: { data: NodeData; on
     <>
       <div className="p-3 bg-red-50 border-2 border-red-300 rounded-lg mb-4">
         <p className="text-sm text-red-900 font-semibold mb-2">
-          🧪 实验性功能 - 不推荐生产使用
+          实验性功能 - 不推荐生产使用
         </p>
         <p className="text-xs text-red-800 space-y-1">
           <strong>已知问题：</strong><br />
@@ -651,7 +651,7 @@ export function AIElementSelectorConfig({ data, onChange }: { data: NodeData; on
       
       <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-900">
-          <strong>🎯 AI智能元素选择器</strong><br/>
+          <strong>AI智能元素选择器</strong><br/>
           • 优点：即使网页结构变化，也能准确找到元素<br />
           • 使用场景：网站频繁改版、选择器不稳定<br />
           • 工作原理：AI 访问指定 URL，分析页面后返回匹配元素的 CSS 选择器<br />
@@ -790,7 +790,7 @@ export function FirecrawlScrapeConfig({ data, onChange }: { data: NodeData; onCh
       
       <div className="p-3 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg">
         <p className="text-xs text-orange-900">
-          <strong>🔥 Firecrawl AI 单页数据抓取</strong><br/>
+          <strong>Firecrawl AI 单页数据抓取</strong><br/>
           • 智能提取网页结构化数据<br />
           • 支持 Markdown、HTML、截图等格式<br />
           • 自动处理 JavaScript 渲染<br />
@@ -1040,7 +1040,7 @@ export function FirecrawlCrawlConfig({ data, onChange }: { data: NodeData; onCha
           • 智能爬取整个网站的数据<br />
           • 支持深度爬取和智能过滤<br />
           • 自动处理分页和动态加载<br />
-          • ⚠️ 注意：全站爬取可能需要几分钟
+          • 注意：全站爬取可能需要几分钟
         </p>
       </div>
     </>

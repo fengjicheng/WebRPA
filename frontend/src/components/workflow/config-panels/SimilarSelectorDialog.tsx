@@ -70,7 +70,7 @@ export function SimilarSelectorDialog({
           
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-800">
-              💡 使用方法：在"循环执行"模块中设置循环范围 {minIndex} 到 {maxIndex}，
+              使用方法：在"循环执行"模块中设置循环范围 {minIndex} 到 {maxIndex}，
               索引变量名设为 <code className="bg-blue-100 px-1 rounded">{variableName}</code>，
               然后在后续模块中使用此选择器即可遍历所有相似元素。
             </p>

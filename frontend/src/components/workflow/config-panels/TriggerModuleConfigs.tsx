@@ -74,7 +74,7 @@ export function WebhookTriggerConfig({
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {copied ? '✅ 已复制到剪贴板' : '点击按钮复制URL'}
+          {copied ? '已复制到剪贴板' : '点击按钮复制URL'}
         </p>
       </div>
 
@@ -1723,7 +1723,7 @@ export function GestureTriggerConfig({
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${gestureStatus.is_running ? 'bg-green-300 animate-pulse' : 'bg-gray-400'}`}></div>
             <span className="text-sm font-medium text-white">
-              {gestureStatus.is_running ? '✅ 识别服务运行中' : '⏸️ 识别服务未启动'}
+              {gestureStatus.is_running ? '识别服务运行中' : '⏸️ 识别服务未启动'}
             </span>
           </div>
           <p className="text-xs text-white mt-1">
@@ -1788,7 +1788,7 @@ export function GestureTriggerConfig({
         {customGestures.length === 0 && !isRecording && (
           <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
             <p className="text-xs text-blue-900 dark:text-blue-100 font-medium mb-2">
-              💡 还没有录制任何手势
+              还没有录制任何手势
             </p>
             <p className="text-xs text-blue-800 dark:text-blue-200">
               点击"录制新手势"按钮开始录制您的第一个手势

@@ -163,7 +163,7 @@ export function EditCustomModuleDialog({ open, onClose, module, onEditWorkflow }
                   id="icon"
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  placeholder="例如：📦"
+                  placeholder="例如："
                   maxLength={2}
                 />
               </div>

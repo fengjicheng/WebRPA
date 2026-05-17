@@ -159,7 +159,7 @@ function App() {
           // 现代浏览器对于非 JS 打开的窗口（或者即便是 JS 打开但有些安全策略）可能拦截 window.close()
           // 我们可以尝试替换页面内容作为备选方案
           document.body.innerHTML = '<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;background:#f5f5f5;">' +
-            '<h2 style="color:#4caf50;margin-bottom:10px;">✅ 计划任务执行完毕</h2>' +
+            '<h2 style="color:#4caf50;margin-bottom:10px;">计划任务执行完毕</h2>' +
             '<p style="color:#666;">您可以安全地关闭此页面，或者它将在几秒后尝试自动关闭。</p>' +
             '</div>';
           

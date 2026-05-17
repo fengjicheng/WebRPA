@@ -112,7 +112,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       })
       
       if (duplicates.length > 0) {
-        alert(`⚠️ 警告：已存在名为「${newName}」的子流程！\n\n这会导致调用时无法确定执行哪一个，请使用唯一的名称。`)
+        alert(`警告：已存在名为「${newName}」的子流程！\n\n这会导致调用时无法确定执行哪一个，请使用唯一的名称。`)
         setEditValue(oldName)
         return
       }
@@ -213,7 +213,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
               className="text-sm font-semibold text-emerald-900 truncate cursor-text"
               onDoubleClick={handleDoubleClick}
             >
-              📦 {nodeData.label || '未命名子流程'}
+              {nodeData.label || '未命名子流程'}
             </div>
           )}
         </div>

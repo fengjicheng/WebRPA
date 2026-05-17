@@ -75,7 +75,7 @@ export function ScreenshotNameDialog({
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              💡 提示：截图已保存到图像资源，您可以在底部面板的"图像资源"标签中查看
+              提示：截图已保存到图像资源，您可以在底部面板的"图像资源"标签中查看
             </p>
           </div>
         </div>
@@ -163,7 +163,7 @@ export function ScreenshotErrorDialog({
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              💡 <strong>故障排查：</strong>
+              <strong>故障排查：</strong>
             </p>
             <ul className="text-sm text-blue-700 mt-2 space-y-1 ml-4 list-disc">
               <li>确保 Windows 截图工具已启用</li>

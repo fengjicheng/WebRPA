@@ -373,6 +373,47 @@ async def skill_list_scheduled_tasks(**_: Any) -> dict[str, Any]:
         return {"error": str(e)}
 
 
+async def skill_get_current_workflow(**_: Any) -> dict[str, Any]:
+    """获取当前画布上的工作流（前端会随每次对话发送）。
+    这个 Skill 主要用于 LLM 显式查询，但实际数据在每轮对话的 system prompt 里已经注入过。
+    """
+    return {
+        "note": "当前画布的节点和边已包含在系统提示词的'当前工作流的状态'部分。如需更详细的节点配置，请使用 client_action 工具的 'get_workflow_detail' 动作。",
+    }
+
+
+async def skill_get_workflow_executors_for_canvas(**_: Any) -> dict[str, Any]:
+    """获取所有真实可用的执行器类型，并按知识库分类组织
+    （用于 LLM 想要"看清楚有哪些模块"时调用）
+    """
+    try:
+        from app.executors.base import registry as exec_registry
+        types = sorted(exec_registry.get_all_types())
+    except Exception as e:
+        return {"error": str(e)}
+
+    # 把它们映射回知识库分类
+    type_to_cat: dict[str, str] = {}
+    for cat, modules in MODULE_CATEGORIES.items():
+        for mtype in modules:
+            type_to_cat[mtype] = cat
+
+    grouped: dict[str, list[str]] = {}
+    uncategorized: list[str] = []
+    for t in types:
+        cat = type_to_cat.get(t)
+        if cat:
+            grouped.setdefault(cat, []).append(t)
+        else:
+            uncategorized.append(t)
+
+    return {
+        "total": len(types),
+        "categorized": grouped,
+        "uncategorized": uncategorized,
+    }
+
+
 async def skill_get_recent_logs(workflow_id: str | None = None, limit: int = 50, **_: Any) -> dict[str, Any]:
     """获取最近的工作流执行日志（如果有的话）"""
     try:
@@ -645,6 +686,12 @@ def _register_all() -> None:
         handler=skill_list_executors,
     ))
     registry.register(Skill(
+        name="list_canvas_executors",
+        description="列出所有真实可用的执行器类型，并按 WebRPA 的知识库分类组织（建议用这个代替 list_executors，能看到分类）",
+        parameters={"type": "object", "properties": {}},
+        handler=skill_get_workflow_executors_for_canvas,
+    ))
+    registry.register(Skill(
         name="list_custom_modules",
         description="列出所有用户自定义模块",
         parameters={"type": "object", "properties": {}},
@@ -730,22 +777,35 @@ def _register_all() -> None:
         name="client_action",
         description=(
             "请前端执行一个 WebRPA 操作。可用 action 列表：\n"
-            "- new_workflow：清空画布开始新工作流\n"
-            "- load_workflow：加载本地工作流（payload.filename）\n"
-            "- save_workflow：保存当前工作流（payload.filename）\n"
-            "- run_workflow：运行当前工作流\n"
-            "- stop_workflow：停止当前工作流\n"
-            "- add_nodes：把节点加入画布（payload.nodes, payload.edges）\n"
-            "- delete_node：删除节点（payload.node_id）\n"
-            "- update_node_config：更新节点配置（payload.node_id, payload.config）\n"
-            "- update_global_config：更新全局配置（payload.section, payload.values）\n"
-            "- open_global_config：打开全局配置对话框\n"
-            "- open_local_workflow_dialog：打开本地工作流对话框\n"
-            "- open_scheduled_tasks：打开计划任务面板\n"
-            "- open_documentation：打开使用文档\n"
-            "- focus_node：聚焦到某个节点（payload.node_id）\n"
-            "- show_toast：显示一条提示消息（payload.message, payload.type）\n"
-            "调用时把 action 和必要的 payload 一起传过来，前端会做对应的事。"
+            "【画布】\n"
+            "- new_workflow: 清空画布开始新工作流\n"
+            "- load_workflow: 加载本地工作流（payload.filename）\n"
+            "- load_workflow_from_data: 直接载入完整工作流到画布（payload.name, payload.nodes, payload.edges）\n"
+            "- save_workflow: 保存当前工作流（payload.filename 可选）\n"
+            "- run_workflow: 运行当前工作流\n"
+            "- stop_workflow: 停止当前工作流\n"
+            "- rename_workflow: 重命名当前工作流（payload.name）\n"
+            "- get_workflow_detail: 拿到当前画布的完整 nodes/edges/variables（节点配置详情）\n"
+            "【节点】\n"
+            "- add_nodes: 把节点加入画布（payload.nodes, payload.edges）\n"
+            "- delete_node: 删除节点（payload.node_id）\n"
+            "- update_node_config: 更新节点配置（payload.node_id, payload.config）\n"
+            "- focus_node: 聚焦/选中节点（payload.node_id）\n"
+            "- undo / redo: 撤销 / 重做\n"
+            "【变量】\n"
+            "- add_variable: 新增变量（payload.name, payload.value, payload.type）\n"
+            "- update_variable: 更新变量值（payload.name, payload.value）\n"
+            "- delete_variable: 删除变量（payload.name）\n"
+            "【面板/界面】\n"
+            "- update_global_config: 更新全局配置（payload.section, payload.values）\n"
+            "- open_global_config: 打开全局配置对话框\n"
+            "- open_local_workflow_dialog: 打开本地工作流对话框\n"
+            "- open_scheduled_tasks: 打开计划任务面板\n"
+            "- open_documentation: 打开使用文档\n"
+            "- switch_bottom_panel: 切换底栏 tab（payload.tab=logs|data|variables|assets|images）\n"
+            "- clear_logs / clear_data: 清空日志 / 清空数据表格\n"
+            "- show_toast: 显示提示消息（payload.message, payload.type=info|success|warning|error）\n"
+            "调用时把 action 和必要的 payload 一起传过来，前端会同步执行并返回结果。"
         ),
         parameters={
             "type": "object",

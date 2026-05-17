@@ -3,11 +3,8 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Radix UI Select 组件
 const Select = SelectPrimitive.Root
-
 const SelectGroup = SelectPrimitive.Group
-
 const SelectValue = SelectPrimitive.Value
 
 const SelectTrigger = React.forwardRef<
@@ -17,14 +14,21 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50 [&>span]:line-clamp-1 transition-colors',
+      'flex h-8 w-full items-center justify-between gap-1.5 whitespace-nowrap rounded-[6px] ' +
+        'border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-2.5 py-1 text-[13px] ' +
+        'text-[hsl(var(--foreground))] ' +
+        'transition-[border-color,box-shadow] duration-100 ' +
+        'hover:border-[hsl(var(--brand-500)/0.5)] ' +
+        'focus:outline-none focus:border-[hsl(var(--brand-500))] focus:ring-2 focus:ring-[hsl(var(--brand-500)/0.18)] ' +
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[hsl(var(--muted))] ' +
+        '[&>span]:line-clamp-1',
       className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -36,10 +40,7 @@ const SelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn(
-      'flex cursor-default items-center justify-center py-1',
-      className
-    )}
+    className={cn('flex cursor-default items-center justify-center py-1', className)}
     {...props}
   >
     <ChevronUp className="h-4 w-4" />
@@ -53,17 +54,13 @@ const SelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn(
-      'flex cursor-default items-center justify-center py-1',
-      className
-    )}
+    className={cn('flex cursor-default items-center justify-center py-1', className)}
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ))
-SelectScrollDownButton.displayName =
-  SelectPrimitive.ScrollDownButton.displayName
+SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
@@ -73,7 +70,12 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-gray-200 bg-white text-gray-900 shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[8px] ' +
+          'border border-[hsl(var(--border))] bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] ' +
+          'shadow-pop-lg ' +
+          'data-[state=open]:animate-in data-[state=closed]:animate-out ' +
+          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ' +
+          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         position === 'popper' &&
           'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className
@@ -103,7 +105,7 @@ const SelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-sm font-semibold', className)}
+    className={cn('px-2 py-1.5 text-[11px] uppercase tracking-wide font-semibold text-[hsl(var(--muted-foreground))]', className)}
     {...props}
   />
 ))
@@ -116,14 +118,18 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-pointer select-none items-center rounded-md py-2 pl-3 pr-8 text-sm outline-none hover:bg-gray-100 focus:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors',
+      'relative flex w-full cursor-pointer select-none items-center rounded-[4px] py-1.5 pl-2.5 pr-7 text-[13px] outline-none ' +
+        'transition-colors duration-100 ' +
+        'hover:bg-[hsl(var(--muted))] focus:bg-[hsl(var(--muted))] ' +
+        'data-[state=checked]:bg-[hsl(var(--brand-50))] data-[state=checked]:text-[hsl(var(--brand-700))] ' +
+        'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-green-600" />
+        <Check className="h-3.5 w-3.5 text-[hsl(var(--brand-600))]" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -137,7 +143,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-muted', className)}
+    className={cn('mx-1 my-1 h-px bg-[hsl(var(--border))]', className)}
     {...props}
   />
 ))
@@ -156,7 +162,4 @@ export {
   SelectScrollDownButton,
 }
 
-// 为了向后兼容，也导出默认的 Select（Radix UI 版本）
 export default Select
-
-

@@ -772,7 +772,7 @@ export function ShutdownSystemConfig({ data, onChange }: { data: NodeData; onCha
       </div>
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs text-amber-800">
-          ⚠️ 请确保已保存所有工作，此操作将影响整个系统
+          请确保已保存所有工作，此操作将影响整个系统
         </p>
       </div>
     </>
@@ -1790,7 +1790,7 @@ export function MacroRecorderConfig({ data, onChange }: { data: NodeData; onChan
             className="flex-1 px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
             onClick={() => setShowRecordDialog(true)}
           >
-            🎬 录制
+            录制
           </button>
           <button
             type="button"
@@ -2244,7 +2244,7 @@ function MacroRecordDialog({
                   className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                   onClick={startRecording}
                 >
-                  🎬 开始录制 (F9)
+                  开始录制 (F9)
                 </button>
                 {actions.length > 0 && (
                   <button
@@ -2330,7 +2330,7 @@ function getActionIcon(type: string): string {
     case 'mouse_click': return '👆'
     case 'mouse_scroll': return '🔄'
     case 'key_press': return '⌨️'
-    case 'key_char': return '📝'
+    case 'key_char': return ''
     default: return '❓'
   }
 }
@@ -2527,8 +2527,7 @@ function MacroEditDialog({
                       onClick={() => duplicateAction(index)}
                       title="复制"
                     >
-                      📋
-                    </button>
+                                          </button>
                     <button
                       className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
                       onClick={() => moveUp(index)}
@@ -3640,7 +3639,7 @@ export function ShareFolderConfig({ data, onChange }: { data: NodeData; onChange
     <div className="space-y-4">
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-700">
-          📂 将指定文件夹共享到局域网，同网络的设备可通过浏览器访问、下载、上传文件
+          将指定文件夹共享到局域网，同网络的设备可通过浏览器访问、下载、上传文件
         </p>
       </div>
       
@@ -3708,7 +3707,7 @@ export function ShareFolderConfig({ data, onChange }: { data: NodeData; onChange
       
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <p className="text-sm text-amber-700">
-          💡 执行后会显示真实的局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器访问。
+          执行后会显示真实的局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器访问。
           共享服务会持续运行直到工作流结束或手动停止。
         </p>
       </div>
@@ -3722,7 +3721,7 @@ export function ShareFileConfig({ data, onChange }: { data: NodeData; onChange: 
     <div className="space-y-4">
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-700">
-          📄 将指定文件共享到局域网，同网络的设备可通过浏览器下载此文件
+          将指定文件共享到局域网，同网络的设备可通过浏览器下载此文件
         </p>
       </div>
       
@@ -3766,7 +3765,7 @@ export function ShareFileConfig({ data, onChange }: { data: NodeData; onChange: 
       
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <p className="text-sm text-amber-700">
-          💡 执行后会显示真实的局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器访问。
+          执行后会显示真实的局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器访问。
           共享服务会持续运行直到工作流结束或手动停止。
         </p>
       </div>
@@ -3807,7 +3806,7 @@ export function StartScreenShareConfig({ data, onChange }: { data: NodeData; onC
     <div className="space-y-4">
       <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-700">
-          🖥️ 将电脑屏幕实时共享到局域网，同网络的设备可通过浏览器观看屏幕画面
+          将电脑屏幕实时共享到局域网，同网络的设备可通过浏览器观看屏幕画面
         </p>
       </div>
       
@@ -3882,7 +3881,7 @@ export function StartScreenShareConfig({ data, onChange }: { data: NodeData; onC
       
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
         <p className="text-sm text-amber-700">
-          💡 执行后会显示局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器实时观看屏幕画面。
+          执行后会显示局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器实时观看屏幕画面。
           共享服务会持续运行直到工作流结束或手动停止。
         </p>
       </div>
@@ -4037,7 +4036,7 @@ export function ImageExistsConfig({ data, onChange }: { data: NodeData; onChange
       
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
         <p className="text-xs font-semibold text-blue-900">
-          💡 使用说明
+          使用说明
         </p>
         <p className="text-xs text-blue-800">
           • 此模块类似条件判断，有两个分支输出点
@@ -4060,7 +4059,7 @@ export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; o
     <div className="space-y-4">
       <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-l-4 border-blue-500">
         <p className="text-sm text-gray-700 font-medium mb-1">
-          🔍 元素存在判断
+          元素存在判断
         </p>
         <p className="text-xs text-gray-600">
           判断指定元素是否存在于页面中，返回 true/false 分支，可用于条件判断流程
@@ -4302,7 +4301,7 @@ export function NetworkMonitorStopConfig({ data, onChange }: { data: NodeData; o
       
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <p className="text-xs text-amber-800">
-          ⚠️ 停止监听后，该监听器将被销毁，无法再次使用
+          停止监听后，该监听器将被销毁，无法再次使用
         </p>
       </div>
     </div>
@@ -4781,7 +4780,7 @@ export function DesktopFindControlConfig({ data, onChange }: { data: NodeData; o
       {isPickerActive && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-800">
-            💡 按住 Ctrl + 点击 捕获控件，按 ESC 退出选择模式
+            按住 Ctrl + 点击 捕获控件，按 ESC 退出选择模式
           </p>
         </div>
       )}

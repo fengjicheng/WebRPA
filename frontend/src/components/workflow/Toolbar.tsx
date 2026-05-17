@@ -1,5 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { spring } from '@/lib/motion'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Button } from '@/components/ui/button'
@@ -20,6 +18,7 @@ import { VariableTrackingPanel } from './VariableTrackingPanel'
 import { ScreenshotNameDialog, ScreenshotErrorDialog } from './ScreenshotNameDialog'
 import { useClipboardImageMonitor } from '@/hooks/useClipboardImageMonitor'
 import { customModulesApi } from '@/services/api'
+import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
 import {
   Play,
   Square,
@@ -542,7 +541,7 @@ export function Toolbar() {
       console.log('[Toolbar] 截图API响应:', data)
 
       if (data.success && data.assetId) {
-        console.log('[Toolbar] ✅ 截图保存成功, assetId:', data.assetId)
+        console.log('[Toolbar] 截图保存成功, assetId:', data.assetId)
         setScreenshotAsset({
           id: data.assetId,
           originalName: data.fileName || `截图_${new Date().toLocaleTimeString()}.png`
@@ -551,7 +550,7 @@ export function Toolbar() {
         addLog({ level: 'success', message: '截图成功，请为截图命名' })
       } else if (data.success && data.asset) {
         // 兼容旧版后端
-        console.log('[Toolbar] ✅ 截图保存成功 (旧版):', data.asset)
+        console.log('[Toolbar] 截图保存成功 (旧版):', data.asset)
         setScreenshotAsset(data.asset)
         setShowScreenshotNameDialog(true)
         addLog({ level: 'success', message: '截图成功，请为截图命名' })
@@ -563,12 +562,12 @@ export function Toolbar() {
         setScreenshotError({ error: 'timeout', cancelled: false })
       } else {
         const errMsg = data.error || '未知错误'
-        console.error('[Toolbar] ❌ 截图失败:', errMsg)
+        console.error('[Toolbar] 截图失败:', errMsg)
         setScreenshotError({ error: errMsg, cancelled: false })
         addLog({ level: 'error', message: `截图失败: ${errMsg}` })
       }
     } catch (error) {
-      console.error('[Toolbar] ❌ 调用截图API失败:', error)
+      console.error('[Toolbar] 调用截图API失败:', error)
       const errMsg = `调用截图工具失败: ${error}`
       setScreenshotError({ error: errMsg, cancelled: false })
       addLog({ level: 'error', message: errMsg })
@@ -619,6 +618,44 @@ export function Toolbar() {
       window.removeEventListener('hotkey:screenshot', handleHotkeyScreenshot)
     }
   }, []) // 空依赖数组，只注册一次
+
+  // 监听 AI 小助手发起的 UI 事件
+  useEffect(() => {
+    const offSave = onAssistantUiEvent('save_workflow', () => {
+      handleSave()
+    })
+    const offRun = onAssistantUiEvent('run_workflow', () => {
+      if (!isRunningRef.current) {
+        handleRunRef.current()
+      }
+    })
+    const offStop = onAssistantUiEvent('stop_workflow', () => {
+      if (isRunningRef.current) {
+        handleStopRef.current()
+      }
+    })
+    const offConfig = onAssistantUiEvent('open_global_config', () => {
+      setShowGlobalConfig(true)
+    })
+    const offLocal = onAssistantUiEvent('open_local_workflow', () => {
+      setShowLocalWorkflow(true)
+    })
+    const offScheduled = onAssistantUiEvent('open_scheduled_tasks', () => {
+      setShowScheduledTasks(true)
+    })
+    const offDoc = onAssistantUiEvent('open_documentation', () => {
+      setShowDocumentation(true)
+    })
+    return () => {
+      offSave()
+      offRun()
+      offStop()
+      offConfig()
+      offLocal()
+      offScheduled()
+      offDoc()
+    }
+  }, [handleSave])
   
   // 通知后端当前工作流ID（用于全局热键控制）
   const handleOpen = () => {
@@ -826,7 +863,7 @@ export function Toolbar() {
 
     // 变量列表
     if (variables.length > 0) {
-      markdown += `## 📦 变量列表\n\n`
+      markdown += `## 变量列表\n\n`
       markdown += `| 变量名 | 类型 | 默认值 | 作用域 |\n`
       markdown += `|--------|------|--------|--------|\n`
       variables.forEach(v => {
@@ -836,7 +873,7 @@ export function Toolbar() {
     }
 
     // 节点列表
-    markdown += `## 🔧 模块列表\n\n`
+    markdown += `## 模块列表\n\n`
     markdown += `共 ${nodes.length} 个模块\n\n`
     
     nodes.forEach((node, index) => {
@@ -989,51 +1026,37 @@ export function Toolbar() {
   }, [clearWorkflow, addLog])
 
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring.soft, delay: 0.05 }}
-      className="h-14 border-b bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-[length:200%_100%] animate-gradient flex items-center px-2 sm:px-4 gap-2 sm:gap-4"
+    <header
+      className="h-12 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] flex items-center px-3 gap-3 flex-shrink-0 shadow-xs"
     >
       {/* Logo/标题 */}
       <div className="flex items-center gap-2">
-        <motion.div
-          className="p-1 rounded-lg bg-white/20 backdrop-blur-sm"
-          whileHover={{ rotate: 360, scale: 1.1 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
-        >
-          <img src="/logo.png" alt="Logo" className="w-5 h-5" />
-        </motion.div>
-        <motion.span
-          className="hidden sm:inline font-semibold text-lg text-white drop-shadow-sm"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ ...spring.soft, delay: 0.1 }}
-        >
+        <div className="w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] flex items-center justify-center">
+          <img src="/logo.png" alt="Logo" className="w-4 h-4" />
+        </div>
+        <span className="hidden sm:inline font-semibold text-[14px] text-[hsl(var(--foreground))]">
           WebRPA
-        </motion.span>
+        </span>
       </div>
 
-      {/* 分隔线 - 小屏幕隐藏 */}
-      <div className="hidden md:block h-6 w-px bg-white/30" />
+      <div className="hidden md:block h-5 w-px bg-[hsl(var(--border))]" />
 
       {/* 自定义模块编辑模式按钮 */}
       {editingCustomModuleId && (
         <>
           <Button
             size="sm"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white border-0 shadow-md"
+            variant="default"
             onClick={handleSaveCustomModuleWorkflow}
             title={`保存"${editingCustomModuleName}"的工作流`}
           >
-            <Save className="w-4 h-4 mr-1" />
-            保存模块工作流
+            <Save className="w-3.5 h-3.5" />
+            保存模块
           </Button>
 
           <Button
             size="sm"
             variant="outline"
-            className="bg-white/90 border-white/50 text-red-700 hover:bg-white hover:text-red-800"
             onClick={async () => {
               const shouldExit = await confirm(
                 '确定要退出编辑模式吗？\n\n未保存的修改将会丢失。',
@@ -1045,108 +1068,71 @@ export function Toolbar() {
             }}
             title="退出编辑模式"
           >
-            <X className="w-4 h-4 mr-1" />
-            退出编辑
+            <X className="w-3.5 h-3.5" />
+            退出
           </Button>
 
-          <div className="hidden md:block h-6 w-px bg-white/30" />
+          <div className="hidden md:block h-5 w-px bg-[hsl(var(--border))]" />
         </>
       )}
 
-      {/* 工作流名称 - 响应式宽度 */}
+      {/* 工作流名称 */}
       <Input
         value={name}
         onChange={(e) => setWorkflowName(e.target.value)}
         onFocus={handleNameFocus}
         onBlur={handleNameBlur}
-        className="w-24 sm:w-32 md:w-48 h-8 bg-white/90 border-white/50 text-sm"
+        className="w-32 sm:w-44 md:w-56 h-7 text-[12.5px]"
         placeholder="工作流名称"
       />
 
-      {/* 分隔线 - 小屏幕隐藏 */}
-      <div className="hidden md:block h-6 w-px bg-white/30" />
+      <div className="hidden md:block h-5 w-px bg-[hsl(var(--border))]" />
 
-      {/* 执行控制 - 合并为下拉按钮 */}
-      <div className="flex items-center gap-1 sm:gap-2">
-        <AnimatePresence mode="wait">
-          {!isRunning ? (
-            <motion.div
-              key="run"
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={spring.snappy}
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white border-0 shadow-md"
-                    noMotion
-                  >
-                    <motion.span
-                      className="flex items-center gap-1"
-                      whileHover={{ x: 1 }}
-                      transition={spring.snappy}
-                    >
-                      <Play className="w-4 h-4 sm:mr-1" />
-                      <span className="hidden sm:inline">运行</span>
-                      <span className="hidden lg:inline ml-1.5 text-[10px] opacity-70 font-normal">(F5)</span>
-                      <ChevronDown className="w-3 h-3 ml-1" />
-                    </motion.span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-44">
-                  <DropdownMenuItem onClick={handleRun}>
-                    <Play className="w-4 h-4 mr-2" />
-                    运行 (F5)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleRunHeadless}>
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    无头运行
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="stop"
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={spring.snappy}
-            >
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-400 hover:to-rose-400 text-white border-0 shadow-md"
-                onClick={handleStop}
-                noMotion
-              >
-                <motion.span
-                  className="flex items-center gap-1"
-                  animate={{ opacity: [1, 0.6, 1] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                >
-                  <Square className="w-4 h-4 sm:mr-1" />
-                  <span className="hidden sm:inline">停止</span>
-                  <span className="hidden lg:inline ml-1.5 text-[10px] opacity-70 font-normal">(Shift+F5)</span>
-                </motion.span>
+      {/* 执行控制 */}
+      <div className="flex items-center gap-1.5">
+        {!isRunning ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="default" noMotion>
+                <Play className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">运行</span>
+                <span className="hidden lg:inline text-[10px] opacity-70 font-normal">F5</span>
+                <ChevronDown className="w-3 h-3" />
               </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuItem onClick={handleRun}>
+                <Play className="w-3.5 h-3.5 mr-2" />
+                运行 (F5)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleRunHeadless}>
+                <EyeOff className="w-3.5 h-3.5 mr-2" />
+                无头运行
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleStop}
+            noMotion
+          >
+            <Square className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">停止</span>
+            <span className="hidden lg:inline text-[10px] opacity-70 font-normal">Shift+F5</span>
+          </Button>
+        )}
       </div>
 
-      {/* 分隔线 - 小屏幕隐藏 */}
-      <div className="hidden md:block h-6 w-px bg-white/30" />
+      <div className="hidden md:block h-5 w-px bg-[hsl(var(--border))]" />
 
       {/* 文件操作 - 大屏幕显示全部，小屏幕使用下拉菜单 */}
       <div className="hidden lg:flex items-center gap-1">
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-blue-700 hover:bg-white hover:text-blue-800
-            transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95" 
+          className="" 
           onClick={() => {
             console.log('[Toolbar] 保存按钮被点击')
             handleSave()
@@ -1158,8 +1144,7 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-blue-700 hover:bg-white hover:text-blue-800
-            transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95" 
+          className="" 
           onClick={handleOpen}
         >
           <FolderOpen className="w-4 h-4 mr-1" />
@@ -1168,8 +1153,7 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-green-700 hover:bg-white hover:text-green-800
-            transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95" 
+          className="" 
           onClick={() => setShowExportDialog(true)}
         >
           <Code className="w-4 h-4 mr-1" />
@@ -1183,8 +1167,7 @@ export function Toolbar() {
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-white/90 border-white/50 text-blue-700 hover:bg-white hover:text-blue-800
-              transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95"
+            className=""
           >
             <MoreVertical className="w-4 h-4" />
           </Button>
@@ -1208,7 +1191,7 @@ export function Toolbar() {
       </DropdownMenu>
 
       {/* 分隔线 - 小屏幕隐藏 */}
-      <div className="hidden md:block h-6 w-px bg-white/30" />
+      <div className="hidden md:block h-6 w-px bg-[hsl(var(--border))]" />
 
       {/* 节点对齐 - 下拉菜单 */}
       <DropdownMenu>
@@ -1216,8 +1199,7 @@ export function Toolbar() {
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-white/90 border-white/50 text-slate-700 hover:bg-white hover:text-slate-800
-              transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95"
+            className=""
             title="节点对齐"
           >
             <AlignCenter className="w-4 h-4" />
@@ -1270,8 +1252,7 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-purple-700 hover:bg-white hover:text-purple-800
-            transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95" 
+          className="" 
           onClick={() => setShowWorkflowHub(true)}
           title="工作流仓库"
         >
@@ -1283,8 +1264,7 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-teal-700 hover:bg-white hover:text-teal-800
-            transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95" 
+          className="" 
           onClick={() => setShowAutoBrowser(true)}
           title="自动化浏览器"
         >
@@ -1296,16 +1276,10 @@ export function Toolbar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="bg-white/90 border-white/50 text-gray-700 hover:bg-white hover:text-gray-800" 
+          className="" 
           onClick={() => setShowGlobalConfig(true)}
         >
-          <motion.span
-            className="flex items-center gap-1"
-            whileHover={{ rotate: 90 }}
-            transition={spring.snappy}
-          >
-            <Settings className="w-4 h-4 sm:mr-1" />
-          </motion.span>
+          <Settings className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">全局配置</span>
         </Button>
 
@@ -1315,8 +1289,7 @@ export function Toolbar() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white/90 border-white/50 text-blue-700 hover:bg-white hover:text-blue-800
-                transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95"
+              className=""
               title="更多操作"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -1427,6 +1400,6 @@ export function Toolbar() {
           onCancel={handleClipboardImageCancel}
         />
       )}
-    </motion.header>
+    </header>
   )
 }

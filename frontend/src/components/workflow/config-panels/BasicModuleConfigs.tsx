@@ -1327,7 +1327,7 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
       )}
 
       <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-200">
-        <p className="text-xs font-medium text-cyan-800 mb-2">💡 变量访问说明</p>
+        <p className="text-xs font-medium text-cyan-800 mb-2">变量访问说明</p>
         <div className="text-xs space-y-1">
           <p className="text-cyan-700">
             系统会自动将所有工作流变量注入到脚本中，您可以直接通过 <span className="font-mono bg-white px-1 rounded">vars.变量名</span> 访问任何变量
@@ -1423,7 +1423,7 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
       </div>
 
       <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-        <p className="text-xs font-medium text-green-800">💡 使用说明：</p>
+        <p className="text-xs font-medium text-green-800">使用说明：</p>
         <ul className="text-xs text-green-700 space-y-1 list-disc list-inside">
           <li>默认使用WebRPA内置的Python 3.13环境</li>
           <li>系统自动注入所有工作流变量，通过 vars.变量名 直接访问</li>
@@ -1696,7 +1696,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
               
               return (
                 <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-1">
-                  <span className="text-red-500 font-bold">⚠️</span>
+                  <span className="text-red-500 font-bold"></span>
                   <div>
                     <strong>名称重复警告</strong><br />
                     "已存在同名子流程 ''，请使用不同的名称"
@@ -1805,7 +1805,7 @@ export function SubflowHeaderConfig({ data, onChange }: { data: NodeData; onChan
         />
         {hasDuplicate && (
           <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-start gap-1">
-            <span className="text-red-500 font-bold">⚠️</span>
+            <span className="text-red-500 font-bold"></span>
             <div>
               <strong>名称重复警告</strong><br />
               "已存在同名子流程 ''，请使用不同的名称"
@@ -1983,12 +1983,12 @@ const DEFAULT_INJECT_JS_CODE = `// 在页面中注入并执行 JavaScript 代码
 document.body.style.background = "lightblue";
 
 // 示例3：修改页面标题
-// document.title = "✅ JS脚本注入成功";
+// document.title = "JS脚本注入成功";
 
 // 示例4：在页面上显示提示框
 // const div = document.createElement('div');
 // div.style.cssText = 'position:fixed;top:20px;right:20px;background:green;color:white;padding:20px;font-size:18px;z-index:999999;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,0.1);';
-// div.textContent = '✅ 脚本执行成功';
+// div.textContent = '脚本执行成功';
 // document.body.appendChild(div);
 
 // 示例5：获取页面信息（使用 return 返回数据）
@@ -2205,7 +2205,7 @@ export function SwitchToMainConfig() {
         此模块将从当前iframe切换回主页面，无需额外配置。
       </p>
       <p className="text-xs text-muted-foreground mt-2">
-        💡 提示：使用此模块后，后续的元素操作将在主页面上执行。
+        提示：使用此模块后，后续的元素操作将在主页面上执行。
       </p>
     </div>
   )

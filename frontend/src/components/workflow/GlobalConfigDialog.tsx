@@ -89,20 +89,20 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div 
-        className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in"
+        className="bg-[hsl(var(--card))] text-[hsl(var(--foreground))] border border-[hsl(var(--border))] rounded-[10px] shadow-pop-xl w-full max-w-2xl overflow-hidden animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 via-cyan-50/50 to-teal-50">
+        <div className="flex items-center justify-between px-4 h-12 border-b border-[hsl(var(--border))]">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
-              <Settings className="w-4 h-4 text-white" />
+            <div className="w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] flex items-center justify-center">
+              <Settings className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
             </div>
-            <h3 className="font-semibold text-gradient">全局默认配置</h3>
+            <h3 className="font-semibold text-[14px] text-[hsl(var(--foreground))]">全局默认配置</h3>
           </div>
           <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-white/50" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -110,12 +110,12 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
         </div>
 
         {/* 标签页 */}
-        <div className="flex border-b bg-gray-50/50 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
+        <div className="flex border-b border-[hsl(var(--border))] bg-[hsl(var(--background))] overflow-x-auto scrollbar-thin">
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'system'
-                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('system')}
           >
@@ -123,10 +123,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             系统
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'ai'
-                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('ai')}
           >
@@ -134,10 +134,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             AI对话
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiAssistant'
-                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('aiAssistant')}
           >
@@ -145,10 +145,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             小助手
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiScraper'
-                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('aiScraper')}
           >
@@ -156,10 +156,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             AI智能
           </button>
           <button
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'email'
-                ? 'border-blue-500 text-blue-600 bg-gradient-to-t from-blue-50 to-transparent'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                ? 'border-[hsl(var(--primary))] text-[hsl(var(--primary))] bg-[hsl(var(--brand-50))]/50'
+                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
             }`}
             onClick={() => setActiveTab('email')}
           >
@@ -370,7 +370,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
 
           {activeTab === 'aiAssistant' && (
             <>
-              <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-blue-50 via-cyan-50 to-teal-50 border border-blue-100">
+              <div className="mb-4 p-3 rounded-md bg-[hsl(var(--brand-50))] border border-[hsl(var(--brand-500)/0.18)]">
                 <div className="flex items-start gap-2">
                   <Bot className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
@@ -625,9 +625,9 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                   </div>
                 )}
                 
-                <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                <div className="p-3 rounded-md bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
                   <p className="text-xs text-purple-900">
-                    <strong>💡 提示</strong><br/>
+                    <strong>提示</strong><br/>
                     • <strong>Ollama</strong>: 需要先安装并下载模型，完全免费<br/>
                     • <strong>智谱/Groq/Gemini</strong>: 提供免费额度，适合测试<br/>
                     • <strong>OpenAI/Deepseek</strong>: 按使用量付费<br/>
@@ -933,7 +933,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     <div className="text-xs text-blue-800 space-y-1.5">
                       <p>• <strong>使用默认浏览器（推荐）：</strong>登录状态会自动保存，下次运行工作流时无需重新登录</p>
                       <p>• <strong>使用自定义浏览器路径：</strong>由于技术限制，登录状态无法持久化保存，每次运行都需要重新登录</p>
-                      <p className="pt-1 text-blue-700">💡 如需保持登录状态，建议使用默认的 Microsoft Edge 浏览器（不指定自定义路径）</p>
+                      <p className="pt-1 text-blue-700">如需保持登录状态，建议使用默认的 Microsoft Edge 浏览器（不指定自定义路径）</p>
                     </div>
                   </div>
                 </div>
@@ -1367,7 +1367,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
 
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-xs text-amber-800">
-                    💡 提示：这些配置会在新建对应触发器模块时自动填充，帮助您快速配置常用的触发器
+                    提示：这些配置会在新建对应触发器模块时自动填充，帮助您快速配置常用的触发器
                   </p>
                 </div>
               </div>
@@ -1484,7 +1484,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs text-blue-800">
-                    💡 提示：添加常用的 QQ 号和群号后，在使用 QQ 自动化模块时可以从下拉列表中快速选择，无需每次手动输入
+                    提示：添加常用的 QQ 号和群号后，在使用 QQ 自动化模块时可以从下拉列表中快速选择，无需每次手动输入
                   </p>
                 </div>
               </div>
@@ -1523,7 +1523,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                   </p>
                 </div>
                 
-                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg space-y-3">
+                <div className="p-3 rounded-md bg-[hsl(var(--success-50))] border border-[hsl(var(--success-500)/0.25)] space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1554,7 +1554,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs text-blue-800">
-                    <strong>💡 使用说明</strong><br/>
+                    <strong>使用说明</strong><br/>
                     • 配置后，新建飞书模块时会自动填充 App ID 和 App Secret<br/>
                     • 如果不同的飞书模块需要使用不同的应用，可以在模块中单独修改<br/>
                     • 这些配置仅存储在本地浏览器中，不会上传到服务器

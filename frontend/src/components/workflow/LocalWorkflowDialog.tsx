@@ -185,7 +185,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
 
         {/* 文件夹路径 */}
         <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-blue-50/50 text-xs text-gray-600 truncate">
-          📁 {currentFolder || '加载中...'}
+          {currentFolder || '加载中...'}
         </div>
 
         {/* 工作流列表 */}

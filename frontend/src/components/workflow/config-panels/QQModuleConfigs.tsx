@@ -498,7 +498,7 @@ function NapCatServiceManager() {
           <p className={`text-xs font-medium ${
             isManualQQ ? 'text-amber-800' : 'text-green-800'
           }`}>
-            {isManualQQ ? '⚠️ 检测到手动启动的 QQ' : '✅ 内置 NapCat 服务'}
+            {isManualQQ ? '检测到手动启动的 QQ' : '内置 NapCat 服务'}
           </p>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={fetchStatus}>
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />

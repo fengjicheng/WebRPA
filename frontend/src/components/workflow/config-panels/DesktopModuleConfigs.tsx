@@ -19,7 +19,7 @@ function DesktopModuleInfo() {
       <div className="flex items-start gap-2">
         <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="flex-1 text-sm">
-          <p className="font-medium text-blue-900 mb-1">💡 桌面应用自动化说明</p>
+          <p className="font-medium text-blue-900 mb-1">桌面应用自动化说明</p>
           <p className="text-blue-800 mb-2">
             基于 Windows UI Automation API，支持几乎所有 Windows 桌面应用：
           </p>

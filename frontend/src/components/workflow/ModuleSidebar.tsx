@@ -1242,12 +1242,12 @@ const moduleCategories = [
     modules: ['click_element', 'hover_element', 'input_text', 'select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'handle_dialog', 'upload_file'] as ModuleType[],
   },
   {
-    name: '🔍 元素操作',
+    name: '元素操作',
     color: 'bg-purple-500',
     modules: ['get_child_elements', 'get_sibling_elements'] as ModuleType[],
   },
   {
-    name: '🔍 元素判断',
+    name: '元素判断',
     color: 'bg-indigo-600',
     modules: ['element_exists', 'element_visible'] as ModuleType[],
   },
@@ -1262,7 +1262,7 @@ const moduleCategories = [
     modules: ['wait', 'wait_element', 'wait_image', 'wait_page_load', 'page_load_complete'] as ModuleType[],
   },
   {
-    name: '🔧 高级操作',
+    name: '高级操作',
     color: 'bg-sky-600',
     modules: ['network_capture', 'network_monitor_start', 'network_monitor_wait', 'network_monitor_stop'] as ModuleType[],
   },
@@ -1278,7 +1278,7 @@ const moduleCategories = [
     modules: ['real_keyboard', 'keyboard_action'] as ModuleType[],
   },
   {
-    name: '🎯 图像/文字识别点击',
+    name: '图像/文字识别点击',
     color: 'bg-rose-500',
     modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image', 'image_exists'] as ModuleType[],
   },
@@ -1293,18 +1293,18 @@ const moduleCategories = [
     modules: ['macro_recorder'] as ModuleType[],
   },
   {
-    name: '🖥️ 系统控制',
+    name: '系统控制',
     color: 'bg-gray-600',
     modules: ['shutdown_system', 'lock_screen', 'run_command'] as ModuleType[],
   },
   {
-    name: '📋 剪贴板',
+    name: '剪贴板',
     color: 'bg-stone-600',
     modules: ['set_clipboard', 'get_clipboard'] as ModuleType[],
   },
   // ===== 数据处理 =====
   {
-    name: '📝 变量操作',
+    name: '变量操作',
     color: 'bg-teal-500',
     modules: ['set_variable', 'increment_decrement', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
   },
@@ -1314,7 +1314,7 @@ const moduleCategories = [
     modules: ['string_concat', 'string_replace', 'string_split', 'string_join', 'string_trim', 'string_case', 'string_substring', 'regex_extract'] as ModuleType[],
   },
   {
-    name: '📋 列表/字典',
+    name: '列表/字典',
     color: 'bg-green-600',
     modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'foreach', 'foreach_dict', 'dict_operation', 'dict_get', 'dict_keys'] as ModuleType[],
   },
@@ -1324,7 +1324,7 @@ const moduleCategories = [
     modules: ['list_sum', 'list_average', 'list_max', 'list_min', 'list_sort', 'list_unique', 'list_slice'] as ModuleType[],
   },
   {
-    name: '📋 列表高级操作',
+    name: '列表高级操作',
     color: 'bg-green-700',
     modules: ['list_reverse', 'list_find', 'list_count', 'list_filter', 'list_map', 'list_merge', 'list_flatten', 'list_chunk', 'list_remove_empty', 'list_intersection', 'list_union', 'list_difference', 'list_cartesian_product', 'list_shuffle', 'list_sample'] as ModuleType[],
   },
@@ -1339,12 +1339,12 @@ const moduleCategories = [
     modules: ['math_round', 'math_base_convert', 'math_floor', 'math_modulo', 'math_abs', 'math_sqrt', 'math_power', 'math_log', 'math_trig', 'math_exp', 'math_gcd', 'math_lcm', 'math_factorial', 'math_permutation', 'math_percentage', 'math_clamp', 'math_random_advanced'] as ModuleType[],
   },
   {
-    name: '📊 统计分析',
+    name: '统计分析',
     color: 'bg-emerald-700',
     modules: ['stat_median', 'stat_mode', 'stat_variance', 'stat_stdev', 'stat_percentile', 'stat_normalize', 'stat_standardize', 'csv_parse', 'csv_generate', 'list_to_string_advanced'] as ModuleType[],
   },
   {
-    name: '📊 数据表格',
+    name: '数据表格',
     color: 'bg-sky-500',
     modules: ['table_add_row', 'table_add_column', 'table_set_cell', 'table_get_cell', 'table_delete_row', 'table_clear', 'table_export', 'read_excel'] as ModuleType[],
   },
@@ -1397,17 +1397,17 @@ const moduleCategories = [
   },
   // ===== 文件与文档 =====
   {
-    name: '📁 文件管理',
+    name: '文件管理',
     color: 'bg-amber-600',
     modules: ['list_files', 'copy_file', 'move_file', 'delete_file', 'rename_file', 'create_folder', 'rename_folder', 'file_exists', 'get_file_info', 'read_text_file', 'write_text_file'] as ModuleType[],
   },
   {
-    name: '📄 PDF处理',
+    name: 'PDF处理',
     color: 'bg-red-600',
     modules: ['pdf_to_images', 'images_to_pdf', 'pdf_merge', 'pdf_split', 'pdf_extract_text', 'pdf_extract_images', 'pdf_encrypt', 'pdf_decrypt', 'pdf_add_watermark', 'pdf_rotate', 'pdf_delete_pages', 'pdf_get_info', 'pdf_compress', 'pdf_insert_pages', 'pdf_reorder_pages', 'pdf_to_word'] as ModuleType[],
   },
   {
-    name: '📋 文档转换',
+    name: '文档转换',
     color: 'bg-orange-600',
     modules: ['markdown_to_html', 'html_to_markdown', 'markdown_to_pdf', 'markdown_to_docx', 'docx_to_markdown', 'html_to_docx', 'docx_to_html', 'markdown_to_epub', 'epub_to_markdown', 'latex_to_pdf', 'rst_to_html', 'org_to_html', 'universal_doc_convert'] as ModuleType[],
   },
@@ -1418,7 +1418,7 @@ const moduleCategories = [
     modules: ['image_format_convert', 'video_format_convert', 'audio_format_convert', 'video_to_audio', 'video_to_gif', 'batch_format_convert'] as ModuleType[],
   },
   {
-    name: '🎬 视频编辑',
+    name: '视频编辑',
     color: 'bg-purple-600',
     modules: ['format_convert', 'compress_video', 'trim_video', 'merge_media', 'rotate_video', 'video_speed', 'extract_frame', 'add_subtitle', 'resize_video', 'download_m3u8'] as ModuleType[],
   },
@@ -1433,7 +1433,7 @@ const moduleCategories = [
     modules: ['compress_image', 'image_resize', 'image_crop', 'image_rotate', 'image_flip', 'image_blur', 'image_sharpen', 'image_brightness', 'image_contrast', 'image_color_balance', 'image_add_text', 'image_merge', 'image_thumbnail', 'image_filter', 'image_grayscale', 'image_round_corners', 'image_remove_bg'] as ModuleType[],
   },
   {
-    name: '🎨 图像工具',
+    name: '图像工具',
     color: 'bg-fuchsia-600',
     modules: ['add_watermark', 'image_get_info', 'image_convert_format', 'qr_generate', 'qr_decode'] as ModuleType[],
   },
@@ -1444,7 +1444,7 @@ const moduleCategories = [
     modules: ['ai_chat', 'ai_vision'] as ModuleType[],
   },
   {
-    name: '🎨 AI生成',
+    name: 'AI生成',
     color: 'bg-purple-700',
     modules: ['ai_generate_image', 'ai_generate_video'] as ModuleType[],
   },
@@ -1454,7 +1454,7 @@ const moduleCategories = [
     modules: ['ai_smart_scraper', 'ai_element_selector', 'firecrawl_scrape', 'firecrawl_map', 'firecrawl_crawl'] as ModuleType[],
   },
   {
-    name: '🔍 AI识别',
+    name: 'AI识别',
     color: 'bg-fuchsia-700',
     modules: ['ocr_captcha', 'slider_captcha', 'face_recognition', 'image_ocr'] as ModuleType[],
   },
@@ -1480,7 +1480,7 @@ const moduleCategories = [
     modules: ['wechat_send_message', 'wechat_send_file'] as ModuleType[],
   },
   {
-    name: '🚀 飞书自动化',
+    name: '飞书自动化',
     color: 'bg-blue-600',
     modules: ['feishu_bitable_write', 'feishu_bitable_read', 'feishu_sheet_write', 'feishu_sheet_read'] as ModuleType[],
   },
@@ -1495,7 +1495,7 @@ const moduleCategories = [
     modules: ['sap_login', 'sap_logout', 'sap_run_tcode', 'sap_set_field_value', 'sap_get_field_value', 'sap_click_button', 'sap_send_vkey', 'sap_get_status_message', 'sap_get_title', 'sap_close_warning', 'sap_set_checkbox', 'sap_select_combobox', 'sap_read_gridview', 'sap_export_gridview_excel', 'sap_set_focus', 'sap_maximize_window'] as ModuleType[],
   },
   {
-    name: '📱 手机自动化',
+    name: '手机自动化',
     color: 'bg-cyan-600',
     modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_image_exists', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
   },
@@ -1506,7 +1506,7 @@ const moduleCategories = [
   },
   // ===== 实用工具 =====
   {
-    name: '🔧 文件对比',
+    name: '文件对比',
     color: 'bg-teal-800',
     modules: ['file_hash_compare', 'file_diff_compare', 'folder_hash_compare', 'folder_diff_compare'] as ModuleType[],
   },
@@ -1516,12 +1516,12 @@ const moduleCategories = [
     modules: ['md5_encrypt', 'sha_encrypt', 'url_encode_decode', 'random_password_generator'] as ModuleType[],
   },
   {
-    name: '🎨 格式转换',
+    name: '格式转换',
     color: 'bg-pink-800',
     modules: ['rgb_to_hsv', 'rgb_to_cmyk', 'hex_to_cmyk', 'timestamp_converter'] as ModuleType[],
   },
   {
-    name: '🛠️ 其他工具',
+    name: '其他工具',
     color: 'bg-gray-700',
     modules: ['uuid_generator', 'printer_call'] as ModuleType[],
   },
@@ -1532,7 +1532,7 @@ const moduleCategories = [
     modules: ['print_log', 'play_sound', 'system_notification', 'text_to_speech', 'export_log'] as ModuleType[],
   },
   {
-    name: '🎮 媒体播放',
+    name: '媒体播放',
     color: 'bg-rose-700',
     modules: ['play_music', 'play_video', 'view_image'] as ModuleType[],
   },
@@ -1542,19 +1542,19 @@ const moduleCategories = [
     modules: ['input_prompt'] as ModuleType[],
   },
   {
-    name: '🎯 脚本执行',
+    name: '脚本执行',
     color: 'bg-slate-700',
     modules: ['js_script', 'python_script'] as ModuleType[],
   },
   // ===== 测试报告 =====
   {
-    name: '📊 测试报告',
+    name: '测试报告',
     color: 'bg-emerald-600',
     modules: ['allure_init', 'allure_start_test', 'allure_add_step', 'allure_add_attachment', 'allure_stop_test', 'allure_generate_report'] as ModuleType[],
   },
   // ===== 桌面应用自动化 =====
   {
-    name: '🖥️ 桌面应用自动化',
+    name: '桌面应用自动化',
     color: 'bg-slate-600',
     modules: [
       'desktop_app_start', 'desktop_app_connect', 'desktop_app_close', 'desktop_app_get_info', 'desktop_app_wait_ready',
@@ -1565,7 +1565,7 @@ const moduleCategories = [
   },
   // ===== 画布工具 =====
   {
-    name: '📝 画布工具',
+    name: '画布工具',
     color: 'bg-stone-500',
     modules: ['group', 'note'] as ModuleType[],
   },
@@ -1920,7 +1920,7 @@ export function ModuleSidebar() {
       })
       
       return [{
-        name: '⭐ 收藏模块',
+        name: '收藏模块',
         color: 'bg-yellow-500',
         modules: sortedFavorites
       }].filter(cat => cat.modules.length > 0)

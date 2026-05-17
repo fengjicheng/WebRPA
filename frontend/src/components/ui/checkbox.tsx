@@ -10,31 +10,25 @@ export interface CheckboxProps {
   className?: string
 }
 
-const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
+const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
   ({ id, checked = false, onCheckedChange, disabled, className }, ref) => {
-    const handleClick = () => {
-      if (!disabled && onCheckedChange) {
-        onCheckedChange(!checked)
-      }
-    }
-
     return (
       <button
         type="button"
         role="checkbox"
         aria-checked={checked}
         id={id}
-        ref={ref as React.Ref<HTMLButtonElement>}
+        ref={ref}
         disabled={disabled}
-        onClick={handleClick}
+        onClick={() => !disabled && onCheckedChange?.(!checked)}
         className={cn(
-          'h-4 w-4 shrink-0 rounded-sm border-2 shadow-sm transition-all duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          checked 
-            ? 'bg-blue-600 border-blue-600' 
-            : 'bg-white border-gray-300 hover:border-blue-400',
-          'flex items-center justify-center cursor-pointer',
+          'h-4 w-4 shrink-0 rounded-[3px] border transition-colors duration-100 ' +
+            'flex items-center justify-center cursor-pointer ' +
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-1 focus-visible:ring-offset-[hsl(var(--background))] ' +
+            'disabled:cursor-not-allowed disabled:opacity-50',
+          checked
+            ? 'bg-[hsl(var(--primary))] border-[hsl(var(--primary))]'
+            : 'bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.6)]',
           className
         )}
       >

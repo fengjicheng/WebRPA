@@ -1493,7 +1493,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  💡 提示：复制身份ID后，可在其他浏览器的设置中导入，以保持你的发布者身份
+                  提示：复制身份ID后，可在其他浏览器的设置中导入，以保持你的发布者身份
                 </p>
               </div>
 
@@ -1767,7 +1767,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        <strong>⚠️ 注意：</strong>
+                        <strong>注意：</strong>
                         发布前请确保工作流中不包含敏感信息（如 API Key、密码等），系统会自动过滤部分敏感内容。
                       </p>
                     </div>
@@ -1862,7 +1862,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                       你可以在本地创建自定义模块，将工作流封装为可复用的模块
                     </p>
                     <div className="space-y-2 text-sm text-left max-w-md mx-auto bg-blue-50 p-4 rounded-lg">
-                      <p className="font-medium text-blue-900">💡 如何使用自定义模块：</p>
+                      <p className="font-medium text-blue-900">如何使用自定义模块：</p>
                       <ul className="space-y-1 text-blue-700">
                         <li>1. 在模块侧边栏点击"自定义模块"标签</li>
                         <li>2. 点击"创建自定义模块"按钮</li>
