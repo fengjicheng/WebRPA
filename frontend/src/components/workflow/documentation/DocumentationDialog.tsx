@@ -247,8 +247,10 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
             >
               <Download className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={onClose} className="hover:bg-gray-100 ml-1">
-              <X className="w-5 h-5 text-gray-500" />
+            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+              <X className="w-4 h-4" />
+
             </Button>
           </div>
         </div>

@@ -155,8 +155,10 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
             </div>
             <h3 className="font-semibold text-gradient">打开本地工作流</h3>
           </div>
-          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-white/50" onClick={onClose}>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
             <X className="w-4 h-4" />
+
           </Button>
         </div>
 

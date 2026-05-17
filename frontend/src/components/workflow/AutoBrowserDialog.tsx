@@ -210,9 +210,11 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-white/50 rounded-md transition-colors has-hover-only">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+            <X className="w-4 h-4" />
+
+          </Button>
         </div>
 
         {/* 内容 - 添加滚动条 */}

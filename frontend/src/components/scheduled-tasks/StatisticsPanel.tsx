@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useScheduledTaskStore } from '@/store/scheduledTaskStore'
 import { CheckCircle2, XCircle, Clock, Zap, Power, TrendingUp, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface StatisticsPanelProps {
   open: boolean
@@ -59,12 +60,11 @@ export function StatisticsPanel({ open, onClose }: StatisticsPanelProps) {
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">统计信息</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+            <X className="w-4 h-4" />
+
+          </Button>
         </div>
         
         {/* 内容 */}

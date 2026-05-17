@@ -2071,33 +2071,32 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               </div>
               <div className="flex items-center gap-1">
                 <Button 
-                  variant="ghost" 
+                  variant={nodeData.disabled ? 'tonal-warning' : 'outline'} 
                   size="icon" 
                   onClick={() => {
                     toggleNodesDisabled([selectedNode.id])
                     addLog({ level: 'info', message: nodeData.disabled ? '已启用模块' : '已禁用模块' })
                   }}
                   title={nodeData.disabled ? '启用模块 (Ctrl+D)' : '禁用模块 (Ctrl+D)'}
-                  className="transition-all duration-200 hover:scale-110 active:scale-95"
                 >
-                  <Ban className={`w-4 h-4 transition-colors duration-200 ${nodeData.disabled ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                  <Ban className="w-4 h-4" />
                 </Button>
                 <Button 
-                  variant="ghost" 
+                  variant="tonal-danger" 
                   size="icon" 
                   onClick={handleDelete} 
                   title="删除模块"
-                  className="transition-all duration-200 hover:scale-110 hover:bg-red-50 active:scale-95"
                 >
-                  <Trash2 className="w-4 h-4 text-destructive" />
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-                <button
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setIsCollapsed(true)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200"
                   title="收起配置面板"
                 >
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             </div>
 

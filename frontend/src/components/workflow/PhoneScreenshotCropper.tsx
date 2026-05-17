@@ -259,12 +259,11 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
             <Crop className="w-6 h-6 text-emerald-600" />
             <h2 className="text-xl font-semibold text-gray-900">截图并裁剪模板</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+            <X className="w-4 h-4" />
+
+          </Button>
         </div>
 
         {/* 内容区域 */}

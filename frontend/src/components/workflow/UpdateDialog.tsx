@@ -41,12 +41,11 @@ export function UpdateDialog({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
         {/* 头部 */}
         <div className="bg-[hsl(var(--brand-600))] relative p-6 text-white">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/20 transition-colors has-hover-only"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+            <X className="w-4 h-4" />
+
+          </Button>
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white/20 rounded-lg">
               <Sparkles className="w-6 h-6" />

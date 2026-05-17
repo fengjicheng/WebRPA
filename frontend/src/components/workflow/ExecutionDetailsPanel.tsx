@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Clock, CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface NodeExecution {
   nodeId: string
@@ -106,12 +107,11 @@ export function ExecutionDetailsPanel({ isOpen, onClose, executions }: Execution
             <span>耗时: {formatDuration(totalDuration)}</span>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-white/80 rounded transition-colors has-hover-only"
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
+        <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+          <X className="w-4 h-4" />
+
+        </Button>
       </div>
 
       {/* 过滤器 */}

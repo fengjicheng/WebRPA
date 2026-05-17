@@ -110,12 +110,11 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                 <p className="text-sm text-muted-foreground">编辑、复制、导出或删除模块</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-accent transition-colors has-hover-only"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+              <X className="w-4 h-4" />
+
+            </Button>
           </div>
 
           {/* 工具栏 */}

@@ -1155,19 +1155,19 @@ export function Toolbar() {
           保存
         </Button>
         <Button 
-          variant="outline" 
+          variant="tonal-warning" 
           size="sm" 
           onClick={handleOpen}
         >
-          <FolderOpen className="w-4 h-4 mr-1 text-[hsl(var(--warning-500))]" />
+          <FolderOpen className="w-4 h-4 mr-1" />
           打开
         </Button>
         <Button 
-          variant="outline" 
+          variant="tonal-info" 
           size="sm" 
           onClick={() => setShowExportDialog(true)}
         >
-          <Code className="w-4 h-4 mr-1 text-[hsl(var(--info-500))]" />
+          <Code className="w-4 h-4 mr-1" />
           导出
         </Button>
       </div>
@@ -1259,29 +1259,30 @@ export function Toolbar() {
 
       {/* 右侧操作 - 大屏幕显示部分，小屏幕使用下拉菜单 */}
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* 工作流仓库 - 直接显示 */}
+        {/* 工作流仓库 - 紫色 */}
         <Button 
-          variant="outline" 
+          variant="tonal" 
           size="sm" 
           onClick={() => setShowWorkflowHub(true)}
           title="工作流仓库"
+          className="!bg-[hsl(280_100%_96%)] !text-[hsl(280_60%_45%)] !border-[hsl(280_60%_55%/0.3)] hover:!bg-[hsl(280_100%_92%)]"
         >
-          <Package className="w-4 h-4 sm:mr-1 text-[hsl(217_91%_60%)]" />
+          <Package className="w-4 h-4 sm:mr-1" />
           <span className="hidden lg:inline">工作流仓库</span>
         </Button>
 
-        {/* 自动化浏览器 - 直接显示 */}
+        {/* 自动化浏览器 - 绿色 */}
         <Button 
-          variant="outline" 
+          variant="tonal-success" 
           size="sm" 
           onClick={() => setShowAutoBrowser(true)}
           title="自动化浏览器"
         >
-          <Globe className="w-4 h-4 sm:mr-1 text-[hsl(var(--success-500))]" />
+          <Globe className="w-4 h-4 sm:mr-1" />
           <span className="hidden lg:inline">自动化浏览器</span>
         </Button>
 
-        {/* 全局配置 - 始终显示 */}
+        {/* 全局配置 - 中性灰 */}
         <Button 
           variant="outline" 
           size="sm" 

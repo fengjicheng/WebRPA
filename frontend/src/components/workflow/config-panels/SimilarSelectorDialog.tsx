@@ -34,8 +34,10 @@ export function SimilarSelectorDialog({
       <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-lg p-4 overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">相似元素选择</h3>
-          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900" onClick={onClose}>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
             <X className="w-4 h-4" />
+
           </Button>
         </div>
         <div className="space-y-4">

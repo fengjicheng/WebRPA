@@ -104,8 +104,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             </div>
             <h3 className="font-semibold text-[14px] text-[hsl(var(--foreground))]">全局默认配置</h3>
           </div>
-          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-white/50" onClick={onClose}>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
             <X className="w-4 h-4" />
+
           </Button>
         </div>
 
@@ -115,7 +117,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'system'
                 ? 'border-[hsl(var(--brand-600))] text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('system')}
           >
@@ -126,7 +128,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'ai'
                 ? 'border-[hsl(270_60%_55%)] text-[hsl(270_60%_45%)] bg-[hsl(270_100%_97%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('ai')}
           >
@@ -137,7 +139,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiAssistant'
                 ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_45%)] bg-[hsl(214_100%_97%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('aiAssistant')}
           >
@@ -148,7 +150,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'aiScraper'
                 ? 'border-[hsl(280_60%_55%)] text-[hsl(280_60%_45%)] bg-[hsl(280_100%_97%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('aiScraper')}
           >
@@ -159,7 +161,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'email'
                 ? 'border-[hsl(var(--info-500))] text-[hsl(199_89%_38%)] bg-[hsl(var(--info-50))]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('email')}
           >
@@ -170,7 +172,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'workflow'
                 ? 'border-[hsl(var(--warning-500))] text-[hsl(32_95%_38%)] bg-[hsl(var(--warning-50))]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('workflow')}
           >
@@ -181,7 +183,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'database'
                 ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('database')}
           >
@@ -192,7 +194,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'display'
                 ? 'border-[hsl(var(--slate-600))] text-[hsl(var(--slate-700))] bg-[hsl(var(--slate-100))]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('display')}
           >
@@ -203,7 +205,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'browser'
                 ? 'border-[hsl(var(--success-500))] text-[hsl(142_71%_28%)] bg-[hsl(var(--success-50))]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('browser')}
           >
@@ -214,7 +216,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'triggers'
                 ? 'border-[hsl(48_95%_50%)] text-[hsl(38_95%_38%)] bg-[hsl(48_100%_94%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('triggers')}
           >
@@ -225,7 +227,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'qq'
                 ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_38%)] bg-[hsl(214_100%_97%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('qq')}
           >
@@ -236,7 +238,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === 'feishu'
                 ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
-                : 'border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
             }`}
             onClick={() => setActiveTab('feishu')}
           >

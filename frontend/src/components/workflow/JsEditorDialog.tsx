@@ -278,9 +278,11 @@ export function JsEditorDialog({ isOpen, code, onClose, onSave }: JsEditorDialog
               {variables.length} 个变量可用
             </span>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded has-hover-only">
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+            <X className="w-4 h-4" />
+
+          </Button>
         </div>
 
         {/* 工具栏 */}

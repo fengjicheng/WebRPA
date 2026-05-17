@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { X, Search, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface DebugPanelProps {
   isOpen: boolean
@@ -98,12 +99,11 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
             ({filteredVariables.length})
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded transition-colors has-hover-only"
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
+        <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+          <X className="w-4 h-4" />
+
+        </Button>
       </div>
 
       {/* 搜索框 */}

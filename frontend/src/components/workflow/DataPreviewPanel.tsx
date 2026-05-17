@@ -153,7 +153,11 @@ export function DataPreviewPanel({ isOpen, onClose }: DataPreviewPanelProps) {
             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleDownload}>
               <Download className="w-4 h-4 mr-1" />下载CSV
             </Button>
-            <Button variant="outline" size="icon" className="border-gray-200 text-gray-500 hover:bg-gray-50" onClick={onClose}><X className="w-4 h-4" /></Button>
+            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+              <X className="w-4 h-4" />
+
+            </Button>
           </div>
         </div>
 

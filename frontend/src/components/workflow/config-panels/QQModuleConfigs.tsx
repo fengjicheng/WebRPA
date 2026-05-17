@@ -167,8 +167,10 @@ function QRCodeDialog({
           <h3 className="text-lg font-medium">
             {step === 'qrcode' ? '扫码登录 QQ' : '配置 OneBot 服务'}
           </h3>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
             <X className="w-4 h-4" />
+
           </Button>
         </div>
 

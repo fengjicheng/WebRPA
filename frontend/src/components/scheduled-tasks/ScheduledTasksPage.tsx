@@ -171,13 +171,10 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
               创建任务
             </Button>
             {onClose && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
+              <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+                <X className="w-4 h-4" />
+
               </Button>
             )}
           </div>

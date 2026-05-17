@@ -88,8 +88,10 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
               <Download className="w-5 h-5 text-green-600" />
               <h2 className="text-xl font-semibold">导出工作流</h2>
             </div>
-            <Button variant="outline" size="icon" onClick={onClose} className="hover:bg-gray-100">
-              <X className="w-5 h-5 text-gray-500" />
+            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+              <X className="w-4 h-4" />
+
             </Button>
           </div>
 

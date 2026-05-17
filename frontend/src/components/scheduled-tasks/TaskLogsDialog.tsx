@@ -133,12 +133,11 @@ export function TaskLogsDialog({ task, open, onClose }: TaskLogsDialogProps) {
               <Trash2 className="w-4 h-4" />
               清空日志
             </Button>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors ml-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+
+              <X className="w-4 h-4" />
+
+            </Button>
           </div>
         </div>
         

@@ -427,8 +427,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'logs' 
-                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium border-[hsl(var(--brand-500)/0.3)]' 
-                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] font-medium border-[hsl(var(--brand-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))]'
               )}
               onClick={() => setActiveTab('logs')}
             >
@@ -441,8 +441,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'data' 
-                  ? 'bg-[hsl(199_95%_94%)] text-[hsl(199_89%_38%)] font-medium border-[hsl(199_89%_48%/0.3)]' 
-                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(199_95%_94%)] text-[hsl(199_89%_38%)] font-medium border-[hsl(199_89%_48%/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(199_95%_94%)] hover:text-[hsl(199_89%_38%)]'
               )}
               onClick={() => setActiveTab('data')}
             >
@@ -455,8 +455,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'variables' 
-                  ? 'bg-[hsl(270_100%_95%)] text-[hsl(270_60%_45%)] font-medium border-[hsl(270_60%_55%/0.3)]' 
-                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(270_100%_95%)] text-[hsl(270_60%_45%)] font-medium border-[hsl(270_60%_55%/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(270_100%_95%)] hover:text-[hsl(270_60%_45%)]'
               )}
               onClick={() => setActiveTab('variables')}
             >
@@ -469,8 +469,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'assets' 
-                  ? 'bg-[hsl(var(--success-50))] text-[hsl(142_71%_28%)] font-medium border-[hsl(var(--success-500)/0.3)]' 
-                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--success-50))] text-[hsl(142_71%_28%)] font-medium border-[hsl(var(--success-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--success-50))] hover:text-[hsl(142_71%_28%)]'
               )}
               onClick={() => setActiveTab('assets')}
             >
@@ -483,8 +483,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               className={cn(
                 'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap border',
                 activeTab === 'images' 
-                  ? 'bg-[hsl(var(--warning-50))] text-[hsl(32_95%_38%)] font-medium border-[hsl(var(--warning-500)/0.3)]' 
-                  : 'text-[hsl(var(--muted-foreground))] border-transparent hover:bg-[hsl(var(--muted))]'
+                  ? 'bg-[hsl(var(--warning-50))] text-[hsl(32_95%_38%)] font-medium border-[hsl(var(--warning-500)/0.45)] shadow-soft' 
+                  : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--warning-50))] hover:text-[hsl(32_95%_38%)]'
               )}
               onClick={() => setActiveTab('images')}
             >
@@ -521,11 +521,11 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   </>
                 )}
               </button>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportLogs} title="下载日志">
+              <Button variant="tonal-info" size="sm" className="h-7 text-xs" onClick={handleExportLogs} title="下载日志">
                 <Download className="w-3.5 h-3.5 mr-1" />
                 下载
               </Button>
-              <Button variant="outline" size="icon" className="h-7 w-7 text-[hsl(var(--danger-500))]" onClick={clearLogs} title="清空日志">
+              <Button variant="tonal-danger" size="icon" className="h-7 w-7" onClick={clearLogs} title="清空日志">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </>
@@ -547,8 +547,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   <Plus className="w-3.5 h-3.5 mr-1" />列
                 </Button>
               )}
-              <Button variant="outline" size="icon" className="h-7 w-7 text-[hsl(var(--danger-500))]" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
-              <Button variant="outline" size="icon" className="h-7 w-7" onClick={handleDownloadCSV} title="下载预览数据(最多20条)"><Download className="w-4 h-4" /></Button>
+              <Button variant="tonal-danger" size="icon" className="h-7 w-7" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
+              <Button variant="tonal-info" size="icon" className="h-7 w-7" onClick={handleDownloadCSV} title="下载预览数据(最多20条)"><Download className="w-4 h-4" /></Button>
               <Button
                 variant="success"
                 size="sm"
