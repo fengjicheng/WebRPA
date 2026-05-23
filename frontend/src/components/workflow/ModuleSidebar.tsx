@@ -1729,18 +1729,16 @@ function ModuleItem({
         className={`flex items-center gap-1 rounded-[7px]
           bg-[hsl(var(--card))]
           border border-transparent
-          hover:bg-gradient-to-r hover:from-[hsl(var(--brand-50))] hover:to-[hsl(var(--card))]
+          hover:bg-[hsl(var(--brand-50))]
           hover:border-[hsl(var(--brand-500)/0.3)]
-          hover:shadow-xs
-          transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]
-          hover:translate-x-0.5
+          transition-[background-color,border-color] duration-100 ease-out
           group
-          ${isDropTarget ? 'border-t-2 !border-t-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] translate-y-1' : ''}
-          ${isDragging ? 'opacity-50 scale-95' : ''}`}
+          ${isDropTarget ? 'border-t-2 !border-t-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : ''}
+          ${isDragging ? 'opacity-50' : ''}`}
       >
         {/* 可拖拽区域 */}
         <div
-          className="flex items-center gap-2 px-2 py-1.5 flex-1 cursor-grab active:scale-[0.97] active:opacity-80"
+          className="flex items-center gap-2 px-2 py-1.5 flex-1 cursor-grab active:opacity-80"
           draggable
           onDragStart={onMainDragStart}
           onDragOver={onDragOver}
@@ -1748,7 +1746,7 @@ function ModuleItem({
         >
           {enableSortDrag && (
             <div
-              className="p-0.5 rounded cursor-grab text-[hsl(var(--slate-300))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-all"
+              className="p-0.5 rounded cursor-grab text-[hsl(var(--slate-300))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors duration-100"
               draggable
               onDragStart={onHandleDragStart}
               title="拖拽调整顺序"
@@ -1757,19 +1755,19 @@ function ModuleItem({
             </div>
           )}
           <div
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-all duration-200 group-hover:scale-105 shrink-0"
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0"
             style={customColor
               ? { backgroundColor: `${customColor}20`, color: customColor, border: `1px solid ${customColor}40` }
               : { backgroundColor: 'hsl(var(--slate-100))', color: 'hsl(var(--slate-600))' }
             }
           >
             <Icon
-              className="w-3.5 h-3.5 transition-all duration-200 group-hover:scale-110"
+              className="w-3.5 h-3.5"
               strokeWidth={2.2}
             />
           </div>
           <span
-            className="text-[12.5px] font-medium transition-colors duration-200 text-[hsl(var(--slate-700))] group-hover:text-[hsl(var(--brand-800))] flex-1 truncate"
+            className="text-[12.5px] font-medium transition-colors duration-100 text-[hsl(var(--slate-700))] group-hover:text-[hsl(var(--brand-800))] flex-1 truncate"
             style={customColor ? { color: customColor } : {}}
           >
             {highlight ? highlightText(label, highlight) : label}
@@ -1782,7 +1780,7 @@ function ModuleItem({
             <button
               ref={colorButtonRef}
               onClick={handleColorClick}
-              className="p-1 rounded-[5px] transition-all duration-200 hover:scale-110 hover:bg-[hsl(var(--slate-100))] opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90"
+              className="p-1 rounded-[5px] transition-colors duration-100 hover:bg-[hsl(var(--slate-100))] opacity-0 group-hover:opacity-100 cursor-pointer"
               title="设置标签颜色"
             >
               <div
@@ -1797,14 +1795,14 @@ function ModuleItem({
           {onToggleFavorite && (
             <button
               onClick={handleFavoriteClick}
-              className={`p-1 rounded-[5px] transition-all duration-200 hover:scale-110 cursor-pointer active:scale-90 ${
+              className={`p-1 rounded-[5px] transition-colors duration-100 cursor-pointer ${
                 isFavorite
                   ? 'text-[hsl(var(--amber-500))] opacity-100'
                   : 'text-[hsl(var(--slate-300))] opacity-0 group-hover:opacity-100 hover:text-[hsl(var(--amber-500))] hover:bg-[hsl(var(--amber-50))]'
               }`}
               title={isFavorite ? '取消收藏' : '收藏模块'}
             >
-              <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current drop-shadow-sm' : ''}`} />
+              <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
             </button>
           )}
         </div>
@@ -1982,8 +1980,7 @@ export function ModuleSidebar() {
   }
 
   return (
-    <aside className={`relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}
-      style={{ backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.35), hsl(var(--card)) 200px)' }}
+    <aside className={`relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ease-out group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}
     >
       {/* 收起状态下的图标列表 */}
       {isCollapsed ? (
@@ -2009,7 +2006,7 @@ export function ModuleSidebar() {
         </button>
       ) : (
         <>
-          <div className="bg-[hsl(var(--card)/0.65)] backdrop-blur-sm p-3.5 border-b border-[hsl(var(--border))] space-y-3 relative">
+          <div className="bg-[hsl(var(--card))] p-3.5 border-b border-[hsl(var(--border))] space-y-3 relative">
             {/* 顶部装饰条 */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[hsl(var(--brand-500))] via-[hsl(var(--brand-400))] to-[hsl(var(--info-500))] opacity-70" />
 
@@ -2041,7 +2038,7 @@ export function ModuleSidebar() {
             <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-[8px] border border-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)]">
               <button
                 onClick={() => setActiveTab('builtin')}
-                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
+                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out flex items-center justify-center gap-1.5 border ${
                   activeTab === 'builtin'
                     ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
                     : '!bg-transparent !text-[hsl(var(--muted-foreground))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
@@ -2052,7 +2049,7 @@ export function ModuleSidebar() {
               </button>
               <button
                 onClick={() => setActiveTab('custom')}
-                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
+                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out flex items-center justify-center gap-1.5 border ${
                   activeTab === 'custom'
                     ? '!bg-[hsl(var(--violet-600))] !text-white !border-[hsl(var(--violet-700))] shadow-pop'
                     : '!bg-transparent !text-[hsl(var(--muted-foreground))] !border-transparent hover:!text-[hsl(var(--violet-700))] hover:!bg-[hsl(var(--card))]'
@@ -2119,22 +2116,21 @@ export function ModuleSidebar() {
                   <div className="empty-state-desc">试试拼音、首字母或英文关键词</div>
                 </div>
               ) : (
-                filteredCategories.map((category, categoryIndex) => {
+                filteredCategories.map((category) => {
                   const expanded = isExpanded(category.name)
                   return (
-                    <div 
-                      key={category.name} 
-                      className="mb-2 animate-fade-in-up"
-                      style={{ animationDelay: `${categoryIndex * 30}ms` }}
+                    <div
+                      key={category.name}
+                      className="mb-2"
                     >
                       <button
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] group bg-[hsl(var(--card))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500)/0.3)] border border-transparent hover:shadow-xs"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out group bg-[hsl(var(--card))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500)/0.3)] border border-transparent hover:shadow-xs"
                         onClick={() => toggleCategory(category.name)}
                       >
-                        <div className={`transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${expanded ? 'rotate-0' : '-rotate-90'}`}>
+                        <div className={`transition-transform duration-200 ease-out ${expanded ? 'rotate-0' : '-rotate-90'}`}>
                           <ChevronDown className="w-3.5 h-3.5 text-[hsl(var(--slate-500))] group-hover:text-[hsl(var(--brand-600))]" />
                         </div>
-                        <div className={`w-2.5 h-2.5 rounded-full ${category.color} ring-2 ring-white shadow-soft transition-transform duration-200 group-hover:scale-125`} />
+                        <div className={`w-2.5 h-2.5 rounded-full ${category.color} ring-2 ring-white shadow-soft`} />
                         <span className="text-[12px] font-semibold flex-1 text-left text-[hsl(var(--slate-800))] transition-colors group-hover:text-[hsl(var(--brand-800))]">
                           {category.name}
                         </span>
@@ -2142,17 +2138,13 @@ export function ModuleSidebar() {
                           {category.modules.length}
                         </span>
                       </button>
-                      <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${expanded ? 'max-h-[2000px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'}`}>
+                      <div className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${expanded ? 'max-h-[2000px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'}`}>
                         <div className="ml-3 pl-2 space-y-0.5 border-l border-dashed border-[hsl(var(--border))]">
-                          {category.modules.map((type, index) => {
+                          {category.modules.map((type) => {
                             return (
-                              <div 
-                                key={type} 
-                                className="animate-fade-in"
-                                style={{ animationDelay: `${index * 20}ms` }}
-                              >
-                                <ModuleItem 
-                                  type={type} 
+                              <div key={type}>
+                                <ModuleItem
+                                  type={type}
                                   highlight={searchQuery}
                                   isFavorite={favoriteModules.includes(type)}
                                   customColor={stats[type]?.customColor}

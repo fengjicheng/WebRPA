@@ -1,5 +1,4 @@
 import { memo } from 'react'
-import { motion } from 'framer-motion'
 import { Handle, Position, type NodeProps, useReactFlow } from '@xyflow/react'
 import { cn } from '@/lib/utils'
 import type { NodeData } from '@/store/workflowStore'
@@ -7,7 +6,6 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Globe, ExternalLink } from 'lucide-react'
 import { moduleIcons } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
-import { nodeVariants, spring } from '@/lib/motion'
 
 function ModuleNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as NodeData
@@ -109,35 +107,20 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
   const isSubflow = nodeData.moduleType === 'subflow'
 
   return (
-    <motion.div
-      variants={nodeVariants}
-      initial="initial"
-      animate="animate"
-      whileHover={
-        isDisabled
-          ? {}
-          : {
-              y: -3,
-              transition: { type: 'spring', stiffness: 380, damping: 28, mass: 0.6 },
-            }
-      }
-      whileTap={isDisabled ? {} : { y: -1, transition: { duration: 0.08 } }}
+    <div
       className={cn(
         'group relative px-4 py-3 rounded-[12px] border-[1.5px] min-w-[180px] max-w-[280px]',
-        'shadow-soft hover:shadow-pop-lg',
-        'transition-[box-shadow,border-color] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]',
-        // 顶部高光：仅在 hover 时显现
-        'before:content-[""] before:absolute before:inset-x-0 before:top-0 before:h-[40%] before:rounded-t-[10px] before:pointer-events-none',
-        'before:bg-gradient-to-b before:from-white/50 before:to-transparent before:opacity-0 hover:before:opacity-100',
-        'before:transition-opacity before:duration-200',
+        // 关键：只 transition 不会引起 reflow / 影响 RF 计算 handle 的属性
+        'shadow-soft hover:shadow-pop-lg hover:border-[hsl(var(--brand-500)/0.6)]',
+        'transition-[box-shadow,border-color] duration-150 ease-out',
         isDisabled ? 'border-gray-300 bg-gray-100 text-gray-500 opacity-70' : (isCustomModule ? '' : colorClass),
-        selected && 'ring-2 ring-[hsl(var(--brand-500))] ring-offset-2 shadow-pop-lg',
-        isHighlighted && 'ring-4 ring-[hsl(var(--warning-500))] ring-offset-2 shadow-pop-xl animate-pulse border-[hsl(var(--warning-500))]',
+        selected && '!border-[hsl(var(--brand-500))] !shadow-pop-lg ring-2 ring-[hsl(var(--brand-500)/0.4)]',
+        isHighlighted && '!border-[hsl(var(--warning-500))] ring-2 ring-[hsl(var(--warning-500)/0.5)]',
         isSubflow && nodeData.subflowName ? 'cursor-pointer' : ''
       )}
       style={
-        isDisabled 
-          ? { opacity: 0.6 } 
+        isDisabled
+          ? { opacity: 0.6 }
           : isCustomModule && customColor
           ? getCustomModuleStyle()
           : undefined
@@ -146,24 +129,15 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
     >
       {/* 禁用标记 */}
       {isDisabled && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={spring.bouncy}
-          className="absolute -top-2 -right-2 bg-[hsl(var(--slate-700))] text-white text-[9.5px] font-bold px-2 py-0.5 rounded-full shadow-md uppercase tracking-wider"
-        >
+        <div className="absolute -top-2 -right-2 bg-[hsl(var(--slate-700))] text-white text-[9.5px] font-bold px-2 py-0.5 rounded-full shadow-md uppercase tracking-wider">
           已禁用
-        </motion.div>
+        </div>
       )}
 
       {/* 子流程跳转图标 */}
       {isSubflow && nodeData.subflowName && (
-        <motion.button
-          initial={{ scale: 0, rotate: -45 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={spring.bouncy}
-          whileHover={{ scale: 1.2, rotate: 12 }}
-          className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--success-500))] to-[hsl(var(--success-700))] text-white rounded-full shadow-success-glow ring-2 ring-white cursor-pointer"
+        <button
+          className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-gradient-to-br from-[hsl(var(--success-500))] to-[hsl(var(--success-700))] text-white rounded-full shadow-success-glow ring-2 ring-white cursor-pointer hover:scale-110 transition-transform duration-150"
           title="跳转到子流程定义"
           onClick={(e) => {
             e.stopPropagation()
@@ -171,20 +145,20 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
           }}
         >
           <ExternalLink className="w-3 h-3" strokeWidth={2.5} />
-        </motion.button>
+        </button>
       )}
 
       {/* 输入连接点 */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-[hsl(var(--card))] !border-[2px] !border-[hsl(var(--brand-500))] hover:!bg-[hsl(var(--brand-500))]"
-        style={{ width: `${handleSize}px`, height: `${handleSize}px`, transition: 'all 160ms cubic-bezier(0.25, 1, 0.5, 1)' }}
+        className="!bg-[hsl(var(--card))] !border-[2px] !border-[hsl(var(--brand-500))]"
+        style={{ width: `${handleSize}px`, height: `${handleSize}px` }}
       />
 
       {/* 节点内容 */}
       <div className="flex items-center gap-2 relative">
-        <div className="transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110">
+        <div className="shrink-0">
           {isCustomModule && customIcon ? (
             <span className="text-2xl">{customIcon}</span>
           ) : Icon ? (
@@ -249,11 +223,11 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
         </>
       ) : (
         <>
-          <Handle type="source" position={Position.Bottom} className="!bg-[hsl(var(--card))] !border-[2px] !border-[hsl(var(--brand-500))] hover:!bg-[hsl(var(--brand-500))]" style={{ width: `${handleSize}px`, height: `${handleSize}px`, transition: 'all 160ms cubic-bezier(0.25, 1, 0.5, 1)' }} />
+          <Handle type="source" position={Position.Bottom} className="!bg-[hsl(var(--card))] !border-[2px] !border-[hsl(var(--brand-500))]" style={{ width: `${handleSize}px`, height: `${handleSize}px` }} />
           <Handle type="source" position={Position.Right} id="error" className="!bg-[hsl(var(--warning-500))] !border-[2px] !border-white" style={{ top: '50%', width: `${handleSize * 0.83}px`, height: `${handleSize * 0.83}px` }} />
         </>
       )}
-    </motion.div>
+    </div>
   )
 }
 

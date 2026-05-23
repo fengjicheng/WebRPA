@@ -139,19 +139,18 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
         <div className="flex flex-1 min-h-0">
           {/* 左侧导航 */}
           <nav className="w-44 flex-shrink-0 border-r border-[hsl(var(--border))] bg-[hsl(var(--slate-50)/0.5)] overflow-y-auto p-2 space-y-0.5">
-            {tabConfig.map((tab, idx) => {
+            {tabConfig.map((tab) => {
               const isActive = activeTab === tab.id
               const Icon = tab.Icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up border ${
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-[background-color,color,border-color,box-shadow] duration-150 ease-out border ${
                     isActive
                       ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
-                      : '!bg-transparent !text-[hsl(var(--slate-700))] !border-transparent hover:!bg-[hsl(var(--card))] hover:!text-[hsl(var(--brand-700))] hover:!border-[hsl(var(--border))] hover:shadow-xs hover:translate-x-0.5'
+                      : '!bg-transparent !text-[hsl(var(--slate-700))] !border-transparent hover:!bg-[hsl(var(--card))] hover:!text-[hsl(var(--brand-700))] hover:!border-[hsl(var(--border))] hover:shadow-xs'
                   }`}
-                  style={{ animationDelay: `${idx * 25}ms` }}
                 >
                   <span
                     className={
@@ -166,7 +165,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     {tab.label}
                   </span>
                   {isActive && (
-                    <span className="w-1 h-4 rounded-full bg-white/80 animate-fade-in shrink-0" />
+                    <span className="w-1 h-4 rounded-full bg-white/80 shrink-0" />
                   )}
                 </button>
               )

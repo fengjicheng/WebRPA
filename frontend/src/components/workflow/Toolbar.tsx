@@ -1032,9 +1032,6 @@ export function Toolbar() {
         before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px]
         before:bg-gradient-to-r before:from-[hsl(var(--brand-500))] before:via-[hsl(var(--brand-400))] before:to-[hsl(var(--info-500))]
         before:opacity-90"
-      style={{
-        backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.4), hsl(var(--card)))',
-      }}
     >
       {/* Logo/标题 */}
       <div className="flex items-center">

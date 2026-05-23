@@ -331,19 +331,18 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                     <span className="badge badge-default !py-0">{documents.length}</span>
                   </div>
                   <div className="space-y-1">
-                    {documents.map((doc, idx) => {
+                    {documents.map((doc) => {
                       const Icon = doc.icon
                       const isActive = selectedDoc === doc.id
                       return (
                         <button
                           key={doc.id}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2 py-2 rounded-[8px] text-left transition-all duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] border animate-fade-in-up',
+                            'w-full flex items-center gap-2 px-2 py-2 rounded-[8px] text-left transition-[background-color,color,border-color,box-shadow] duration-150 ease-out border',
                             isActive
                               ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
-                              : '!bg-transparent !text-[hsl(var(--slate-700))] !border-transparent hover:!bg-[hsl(var(--card))] hover:!border-[hsl(var(--border))] hover:shadow-xs hover:translate-x-0.5'
+                              : '!bg-transparent !text-[hsl(var(--slate-700))] !border-transparent hover:!bg-[hsl(var(--card))] hover:!border-[hsl(var(--border))] hover:shadow-xs'
                           )}
-                          style={{ animationDelay: `${idx * 18}ms` }}
                           onClick={() => {
                             setSelectedDoc(doc.id)
                           }}

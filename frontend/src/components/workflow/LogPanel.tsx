@@ -411,7 +411,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 执行日志 - 蓝 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out whitespace-nowrap font-semibold border',
                 activeTab === 'logs'
                   ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
                   : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--brand-50))] hover:!text-[hsl(var(--brand-700))]'
@@ -431,7 +431,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 数据表格 - 青蓝 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out whitespace-nowrap font-semibold border',
                 activeTab === 'data'
                   ? '!bg-[hsl(var(--info-600))] !text-white !border-[hsl(var(--info-700))] shadow-pop'
                   : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--info-50))] hover:!text-[hsl(var(--info-700))]'
@@ -451,7 +451,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 全局变量 - 紫 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out whitespace-nowrap font-semibold border',
                 activeTab === 'variables'
                   ? '!bg-[hsl(var(--violet-600))] !text-white !border-[hsl(var(--violet-700))] shadow-pop'
                   : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--violet-50))] hover:!text-[hsl(var(--violet-700))]'
@@ -471,7 +471,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* Excel - 绿 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out whitespace-nowrap font-semibold border',
                 activeTab === 'assets'
                   ? '!bg-[hsl(var(--success-600))] !text-white !border-[hsl(var(--success-700))] shadow-success-glow'
                   : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--success-50))] hover:!text-[hsl(var(--success-700))]'
@@ -491,7 +491,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 图像 - 橙 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-[background-color,color,border-color,box-shadow] duration-150 ease-out whitespace-nowrap font-semibold border',
                 activeTab === 'images'
                   ? '!bg-[hsl(var(--warning-500))] !text-white !border-[hsl(var(--warning-600))] shadow-warning-glow'
                   : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--warning-50))] hover:!text-[hsl(var(--warning-700))]'

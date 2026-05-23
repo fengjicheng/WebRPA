@@ -190,10 +190,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-feature-settings: 'tnum' 1, 'cv03' 1, 'cv04' 1;
-  /* 画布：纯净浅蓝，带极淡的纵向高光（非渐变品牌色，不是装饰） */
-  background-image:
-    radial-gradient(1200px 600px at 50% -10%, hsl(var(--brand-100) / 0.45), transparent 60%);
-  background-attachment: fixed;
 }
 
 code, pre, kbd, samp {
@@ -528,32 +524,24 @@ button {
   border: 2px solid hsl(var(--brand-500)) !important;
   width: 11px !important;
   height: 11px !important;
-  /* 关键：不动 transform / width / height / 任何会影响 layout 的属性 */
-  transition: background 160ms var(--ease-out-quart),
-              border-color 160ms var(--ease-out-quart),
-              box-shadow 200ms var(--ease-out-back);
+  /* 不动 transform / width / height，避免影响 RF 计算 handle 中心 */
+  transition: background-color 120ms linear,
+              box-shadow 120ms linear;
+  will-change: box-shadow;
 }
-/* 原地"放大"：用 box-shadow 创造光圈幻视，handle 本体完全不动，绝对不偏移 */
+/* 原地"放大"：仅用 box-shadow 创造光圈幻视，handle 本体绝对不动 */
 .react-flow__handle:hover {
   background: hsl(var(--brand-500)) !important;
-  border-color: hsl(var(--brand-700)) !important;
-  box-shadow:
-    0 0 0 3px hsl(var(--card)),
-    0 0 0 6px hsl(var(--brand-500) / 0.55),
-    0 0 0 10px hsl(var(--brand-500) / 0.18),
-    0 4px 12px hsl(var(--brand-500) / 0.4);
+  box-shadow: 0 0 0 3px hsl(var(--card)),
+              0 0 0 6px hsl(var(--brand-500) / 0.45),
+              0 0 0 9px hsl(var(--brand-500) / 0.18);
 }
 
 .react-flow__node {
-  transition: filter 200ms var(--ease-out-quart);
+  transition: none;
 }
-.react-flow__node:hover {
-  filter: drop-shadow(0 6px 14px rgb(15 23 42 / 0.10));
-}
-.react-flow__node.selected {
-  filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.5))
-          drop-shadow(0 6px 18px hsl(var(--brand-500) / 0.25));
-}
+/* 节点 hover/selected 状态由节点组件本身的 box-shadow 处理，
+   不再使用昂贵的 filter:drop-shadow（每个节点一帧 1-2ms） */
 .react-flow__node-groupNode,
 .react-flow__node-noteNode {
   z-index: -1 !important;

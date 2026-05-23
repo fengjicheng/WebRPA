@@ -2041,8 +2041,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         />
       )}
       
-      <aside className={`relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isCollapsed ? 'w-12' : 'w-80'}`}
-        style={{ backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.3), hsl(var(--card)) 200px)' }}
+      <aside className={`relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ease-out ${isCollapsed ? 'w-12' : 'w-80'}`}
       >
         {isCollapsed ? (
           <button
