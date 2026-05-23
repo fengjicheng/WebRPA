@@ -216,13 +216,8 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-button {
-  background: none;
-  border: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
+/* button 元素由 Tailwind preflight 处理；不在此处重置，避免覆盖
+   设计系统的 bg-/border- token */
 
 /* ============================================================
    动效关键帧（专业级、丝滑、有空间感）

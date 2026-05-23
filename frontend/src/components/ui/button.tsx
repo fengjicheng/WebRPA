@@ -47,29 +47,29 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
       // 主品牌深蓝
       default:
-        'bg-[hsl(var(--brand-600))] text-white shadow-soft ' +
-        'hover:bg-[hsl(var(--brand-700))] hover:shadow-brand-glow hover:-translate-y-[1px] ' +
-        'active:bg-[hsl(var(--brand-800))]',
+        '!bg-[hsl(var(--brand-600))] !text-white !border-transparent shadow-soft ' +
+        'hover:!bg-[hsl(var(--brand-700))] hover:shadow-brand-glow hover:-translate-y-[1px] ' +
+        'active:!bg-[hsl(var(--brand-800))]',
       // 危险红
       destructive:
-        'bg-[hsl(var(--danger-500))] text-white shadow-soft ' +
-        'hover:bg-[hsl(var(--danger-600))] hover:shadow-danger-glow hover:-translate-y-[1px] ' +
-        'active:bg-[hsl(var(--danger-700))]',
+        '!bg-[hsl(var(--danger-500))] !text-white !border-transparent shadow-soft ' +
+        'hover:!bg-[hsl(var(--danger-600))] hover:shadow-danger-glow hover:-translate-y-[1px] ' +
+        'active:!bg-[hsl(var(--danger-700))]',
       // 成功绿
       success:
-        'bg-[hsl(var(--success-600))] text-white shadow-soft ' +
-        'hover:bg-[hsl(var(--success-700))] hover:shadow-success-glow hover:-translate-y-[1px] ' +
+        '!bg-[hsl(var(--success-600))] !text-white !border-transparent shadow-soft ' +
+        'hover:!bg-[hsl(var(--success-700))] hover:shadow-success-glow hover:-translate-y-[1px] ' +
         'active:brightness-95',
       // 警告橙
       warning:
-        'bg-[hsl(var(--warning-500))] text-white shadow-soft ' +
-        'hover:bg-[hsl(var(--warning-600))] hover:shadow-warning-glow hover:-translate-y-[1px] ' +
-        'active:bg-[hsl(var(--warning-700))]',
+        '!bg-[hsl(var(--warning-500))] !text-white !border-transparent shadow-soft ' +
+        'hover:!bg-[hsl(var(--warning-600))] hover:shadow-warning-glow hover:-translate-y-[1px] ' +
+        'active:!bg-[hsl(var(--warning-700))]',
       // 信息青蓝
       info:
-        'bg-[hsl(var(--info-500))] text-white shadow-soft ' +
-        'hover:bg-[hsl(var(--info-600))] hover:shadow-pop hover:-translate-y-[1px] ' +
-        'active:bg-[hsl(var(--info-700))]',
+        '!bg-[hsl(var(--info-500))] !text-white !border-transparent shadow-soft ' +
+        'hover:!bg-[hsl(var(--info-600))] hover:shadow-pop hover:-translate-y-[1px] ' +
+        'active:!bg-[hsl(var(--info-700))]',
       // 描边（蓝弱底 + 蓝字 + 蓝边）
       outline:
         'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))] ' +
