@@ -697,7 +697,7 @@ export function ImageAssetsPanel() {
                 取消
               </Button>
               <Button
-                variant="warning"
+                variant="success"
                 size="sm"
                 onClick={handleCreateFolder}
               >

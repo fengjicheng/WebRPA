@@ -2271,7 +2271,7 @@ function MacroRecordDialog({
           </button>
           <button
             type="button"
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-[hsl(var(--success-600))] text-white rounded-md hover:bg-[hsl(var(--success-700))] disabled:opacity-50 transition-colors duration-150 shadow-soft hover:shadow-success-glow"
             disabled={actions.length === 0 || isRecording}
             onClick={() => onSave(actions, basePositionRef.current.x, basePositionRef.current.y)}
           >
@@ -2565,7 +2565,7 @@ function MacroEditDialog({
             取消
           </button>
           <button
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            className="px-4 py-2 text-sm bg-[hsl(var(--success-600))] text-white rounded-md hover:bg-[hsl(var(--success-700))] transition-colors duration-150 shadow-soft hover:shadow-success-glow"
             onClick={() => onSave(actions)}
           >
             保存
@@ -2790,7 +2790,7 @@ function MacroActionEditDialog({
           <button className="px-3 py-1 text-sm border rounded hover:bg-gray-100 has-hover-only" onClick={onClose}>
             取消
           </button>
-          <button className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600" onClick={onSave}>
+          <button className="px-3 py-1 text-sm bg-[hsl(var(--success-600))] text-white rounded hover:bg-[hsl(var(--success-700))] transition-colors duration-150" onClick={onSave}>
             确定
           </button>
         </div>

@@ -98,7 +98,7 @@ function RenameConfirmDialog({
             </button>
             <button
               onClick={onConfirm}
-              className="bg-[hsl(var(--brand-600))] flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
+              className="bg-[hsl(var(--success-600))] hover:bg-[hsl(var(--success-700))] flex-1 px-4 py-2.5 text-sm font-medium text-white rounded-xl transition-colors duration-150 shadow-lg hover:shadow-success-glow"
             >
               全部更新
             </button>

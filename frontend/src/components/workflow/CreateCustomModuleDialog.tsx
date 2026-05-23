@@ -541,6 +541,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
             取消
           </Button>
           <Button
+            variant="success"
             onClick={handleCreate}
             disabled={isCreating}
           >

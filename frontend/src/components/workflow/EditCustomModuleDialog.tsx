@@ -431,7 +431,7 @@ export function EditCustomModuleDialog({ open, onClose, module, onEditWorkflow }
           <Button onClick={onClose} variant="outline" disabled={isUpdating}>
             取消
           </Button>
-          <Button onClick={handleSave} disabled={isUpdating}>
+          <Button variant="success" onClick={handleSave} disabled={isUpdating}>
             <Save className="w-4 h-4 mr-1" />
             {isUpdating ? '保存中...' : '保存'}
           </Button>

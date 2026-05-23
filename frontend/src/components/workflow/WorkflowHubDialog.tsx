@@ -1756,6 +1756,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     </div>
 
                     <Button
+                      variant="success"
                       className="w-full"
                       onClick={handlePublish}
                       disabled={
@@ -1897,6 +1898,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                         maxLength={1000}
                       />
                       <Button
+                        variant="success"
                         onClick={handleSubmitGuestbook}
                         disabled={submittingGuestbook || !guestbookContent.trim()}
                         className="self-end"
@@ -2464,6 +2466,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                         }}
                       />
                       <Button
+                        variant="success"
                         size="sm"
                         onClick={() => handleSubmitComment(selectedWorkflow.id)}
                         disabled={submittingComment || !commentContent.trim()}
@@ -2731,7 +2734,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                   <Button variant="outline" className="flex-1" onClick={cancelEdit} disabled={updating}>
                     取消
                   </Button>
-                  <Button className="flex-1" onClick={handleUpdateWorkflow} disabled={updating}>
+                  <Button variant="success" className="flex-1" onClick={handleUpdateWorkflow} disabled={updating}>
                     {updating ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

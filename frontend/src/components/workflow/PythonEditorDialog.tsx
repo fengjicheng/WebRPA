@@ -391,7 +391,7 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
           <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button onClick={handleSave}>
+          <Button variant="success" onClick={handleSave}>
             保存
           </Button>
         </div>

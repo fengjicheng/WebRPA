@@ -74,7 +74,7 @@ export function InputDialog({
           <Button variant="secondary" size="sm" onClick={handleCancel}>
             取消
           </Button>
-          <Button size="sm" onClick={handleConfirm}>
+          <Button variant="success" size="sm" onClick={handleConfirm}>
             确定
           </Button>
         </DialogFooter>
@@ -130,7 +130,11 @@ export function ConfirmDialog({
           <Button variant="secondary" size="sm" onClick={handleCancel}>
             {cancelText}
           </Button>
-          <Button variant={variant} size="sm" onClick={handleConfirm}>
+          <Button
+            variant={variant === 'default' ? 'success' : variant}
+            size="sm"
+            onClick={handleConfirm}
+          >
             {confirmText}
           </Button>
         </DialogFooter>

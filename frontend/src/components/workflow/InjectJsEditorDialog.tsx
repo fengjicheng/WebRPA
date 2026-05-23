@@ -448,7 +448,7 @@ export function InjectJsEditorDialog({ isOpen, code, onClose, onSave }: InjectJs
           <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button onClick={handleSave}>
+          <Button variant="success" onClick={handleSave}>
             保存
           </Button>
         </div>

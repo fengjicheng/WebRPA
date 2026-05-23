@@ -87,8 +87,6 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
 
   if (!isOpen) return null
 
-  const selectedAccent = accentMap[exportFormats.find(f => f.id === selectedFormat)!.accent]
-
   return (
     <AnimatePresence>
       <motion.div
@@ -189,7 +187,7 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
               disabled={exporting}
               loading={exporting}
               size="sm"
-              variant={selectedAccent.btnVariant}
+              variant="success"
             >
               {!exporting && <Download className="w-3.5 h-3.5" />}
               {exporting ? '导出中...' : '立即导出'}

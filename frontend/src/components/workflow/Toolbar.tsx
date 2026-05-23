@@ -1047,7 +1047,7 @@ export function Toolbar() {
         <>
           <Button
             size="sm"
-            variant="default"
+            variant="success"
             onClick={handleSaveCustomModuleWorkflow}
             title={`保存"${editingCustomModuleName}"的工作流`}
           >
@@ -1144,7 +1144,7 @@ export function Toolbar() {
       {/* 文件操作 - 大屏幕显示全部，小屏幕使用下拉菜单 */}
       <div className="hidden lg:flex items-center gap-1">
         <Button 
-          variant="default" 
+          variant="success" 
           size="sm" 
           onClick={() => {
             console.log('[Toolbar] 保存按钮被点击')

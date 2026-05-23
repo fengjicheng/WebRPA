@@ -840,7 +840,7 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
             <Button variant="outline" onClick={onClose} disabled={loading}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
+            <Button variant="success" onClick={handleSubmit} disabled={loading}>
               {loading ? '保存中...' : '保存更改'}
             </Button>
           </div>

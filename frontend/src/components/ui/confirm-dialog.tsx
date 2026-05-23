@@ -124,8 +124,7 @@ export function ConfirmDialog({
             size="sm"
             variant={
               type === 'warning' ? 'destructive'
-              : type === 'success' ? 'success'
-              : 'default'
+              : 'success'
             }
             onClick={onConfirm}
           >

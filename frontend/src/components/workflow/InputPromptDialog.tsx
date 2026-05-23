@@ -625,7 +625,7 @@ export function InputPromptDialog() {
           <Button variant="secondary" size="sm" onClick={handleCancel}>
             取消
           </Button>
-          <Button variant="default" size="sm" onClick={handleSubmit}>
+          <Button variant="success" size="sm" onClick={handleSubmit}>
             确定
           </Button>
         </div>

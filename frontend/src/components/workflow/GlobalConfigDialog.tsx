@@ -1504,7 +1504,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
             重置全部
           </Button>
           <Button
-            variant="default"
+            variant="success"
             size="sm"
             onClick={onClose}
           >

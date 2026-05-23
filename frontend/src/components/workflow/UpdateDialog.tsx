@@ -104,7 +104,7 @@ export function UpdateDialog({
               暂不更新
             </Button>
             <Button
-              variant="default"
+              variant="success"
               size="lg"
               className="flex-1"
               onClick={handleDownload}

@@ -139,10 +139,15 @@ function ModuleSearch({
   // 快捷键支持
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+F 打开搜索
+      // Ctrl+F 切换搜索（开 ↔ 关）
       if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault()
-        setIsExpanded(true)
+        if (isExpanded) {
+          setIsExpanded(false)
+          handleClear()
+        } else {
+          setIsExpanded(true)
+        }
       }
       // ESC 关闭搜索
       if (e.key === 'Escape' && isExpanded) {

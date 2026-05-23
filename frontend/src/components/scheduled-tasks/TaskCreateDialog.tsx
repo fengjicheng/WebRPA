@@ -754,7 +754,7 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
           <Button variant="outline" onClick={handleClose} disabled={loading}>
             取消
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button variant="success" onClick={handleSubmit} disabled={loading}>
             {loading ? '创建中...' : '创建任务'}
           </Button>
         </div>
