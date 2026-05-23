@@ -10,6 +10,10 @@ import {
   Settings,
   AlertCircle,
   Wrench,
+  Zap,
+  MessageCircleQuestion,
+  ListTree,
+  Layers,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAIAssistantStore, type ChatMessage } from '@/store/aiAssistantStore'
@@ -24,10 +28,10 @@ import {
 import { MessageBubble } from './MessageBubble'
 
 const QUICK_PROMPTS = [
-  '帮我新建一个打开网页的工作流',
-  'WebRPA 怎么用？',
-  '列出所有 AI 类模块',
-  '我画布上有哪些节点？',
+  { text: '帮我新建一个打开网页的工作流', icon: Zap, color: 'icon-chip-success' },
+  { text: 'WebRPA 怎么用？', icon: MessageCircleQuestion, color: 'icon-chip-info' },
+  { text: '列出所有 AI 类模块', icon: Layers, color: 'icon-chip-violet' },
+  { text: '我画布上有哪些节点？', icon: ListTree, color: 'icon-chip-warning' },
 ]
 
 export function AIAssistantPanel() {
@@ -53,19 +57,16 @@ export function AIAssistantPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, isSending])
 
-  // 打开时聚焦
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => textareaRef.current?.focus(), 80)
     }
   }, [isOpen])
 
-  // 加载会话列表
   useEffect(() => {
     if (!isOpen) return
     aiAssistantApi.listSessions().then((res) => {
@@ -75,7 +76,6 @@ export function AIAssistantPanel() {
     })
   }, [isOpen, setSessions])
 
-  // 绑定 socket 事件
   useEffect(() => {
     bindAssistantSocketEvents({
       onToolCall: () => {},
@@ -84,15 +84,12 @@ export function AIAssistantPanel() {
     })
   }, [])
 
-  // 监听跨组件事件示例
   useEffect(() => {
     return onAssistantUiEvent('show_toast', (payload: any) => {
-      // 这里可以接入应用的 toast 系统；暂时打 console
       console.log('[小助手] toast:', payload?.message)
     })
   }, [])
 
-  // 配置回退：aiAssistant -> ai
   const resolvedConfig = (() => {
     const a = aiAssistantConfig
     const b = aiFallbackConfig
@@ -190,7 +187,6 @@ export function AIAssistantPanel() {
     }
   }
 
-  // 执行后端返回的 client_action
   async function dispatchClientActions(allMessages: ChatMessage[], _sid: string) {
     if (!allMessages || allMessages.length === 0) return
     const last = [...allMessages].reverse().find((m) => m.role === 'assistant' && m.tool_calls && m.tool_calls.length)
@@ -232,50 +228,52 @@ export function AIAssistantPanel() {
     <div
       className={
         'fixed top-0 right-0 h-screen z-50 ' +
-        'w-[420px] max-w-full responsive-drawer-right ' +
-        'bg-[hsl(var(--card))] border-l border-[hsl(var(--border))] shadow-pop-xl ' +
+        'w-[440px] max-w-full responsive-drawer-right ' +
+        'bg-[hsl(var(--card))] border-l border-[hsl(var(--border))] shadow-pop-2xl ' +
         'flex flex-col animate-slide-in-right'
       }
     >
+      {/* 顶部装饰条 */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[hsl(var(--brand-500))] via-[hsl(var(--brand-400))] to-[hsl(var(--info-500))]" />
+
       {/* 头部 */}
-      <div className="flex items-center justify-between px-3.5 h-12 border-b border-[hsl(var(--border))]">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-3.5 h-3.5" />
+      <div
+        className="flex items-center justify-between px-4 h-14 border-b border-[hsl(var(--border))] flex-shrink-0"
+        style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.6), hsl(var(--card)))' }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* 渐变 LOGO 圆环 */}
+          <div className="relative flex-shrink-0">
+            <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-1 ring-[hsl(var(--brand-500)/0.3)]">
+              <Sparkles className="w-4 h-4 text-white" strokeWidth={2.4} />
+            </div>
+            {configReady && (
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[hsl(var(--success-500))] border-2 border-[hsl(var(--card))] shadow-success-glow animate-pulse-ring" />
+            )}
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold leading-tight truncate">WebRPA 小助手</div>
-            <div className="text-[11px] text-[hsl(var(--muted-foreground))] leading-tight truncate">
-              {configReady ? `${resolvedConfig.model}` : '尚未配置模型'}
+            <div className="text-[14px] font-bold leading-tight tracking-tight text-gradient">
+              WebRPA 小助手
+            </div>
+            <div className="text-[11px] text-[hsl(var(--muted-foreground))] leading-tight truncate mt-0.5 flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${configReady ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--warning-500))]'}`} />
+              {configReady ? resolvedConfig.model : '尚未配置模型'}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="新对话"
-            onClick={handleNewSession}
-            className="h-7 w-7"
-          >
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button variant="ghost" size="icon-sm" title="新对话" onClick={handleNewSession}>
             <Plus className="w-3.5 h-3.5" />
           </Button>
           <Button
-            variant="ghost"
-            size="icon"
+            variant={showSessions ? 'tonal' : 'ghost'}
+            size="icon-sm"
             title="历史对话"
             onClick={() => setShowSessions((v) => !v)}
-            className={`h-7 w-7 ${showSessions ? 'bg-[hsl(var(--muted))]' : ''}`}
           >
             <History className="w-3.5 h-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="关闭"
-            onClick={() => setOpen(false)}
-            className="h-7 w-7"
-          >
+          <Button variant="ghost" size="icon-sm" title="关闭" onClick={() => setOpen(false)}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -283,26 +281,32 @@ export function AIAssistantPanel() {
 
       {/* 会话列表抽屉 */}
       {showSessions && (
-        <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--muted))/0.4] max-h-72 overflow-y-auto">
+        <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] max-h-72 overflow-y-auto animate-fade-in-down flex-shrink-0">
           {sessions.length === 0 ? (
-            <div className="px-4 py-6 text-center text-[12px] text-[hsl(var(--muted-foreground))]">
-              暂无历史对话
+            <div className="empty-state py-8">
+              <div className="empty-state-icon w-12 h-12 mb-2">
+                <History className="w-5 h-5" />
+              </div>
+              <div className="empty-state-title text-[13px]">暂无历史对话</div>
             </div>
           ) : (
-            <div className="py-1">
+            <div className="py-1.5 space-y-0.5 px-2">
               {sessions.map((s) => (
                 <div
                   key={s.id}
                   onClick={() => handleSelectSession(s.id)}
                   className={
-                    'group flex items-start gap-2 px-3 py-2 cursor-pointer transition-colors ' +
+                    'group flex items-start gap-2 px-2.5 py-2 cursor-pointer rounded-[8px] transition-all duration-150 ' +
                     (s.id === currentSessionId
-                      ? 'bg-[hsl(var(--brand-50))]'
-                      : 'hover:bg-[hsl(var(--muted))]')
+                      ? 'bg-[hsl(var(--brand-100))] border border-[hsl(var(--brand-500)/0.3)] shadow-xs'
+                      : 'border border-transparent hover:bg-[hsl(var(--card))] hover:border-[hsl(var(--border))] hover:shadow-xs')
                   }
                 >
+                  <div className="icon-chip icon-chip-brand w-7 h-7 flex-shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-medium text-[hsl(var(--foreground))] truncate">
+                    <div className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] truncate">
                       {s.title}
                     </div>
                     <div className="text-[11px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">
@@ -311,7 +315,7 @@ export function AIAssistantPanel() {
                   </div>
                   <button
                     onClick={(e) => handleDeleteSession(s.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-500))] hover:bg-[hsl(var(--card))] transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-[5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-all"
                     title="删除"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -324,34 +328,50 @@ export function AIAssistantPanel() {
       )}
 
       {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && !isSending && (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-11 h-11 rounded-full bg-[hsl(var(--brand-50))] text-[hsl(var(--primary))] flex items-center justify-center mb-3">
-              <Sparkles className="w-5 h-5" />
+          <div className="h-full flex flex-col items-center justify-center text-center px-2 animate-fade-in-up">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[hsl(var(--brand-500)/0.4)] to-[hsl(var(--info-500)/0.4)] blur-xl" />
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-2 ring-[hsl(var(--brand-500)/0.25)]">
+                <Sparkles className="w-7 h-7 text-white" strokeWidth={2.2} />
+              </div>
             </div>
-            <div className="text-[14px] font-semibold text-[hsl(var(--foreground))] mb-1">
+            <div className="text-[16px] font-bold text-gradient mb-1.5 tracking-tight">
               你好，我是 WebRPA 小助手
             </div>
-            <div className="text-[12px] text-[hsl(var(--muted-foreground))] leading-relaxed max-w-[320px]">
-              我了解 WebRPA 的方方面面，能帮你搭建工作流、运行任务、答疑解惑。
+            <div className="text-[12.5px] text-[hsl(var(--slate-600))] leading-relaxed max-w-[340px] mb-5">
+              我了解 WebRPA 的方方面面，能帮你搭建工作流、运行任务、答疑解惑
             </div>
-            <div className="mt-4 flex flex-wrap gap-1.5 justify-center max-w-[340px]">
-              {QUICK_PROMPTS.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => handleSend(q)}
-                  disabled={!configReady || isSending}
-                  className="px-2.5 h-6 text-[11px] rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--brand-500)/0.5)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {q}
-                </button>
-              ))}
+
+            <div className="w-full max-w-[360px] space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))] mb-2 flex items-center gap-1.5">
+                <Zap className="w-3 h-3" />
+                快速开始
+              </div>
+              {QUICK_PROMPTS.map((q, idx) => {
+                const Icon = q.icon
+                return (
+                  <button
+                    key={q.text}
+                    onClick={() => handleSend(q.text)}
+                    disabled={!configReady || isSending}
+                    className="w-full row-card text-left disabled:opacity-50 disabled:cursor-not-allowed text-[12.5px]"
+                    style={{ animation: `fadeInUp ${220 + idx * 60}ms cubic-bezier(0.25, 1, 0.5, 1) both` }}
+                  >
+                    <span className={`icon-chip ${q.color} w-7 h-7`}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="flex-1 text-[hsl(var(--slate-700))]">{q.text}</span>
+                  </button>
+                )
+              })}
             </div>
+
             {!configReady && (
-              <div className="mt-4 flex items-center gap-1.5 text-[11px] text-[hsl(var(--warning-500))]">
-                <Settings className="w-3 h-3" />
-                <span>请先在全局配置中填写小助手的模型</span>
+              <div className="status-row status-row-warning mt-5 max-w-[340px]">
+                <Settings className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[12px]">请先在全局配置中填写小助手的模型</span>
               </div>
             )}
           </div>
@@ -360,23 +380,27 @@ export function AIAssistantPanel() {
           <MessageBubble key={m.id} message={m} />
         ))}
         {isSending && (
-          <div className="flex items-center gap-1.5 text-[11.5px] text-[hsl(var(--muted-foreground))] pl-9">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span>小助手思考中</span>
+          <div className="flex items-center gap-2 pl-11">
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-[12px] text-[hsl(var(--muted-foreground))] italic">小助手思考中</span>
           </div>
         )}
         {error && (
-          <div className="flex items-start gap-1.5 p-2.5 rounded border border-[hsl(var(--danger-500)/0.25)] bg-[hsl(var(--danger-50))] text-[12px] text-[hsl(var(--danger-500))]">
+          <div className="status-row status-row-danger animate-fade-in-up">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 break-words">{error}</div>
+            <div className="flex-1 break-words text-[12px]">{error}</div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* 输入区 */}
-      <div className="border-t border-[hsl(var(--border))] p-2.5">
-        <div className="relative flex items-end gap-1.5 rounded-[8px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-[0_0_0_3px_hsl(var(--brand-500)/0.15)] transition-[border-color,box-shadow]">
+      <div className="border-t border-[hsl(var(--border))] p-3 bg-[hsl(var(--slate-50))] flex-shrink-0">
+        <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
           <textarea
             ref={textareaRef}
             value={input}
@@ -385,13 +409,14 @@ export function AIAssistantPanel() {
             placeholder={configReady ? '告诉我你想做什么…（Enter 发送，Shift+Enter 换行）' : '请先在全局配置中配置模型'}
             rows={2}
             disabled={!configReady || isSending}
-            className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-2.5 py-2"
+            className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-3 py-2.5 leading-relaxed"
           />
           <Button
             onClick={() => handleSend()}
             disabled={!input.trim() || isSending || !configReady}
-            size="icon"
-            className="h-7 w-7 flex-shrink-0 m-1"
+            size="icon-sm"
+            variant="default"
+            className="!h-8 !w-8 flex-shrink-0 m-1"
             title="发送 (Enter)"
           >
             {isSending ? (
@@ -401,12 +426,13 @@ export function AIAssistantPanel() {
             )}
           </Button>
         </div>
-        <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-[hsl(var(--muted-foreground))]">
-          <div className="flex items-center gap-1">
+        <div className="mt-2 flex items-center justify-between text-[10.5px] text-[hsl(var(--muted-foreground))] px-1">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${resolvedConfig.enable_tools ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--slate-400))]'}`} />
             <Wrench className="w-2.5 h-2.5" />
-            <span>{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
+            <span className="font-medium">{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
           </div>
-          <span>WebRPA 小助手</span>
+          <span className="font-mono">WebRPA AI · v2</span>
         </div>
       </div>
     </div>

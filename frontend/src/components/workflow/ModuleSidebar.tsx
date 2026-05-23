@@ -179,6 +179,7 @@ import {
   BarChart3,
   Activity,
   Puzzle,
+  Boxes,
 } from 'lucide-react'
 import { TestReportIcon } from './icons/TestReportIcon'
 
@@ -1968,113 +1969,127 @@ export function ModuleSidebar() {
   }
 
   return (
-    <aside className={`border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}>
+    <aside className={`relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}
+      style={{ backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.35), hsl(var(--card)) 200px)' }}
+    >
       {/* 收起状态下的图标列表 */}
       {isCollapsed ? (
         <button 
           type="button"
-          className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
+          className="flex flex-col items-center py-3 gap-2.5 hover:bg-[hsl(var(--brand-50))] transition-colors h-full w-full"
           onClick={() => setIsCollapsed(false)}
           title="展开模块列表"
         >
-          <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+          <span className="flex items-center justify-center w-8 h-8 rounded-[8px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] text-white shadow-brand-glow">
             <ChevronRight className="w-4 h-4" />
           </span>
           {moduleCategories.slice(0, 8).map((category) => (
             <div
               key={category.name}
-              className={`w-2 h-2 rounded-full ${category.color}`}
+              className={`w-2.5 h-2.5 rounded-full ${category.color} ring-2 ring-white shadow-soft`}
               title={category.name}
             />
           ))}
           {moduleCategories.length > 8 && (
-            <span className="text-[10px] text-[hsl(var(--muted-foreground))]">+{moduleCategories.length - 8}</span>
+            <span className="text-[10px] font-mono text-[hsl(var(--muted-foreground))]">+{moduleCategories.length - 8}</span>
           )}
         </button>
       ) : (
         <>
-          <div className="bg-[hsl(var(--card))] p-4 border-b border-[hsl(var(--border))] space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Puzzle className="w-4 h-4 text-[hsl(var(--brand-600))]" />
-                  <h2 className="text-sm font-semibold text-[hsl(var(--foreground))]">模块列表</h2>
-                  <span className="text-xs text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))] px-1.5 py-0.5 rounded-full font-medium">
-                    {totalModulesCount}
-                  </span>
+          <div className="bg-[hsl(var(--card)/0.65)] backdrop-blur-sm p-3.5 border-b border-[hsl(var(--border))] space-y-3 relative">
+            {/* 顶部装饰条 */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[hsl(var(--brand-500))] via-[hsl(var(--brand-400))] to-[hsl(var(--info-500))] opacity-70" />
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="icon-block icon-block-brand !w-8 !h-8 !rounded-[8px]">
+                  <Puzzle className="w-4 h-4" strokeWidth={2.4} />
                 </div>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">拖拽模块到画布添加</p>
+                <div className="min-w-0">
+                  <h2 className="text-[13px] font-bold text-[hsl(var(--slate-900))] tracking-tight flex items-center gap-1.5">
+                    模块库
+                    <span className="badge badge-brand !py-0 !px-1.5 !text-[10px]">
+                      {totalModulesCount}
+                    </span>
+                  </h2>
+                  <p className="text-[10.5px] text-[hsl(var(--muted-foreground))] mt-0.5 leading-tight">拖拽到画布添加</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-md text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors has-hover-only"
+                className="p-1.5 rounded-[6px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--brand-50))] transition-all hover:shadow-xs active:scale-90"
                 title="收起"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
 
-            {/* 标签页切换 */}
-            <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-md border border-[hsl(var(--slate-200))]">
+            {/* 标签页切换 - 现代分段控件 */}
+            <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-[8px] border border-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)]">
               <button
                 onClick={() => setActiveTab('builtin')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
+                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
                   activeTab === 'builtin'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft border border-[hsl(var(--brand-500)/0.25)]'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))]'
                 }`}
               >
-                内置模块
+                <Boxes className="w-3.5 h-3.5" />
+                内置
               </button>
               <button
                 onClick={() => setActiveTab('custom')}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
+                className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
                   activeTab === 'custom'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(280_60%_45%)] shadow-soft border border-[hsl(280_60%_55%/0.25)]'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card))]'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--violet-700))] shadow-soft'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))]'
                 }`}
               >
-                自定义模块
+                <Sparkles className="w-3.5 h-3.5" />
+                自定义
               </button>
             </div>
 
             {activeTab === 'builtin' && (
               <>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <div className="relative group flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--muted-foreground))] transition-colors group-focus-within:text-[hsl(var(--brand-500))]" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))] transition-colors duration-150 group-focus-within:text-[hsl(var(--brand-600))]" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="搜索模块..."
-                      className="pl-8 h-8 text-sm"
+                      placeholder="搜索模块/拼音/英文..."
+                      className="pl-8 pr-7 h-8 !text-[12px] !rounded-[8px]"
                     />
                     {searchQuery && (
                       <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--danger-50))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] transition-colors active:scale-90"
                         onClick={() => setSearchQuery('')}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                  {/* 收藏筛选按钮 */}
+                  {/* 收藏筛选按钮 - 琥珀色 */}
                   <button
                     onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                    className={`flex items-center justify-center h-8 w-8 rounded-md transition-colors ${
+                    className={`flex items-center justify-center h-8 w-8 rounded-[8px] transition-all duration-200 active:scale-90 ${
                       showFavoritesOnly
-                        ? 'bg-[hsl(48_100%_94%)] text-[hsl(45_93%_47%)] border border-[hsl(45_93%_47%/0.3)]'
-                        : 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] hover:bg-[hsl(48_100%_94%)] hover:text-[hsl(45_93%_47%)]'
+                        ? 'bg-[hsl(var(--amber-500))] text-white border border-[hsl(var(--amber-600))] shadow-warning-glow'
+                        : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--slate-500))] border border-[hsl(var(--slate-200))] hover:bg-[hsl(var(--amber-50))] hover:text-[hsl(var(--amber-600))] hover:border-[hsl(var(--amber-500)/0.4)]'
                     }`}
-                    title={showFavoritesOnly ? `收藏 (${favoriteModules.length}) - 点击显示全部` : `收藏 (${favoriteModules.length})`}
+                    title={showFavoritesOnly ? `仅显示收藏 (${favoriteModules.length})` : `显示收藏 (${favoriteModules.length})`}
                   >
-                    <Star className={`w-4 h-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
+                    <Star className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-current' : ''}`} />
                   </button>
                 </div>
                 {searchQuery && (
-                  <p className="text-xs text-[hsl(var(--muted-foreground))] animate-fade-in">
-                    找到 <span className="text-[hsl(var(--brand-700))] font-semibold">{filteredModulesCount}</span> 个模块
-                  </p>
+                  <div className="status-row status-row-info !py-1.5 !px-2.5 animate-fade-in">
+                    <Search className="w-3 h-3" />
+                    <span className="text-[11px]">
+                      找到 <span className="text-[hsl(var(--brand-700))] font-bold">{filteredModulesCount}</span> 个模块
+                    </span>
+                  </div>
                 )}
               </>
             )}
@@ -2083,10 +2098,12 @@ export function ModuleSidebar() {
           {activeTab === 'builtin' ? (
             <ScrollArea className="flex-1 p-2">
               {filteredCategories.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground animate-fade-in">
-                  <Search className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">未找到模块</p>
-                  <p className="text-xs mt-1">试试其他关键词</p>
+                <div className="empty-state animate-fade-in">
+                  <div className="empty-state-icon">
+                    <Search className="w-7 h-7" strokeWidth={1.6} />
+                  </div>
+                  <div className="empty-state-title">未找到匹配的模块</div>
+                  <div className="empty-state-desc">试试拼音、首字母或英文关键词</div>
                 </div>
               ) : (
                 filteredCategories.map((category, categoryIndex) => {
@@ -2098,22 +2115,22 @@ export function ModuleSidebar() {
                       style={{ animationDelay: `${categoryIndex * 30}ms` }}
                     >
                       <button
-                        className="bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:from-transparent transition-all duration-200 group"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] group bg-[hsl(var(--card))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500)/0.3)] border border-transparent hover:shadow-xs"
                         onClick={() => toggleCategory(category.name)}
                       >
-                        <div className={`transition-transform duration-200 ${expanded ? 'rotate-0' : '-rotate-90'}`}>
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <div className={`transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${expanded ? 'rotate-0' : '-rotate-90'}`}>
+                          <ChevronDown className="w-3.5 h-3.5 text-[hsl(var(--slate-500))] group-hover:text-[hsl(var(--brand-600))]" />
                         </div>
-                        <div className={`w-2 h-2 rounded-full ${category.color} transition-transform duration-200 group-hover:scale-125`} />
-                        <span className="text-xs font-medium flex-1 text-left transition-colors group-hover:text-foreground">
+                        <div className={`w-2.5 h-2.5 rounded-full ${category.color} ring-2 ring-white shadow-soft transition-transform duration-200 group-hover:scale-125`} />
+                        <span className="text-[12px] font-semibold flex-1 text-left text-[hsl(var(--slate-800))] transition-colors group-hover:text-[hsl(var(--brand-800))]">
                           {category.name}
                         </span>
-                        <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full transition-colors group-hover:bg-blue-100 group-hover:text-blue-700">
+                        <span className="text-[10.5px] font-mono text-[hsl(var(--slate-500))] bg-[hsl(var(--slate-100))] px-1.5 py-0.5 rounded-full transition-colors group-hover:bg-[hsl(var(--brand-100))] group-hover:text-[hsl(var(--brand-700))]">
                           {category.modules.length}
                         </span>
                       </button>
-                      <div className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                        <div className="ml-4 space-y-0.5 mt-1">
+                      <div className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${expanded ? 'max-h-[2000px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'}`}>
+                        <div className="ml-3 pl-2 space-y-0.5 border-l border-dashed border-[hsl(var(--border))]">
                           {category.modules.map((type, index) => {
                             return (
                               <div 
@@ -2132,7 +2149,6 @@ export function ModuleSidebar() {
                                     setCustomColor(type, color)
                                   }}
                                   onIncrementUsage={incrementUsage}
-                                  // 禁用手动排序，使用智能排序
                                   enableSortDrag={false}
                                   onSortDragStart={undefined}
                                   onSortDragOver={undefined}

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useWorkflowStore } from '@/store/workflowStore'
-import { X, FileJson, Trash2, RefreshCw, Search } from 'lucide-react'
+import { X, FileJson, Trash2, RefreshCw, Search, FolderOpen, Clock, HardDrive } from 'lucide-react'
 import { getBackendBaseUrl } from '@/services/config'
 
 interface LocalWorkflowDialogProps {
@@ -31,13 +31,10 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
 
   const currentFolder = config.workflow?.localFolder || defaultFolder
 
-  // 获取默认文件夹
   useEffect(() => {
     const loadDefaultFolder = async () => {
-      // 等待配置加载完成
       const { preloadConfig } = await import('@/services/config')
       await preloadConfig()
-      
       const API_BASE = getBackendBaseUrl()
       fetch(`${API_BASE}/api/local-workflows/default-folder`)
         .then(res => res.json())
@@ -46,15 +43,11 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
         })
         .catch(console.error)
     }
-    
     loadDefaultFolder()
   }, [])
 
-  // 加载工作流列表
   const loadWorkflows = async () => {
-    // 使用当前文件夹或默认文件夹
     const folder = config.workflow?.localFolder || defaultFolder || ''
-    
     setLoading(true)
     try {
       const API_BASE = getBackendBaseUrl()
@@ -78,6 +71,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
     if (isOpen) {
       loadWorkflows()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, defaultFolder, config.workflow?.localFolder])
 
   const handleOpen = async (workflow: WorkflowInfo) => {
@@ -87,7 +81,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
         `${API_BASE}/api/local-workflows/load/${encodeURIComponent(workflow.filename)}?folder=${encodeURIComponent(currentFolder)}`
       )
       const data = await response.json()
-      
+
       if (data.success && data.content) {
         const success = importWorkflow(JSON.stringify(data.content))
         if (success) {
@@ -109,7 +103,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
       type: 'warning',
       title: '删除工作流'
     })
-    
+
     if (confirmed) {
       try {
         const API_BASE = getBackendBaseUrl()
@@ -118,7 +112,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
           { method: 'POST' }
         )
         const data = await response.json()
-        
+
         if (data.success) {
           onLog('success', `已删除工作流: ${workflow.name}`)
           loadWorkflows()
@@ -145,104 +139,151 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in">
+    <div className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+      <div className="modern-dialog w-full max-w-2xl animate-scale-in-bounce flex flex-col" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {/* 标题栏 */}
-        <div className="bg-[hsl(var(--card))] flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
-            <div className="bg-[hsl(var(--card))] p-1.5 rounded-lg">
-              <FileJson className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-semibold text-gradient">打开本地工作流</h3>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon modern-dialog-header-icon-warning">
+            <FolderOpen className="w-5 h-5" strokeWidth={2.2} />
           </div>
-          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
-
+          <div className="flex-1 min-w-0">
+            <h3 className="modern-dialog-title">打开本地工作流</h3>
+            <div className="modern-dialog-subtitle">
+              共 <span className="text-[hsl(var(--brand-700))] font-bold">{workflows.length}</span> 个文件
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+            title="关闭 (Esc)"
+          >
             <X className="w-4 h-4" />
-
-          </Button>
+          </button>
         </div>
 
         {/* 工具栏 */}
-        <div className="bg-[hsl(var(--card))] p-3 border-b flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="px-5 py-3 border-b border-[hsl(var(--border))] flex items-center gap-2 bg-[hsl(var(--slate-50)/0.5)]">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))] group-focus-within:text-[hsl(var(--brand-600))] transition-colors duration-150" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="搜索工作流..."
-              className="pl-9 bg-white border-gray-300"
+              placeholder="搜索工作流名称或文件名..."
+              className="!pl-8 !pr-7"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-[hsl(var(--danger-50))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] transition-all active:scale-90"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <Button
-            variant="outline"
+            variant="tonal"
             size="sm"
-            className="border-gray-300 hover:bg-blue-50"
             onClick={loadWorkflows}
             disabled={loading}
+            loading={loading}
           >
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            {!loading && <RefreshCw className="w-3.5 h-3.5" />}
             刷新
           </Button>
         </div>
 
         {/* 文件夹路径 */}
-        <div className="bg-[hsl(var(--card))] px-4 py-2 text-xs text-gray-600 truncate">
-          {currentFolder || '加载中...'}
-        </div>
+        {currentFolder && (
+          <div className="px-5 py-2 border-b border-[hsl(var(--border))] flex items-center gap-2 bg-[hsl(var(--brand-50)/0.4)] text-[11.5px]">
+            <HardDrive className="w-3 h-3 text-[hsl(var(--brand-600))] shrink-0" />
+            <span className="text-[hsl(var(--muted-foreground))]">当前位置：</span>
+            <code className="font-mono text-[hsl(var(--brand-700))] truncate" title={currentFolder}>
+              {currentFolder}
+            </code>
+          </div>
+        )}
 
         {/* 工作流列表 */}
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-[280px] max-h-[480px]">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">加载中...</div>
+            <div className="p-12 flex flex-col items-center justify-center">
+              <div className="spinner spinner-lg mb-3" />
+              <div className="text-[12px] text-[hsl(var(--muted-foreground))]">加载工作流列表中…</div>
+            </div>
           ) : filteredWorkflows.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              {searchTerm ? '没有找到匹配的工作流' : '文件夹中没有工作流文件'}
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                {searchTerm ? <Search className="w-7 h-7" /> : <FileJson className="w-7 h-7" />}
+              </div>
+              <div className="empty-state-title">
+                {searchTerm ? '未找到匹配工作流' : '此文件夹暂无工作流'}
+              </div>
+              <div className="empty-state-desc">
+                {searchTerm ? '试试其他关键词或检查拼写' : '保存当前工作流后会显示在这里'}
+              </div>
             </div>
           ) : (
-            <div className="divide-y">
-              {filteredWorkflows.map((workflow) => (
+            <div className="p-2 space-y-1">
+              {filteredWorkflows.map((workflow, idx) => (
                 <div
                   key={workflow.filename}
-                  className="p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-3 group"
+                  className="row-card group !p-3 animate-fade-in-up"
+                  style={{ animationDelay: `${idx * 30}ms` }}
                   onClick={() => handleOpen(workflow)}
                 >
-                  <FileJson className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                  <div className="icon-chip icon-chip-brand !w-9 !h-9 !rounded-[8px]">
+                    <FileJson className="w-4 h-4" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{workflow.name}</div>
-                    <div className="text-xs text-gray-500 flex gap-3">
-                      <span>{workflow.filename}</span>
-                      <span>{workflow.modifiedTime}</span>
-                      <span>{formatSize(workflow.size)}</span>
+                    <div className="text-[13.5px] font-semibold text-[hsl(var(--slate-900))] truncate">
+                      {workflow.name}
+                    </div>
+                    <div className="text-[11px] text-[hsl(var(--muted-foreground))] flex items-center gap-3 mt-0.5">
+                      <span className="flex items-center gap-1">
+                        <FileJson className="w-2.5 h-2.5" />
+                        <code className="font-mono">{workflow.filename}</code>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        {workflow.modifiedTime}
+                      </span>
+                      <span className="badge badge-default !py-0">
+                        {formatSize(workflow.size)}
+                      </span>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  <button
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(workflow)
                     }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[6px] text-[hsl(var(--slate-500))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] border border-transparent hover:border-[hsl(var(--danger-500)/0.3)] transition-all active:scale-90"
+                    title="删除工作流"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* 底部 */}
-        <div className="p-3 border-t bg-gray-50 flex justify-between items-center">
-          <span className="text-xs text-gray-500">
-            共 {filteredWorkflows.length} 个工作流
-          </span>
-          <Button variant="outline" onClick={onClose}>
-            取消
+        {/* 底部统计 */}
+        <div className="dialog-footer-bar !justify-between">
+          <div className="text-[11px] text-[hsl(var(--muted-foreground))]">
+            {filteredWorkflows.length > 0 && searchTerm && (
+              <>显示 <span className="font-bold text-[hsl(var(--brand-700))]">{filteredWorkflows.length}</span> / {workflows.length}</>
+            )}
+            {!searchTerm && workflows.length > 0 && (
+              <>共 <span className="font-bold text-[hsl(var(--brand-700))]">{workflows.length}</span> 个工作流文件</>
+            )}
+          </div>
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            关闭
           </Button>
         </div>
       </div>
-      
+
       <ConfirmDialog />
     </div>
   )

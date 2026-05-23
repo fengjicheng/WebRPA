@@ -17,35 +17,39 @@ interface MessageBubbleProps {
 function ToolCallCard({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false)
 
-  const statusClasses = (() => {
+  const styling = (() => {
     switch (tc.status) {
       case 'success':
         return {
-          bar: 'border-l-[hsl(var(--success-500))]',
-          icon: 'text-[hsl(var(--success-500))]',
-          label: 'badge-success',
-          el: <CheckCircle2 className="w-3 h-3" />,
+          border: 'border-l-[3px] border-l-[hsl(var(--success-500))]',
+          chip: 'icon-chip icon-chip-success',
+          status: 'badge-success',
+          el: <CheckCircle2 className="w-3.5 h-3.5" />,
+          dot: 'bg-[hsl(var(--success-500))]',
         }
       case 'failed':
         return {
-          bar: 'border-l-[hsl(var(--danger-500))]',
-          icon: 'text-[hsl(var(--danger-500))]',
-          label: 'badge-danger',
-          el: <AlertCircle className="w-3 h-3" />,
+          border: 'border-l-[3px] border-l-[hsl(var(--danger-500))]',
+          chip: 'icon-chip icon-chip-danger',
+          status: 'badge-danger',
+          el: <AlertCircle className="w-3.5 h-3.5" />,
+          dot: 'bg-[hsl(var(--danger-500))]',
         }
       case 'running':
         return {
-          bar: 'border-l-[hsl(var(--brand-500))]',
-          icon: 'text-[hsl(var(--brand-500))]',
-          label: 'badge-info',
-          el: <Loader2 className="w-3 h-3 animate-spin" />,
+          border: 'border-l-[3px] border-l-[hsl(var(--brand-500))]',
+          chip: 'icon-chip icon-chip-brand',
+          status: 'badge-brand',
+          el: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
+          dot: 'bg-[hsl(var(--brand-500))] animate-pulse',
         }
       default:
         return {
-          bar: 'border-l-[hsl(var(--muted-foreground)/0.4)]',
-          icon: 'text-[hsl(var(--muted-foreground))]',
-          label: 'badge-default',
-          el: <Wrench className="w-3 h-3" />,
+          border: 'border-l-[3px] border-l-[hsl(var(--slate-300))]',
+          chip: 'icon-chip icon-chip-slate',
+          status: 'badge-default',
+          el: <Wrench className="w-3.5 h-3.5" />,
+          dot: 'bg-[hsl(var(--slate-400))]',
         }
     }
   })()
@@ -54,45 +58,53 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
   const hasResult = tc.result !== undefined && tc.status === 'success'
 
   return (
-    <div className={`rounded-[6px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] border-l-2 ${statusClasses.bar} overflow-hidden`}>
+    <div
+      className={`rounded-[10px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] ${styling.border} overflow-hidden shadow-xs transition-shadow hover:shadow-soft`}
+    >
       <button
         type="button"
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left text-[12px] hover:bg-[hsl(var(--muted))] transition-colors has-hover-only"
+        className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-[hsl(var(--brand-50)/0.4)] transition-colors duration-150"
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className={statusClasses.icon}>{statusClasses.el}</span>
-        <code className="font-mono text-[11.5px] text-[hsl(var(--foreground))] truncate flex-1">
+        <span className={styling.chip}>{styling.el}</span>
+        <code className="font-mono text-[12px] text-[hsl(var(--slate-800))] truncate flex-1 font-medium">
           {tc.name}
         </code>
-        <span className={`badge ${statusClasses.label}`}>{tc.status}</span>
+        <span className={`badge ${styling.status}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${styling.dot}`} />
+          {tc.status}
+        </span>
         <ChevronRight
-          className={`w-3 h-3 text-[hsl(var(--muted-foreground))] transition-transform ${expanded ? 'rotate-90' : ''}`}
+          className={`w-3.5 h-3.5 text-[hsl(var(--muted-foreground))] transition-transform duration-200 ${
+            expanded ? 'rotate-90' : ''
+          }`}
         />
       </button>
       {expanded && (hasArgs || hasResult || tc.error) && (
-        <div className="px-2.5 pb-2 border-t border-[hsl(var(--border))] pt-2 space-y-2">
+        <div className="px-2.5 pb-2.5 border-t border-[hsl(var(--border))] pt-2.5 space-y-2 animate-fade-in-up bg-[hsl(var(--slate-50)/0.5)]">
           {hasArgs && (
             <div>
-              <div className="text-[10px] text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-1">
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))] uppercase tracking-wider font-semibold mb-1.5">
                 参数
               </div>
-              <pre className="text-[11px] p-2 rounded bg-[hsl(var(--muted))] border border-[hsl(var(--border))] overflow-x-auto whitespace-pre-wrap break-words">
+              <pre className="text-[11px] p-2.5 rounded-[6px] bg-[hsl(var(--slate-900))] text-[hsl(var(--slate-100))] overflow-x-auto whitespace-pre-wrap break-words shadow-soft">
 {JSON.stringify(tc.arguments, null, 2)}
               </pre>
             </div>
           )}
           {hasResult && (
             <div>
-              <div className="text-[10px] text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-1">
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))] uppercase tracking-wider font-semibold mb-1.5">
                 结果
               </div>
-              <pre className="text-[11px] p-2 rounded bg-[hsl(var(--muted))] border border-[hsl(var(--border))] overflow-x-auto whitespace-pre-wrap break-words max-h-56">
+              <pre className="text-[11px] p-2.5 rounded-[6px] bg-[hsl(var(--slate-900))] text-[hsl(var(--slate-100))] overflow-x-auto whitespace-pre-wrap break-words max-h-56 shadow-soft">
 {typeof tc.result === 'string' ? tc.result : JSON.stringify(tc.result, null, 2)}
               </pre>
             </div>
           )}
           {tc.error && (
-            <div className="text-[11px] text-[hsl(var(--danger-500))]">
+            <div className="status-row status-row-danger text-[12px]">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               {tc.error}
             </div>
           )}
@@ -104,40 +116,41 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   if (message.role === 'tool') {
-    // tool 消息不直接展示，由对应 assistant 消息的 tool_calls 卡片显示
     return null
   }
 
   const isUser = message.role === 'user'
 
   return (
-    <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in-up`}>
+      {/* 头像 */}
       <div
         className={
-          'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ' +
+          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-soft ' +
           (isUser
-            ? 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] border border-[hsl(var(--border))]'
-            : 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]')
+            ? 'bg-gradient-to-br from-[hsl(var(--slate-100))] to-[hsl(var(--slate-200))] text-[hsl(var(--slate-700))] border border-[hsl(var(--slate-300))]'
+            : 'bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] text-white shadow-brand-glow')
         }
       >
-        {isUser ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+        {isUser ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" strokeWidth={2.4} />}
       </div>
+
       <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
-        <div className="inline-block max-w-full space-y-1.5">
+        <div className="inline-block max-w-full space-y-2">
           {message.content && (
             <div
               className={
-                'inline-block max-w-full rounded-[8px] px-3 py-2 text-[13px] leading-relaxed prose-compact ' +
+                'inline-block max-w-full px-3.5 py-2.5 text-[13px] leading-relaxed prose-compact ' +
                 (isUser
-                  ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
-                  : 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]')
+                  ? 'bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-600))] text-white rounded-[14px] rounded-tr-[4px] shadow-brand-glow'
+                  : 'bg-[hsl(var(--card))] text-[hsl(var(--slate-800))] rounded-[14px] rounded-tl-[4px] border border-[hsl(var(--border))] shadow-soft')
               }
             >
               <div className="whitespace-pre-wrap break-words">{message.content}</div>
             </div>
           )}
           {!isUser && message.tool_calls && message.tool_calls.length > 0 && (
-            <div className="space-y-1.5 max-w-[420px]">
+            <div className="space-y-1.5 max-w-[440px]">
               {message.tool_calls.map((tc) => (
                 <ToolCallCard key={tc.id} tc={tc} />
               ))}

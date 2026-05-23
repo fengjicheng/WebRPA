@@ -297,24 +297,37 @@ export function InputPromptDialog() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-md p-4 overflow-hidden animate-scale-in">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+      <div className="modern-dialog w-full max-w-md p-0 animate-scale-in-bounce">
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon">
             {getModeIcon()}
-            <h3 className="font-semibold text-gray-900">{promptData.title || '输入'}</h3>
-            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{getModeLabel()}</span>
           </div>
-          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900" onClick={handleCancel}>
+          <div className="flex-1 min-w-0">
+            <h3 className="modern-dialog-title">{promptData.title || '需要你输入'}</h3>
+            <div className="modern-dialog-subtitle flex items-center gap-2">
+              <span className="badge badge-brand">{getModeLabel()}</span>
+              {promptData.variableName && (
+                <span className="text-[11px] text-[hsl(var(--muted-foreground))] flex items-center gap-1">
+                  →
+                  <code className="variable-tag">{promptData.variableName}</code>
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleCancel}
+            className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+          >
             <X className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
-        <div className="space-y-4">
+        <div className="px-5 py-4 space-y-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">{promptData.message || '请输入值:'}</Label>
+            <Label className="text-[hsl(var(--slate-800))] text-[13px]">{promptData.message || '请输入值:'}</Label>
             {isSelect ? (
               <>
-                <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-80 overflow-y-auto">
+                <div className="space-y-1.5 p-2 bg-[hsl(var(--slate-50))] rounded-[10px] border border-[hsl(var(--border))] max-h-80 overflow-y-auto">
                   {promptData.selectOptions && promptData.selectOptions.length > 0 ? (
                     promptData.selectOptions.map((option, index) => {
                       const isSelected = selectedItems.includes(option)
@@ -323,87 +336,91 @@ export function InputPromptDialog() {
                           key={index}
                           onClick={() => toggleSelectItem(option)}
                           className={`
-                            flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
-                            ${isSelected 
-                              ? 'border-blue-500 bg-blue-50' 
-                              : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                            flex items-center gap-3 p-2.5 rounded-[8px] border-[1.5px] cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]
+                            ${isSelected
+                              ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] shadow-soft'
+                              : 'border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:border-[hsl(var(--brand-500)/0.4)] hover:bg-[hsl(var(--brand-50)/0.6)] hover:translate-x-1'
                             }
                           `}
                         >
                           <div className={`
-                            flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center
-                            ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 bg-white'}
+                            flex-shrink-0 w-5 h-5 rounded-[5px] border-[1.5px] flex items-center justify-center transition-all duration-200
+                            ${isSelected
+                              ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-500))] shadow-brand-glow'
+                              : 'border-[hsl(var(--slate-300))] bg-[hsl(var(--card))]'
+                            }
                           `}>
                             {isSelected && (
-                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              <svg className="w-3 h-3 text-white animate-scale-in" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
                           </div>
-                          <span className={`flex-1 ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+                          <span className={`flex-1 text-[13px] ${isSelected ? 'text-[hsl(var(--brand-800))] font-semibold' : 'text-[hsl(var(--slate-700))]'}`}>
                             {option}
                           </span>
                           {isSelectMultiple && isSelected && (
-                            <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                              {selectedItems.indexOf(option) + 1}
+                            <span className="badge badge-brand !py-0.5">
+                              #{selectedItems.indexOf(option) + 1}
                             </span>
                           )}
                         </div>
                       )
                     })
                   ) : (
-                    <div className="text-center text-gray-400 py-8">
-                      <ListChecks className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>没有可选项</p>
+                    <div className="empty-state !py-6">
+                      <div className="empty-state-icon !w-12 !h-12">
+                        <ListChecks className="w-6 h-6" />
+                      </div>
+                      <div className="empty-state-title !text-[13px]">没有可选项</div>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <div className="status-row status-row-info !py-2">
                   {isSelectSingle ? (
-                    <>
-                      已选择: <code className="bg-gray-100 px-1 rounded">
+                    <span className="text-[12px]">
+                      已选择：
+                      <code className="ml-1 px-1.5 py-0.5 rounded bg-[hsl(var(--card))] border border-[hsl(var(--info-500)/0.3)] text-[hsl(var(--info-700))] font-mono">
                         {selectedItems.length > 0 ? selectedItems[0] : '无'}
                       </code>
-                      <span className="ml-2 text-gray-400">→ 变量: {promptData.variableName}</span>
-                    </>
+                    </span>
                   ) : (
-                    <>
-                      已选择 <code className="bg-blue-100 text-blue-700 px-1 rounded font-medium">
+                    <span className="text-[12px]">
+                      已选择
+                      <code className="mx-1 px-1.5 py-0.5 rounded bg-[hsl(var(--brand-100))] text-[hsl(var(--brand-700))] font-mono font-bold">
                         {selectedItems.length}
-                      </code> 项
-                      <span className="ml-2 text-gray-400">→ 变量: {promptData.variableName}</span>
-                    </>
+                      </code>
+                      项
+                    </span>
                   )}
-                </p>
+                </div>
               </>
             ) : isSlider ? (
               <>
-                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="space-y-3 p-4 bg-gradient-to-br from-[hsl(var(--brand-50)/0.6)] to-[hsl(var(--card))] rounded-[10px] border border-[hsl(var(--border))]">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-[12px] text-[hsl(var(--muted-foreground))] font-mono">
                       {promptData.minValue ?? 0}
                     </span>
-                    <span className="text-2xl font-bold text-blue-600">
+                    <span className="text-[28px] font-bold text-gradient tabular-nums">
                       {isSliderInt ? Math.round(sliderValue) : sliderValue.toFixed(2)}
                     </span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-[12px] text-[hsl(var(--muted-foreground))] font-mono">
                       {promptData.maxValue ?? 100}
                     </span>
                   </div>
                   <div className="relative">
-                    {/* 背景轨道 */}
-                    <div className="absolute w-full h-2 bg-gray-300 rounded-lg" style={{ top: '50%', transform: 'translateY(-50%)' }}></div>
-                    {/* 进度条 - 实时跟随（无过渡动画） */}
-                    <div 
-                      className="absolute h-2 rounded-lg"
-                      style={{ 
-                        top: '50%', 
+                    <div className="absolute w-full h-2 bg-[hsl(var(--slate-200))] rounded-full shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.06)]" style={{ top: '50%', transform: 'translateY(-50%)' }}></div>
+                    <div
+                      className="absolute h-2 rounded-full"
+                      style={{
+                        top: '50%',
                         transform: 'translateY(-50%)',
                         width: `${((sliderValue - (promptData.minValue ?? 0)) / ((promptData.maxValue ?? 100) - (promptData.minValue ?? 0))) * 100}%`,
-                        background: 'linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%)'
+                        background: 'linear-gradient(90deg, hsl(var(--brand-500)), hsl(var(--brand-600)))',
+                        boxShadow: '0 2px 6px hsl(var(--brand-500) / 0.4)'
                       }}
                     ></div>
-                    {/* 滑块 */}
                     <input
                       type="range"
                       min={promptData.minValue ?? 0}
@@ -412,41 +429,43 @@ export function InputPromptDialog() {
                       value={sliderValue}
                       onChange={(e) => setSliderValue(parseFloat(e.target.value))}
                       className="relative w-full h-2 bg-transparent appearance-none cursor-pointer z-10"
-                      style={{
-                        WebkitAppearance: 'none',
-                        appearance: 'none',
-                      }}
+                      style={{ WebkitAppearance: 'none', appearance: 'none' }}
                       autoFocus
                     />
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-[11px] text-[hsl(var(--muted-foreground))]">
                     <span>拖动滑块选择数值</span>
-                    <span className="text-gray-400">
-                      {isSliderInt ? '整数' : '小数（精度0.01）'}
+                    <span className="badge badge-default">
+                      {isSliderInt ? '整数' : '精度 0.01'}
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
-                  将设置变量: <code className="bg-gray-100 px-1 rounded">{promptData.variableName}</code>
-                  <span className="ml-2 text-gray-400">
-                    = <code className="text-blue-600">{isSliderInt ? Math.round(sliderValue) : sliderValue.toFixed(2)}</code>
+                <div className="status-row status-row-info !py-2">
+                  <span className="text-[12px]">
+                    将设置：
+                    <code className="ml-1 px-1.5 py-0.5 rounded variable-tag !text-[11px]">{promptData.variableName}</code>
+                    <span className="mx-1.5 text-[hsl(var(--muted-foreground))]">=</span>
+                    <code className="px-1.5 py-0.5 rounded bg-[hsl(var(--brand-100))] text-[hsl(var(--brand-700))] font-mono font-bold">
+                      {isSliderInt ? Math.round(sliderValue) : sliderValue.toFixed(2)}
+                    </code>
                   </span>
-                </p>
+                </div>
                 <style>{`
                   input[type="range"]::-webkit-slider-thumb {
                     -webkit-appearance: none;
                     appearance: none;
-                    width: 20px;
-                    height: 20px;
+                    width: 22px;
+                    height: 22px;
                     border-radius: 50%;
-                    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+                    background: hsl(var(--card));
+                    border: 3px solid hsl(var(--brand-500));
                     cursor: pointer;
-                    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 8px hsl(var(--brand-500) / 0.45);
+                    transition: all 200ms cubic-bezier(0.25, 1, 0.5, 1);
                   }
                   input[type="range"]::-webkit-slider-thumb:hover {
-                    transform: scale(1.2);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+                    transform: scale(1.18);
+                    box-shadow: 0 4px 14px hsl(var(--brand-500) / 0.6);
                   }
                   input[type="range"]::-webkit-slider-thumb:active {
                     transform: scale(1.1);
@@ -481,31 +500,37 @@ export function InputPromptDialog() {
               </>
             ) : isCheckbox ? (
               <>
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <label
+                  htmlFor="checkbox-input"
+                  className={`flex items-center gap-3 p-3.5 rounded-[10px] border-[1.5px] cursor-pointer transition-all duration-200 ${
+                    checkboxValue
+                      ? 'border-[hsl(var(--success-500))] bg-[hsl(var(--success-50))] shadow-success-glow'
+                      : 'border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] hover:border-[hsl(var(--brand-500)/0.4)] hover:bg-[hsl(var(--brand-50)/0.4)]'
+                  }`}
+                >
                   <input
                     type="checkbox"
                     id="checkbox-input"
                     checked={checkboxValue}
                     onChange={(e) => setCheckboxValue(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    className="w-5 h-5 rounded border-[hsl(var(--slate-300))] accent-[hsl(var(--success-600))] cursor-pointer"
                     autoFocus
                   />
-                  <Label 
-                    htmlFor="checkbox-input" 
-                    className="text-gray-700 cursor-pointer select-none flex-1"
-                  >
+                  <span className="text-[hsl(var(--slate-800))] cursor-pointer select-none flex-1 text-[13px]">
                     {promptData.message || '请选择'}
-                  </Label>
-                  <span className={`text-sm font-medium px-2 py-1 rounded ${checkboxValue ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                  </span>
+                  <span className={`badge ${checkboxValue ? 'badge-success' : 'badge-default'}`}>
                     {checkboxValue ? '已选中' : '未选中'}
                   </span>
+                </label>
+                <div className="status-row status-row-info !py-2 text-[12px]">
+                  将设置：
+                  <code className="ml-1 variable-tag">{promptData.variableName}</code>
+                  <span className="mx-1.5 text-[hsl(var(--muted-foreground))]">=</span>
+                  <code className={`px-1.5 py-0.5 rounded font-mono font-bold ${checkboxValue ? 'bg-[hsl(var(--success-100))] text-[hsl(var(--success-700))]' : 'bg-[hsl(var(--slate-100))] text-[hsl(var(--slate-700))]'}`}>
+                    {checkboxValue ? 'true' : 'false'}
+                  </code>
                 </div>
-                <p className="text-xs text-gray-500">
-                  将设置变量: <code className="bg-gray-100 px-1 rounded">{promptData.variableName}</code>
-                  <span className="ml-2 text-gray-400">
-                    = <code className={checkboxValue ? 'text-green-600' : 'text-gray-600'}>{checkboxValue ? 'true' : 'false'}</code>
-                  </span>
-                </p>
               </>
             ) : isFilePicker || isFolderPicker ? (
               <>
@@ -515,7 +540,7 @@ export function InputPromptDialog() {
                     value={inputValue}
                     onChange={(e) => { setInputValue(e.target.value); setError('') }}
                     placeholder={isFilePicker ? "选择或输入文件路径..." : "选择或输入文件夹路径..."}
-                    className={`flex-1 bg-white text-black ${error ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`flex-1 ${error ? '!border-[hsl(var(--danger-500))] !ring-[hsl(var(--danger-500)/0.18)]' : ''}`}
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -525,20 +550,23 @@ export function InputPromptDialog() {
                   />
                   <Button
                     type="button"
-                    variant="outline"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100 shrink-0"
+                    variant="tonal"
+                    className="shrink-0"
                     onClick={isFilePicker ? handleSelectFile : handleSelectFolder}
                   >
-                    {isFilePicker ? <File className="w-4 h-4 mr-1" /> : <Folder className="w-4 h-4 mr-1" />}
+                    {isFilePicker ? <File className="w-4 h-4" /> : <Folder className="w-4 h-4" />}
                     浏览
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500">
-                  将设置变量: <code className="bg-gray-100 px-1 rounded">{promptData.variableName}</code>
-                  <span className="ml-2 text-gray-400">
-                    {isFilePicker ? '点击"浏览"选择文件，或直接输入路径' : '点击"浏览"选择文件夹，或直接输入路径'}
+                <div className="status-row status-row-info !py-2 text-[12px]">
+                  <span>
+                    将设置：
+                    <code className="ml-1 variable-tag">{promptData.variableName}</code>
+                    <span className="ml-2 text-[hsl(var(--muted-foreground))]">
+                      {isFilePicker ? '点击「浏览」选择文件，或直接输入路径' : '点击「浏览」选择文件夹，或直接输入路径'}
+                    </span>
                   </span>
-                </p>
+                </div>
               </>
             ) : isMultiline ? (
               <>
@@ -546,13 +574,15 @@ export function InputPromptDialog() {
                   value={inputValue}
                   onChange={(e) => { setInputValue(e.target.value); setError('') }}
                   placeholder={isListMode ? "每行输入一个值..." : "请输入内容..."}
-                  className={`w-full h-40 px-3 py-2 bg-white text-black border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${error ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full h-40 px-3 py-2.5 text-[13px] bg-[hsl(var(--slate-50))] text-[hsl(var(--foreground))] border-[1.5px] rounded-[8px] resize-none focus:outline-none focus:bg-[hsl(var(--card))] focus:border-[hsl(var(--brand-500))] focus:ring-2 focus:ring-[hsl(var(--brand-500)/0.18)] transition-all duration-150 leading-relaxed ${error ? 'border-[hsl(var(--danger-500))]' : 'border-[hsl(var(--border))]'}`}
                   autoFocus
                 />
                 {isListMode && (
-                  <p className="text-xs text-gray-500">
-                    每行一个值，当前 {lineCount} 项 → 变量: <code className="bg-gray-100 px-1 rounded">{promptData.variableName}</code>
-                  </p>
+                  <div className="status-row status-row-info !py-2 text-[12px]">
+                    每行一个值，当前
+                    <code className="mx-1 px-1.5 py-0.5 rounded bg-[hsl(var(--brand-100))] text-[hsl(var(--brand-700))] font-mono font-bold">{lineCount}</code>
+                    项 → <code className="variable-tag">{promptData.variableName}</code>
+                  </div>
                 )}
               </>
             ) : (
@@ -562,7 +592,7 @@ export function InputPromptDialog() {
                   value={inputValue}
                   onChange={(e) => { setInputValue(e.target.value); setError('') }}
                   placeholder={isNumber ? "请输入数字..." : "请输入..."}
-                  className={`bg-white text-black ${error ? 'border-red-500' : 'border-gray-300'}`}
+                  className={error ? '!border-[hsl(var(--danger-500))] !ring-[hsl(var(--danger-500)/0.18)]' : ''}
                   autoFocus
                   step={inputMode === 'integer' ? '1' : 'any'}
                   min={promptData.minValue}
@@ -574,24 +604,30 @@ export function InputPromptDialog() {
                     }
                   }}
                 />
-                <p className="text-xs text-gray-500">
-                  将设置变量: <code className="bg-gray-100 px-1 rounded">{promptData.variableName}</code>
+                <div className="flex items-center gap-2 text-[11.5px] text-[hsl(var(--muted-foreground))]">
+                  将设置：<code className="variable-tag">{promptData.variableName}</code>
                   {isNumber && promptData.minValue !== undefined && promptData.maxValue !== undefined && (
-                    <span className="ml-2">范围: {promptData.minValue} ~ {promptData.maxValue}</span>
+                    <span className="badge badge-default">
+                      范围 {promptData.minValue} ~ {promptData.maxValue}
+                    </span>
                   )}
-                </p>
+                </div>
               </>
             )}
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {error && (
+              <div className="status-row status-row-danger animate-fade-in-up !py-2 text-[12px]">
+                {error}
+              </div>
+            )}
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100" onClick={handleCancel}>
-              取消
-            </Button>
-            <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={handleSubmit}>
-              确定
-            </Button>
-          </div>
+        </div>
+        <div className="dialog-footer-bar">
+          <Button variant="secondary" size="sm" onClick={handleCancel}>
+            取消
+          </Button>
+          <Button variant="default" size="sm" onClick={handleSubmit}>
+            确定
+          </Button>
         </div>
       </div>
     </div>
