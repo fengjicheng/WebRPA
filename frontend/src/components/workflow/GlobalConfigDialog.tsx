@@ -146,19 +146,27 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up ${
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up border ${
                     isActive
-                      ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow border border-transparent'
-                      : 'text-[hsl(var(--slate-700))] hover:bg-[hsl(var(--card))] hover:text-[hsl(var(--brand-700))] border border-transparent hover:shadow-xs hover:translate-x-0.5'
+                      ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                      : '!bg-transparent !text-[hsl(var(--slate-700))] !border-transparent hover:!bg-[hsl(var(--card))] hover:!text-[hsl(var(--brand-700))] hover:!border-[hsl(var(--border))] hover:shadow-xs hover:translate-x-0.5'
                   }`}
                   style={{ animationDelay: `${idx * 25}ms` }}
                 >
-                  <span className={isActive ? 'icon-chip !bg-white/20 !text-white !border-white/30 !w-7 !h-7' : `icon-chip icon-chip-${tab.accent} !w-7 !h-7`}>
-                    <Icon className="w-3.5 h-3.5" />
+                  <span
+                    className={
+                      isActive
+                        ? 'inline-flex items-center justify-center w-7 h-7 rounded-[6px] bg-white/25 border border-white/40 shrink-0'
+                        : `icon-chip icon-chip-${tab.accent} !w-7 !h-7`
+                    }
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? '!text-white' : ''}`} />
                   </span>
-                  <span className="flex-1 text-left">{tab.label}</span>
+                  <span className={`flex-1 text-left ${isActive ? '!text-white font-semibold' : ''}`}>
+                    {tab.label}
+                  </span>
                   {isActive && (
-                    <span className="w-1 h-4 rounded-full bg-white/70 animate-fade-in" />
+                    <span className="w-1 h-4 rounded-full bg-white/80 animate-fade-in shrink-0" />
                   )}
                 </button>
               )

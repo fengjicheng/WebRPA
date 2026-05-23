@@ -1260,10 +1260,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                 return (
                   <button
                     key={tab.id}
-                    className={`px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center gap-1.5 relative ${
+                    className={`px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center gap-1.5 relative border ${
                       isActive
-                        ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
-                        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--card))]'
+                        ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                        : '!bg-transparent !text-[hsl(var(--muted-foreground))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                     }`}
                     onClick={() => {
                       setActiveTab(tab.id as typeof activeTab)
@@ -1273,8 +1273,8 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                       }
                     }}
                   >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : ''}`} />
-                    <span className="hidden xl:inline">{tab.label}</span>
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? '!text-white' : ''}`} />
+                    <span className={`hidden xl:inline ${isActive ? '!text-white' : ''}`}>{tab.label}</span>
                     {tab.id === 'remote' && remoteMode !== 'none' && (
                       <span className={`w-1.5 h-1.5 rounded-full ${remoteStatus === 'connected' ? 'bg-[hsl(var(--success-300))]' : 'bg-[hsl(var(--warning-300))]'} animate-pulse`} />
                     )}
@@ -1282,10 +1282,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                 )
               })}
               <button
-                className={`px-2 py-1.5 rounded-[7px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                className={`px-2 py-1.5 rounded-[7px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] border ${
                   activeTab === 'settings'
-                    ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--card))]'
+                    ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                    : '!bg-transparent !text-[hsl(var(--muted-foreground))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                 }`}
                 onClick={() => setActiveTab('settings')}
                 title="设置"
@@ -1594,12 +1594,12 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                 ) : (
                   <>
                     {/* 发布模式选择 */}
-                    <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                    <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-[8px] border border-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)]">
                       <button
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                        className={`flex-1 py-2 px-4 rounded-[6px] text-[13px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-2 border ${
                           publishMode === 'current'
-                            ? 'bg-white text-purple-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                            : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                         }`}
                         onClick={() => {
                           setPublishMode('current')
@@ -1610,10 +1610,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                         发布当前工作流
                       </button>
                       <button
-                        className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                        className={`flex-1 py-2 px-4 rounded-[6px] text-[13px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-2 border ${
                           publishMode === 'file'
-                            ? 'bg-white text-purple-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                            : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                         }`}
                         onClick={() => {
                           setPublishMode('file')
@@ -2630,12 +2630,12 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                   {/* 更新工作流内容 */}
                   <div className="border-t pt-4">
                     <Label className="mb-2 block">更新工作流内容（可选）</Label>
-                    <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-3">
+                    <div className="flex gap-1 p-1 bg-[hsl(var(--slate-100))] rounded-[8px] border border-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)] mb-3">
                       <button
-                        className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
+                        className={`flex-1 py-1.5 px-3 rounded-[6px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] border ${
                           editContentMode === 'none'
-                            ? 'bg-white text-gray-700 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? '!bg-[hsl(var(--slate-700))] !text-white !border-[hsl(var(--slate-800))] shadow-soft'
+                            : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!text-[hsl(var(--slate-900))] hover:!bg-[hsl(var(--card))]'
                         }`}
                         onClick={() => {
                           setEditContentMode('none')
@@ -2646,10 +2646,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                         不更新内容
                       </button>
                       <button
-                        className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
+                        className={`flex-1 py-1.5 px-3 rounded-[6px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] border ${
                           editContentMode === 'current'
-                            ? 'bg-white text-purple-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                            : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                         }`}
                         onClick={() => {
                           setEditContentMode('current')
@@ -2660,10 +2660,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                         用当前工作流
                       </button>
                       <button
-                        className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
+                        className={`flex-1 py-1.5 px-3 rounded-[6px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] border ${
                           editContentMode === 'file'
-                            ? 'bg-white text-purple-600 shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                            : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!text-[hsl(var(--brand-700))] hover:!bg-[hsl(var(--card))]'
                         }`}
                         onClick={() => setEditContentMode('file')}
                       >

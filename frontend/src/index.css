@@ -936,32 +936,12 @@ input[type="range"].slider-thumb::-moz-range-thumb {
 }
 
 /* ============================================================
-   兜底：彩色"看得出来是按钮"
-   注：v2 设计系统中所有按钮都已显式声明 bg-* token，
-   此规则仅作为极少数遗留代码的保底，避免覆盖正常的彩色按钮。
-   只在元素同时满足"无任何 bg- 类 + 无 text- 类 + 是 button 标签"时生效，
-   通过仅匹配纯 has-hover-only 标记类来限定范围。
+   兜底类（已废弃）
+   v2 设计系统中所有按钮均显式声明 bg-/text- token，不再需要兜底。
+   保留空规则避免 className 中残留的 has-hover-only 报错。
    ============================================================ */
-button.has-hover-only:not([class*="bg-"]):not([class*="!bg-"]),
-.has-hover-only:not([class*="bg-"]):not([class*="!bg-"]) {
-  background-color: hsl(var(--brand-50));
-  border: 1px solid hsl(var(--brand-500) / 0.3);
-  color: hsl(var(--brand-700));
-  border-radius: var(--radius);
-  transition: background-color 140ms var(--ease-out-quart),
-              border-color 140ms var(--ease-out-quart),
-              color 140ms var(--ease-out-quart),
-              box-shadow 140ms var(--ease-out-quart),
-              transform 100ms var(--ease-out-quart);
-}
-button.has-hover-only:not([class*="bg-"]):not([class*="!bg-"]):hover,
-.has-hover-only:not([class*="bg-"]):not([class*="!bg-"]):hover {
-  background-color: hsl(var(--brand-100));
-  border-color: hsl(var(--brand-500) / 0.5);
-  box-shadow: var(--shadow-xs);
-}
-.has-hover-only:not([class*="bg-"]):not([class*="!bg-"]):active {
-  transform: translateY(1px);
+.has-hover-only {
+  /* no-op */
 }
 
 /* ============================================================

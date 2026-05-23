@@ -1,4 +1,4 @@
-import { Sparkles, Command } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAIAssistantStore } from '@/store/aiAssistantStore'
 
@@ -54,8 +54,8 @@ export function AIAssistantButton() {
 
       <span className="text-[13.5px] font-semibold text-gradient">小助手</span>
 
-      <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 h-5 rounded border border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] text-[10px] font-mono text-[hsl(var(--muted-foreground))] shadow-xs">
-        <Command className="w-2.5 h-2.5" /> K
+      <kbd className="hidden sm:inline-flex items-center gap-1 px-2 h-5 rounded border border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] text-[10.5px] font-mono font-semibold text-[hsl(var(--muted-foreground))] shadow-xs">
+        Ctrl+K
       </kbd>
     </button>
   )

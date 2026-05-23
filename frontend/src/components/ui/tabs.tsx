@@ -29,13 +29,13 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[6px] px-3 py-1 ' +
-        'text-[12px] font-medium ' +
+        'text-[12px] font-medium border border-transparent ' +
         'transition-[background-color,color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] ' +
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ' +
         'disabled:pointer-events-none disabled:opacity-50 ' +
         // 激活：品牌蓝填充 + 白字 + 蓝光晕
-        'data-[state=active]:bg-[hsl(var(--brand-600))] data-[state=active]:text-white ' +
-        'data-[state=active]:shadow-brand-glow data-[state=active]:font-semibold ' +
+        'data-[state=active]:!bg-[hsl(var(--brand-600))] data-[state=active]:!text-white ' +
+        'data-[state=active]:!border-[hsl(var(--brand-700))] data-[state=active]:shadow-brand-glow data-[state=active]:font-semibold ' +
         // 未激活悬浮
         'data-[state=inactive]:hover:bg-[hsl(var(--card))] data-[state=inactive]:hover:text-[hsl(var(--brand-700))] data-[state=inactive]:hover:shadow-xs',
       className

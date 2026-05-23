@@ -411,10 +411,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 执行日志 - 蓝 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
                 activeTab === 'logs'
-                  ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
-                  : 'bg-transparent text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--brand-50))] hover:text-[hsl(var(--brand-700))]'
+                  ? '!bg-[hsl(var(--brand-600))] !text-white !border-[hsl(var(--brand-700))] shadow-brand-glow'
+                  : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--brand-50))] hover:!text-[hsl(var(--brand-700))]'
               )}
               onClick={() => setActiveTab('logs')}
             >
@@ -423,7 +423,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <span className="sm:hidden">日志</span>
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-mono',
-                activeTab === 'logs' ? 'bg-white/25' : 'bg-[hsl(var(--slate-100))]'
+                activeTab === 'logs' ? '!bg-white/25 !text-white' : 'bg-[hsl(var(--slate-100))]'
               )}>
                 {logs.length}
               </span>
@@ -431,10 +431,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 数据表格 - 青蓝 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
                 activeTab === 'data'
-                  ? 'bg-[hsl(var(--info-600))] text-white shadow-pop'
-                  : 'bg-transparent text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--info-50))] hover:text-[hsl(var(--info-700))]'
+                  ? '!bg-[hsl(var(--info-600))] !text-white !border-[hsl(var(--info-700))] shadow-pop'
+                  : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--info-50))] hover:!text-[hsl(var(--info-700))]'
               )}
               onClick={() => setActiveTab('data')}
             >
@@ -443,7 +443,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <span className="sm:hidden">数据</span>
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-mono',
-                activeTab === 'data' ? 'bg-white/25' : 'bg-[hsl(var(--slate-100))]'
+                activeTab === 'data' ? '!bg-white/25 !text-white' : 'bg-[hsl(var(--slate-100))]'
               )}>
                 {collectedData.length}
               </span>
@@ -451,10 +451,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 全局变量 - 紫 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
                 activeTab === 'variables'
-                  ? 'bg-[hsl(var(--violet-600))] text-white shadow-pop'
-                  : 'bg-transparent text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--violet-50))] hover:text-[hsl(var(--violet-700))]'
+                  ? '!bg-[hsl(var(--violet-600))] !text-white !border-[hsl(var(--violet-700))] shadow-pop'
+                  : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--violet-50))] hover:!text-[hsl(var(--violet-700))]'
               )}
               onClick={() => setActiveTab('variables')}
             >
@@ -463,7 +463,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <span className="sm:hidden">变量</span>
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-mono',
-                activeTab === 'variables' ? 'bg-white/25' : 'bg-[hsl(var(--slate-100))]'
+                activeTab === 'variables' ? '!bg-white/25 !text-white' : 'bg-[hsl(var(--slate-100))]'
               )}>
                 {variables.length}
               </span>
@@ -471,10 +471,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* Excel - 绿 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
                 activeTab === 'assets'
-                  ? 'bg-[hsl(var(--success-600))] text-white shadow-success-glow'
-                  : 'bg-transparent text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--success-50))] hover:text-[hsl(var(--success-700))]'
+                  ? '!bg-[hsl(var(--success-600))] !text-white !border-[hsl(var(--success-700))] shadow-success-glow'
+                  : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--success-50))] hover:!text-[hsl(var(--success-700))]'
               )}
               onClick={() => setActiveTab('assets')}
             >
@@ -483,7 +483,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <span className="md:hidden">Excel</span>
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-mono',
-                activeTab === 'assets' ? 'bg-white/25' : 'bg-[hsl(var(--slate-100))]'
+                activeTab === 'assets' ? '!bg-white/25 !text-white' : 'bg-[hsl(var(--slate-100))]'
               )}>
                 {dataAssets.length}
               </span>
@@ -491,10 +491,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
             {/* 图像 - 橙 */}
             <button
               className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[12px] rounded-[8px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] whitespace-nowrap font-semibold border',
                 activeTab === 'images'
-                  ? 'bg-[hsl(var(--warning-500))] text-white shadow-warning-glow'
-                  : 'bg-transparent text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--warning-50))] hover:text-[hsl(var(--warning-700))]'
+                  ? '!bg-[hsl(var(--warning-500))] !text-white !border-[hsl(var(--warning-600))] shadow-warning-glow'
+                  : '!bg-transparent !text-[hsl(var(--slate-600))] !border-transparent hover:!bg-[hsl(var(--warning-50))] hover:!text-[hsl(var(--warning-700))]'
               )}
               onClick={() => setActiveTab('images')}
             >
@@ -503,7 +503,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <span className="md:hidden">图像</span>
               <span className={cn(
                 'text-[10px] px-1.5 py-0.5 rounded-full font-mono',
-                activeTab === 'images' ? 'bg-white/25' : 'bg-[hsl(var(--slate-100))]'
+                activeTab === 'images' ? '!bg-white/25 !text-white' : 'bg-[hsl(var(--slate-100))]'
               )}>
                 {useWorkflowStore.getState().imageAssets.length}
               </span>
