@@ -236,6 +236,98 @@ export async function executeClientAction(
         return { success: true, message: '已粘贴节点' }
       }
 
+      case 'move_node': {
+        const nodeId = payload.node_id as string
+        const x = Number(payload.x)
+        const y = Number(payload.y)
+        if (!nodeId) return { success: false, error: '缺少 node_id' }
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return { success: false, error: '坐标必须为数字' }
+        const s = useWorkflowStore.getState()
+        const exists = s.nodes.some((n: any) => n.id === nodeId)
+        if (!exists) return { success: false, error: `节点 ${nodeId} 不存在` }
+        useWorkflowStore.setState({
+          nodes: s.nodes.map((n: any) => (n.id === nodeId ? { ...n, position: { x, y } } : n)),
+        } as any)
+        return { success: true, message: `已将节点 ${nodeId} 移到 (${x}, ${y})` }
+      }
+
+      case 'rename_node': {
+        const nodeId = payload.node_id as string
+        const label = payload.label as string
+        if (!nodeId) return { success: false, error: '缺少 node_id' }
+        if (!label) return { success: false, error: '缺少 label' }
+        useWorkflowStore.getState().updateNodeData(nodeId, { label } as any)
+        return { success: true, message: `已重命名节点 ${nodeId} → ${label}` }
+      }
+
+      case 'find_nodes_by_type': {
+        const type = payload.type as string
+        if (!type) return { success: false, error: '缺少 type' }
+        const matches = useWorkflowStore.getState().nodes.filter((n: any) => n.type === type)
+        return {
+          success: true,
+          data: matches.map((n: any) => ({ id: n.id, type: n.type, label: n.data?.label, position: n.position })),
+        }
+      }
+
+      case 'connect_nodes': {
+        const source = payload.source as string
+        const target = payload.target as string
+        if (!source || !target) return { success: false, error: '缺少 source / target' }
+        const s = useWorkflowStore.getState()
+        const sourceExists = s.nodes.some((n: any) => n.id === source)
+        const targetExists = s.nodes.some((n: any) => n.id === target)
+        if (!sourceExists || !targetExists) return { success: false, error: '节点不存在' }
+        const newEdge = {
+          id: `e-${source}-${target}-${Date.now().toString(36)}`,
+          source,
+          target,
+          sourceHandle: payload.source_handle || undefined,
+          targetHandle: payload.target_handle || undefined,
+        }
+        useWorkflowStore.setState({ edges: [...s.edges, newEdge] } as any)
+        return { success: true, message: `已连接 ${source} → ${target}`, data: newEdge }
+      }
+
+      case 'disconnect_edge': {
+        const edgeId = payload.edge_id as string
+        if (!edgeId) return { success: false, error: '缺少 edge_id' }
+        const s = useWorkflowStore.getState()
+        const remaining = s.edges.filter((e: any) => e.id !== edgeId)
+        if (remaining.length === s.edges.length) return { success: false, error: '该连线不存在' }
+        useWorkflowStore.setState({ edges: remaining } as any)
+        return { success: true, message: `已删除连线 ${edgeId}` }
+      }
+
+      case 'select_all_nodes': {
+        const s = useWorkflowStore.getState()
+        useWorkflowStore.setState({
+          nodes: s.nodes.map((n: any) => ({ ...n, selected: true })),
+        } as any)
+        return { success: true, message: `已选中 ${s.nodes.length} 个节点` }
+      }
+
+      case 'clear_selection': {
+        const s = useWorkflowStore.getState()
+        useWorkflowStore.setState({
+          nodes: s.nodes.map((n: any) => ({ ...n, selected: false })),
+          selectedNodeId: null,
+        } as any)
+        return { success: true, message: '已取消选中' }
+      }
+
+      case 'fit_view': {
+        emitAssistantUiEvent('fit_view', payload)
+        return { success: true, message: '已请求适配视图' }
+      }
+
+      case 'run_single_node': {
+        const nodeId = payload.node_id as string
+        if (!nodeId) return { success: false, error: '缺少 node_id' }
+        emitAssistantUiEvent('run_single_node', { node_id: nodeId })
+        return { success: true, message: `已请求单节点运行：${nodeId}` }
+      }
+
       case 'undo': {
         const s = useWorkflowStore.getState()
         if (!s.canUndo()) return { success: false, error: '没有可撤销的步骤' }

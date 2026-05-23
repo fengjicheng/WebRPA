@@ -443,6 +443,284 @@ async def skill_get_recent_logs(workflow_id: str | None = None, limit: int = 50,
     return {"count": len(summaries), "executions": summaries}
 
 
+# === 5b. 全量快照类（一次拿到 WebRPA 所有可见状态） ===
+
+async def skill_get_full_snapshot(**_: Any) -> dict[str, Any]:
+    """一次性拿到当前 WebRPA 后端全部可见状态：执行器列表、自定义模块、计划任务、本地工作流、最近执行结果。
+    用于 LLM 第一次开始任务时获得整体上下文。"""
+    snap: dict[str, Any] = {}
+    # 1) 执行器
+    try:
+        from app.executors.base import registry as exec_registry
+        types = sorted(exec_registry.get_all_types())
+        snap["executors_count"] = len(types)
+        snap["executor_types"] = types[:200]
+    except Exception as e:
+        snap["executors_error"] = str(e)
+    # 2) 本地工作流
+    try:
+        folder = _get_workflow_folder()
+        snap["local_workflows"] = [
+            fp.stem for fp in sorted(folder.glob("*.json"))
+        ]
+    except Exception as e:
+        snap["local_workflows_error"] = str(e)
+    # 3) 自定义模块
+    try:
+        cm_folder = _get_data_folder() / "custom_modules"
+        custom: list[dict[str, Any]] = []
+        if cm_folder.exists():
+            for fp in sorted(cm_folder.glob("*.json")):
+                try:
+                    data = json.loads(fp.read_text(encoding="utf-8"))
+                    custom.append({
+                        "id": data.get("id"),
+                        "name": data.get("name"),
+                        "category": data.get("category", ""),
+                    })
+                except Exception:
+                    pass
+        snap["custom_modules"] = custom
+    except Exception as e:
+        snap["custom_modules_error"] = str(e)
+    # 4) 计划任务
+    try:
+        fp = _get_data_folder() / "scheduled_tasks.json"
+        if fp.exists():
+            data = json.loads(fp.read_text(encoding="utf-8"))
+            tasks = data if isinstance(data, list) else data.get("tasks", [])
+            snap["scheduled_tasks"] = [
+                {
+                    "id": t.get("id"),
+                    "name": t.get("name"),
+                    "enabled": t.get("enabled"),
+                    "trigger_type": t.get("trigger_type") or t.get("triggerType"),
+                }
+                for t in tasks
+            ]
+        else:
+            snap["scheduled_tasks"] = []
+    except Exception as e:
+        snap["scheduled_tasks_error"] = str(e)
+    # 5) 最近执行结果摘要
+    try:
+        from app.api.workflows import execution_results
+        recents = []
+        for wid, r in list(execution_results.items())[-10:]:
+            recents.append({
+                "workflow_id": wid,
+                "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+                "executed_nodes": r.executed_nodes,
+                "failed_nodes": r.failed_nodes,
+            })
+        snap["recent_executions"] = recents
+    except Exception:
+        snap["recent_executions"] = []
+    # 6) 全局变量
+    try:
+        from app.services.variable_manager import VariableManager
+        # 这里默认全局变量管理器是单例形式，但项目里通常按工作流创建，所以仅返回标记
+        snap["note"] = "运行时全局变量请通过 list_global_variables 查询"
+    except Exception:
+        pass
+    return snap
+
+
+async def skill_list_global_variables(**_: Any) -> dict[str, Any]:
+    """读取所有持久化的全局变量"""
+    try:
+        # WebRPA 把全局变量存储为前端 store 状态，但执行器会持久化到 backend/data/global_vars.json
+        fp = _get_data_folder() / "global_vars.json"
+        if not fp.exists():
+            return {"variables": {}, "note": "目前还没有持久化的全局变量"}
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        return {"variables": data, "count": len(data) if isinstance(data, dict) else 0}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# === 5c. 计划任务管理（CRUD） ===
+
+async def skill_get_scheduled_task(task_id: str, **_: Any) -> dict[str, Any]:
+    """获取某个计划任务的详情"""
+    fp = _get_data_folder() / "scheduled_tasks.json"
+    if not fp.exists():
+        return {"error": "暂无计划任务"}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        tasks = data if isinstance(data, list) else data.get("tasks", [])
+        for t in tasks:
+            if t.get("id") == task_id:
+                return {"task": t}
+        return {"error": f"未找到任务 {task_id}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def skill_get_scheduled_task_logs(task_id: str | None = None, limit: int = 50, **_: Any) -> dict[str, Any]:
+    """读取计划任务的执行日志"""
+    fp = _get_data_folder() / "scheduled_task_logs.json"
+    if not fp.exists():
+        return {"logs": [], "count": 0}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        logs = data if isinstance(data, list) else data.get("logs", [])
+        if task_id:
+            logs = [l for l in logs if l.get("task_id") == task_id]
+        logs = logs[-int(limit):]
+        return {"logs": logs, "count": len(logs)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# === 5d. 资源管理类 ===
+
+async def skill_list_data_assets(folder: str | None = None, **_: Any) -> dict[str, Any]:
+    """列出所有 Excel 数据资源（uploads/excel）"""
+    try:
+        from app.api.data_assets import data_assets
+        items = []
+        for a in data_assets.values():
+            if folder is not None and a.get("folder") != folder:
+                continue
+            items.append({
+                "id": a.get("id"),
+                "name": a.get("name"),
+                "folder": a.get("folder", ""),
+                "size": a.get("size"),
+                "sheets": a.get("sheetNames", []),
+            })
+        return {"count": len(items), "assets": items}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def skill_list_image_assets(folder: str | None = None, **_: Any) -> dict[str, Any]:
+    """列出所有图像资源（uploads/images）"""
+    try:
+        from app.api.image_assets import image_assets
+        items = []
+        for a in image_assets.values():
+            if folder is not None and a.get("folder") != folder:
+                continue
+            items.append({
+                "id": a.get("id"),
+                "name": a.get("name"),
+                "folder": a.get("folder", ""),
+                "size": a.get("size"),
+                "extension": a.get("extension"),
+            })
+        return {"count": len(items), "images": items}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def skill_get_custom_module(module_id: str, **_: Any) -> dict[str, Any]:
+    """获取自定义模块的完整定义（包括内部工作流）"""
+    folder = _get_data_folder() / "custom_modules"
+    if not folder.exists():
+        return {"error": "自定义模块目录不存在"}
+    fp = folder / f"{module_id}.json"
+    try:
+        fp.resolve().relative_to(folder.resolve())
+    except ValueError:
+        return {"error": "非法 module_id"}
+    if not fp.exists():
+        return {"error": f"未找到模块 {module_id}"}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        return {"module": data}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# === 5e. 全文搜索（在所有本地工作流和自定义模块里搜文本） ===
+
+async def skill_search_in_workflows(keyword: str, **_: Any) -> dict[str, Any]:
+    """在所有本地工作流的 JSON 里搜索关键词（含节点 label、URL、变量名等）"""
+    if not keyword.strip():
+        return {"error": "关键词不能为空"}
+    folder = _get_workflow_folder()
+    matches: list[dict[str, Any]] = []
+    kw = keyword.lower()
+    for fp in sorted(folder.glob("*.json")):
+        try:
+            text = fp.read_text(encoding="utf-8")
+            if kw in text.lower():
+                # 找出包含关键词的节点
+                data = json.loads(text)
+                hits: list[dict[str, Any]] = []
+                for n in data.get("nodes", []):
+                    n_text = json.dumps(n, ensure_ascii=False).lower()
+                    if kw in n_text:
+                        hits.append({
+                            "id": n.get("id"),
+                            "type": n.get("type"),
+                            "label": (n.get("data") or {}).get("label", ""),
+                        })
+                matches.append({
+                    "filename": fp.name,
+                    "name": fp.stem,
+                    "hit_nodes": hits[:10],
+                })
+        except Exception:
+            continue
+    return {"keyword": keyword, "files_matched": len(matches), "matches": matches[:20]}
+
+
+# === 5f. 上下文摘要 / AI 自主任务计划 ===
+
+async def skill_summarize_workflow(filename: str, **_: Any) -> dict[str, Any]:
+    """读一个工作流并产出结构化摘要（节点序列 + 入口/出口 + 变量使用）"""
+    folder = _get_workflow_folder()
+    if not filename.endswith(".json"):
+        filename = filename + ".json"
+    fp = folder / filename
+    try:
+        fp.resolve().relative_to(folder.resolve())
+    except ValueError:
+        return {"error": "非法文件名"}
+    if not fp.exists():
+        return {"error": "文件不存在"}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"error": f"解析失败: {e}"}
+
+    nodes = data.get("nodes", [])
+    edges = data.get("edges", [])
+    in_edges: dict[str, int] = {}
+    out_edges: dict[str, int] = {}
+    for e in edges:
+        in_edges[e.get("target")] = in_edges.get(e.get("target"), 0) + 1
+        out_edges[e.get("source")] = out_edges.get(e.get("source"), 0) + 1
+
+    entries = [n.get("id") for n in nodes if in_edges.get(n.get("id"), 0) == 0]
+    exits = [n.get("id") for n in nodes if out_edges.get(n.get("id"), 0) == 0]
+
+    # 抽取节点配置中的变量引用
+    import re as _re
+    var_pattern = _re.compile(r"\{([A-Za-z_][\w]*)\}")
+    var_uses: set[str] = set()
+    for n in nodes:
+        text = json.dumps(n.get("data", {}), ensure_ascii=False)
+        for m in var_pattern.findall(text):
+            var_uses.add(m)
+
+    # 节点顺序（拓扑近似）
+    type_seq = [n.get("type") for n in nodes if n.get("type")]
+
+    return {
+        "name": data.get("name", fp.stem),
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "entry_nodes": entries[:10],
+        "exit_nodes": exits[:10],
+        "node_type_sequence": type_seq[:50],
+        "variables_used": sorted(var_uses)[:30],
+    }
+
+
 # === 5. 长期记忆类 ===
 
 def _get_memory_file() -> Path:
@@ -716,6 +994,97 @@ def _register_all() -> None:
         handler=skill_get_recent_logs,
     ))
 
+    # 全量快照与扩展查询
+    registry.register(Skill(
+        name="get_full_snapshot",
+        description=(
+            "一次性获取后端全部可见状态：执行器列表、本地工作流名、自定义模块、计划任务、最近执行结果。"
+            "推荐 LLM 在开始任务前先调用一次，以便对项目当前状态有整体认识。"
+        ),
+        parameters={"type": "object", "properties": {}},
+        handler=skill_get_full_snapshot,
+    ))
+    registry.register(Skill(
+        name="list_global_variables",
+        description="读取后端持久化的全局变量",
+        parameters={"type": "object", "properties": {}},
+        handler=skill_list_global_variables,
+    ))
+    registry.register(Skill(
+        name="get_scheduled_task",
+        description="获取某个计划任务的完整定义（trigger 配置、关联工作流等）",
+        parameters={
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+        handler=skill_get_scheduled_task,
+    ))
+    registry.register(Skill(
+        name="get_scheduled_task_logs",
+        description="读取计划任务的执行日志",
+        parameters={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string", "description": "可选，只看某个任务的"},
+                "limit": {"type": "integer", "default": 50},
+            },
+        },
+        handler=skill_get_scheduled_task_logs,
+    ))
+    registry.register(Skill(
+        name="list_data_assets",
+        description="列出所有 Excel 资源（uploads/excel）",
+        parameters={
+            "type": "object",
+            "properties": {
+                "folder": {"type": "string", "description": "可选，只看某子目录"}
+            },
+        },
+        handler=skill_list_data_assets,
+    ))
+    registry.register(Skill(
+        name="list_image_assets",
+        description="列出所有图像资源（uploads/images）",
+        parameters={
+            "type": "object",
+            "properties": {
+                "folder": {"type": "string", "description": "可选，只看某子目录"}
+            },
+        },
+        handler=skill_list_image_assets,
+    ))
+    registry.register(Skill(
+        name="get_custom_module",
+        description="读取一个自定义模块的完整定义（包含其内部工作流）",
+        parameters={
+            "type": "object",
+            "properties": {"module_id": {"type": "string"}},
+            "required": ["module_id"],
+        },
+        handler=skill_get_custom_module,
+    ))
+    registry.register(Skill(
+        name="search_in_workflows",
+        description="在所有本地工作流文件里搜索文本（节点 label、URL、变量名等）",
+        parameters={
+            "type": "object",
+            "properties": {"keyword": {"type": "string"}},
+            "required": ["keyword"],
+        },
+        handler=skill_search_in_workflows,
+    ))
+    registry.register(Skill(
+        name="summarize_workflow",
+        description="读取一个本地工作流并产出结构化摘要（入口/出口节点、节点序列、用到的变量等）",
+        parameters={
+            "type": "object",
+            "properties": {"filename": {"type": "string"}},
+            "required": ["filename"],
+        },
+        handler=skill_summarize_workflow,
+    ))
+
     # 长期记忆
     registry.register(Skill(
         name="remember",
@@ -800,6 +1169,15 @@ def _register_all() -> None:
             "- align_nodes: 对齐已选中的节点（payload.type='left'|'center'|'right'|'top'|'middle'|'bottom'|'distribute-horizontal'|'distribute-vertical'）\n"
             "- copy_nodes: 复制节点到剪贴板（payload.node_ids）\n"
             "- paste_nodes: 粘贴剪贴板节点（payload.position 可选）\n"
+            "- move_node: 把节点移动到指定坐标（payload.node_id, payload.x, payload.y）\n"
+            "- rename_node: 修改节点显示名（payload.node_id, payload.label）\n"
+            "- find_nodes_by_type: 查找所有指定 type 的节点 id（payload.type）\n"
+            "- connect_nodes: 创建节点之间的连线（payload.source, payload.target, payload.source_handle 可选, payload.target_handle 可选）\n"
+            "- disconnect_edge: 删除指定连线（payload.edge_id）\n"
+            "- select_all_nodes: 选中画布所有节点\n"
+            "- clear_selection: 取消所有节点选中\n"
+            "- fit_view: 自动缩放画布让所有节点可见\n"
+            "- run_single_node: 单独运行某节点（仅支持调试场景）（payload.node_id）\n"
             "- undo / redo: 撤销 / 重做\n\n"
             "【变量】\n"
             "- add_variable: 新增变量（payload.name, payload.value, payload.type, payload.scope）\n"

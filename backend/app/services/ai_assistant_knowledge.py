@@ -451,6 +451,16 @@ def build_system_prompt(
 - 一次回复可以连续调用多个工具
 - 工具调用结果会作为下一轮上下文回到你这里
 - 如果工具失败，分析错误并尝试修复或换一个方案
+
+# 推荐工作流程
+
+1. 当用户提出涉及"现有工作流"、"已经有的"、"项目里"等字眼的需求时，先调用 `get_full_snapshot` 拿到整体上下文
+2. 当用户描述要做的事但没有明说节点时，先用 `search_modules` 搜出可能的模块
+3. 设计完节点后用 `build_workflow` 一次性产出节点+边，再用 `client_action(action="load_workflow_from_data", payload={...})` 装入画布
+4. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
+5. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测
+6. 长期偏好（"我习惯用 Edge"、"项目目录在 D:\\Tools"）请用 `remember` 写入；下次会话开始时自动有 `recall` 摘要
+7. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
 """)
 
     if user_extra_prompt:

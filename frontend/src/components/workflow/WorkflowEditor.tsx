@@ -1006,6 +1006,40 @@ export function WorkflowEditor() {
     reactFlowInstance.current = instance
   }, [])
 
+  // 监听 AI 小助手发起的画布操作（聚焦/适配/单节点运行）
+  useEffect(() => {
+    const offs: Array<() => void> = []
+    offs.push(onAssistantUiEvent('fit_view', () => {
+      try {
+        reactFlowInstance.current?.fitView({ padding: 0.2, duration: 320 })
+      } catch {}
+    }))
+    offs.push(onAssistantUiEvent('focus_node', (p: any) => {
+      const nodeId = p?.node_id as string
+      if (!nodeId) return
+      const node = nodes.find(n => n.id === nodeId)
+      if (!node || !reactFlowInstance.current) return
+      try {
+        reactFlowInstance.current.setCenter(
+          node.position.x + ((node.width as number) || 200) / 2,
+          node.position.y + ((node.height as number) || 100) / 2,
+          { zoom: 1, duration: 320 }
+        )
+      } catch {}
+    }))
+    offs.push(onAssistantUiEvent('run_single_node', (p: any) => {
+      const nodeId = p?.node_id as string
+      if (!nodeId) return
+      // 仅作日志提示（真正的单节点执行需要后端支持，这里先抛事件供 Toolbar 处理）
+      // Toolbar 上有"运行选中"快捷入口，可后续扩展
+      try {
+        const { addLog } = useWorkflowStore.getState()
+        addLog({ level: 'info', message: `[AI] 请求单独运行节点 ${nodeId}（请使用 Toolbar 的"运行"按钮触发）` })
+      } catch {}
+    }))
+    return () => { offs.forEach(o => o()) }
+  }, [nodes])
+
   // 处理日志点击 - 定位到对应节点
   const handleLogClick = useCallback((nodeId: string) => {
     if (!reactFlowInstance.current) return

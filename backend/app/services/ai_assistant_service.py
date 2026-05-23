@@ -344,6 +344,32 @@ async def chat_once(
         memory_summary=memory_summary,
     )
 
+    # 4b. 给 system_text 追加可用 client_action 完整列表（让 LLM 不必反复猜测名称）
+    if config.enable_tools:
+        client_actions_hint = (
+            "\n# client_action 速查表（精确名称）\n"
+            "工作流：new_workflow / load_workflow / load_workflow_from_data / save_workflow / run_workflow / "
+            "run_workflow_headless / stop_workflow / export_workflow / rename_workflow / get_workflow_detail / "
+            "get_logs / get_collected_data\n"
+            "节点：add_nodes / delete_node / delete_nodes / update_node_config / focus_node / toggle_node_disabled / "
+            "align_nodes / copy_nodes / paste_nodes / move_node / rename_node / find_nodes_by_type / "
+            "connect_nodes / disconnect_edge / select_all_nodes / clear_selection / fit_view / run_single_node / "
+            "undo / redo\n"
+            "变量：add_variable / update_variable / delete_variable / rename_variable / list_variables\n"
+            "日志/数据：clear_logs / clear_data / set_verbose_log / set_max_log_count / export_logs / download_data / "
+            "upload_excel / upload_image / add_log\n"
+            "切换/弹窗：switch_bottom_panel(tab=logs|data|variables|assets|images) / "
+            "open_global_config / close_global_config / open_local_workflow_dialog / close_local_workflow_dialog / "
+            "open_scheduled_tasks / close_scheduled_tasks / open_documentation / close_documentation / "
+            "open_workflow_hub / close_workflow_hub / open_auto_browser / close_auto_browser / "
+            "open_phone_mirror / close_phone_mirror / open_variable_tracking / close_variable_tracking / "
+            "open_export_dialog / open_module_search / take_screenshot\n"
+            "全局配置：get_global_config / update_global_config(section=system|ai|aiAssistant|aiScraper|"
+            "email|browser|database|qq|feishu|display|workflow, values={...})\n"
+            "提示：show_toast(message, type)\n"
+        )
+        system_text = system_text + client_actions_hint
+
     # 5. 多轮工具调用编排
     tools = skill_registry.to_openai_tools() if config.enable_tools else None
 
