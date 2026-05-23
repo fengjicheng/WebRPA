@@ -1726,61 +1726,70 @@ function ModuleItem({
     <div className="relative">
       <div
         style={customStyle}
-        className={`flex items-center gap-2 rounded-md 
-          hover:bg-[hsl(var(--muted))] 
-          transition-all duration-200 ease-out
-          hover:translate-x-1 hover:shadow-sm
+        className={`flex items-center gap-1 rounded-[7px]
+          bg-[hsl(var(--card))]
+          border border-transparent
+          hover:bg-gradient-to-r hover:from-[hsl(var(--brand-50))] hover:to-[hsl(var(--card))]
+          hover:border-[hsl(var(--brand-500)/0.3)]
+          hover:shadow-xs
+          transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]
+          hover:translate-x-0.5
           group
-          ${isDropTarget ? 'border-t-2 border-blue-500 bg-blue-50/50 translate-y-1' : ''}
+          ${isDropTarget ? 'border-t-2 !border-t-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] translate-y-1' : ''}
           ${isDragging ? 'opacity-50 scale-95' : ''}`}
       >
         {/* 可拖拽区域 */}
         <div
-          className="flex items-center gap-2 px-3 py-2 flex-1 cursor-grab active:scale-95 active:opacity-80"
+          className="flex items-center gap-2 px-2 py-1.5 flex-1 cursor-grab active:scale-[0.97] active:opacity-80"
           draggable
           onDragStart={onMainDragStart}
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
-          {/* 收藏模块视图中显示拖拽排序手柄 */}
           {enableSortDrag && (
-            <div 
-              className="p-1 rounded cursor-grab text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-all"
+            <div
+              className="p-0.5 rounded cursor-grab text-[hsl(var(--slate-300))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-all"
               draggable
               onDragStart={onHandleDragStart}
-              title="拖拽此处调整顺序"
+              title="拖拽调整顺序"
             >
-              <GripHorizontal className="w-3.5 h-3.5" />
+              <GripHorizontal className="w-3 h-3" />
             </div>
           )}
-          <div className="p-1 rounded transition-all duration-200 group-hover:bg-white/50 group-hover:scale-110">
-            <Icon 
-              className="w-4 h-4 text-muted-foreground transition-colors duration-200 group-hover:text-blue-600" 
-              style={customColor ? { color: customColor } : {}}
+          <div
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-all duration-200 group-hover:scale-105 shrink-0"
+            style={customColor
+              ? { backgroundColor: `${customColor}20`, color: customColor, border: `1px solid ${customColor}40` }
+              : { backgroundColor: 'hsl(var(--slate-100))', color: 'hsl(var(--slate-600))' }
+            }
+          >
+            <Icon
+              className="w-3.5 h-3.5 transition-all duration-200 group-hover:scale-110"
+              strokeWidth={2.2}
             />
           </div>
-          <span 
-            className="text-sm transition-colors duration-200 group-hover:text-foreground flex-1"
+          <span
+            className="text-[12.5px] font-medium transition-colors duration-200 text-[hsl(var(--slate-700))] group-hover:text-[hsl(var(--brand-800))] flex-1 truncate"
             style={customColor ? { color: customColor } : {}}
           >
             {highlight ? highlightText(label, highlight) : label}
           </span>
         </div>
-        
+
         {/* 按钮区域 - 不可拖拽 */}
-        <div className="flex items-center gap-1 pr-2">
+        <div className="flex items-center gap-0.5 pr-1.5">
           {onSetCustomColor && (
             <button
               ref={colorButtonRef}
               onClick={handleColorClick}
-              className="p-1 rounded transition-all duration-200 hover:scale-110 hover:bg-gray-100 opacity-0 group-hover:opacity-100 cursor-pointer"
+              className="p-1 rounded-[5px] transition-all duration-200 hover:scale-110 hover:bg-[hsl(var(--slate-100))] opacity-0 group-hover:opacity-100 cursor-pointer active:scale-90"
               title="设置标签颜色"
             >
-              <div 
-                className="w-3.5 h-3.5 rounded-full border-2"
-                style={{ 
-                  backgroundColor: customColor || '#d1d5db',
-                  borderColor: customColor ? customColor : '#d1d5db'
+              <div
+                className="w-3.5 h-3.5 rounded-full border-2 shadow-xs"
+                style={{
+                  backgroundColor: customColor || 'hsl(var(--slate-200))',
+                  borderColor: customColor ? customColor : 'hsl(var(--slate-300))'
                 }}
               />
             </button>
@@ -1788,40 +1797,44 @@ function ModuleItem({
           {onToggleFavorite && (
             <button
               onClick={handleFavoriteClick}
-              className={`p-1 rounded transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110 cursor-pointer ${
-                isFavorite 
-                  ? 'text-yellow-500 opacity-100' 
-                  : 'text-gray-300 hover:text-yellow-400'
+              className={`p-1 rounded-[5px] transition-all duration-200 hover:scale-110 cursor-pointer active:scale-90 ${
+                isFavorite
+                  ? 'text-[hsl(var(--amber-500))] opacity-100'
+                  : 'text-[hsl(var(--slate-300))] opacity-0 group-hover:opacity-100 hover:text-[hsl(var(--amber-500))] hover:bg-[hsl(var(--amber-50))]'
               }`}
               title={isFavorite ? '取消收藏' : '收藏模块'}
             >
-              <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+              <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current drop-shadow-sm' : ''}`} />
             </button>
           )}
         </div>
       </div>
-      
-      {/* 颜色选择器弹窗 - 使用 Portal 渲染到 body，避免被父容器裁剪 */}
+
+      {/* 颜色选择器弹窗 */}
       {showColorPicker && createPortal(
-        <div 
-          className="color-picker-container fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-200 p-3"
+        <div
+          className="color-picker-container fixed z-[9999] bg-[hsl(var(--card))] rounded-[10px] shadow-pop-xl border border-[hsl(var(--border))] p-3 animate-scale-in"
           style={{ left: `${pickerPosition.x}px`, top: `${pickerPosition.y}px` }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="text-xs font-medium text-gray-700 mb-2">选择标签颜色</div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="text-[10px] uppercase tracking-wider font-bold text-[hsl(var(--muted-foreground))] mb-2.5">选择标签颜色</div>
+          <div className="grid grid-cols-3 gap-1.5">
             {presetColors.map((color) => (
               <button
                 key={color.name}
                 onClick={() => handleColorSelect(color.value)}
-                className="flex flex-col items-center gap-1 p-2 rounded hover:bg-gray-50 transition-colors has-hover-only"
+                className="flex flex-col items-center gap-1 p-2 rounded-[8px] hover:bg-[hsl(var(--brand-50))] hover:scale-105 active:scale-95 transition-all duration-150"
                 title={color.name}
               >
-                <div 
-                  className="w-6 h-6 rounded-full border-2 border-gray-300"
-                  style={{ backgroundColor: color.value || '#d1d5db' }}
+                <div
+                  className="w-7 h-7 rounded-full border-2 shadow-soft transition-transform"
+                  style={{
+                    backgroundColor: color.value || 'hsl(var(--slate-100))',
+                    borderColor: color.value || 'hsl(var(--slate-300))',
+                    boxShadow: color.value ? `0 2px 8px ${color.value}50` : undefined,
+                  }}
                 />
-                <span className="text-[10px] text-gray-600">{color.name}</span>
+                <span className="text-[10px] text-[hsl(var(--slate-700))] font-medium">{color.name}</span>
               </button>
             ))}
           </div>

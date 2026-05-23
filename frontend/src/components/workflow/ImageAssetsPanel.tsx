@@ -571,32 +571,37 @@ export function ImageAssetsPanel() {
   }
 
   return (
-    <div className="bg-[hsl(var(--card))] h-full flex flex-col to-white relative">
+    <div className="bg-[hsl(var(--card))] h-full flex flex-col relative">
       {/* 面包屑导航 */}
       {currentPath && (
-        <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b text-xs">
+        <div
+          className="flex items-center gap-1 px-3 py-1.5 border-b border-[hsl(var(--border))] text-[11px]"
+          style={{ background: 'linear-gradient(180deg, hsl(var(--warning-50) / 0.4), hsl(var(--card)))' }}
+        >
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 hover:bg-purple-50"
+            variant="tonal-warning"
+            size="xs"
             onClick={() => navigateTo('')}
           >
-            <Folder className="w-3 h-3 mr-1" />
+            <Folder className="w-3 h-3" />
             根目录
           </Button>
           {breadcrumbs.map((crumb, index) => {
             const path = breadcrumbs.slice(0, index + 1).join('/')
+            const isLast = index === breadcrumbs.length - 1
             return (
               <div key={path} className="flex items-center gap-1">
-                <ChevronRight className="w-3 h-3 text-gray-400" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 hover:bg-purple-50"
+                <ChevronRight className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
+                <button
+                  className={`h-6 px-2 rounded-[5px] text-[11px] font-medium transition-colors duration-150 active:scale-95 ${
+                    isLast
+                      ? 'bg-[hsl(var(--warning-100))] text-[hsl(var(--warning-700))]'
+                      : 'text-[hsl(var(--slate-700))] hover:bg-[hsl(var(--warning-50))] hover:text-[hsl(var(--warning-700))]'
+                  }`}
                   onClick={() => navigateTo(path)}
                 >
                   {crumb}
-                </Button>
+                </button>
               </div>
             )
           })}
@@ -607,8 +612,8 @@ export function ImageAssetsPanel() {
       <ScrollArea className="flex-1">
         <div
           className={cn(
-            'p-3 min-h-full',
-            dragOverFolder === currentPath && 'bg-blue-50 border-2 border-dashed border-blue-400'
+            'p-3 min-h-full transition-all duration-200',
+            dragOverFolder === currentPath && 'bg-[hsl(var(--brand-50))] ring-2 ring-dashed ring-[hsl(var(--brand-500))] ring-inset'
           )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -616,24 +621,24 @@ export function ImageAssetsPanel() {
           onContextMenu={(e) => handleContextMenu(e)}
         >
           {imageAssets.length === 0 && folders.length === 0 ? (
-            <div 
-              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
-            >
-              <ImageIcon className="w-16 h-16 mb-3 opacity-30" />
-              <p className="text-sm font-medium">暂无图像文件</p>
-              <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
+            <div className="empty-state h-full !py-12">
+              <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--warning-50)), hsl(var(--warning-100)))', color: 'hsl(var(--warning-500))', borderColor: 'hsl(var(--warning-500) / 0.2)' }}>
+                <ImageIcon className="w-7 h-7" strokeWidth={1.6} />
+              </div>
+              <div className="empty-state-title">暂无图像文件</div>
+              <div className="empty-state-desc">点击上方按钮上传，或将图片直接拖拽到此处</div>
             </div>
           ) : subfolders.length === 0 && files.length === 0 ? (
-            <div 
-              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
-            >
-              <Folder className="w-16 h-16 mb-3 opacity-30" />
-              <p className="text-sm font-medium">此文件夹为空</p>
-              <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
+            <div className="empty-state h-full !py-12">
+              <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--warning-50)), hsl(var(--warning-100)))', color: 'hsl(var(--warning-500))', borderColor: 'hsl(var(--warning-500) / 0.2)' }}>
+                <Folder className="w-7 h-7" strokeWidth={1.6} />
+              </div>
+              <div className="empty-state-title">此文件夹为空</div>
+              <div className="empty-state-desc">点击上传或将图片拖拽到此处</div>
             </div>
           ) : (
-            <div 
-              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2"
+            <div
+              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2.5"
             >
               {subfolders.map(folder => renderFolderCard(folder))}
               {files.map(asset => renderImageCard(asset))}
@@ -642,7 +647,7 @@ export function ImageAssetsPanel() {
         </div>
       </ScrollArea>
 
-      {/* 隐藏的文件输入（批量上传） */}
+      {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
         type="file"
@@ -654,26 +659,36 @@ export function ImageAssetsPanel() {
 
       {/* 新建文件夹对话框 */}
       {isCreatingFolder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setIsCreatingFolder(false)}>
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-96 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">新建文件夹</h3>
-            <Input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="请输入文件夹名称"
-              className="mb-4"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder()
-                if (e.key === 'Escape') {
-                  setIsCreatingFolder(false)
-                  setNewFolderName('')
-                }
-              }}
-            />
-            <div className="flex gap-2 justify-end">
+        <div className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center z-50 animate-fade-in" onClick={() => setIsCreatingFolder(false)}>
+          <div className="modern-dialog w-96 animate-scale-in-bounce" onClick={(e) => e.stopPropagation()}>
+            <div className="modern-dialog-header">
+              <div className="modern-dialog-header-icon modern-dialog-header-icon-warning">
+                <Folder className="w-5 h-5" strokeWidth={2.2} />
+              </div>
+              <div className="flex-1">
+                <h3 className="modern-dialog-title">新建文件夹</h3>
+                <div className="modern-dialog-subtitle">为图像分类创建新位置</div>
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="请输入文件夹名称"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateFolder()
+                  if (e.key === 'Escape') {
+                    setIsCreatingFolder(false)
+                    setNewFolderName('')
+                  }
+                }}
+              />
+            </div>
+            <div className="dialog-footer-bar">
               <Button
-                variant="outline"
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   setIsCreatingFolder(false)
                   setNewFolderName('')
@@ -682,8 +697,9 @@ export function ImageAssetsPanel() {
                 取消
               </Button>
               <Button
+                variant="warning"
+                size="sm"
                 onClick={handleCreateFolder}
-                className="bg-purple-500 hover:bg-purple-600"
               >
                 创建
               </Button>
@@ -695,7 +711,7 @@ export function ImageAssetsPanel() {
       {/* 右键菜单 */}
       {contextMenu && (
         <div
-          className="fixed bg-white border border-gray-200 rounded-xl shadow-2xl py-2 z-[9999] min-w-[140px] animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-[10px] shadow-pop-xl py-1.5 z-[9999] min-w-[160px] animate-scale-in"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -878,8 +894,8 @@ export function ImageAssetsPanel() {
 
       <ConfirmDialog />
       
-      {/* 悬浮的快捷键提示 - 固定在右下角 */}
-      <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
+      {/* 悬浮的快捷键提示 - 固定在右上角 */}
+      <div className="absolute top-3 right-3 z-10 pointer-events-none">
         <div className="bg-[hsl(var(--card))] flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-200 shadow-lg backdrop-blur-sm">
           <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />

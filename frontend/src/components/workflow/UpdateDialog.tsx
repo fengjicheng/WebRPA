@@ -1,5 +1,5 @@
 import { Button } from '../ui/button'
-import { Download, X, Sparkles } from 'lucide-react'
+import { Download, X, Sparkles, ArrowRight, ChevronDown } from 'lucide-react'
 import { getBackendUrl } from '@/services/api'
 
 interface UpdateDialogProps {
@@ -23,79 +23,93 @@ export function UpdateDialog({
 
   const handleDownload = async () => {
     try {
-      // 通过后端 API 使用系统默认浏览器打开链接
       await fetch(`${getBackendUrl()}/api/system/open-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: downloadUrl }),
       })
     } catch {
-      // 如果后端调用失败，回退到 window.open
       window.open(downloadUrl, '_blank')
     }
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-        {/* 头部 */}
-        <div className="bg-[hsl(var(--brand-600))] relative p-6 text-white">
-          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
+    <div className="fixed inset-0 z-[100] bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+      <div className="modern-dialog w-full max-w-md animate-scale-in-bounce">
+        {/* 顶部彩色装饰区 */}
+        <div
+          className="relative p-6 text-white overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, hsl(var(--brand-600)) 0%, hsl(var(--brand-500)) 50%, hsl(var(--info-500)) 100%)',
+          }}
+        >
+          {/* 背景装饰球体 */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/15 blur-2xl" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
 
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 p-1.5 rounded-[7px] text-white/80 hover:bg-white/20 hover:text-white border border-transparent transition-all duration-150 active:scale-90"
+          >
             <X className="w-4 h-4" />
+          </button>
 
-          </Button>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Sparkles className="w-6 h-6" />
+          <div className="relative flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-[12px] bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30 shadow-lg">
+              <Sparkles className="w-6 h-6" strokeWidth={2.2} />
             </div>
-            <h3 className="text-xl font-bold">发现新版本</h3>
+            <div>
+              <h3 className="text-[20px] font-bold tracking-tight">发现新版本</h3>
+              <p className="text-white/80 text-[12px] mt-0.5">WebRPA Update</p>
+            </div>
           </div>
-          <p className="text-white/90 text-sm">
-            WebRPA 有新版本可用，建议更新以获得最新功能和修复
+          <p className="relative text-white/90 text-[12.5px] leading-relaxed">
+            有新版本可用，建议更新以获得最新功能与修复
           </p>
         </div>
 
         {/* 版本信息 */}
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="text-center flex-1">
-              <p className="text-xs text-gray-500 mb-1">当前版本</p>
-              <p className="text-lg font-semibold text-gray-600">{currentVersion}</p>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3 p-3 bg-[hsl(var(--slate-50))] rounded-[10px] border border-[hsl(var(--border))]">
+            <div className="flex-1 text-center">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-[hsl(var(--muted-foreground))] mb-1">当前版本</p>
+              <p className="text-[18px] font-bold text-[hsl(var(--slate-700))] tabular-nums">{currentVersion}</p>
             </div>
-            <div className="px-4">
-              <div className="bg-[hsl(var(--card))] w-8 h-0.5 relative">
-                <div className="absolute -right-1 -top-1 w-0 h-0 border-t-4 border-b-4 border-l-6 border-transparent border-l-blue-400" />
-              </div>
+            <div className="flex flex-col items-center px-2">
+              <ArrowRight className="w-5 h-5 text-[hsl(var(--brand-500))]" strokeWidth={2.5} />
             </div>
-            <div className="text-center flex-1">
-              <p className="text-xs text-gray-500 mb-1">最新版本</p>
-              <p className="text-lg font-semibold text-blue-600">{latestVersion}</p>
+            <div className="flex-1 text-center">
+              <p className="text-[10px] uppercase tracking-wider font-semibold text-[hsl(var(--brand-700))] mb-1">最新版本</p>
+              <p className="text-[18px] font-bold text-gradient tabular-nums">{latestVersion}</p>
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-amber-800">
-              <span className="font-medium">更新方式：</span>
-              前往GitHub Releases下载最新7z压缩包，解压替换程序所在文件夹中的的所有文件即可完成更新。
-            </p>
+          <div className="status-row status-row-warning !items-start !py-3">
+            <ChevronDown className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <div className="text-[12px] leading-relaxed">
+              <strong className="font-semibold">更新方式：</strong>
+              前往 GitHub Releases 下载最新 7z 压缩包，解压替换程序所在文件夹中的所有文件即可完成更新。
+            </div>
           </div>
 
           {/* 按钮 */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 pt-1">
             <Button
-              variant="outline"
-              className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+              variant="secondary"
+              size="lg"
+              className="flex-1"
               onClick={onSkip}
             >
               暂不更新
             </Button>
             <Button
-              className="bg-[hsl(var(--brand-600))] flex-1 text-white"
+              variant="default"
+              size="lg"
+              className="flex-1"
               onClick={handleDownload}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4" />
               前往下载
             </Button>
           </div>

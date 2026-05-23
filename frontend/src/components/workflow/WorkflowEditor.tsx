@@ -34,19 +34,21 @@ import type { ModuleType } from '@/types'
 // 模块计数组件
 function ModuleCount() {
   const nodes = useWorkflowStore((state) => state.nodes)
-  
-  // 计算模块数量（排除 group、note 和 subflow_header 类型）
+
   const moduleCount = useMemo(() => {
     return nodes.filter(n => n.type !== 'groupNode' && n.type !== 'noteNode' && n.type !== 'subflowHeaderNode').length
   }, [nodes])
-  
+
   return (
     <div className="absolute top-4 left-4 z-10 animate-fade-in-down">
-      <div className="glass-strong rounded-xl shadow-lg px-3 py-2 flex items-center gap-2">
-        <Boxes className="w-4 h-4 text-blue-500" />
-        <span className="text-sm font-medium text-muted-foreground">
-          模块数量: <span className="text-blue-600 font-semibold">{moduleCount}</span>
+      <div className="float-card !py-2 !px-3.5 group cursor-default">
+        <span className="icon-chip icon-chip-brand !w-7 !h-7">
+          <Boxes className="w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" strokeWidth={2.4} />
         </span>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[11.5px] font-medium text-[hsl(var(--muted-foreground))] tracking-wide">模块数量</span>
+          <span className="text-gradient text-[16px] font-bold tabular-nums leading-none">{moduleCount}</span>
+        </div>
       </div>
     </div>
   )
@@ -173,11 +175,16 @@ function ModuleSearch({
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 animate-fade-in-down">
         <button
           onClick={() => setIsExpanded(true)}
-          className="glass-strong rounded-xl shadow-lg px-3 py-2 flex items-center gap-2 hover:shadow-xl transition-all hover:scale-105"
+          className="float-card !py-2 !px-3.5 group cursor-pointer transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] hover:shadow-pop-xl hover:-translate-y-0.5 hover:border-[hsl(var(--brand-500)/0.4)]"
           title="搜索模块 (Ctrl+F)"
         >
-          <Search className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-medium text-muted-foreground">搜索模块</span>
+          <span className="icon-chip icon-chip-brand !w-7 !h-7 transition-transform duration-200 group-hover:scale-105">
+            <Search className="w-3.5 h-3.5" strokeWidth={2.4} />
+          </span>
+          <span className="text-[12px] font-medium text-[hsl(var(--slate-700))] group-hover:text-[hsl(var(--brand-700))] transition-colors">搜索模块</span>
+          <kbd className="hidden sm:inline-flex items-center px-1.5 h-4 rounded border border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] text-[10px] font-mono text-[hsl(var(--muted-foreground))]">
+            Ctrl F
+          </kbd>
         </button>
       </div>
     )

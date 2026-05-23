@@ -465,32 +465,37 @@ export function ExcelAssetsPanel() {
   }
 
   return (
-    <div className="bg-[hsl(var(--card))] h-full flex flex-col to-white">
+    <div className="bg-[hsl(var(--card))] h-full flex flex-col">
       {/* 面包屑导航 */}
       {currentPath && (
-        <div className="flex items-center gap-1 px-3 py-1.5 bg-white border-b text-xs">
+        <div
+          className="flex items-center gap-1 px-3 py-1.5 border-b border-[hsl(var(--border))] text-[11px]"
+          style={{ background: 'linear-gradient(180deg, hsl(var(--success-50) / 0.4), hsl(var(--card)))' }}
+        >
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 hover:bg-green-50"
+            variant="tonal-success"
+            size="xs"
             onClick={() => navigateTo('')}
           >
-            <Folder className="w-3 h-3 mr-1" />
+            <Folder className="w-3 h-3" />
             根目录
           </Button>
           {breadcrumbs.map((crumb, index) => {
             const path = breadcrumbs.slice(0, index + 1).join('/')
+            const isLast = index === breadcrumbs.length - 1
             return (
               <div key={path} className="flex items-center gap-1">
-                <ChevronRight className="w-3 h-3 text-gray-400" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 hover:bg-green-50"
+                <ChevronRight className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
+                <button
+                  className={`h-6 px-2 rounded-[5px] text-[11px] font-medium transition-colors duration-150 active:scale-95 ${
+                    isLast
+                      ? 'bg-[hsl(var(--success-100))] text-[hsl(var(--success-700))]'
+                      : 'text-[hsl(var(--slate-700))] hover:bg-[hsl(var(--success-50))] hover:text-[hsl(var(--success-700))]'
+                  }`}
                   onClick={() => navigateTo(path)}
                 >
                   {crumb}
-                </Button>
+                </button>
               </div>
             )
           })}
@@ -501,8 +506,8 @@ export function ExcelAssetsPanel() {
       <ScrollArea className="flex-1">
         <div
           className={cn(
-            'p-3 min-h-full',
-            dragOverFolder === currentPath && 'bg-blue-50 border-2 border-dashed border-blue-400'
+            'p-3 min-h-full transition-all duration-200',
+            dragOverFolder === currentPath && 'bg-[hsl(var(--brand-50))] ring-2 ring-dashed ring-[hsl(var(--brand-500))] ring-inset'
           )}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -510,24 +515,24 @@ export function ExcelAssetsPanel() {
           onContextMenu={(e) => handleContextMenu(e)}
         >
           {dataAssets.length === 0 && folders.length === 0 ? (
-            <div 
-              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
-            >
-              <File className="w-16 h-16 mb-3 opacity-30" />
-              <p className="text-sm font-medium">暂无 Excel 文件</p>
-              <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
+            <div className="empty-state h-full !py-12">
+              <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--success-50)), hsl(var(--success-100)))', color: 'hsl(var(--success-500))', borderColor: 'hsl(var(--success-500) / 0.2)' }}>
+                <File className="w-7 h-7" strokeWidth={1.6} />
+              </div>
+              <div className="empty-state-title">暂无 Excel 文件</div>
+              <div className="empty-state-desc">点击上方按钮上传 .xlsx 或 .xls 文件</div>
             </div>
           ) : subfolders.length === 0 && files.length === 0 ? (
-            <div 
-              className="h-full flex flex-col items-center justify-center text-muted-foreground py-12"
-            >
-              <Folder className="w-16 h-16 mb-3 opacity-30" />
-              <p className="text-sm font-medium">此文件夹为空</p>
-              <p className="text-xs mt-1">点击上传或拖拽文件到此处</p>
+            <div className="empty-state h-full !py-12">
+              <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--success-50)), hsl(var(--success-100)))', color: 'hsl(var(--success-500))', borderColor: 'hsl(var(--success-500) / 0.2)' }}>
+                <Folder className="w-7 h-7" strokeWidth={1.6} />
+              </div>
+              <div className="empty-state-title">此文件夹为空</div>
+              <div className="empty-state-desc">点击上传或将 Excel 拖拽到此处</div>
             </div>
           ) : (
-            <div 
-              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2"
+            <div
+              className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2.5"
             >
               {subfolders.map(folder => renderFolderCard(folder))}
               {files.map(asset => renderExcelCard(asset))}
@@ -536,7 +541,7 @@ export function ExcelAssetsPanel() {
         </div>
       </ScrollArea>
 
-      {/* 隐藏的文件输入（批量上传） */}
+      {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
         type="file"

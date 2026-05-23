@@ -1227,98 +1227,79 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
+    <div
+      className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
-      <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in"
+      <div
+        className="modern-dialog w-full max-w-6xl max-h-[92vh] flex flex-col animate-scale-in-bounce"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
-        <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b border-[hsl(var(--border))]">
-          <div className="flex items-center gap-3">
-            <Package className="w-6 h-6" />
-            <h2 className="text-xl font-bold">工作流仓库</h2>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon modern-dialog-header-icon-violet">
+            <Package className="w-5 h-5" strokeWidth={2.2} />
           </div>
-          <div className="flex items-center gap-2">
-            {/* 标签页切换 */}
-            <div className="flex bg-white/20 rounded-lg p-1 mr-4">
+          <div className="flex-1">
+            <h2 className="modern-dialog-title">工作流仓库</h2>
+            <div className="modern-dialog-subtitle">浏览 · 发布 · 协作 · 远程协助</div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {/* 标签页切换 - 现代分段控件 */}
+            <div className="hidden lg:flex items-center gap-0.5 p-1 bg-[hsl(var(--slate-100))] rounded-[10px] border border-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)]">
+              {[
+                { id: 'browse',         label: '浏览',     Icon: Search,        accent: 'brand'   },
+                { id: 'my',             label: '我的',     Icon: FolderOpen,    accent: 'warning' },
+                { id: 'publish',        label: '发布',     Icon: Upload,        accent: 'success' },
+                { id: 'custom_modules', label: '模块',     Icon: Package,       accent: 'violet'  },
+                { id: 'guestbook',      label: '留言板',   Icon: MessageSquare, accent: 'info'    },
+                { id: 'remote',         label: '远程',     Icon: Users,         accent: 'rose'    },
+              ].map(tab => {
+                const Icon = tab.Icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    className={`px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center gap-1.5 relative ${
+                      isActive
+                        ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
+                        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))] hover:bg-[hsl(var(--card)/0.6)]'
+                    }`}
+                    onClick={() => {
+                      setActiveTab(tab.id as typeof activeTab)
+                      if (tab.id === 'publish') {
+                        setPublishSuccess(false)
+                        setPublishError(null)
+                      }
+                    }}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? `text-[hsl(var(--${tab.accent}-600))]` : ''}`} />
+                    <span className="hidden xl:inline">{tab.label}</span>
+                    {tab.id === 'remote' && remoteMode !== 'none' && (
+                      <span className={`w-1.5 h-1.5 rounded-full ${remoteStatus === 'connected' ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--warning-500))]'} animate-pulse`} />
+                    )}
+                  </button>
+                )
+              })}
               <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'browse' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => setActiveTab('browse')}
-              >
-                <Search className="w-4 h-4" />
-                浏览
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'my' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => setActiveTab('my')}
-              >
-                <FolderOpen className="w-4 h-4" />
-                我的
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'publish' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => {
-                  setActiveTab('publish')
-                  setPublishSuccess(false)
-                  setPublishError(null)
-                }}
-              >
-                <Upload className="w-4 h-4" />
-                发布
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'custom_modules' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => setActiveTab('custom_modules')}
-              >
-                <Package className="w-4 h-4" />
-                自定义模块
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'guestbook' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => setActiveTab('guestbook')}
-              >
-                <MessageSquare className="w-4 h-4" />
-                留言板
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  activeTab === 'remote' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
-                }`}
-                onClick={() => setActiveTab('remote')}
-              >
-                <Users className="w-4 h-4" />
-                远程协助
-                {remoteMode !== 'none' && (
-                  <span className={`w-2 h-2 rounded-full ${remoteStatus === 'connected' ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`} />
-                )}
-              </button>
-              <button
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'settings' ? 'bg-white text-purple-600' : 'text-white hover:bg-white/10'
+                className={`px-2 py-1.5 rounded-[7px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                  activeTab === 'settings'
+                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))] hover:bg-[hsl(var(--card)/0.6)]'
                 }`}
                 onClick={() => setActiveTab('settings')}
+                title="设置"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-3.5 h-3.5" />
               </button>
             </div>
-            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
-
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+            >
               <X className="w-4 h-4" />
 
-            </Button>
+            </button>
           </div>
         </div>
 

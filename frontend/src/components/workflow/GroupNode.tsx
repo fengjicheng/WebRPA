@@ -117,29 +117,35 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
         minWidth={200}
         minHeight={150}
         isVisible={selected}
-        lineClassName={isSubflow ? "!border-emerald-500" : "!border-primary"}
-        handleClassName="!w-3 !h-3 !bg-primary !border-2 !border-background"
+        lineClassName={isSubflow ? "!border-[hsl(var(--success-500))]" : "!border-[hsl(var(--brand-500))]"}
+        handleClassName="!w-3 !h-3 !bg-[hsl(var(--brand-500))] !border-2 !border-white !rounded-full"
         onResizeEnd={handleResizeEnd}
       />
-      
+
       <div
-        className="w-full h-full rounded-lg relative"
+        className="w-full h-full rounded-[12px] relative transition-shadow duration-200"
         style={{
           backgroundColor: colorConfig.bg,
           border: `2px ${isSubflow ? 'solid' : 'dashed'} ${selected ? colorConfig.value : colorConfig.border}`,
+          boxShadow: selected
+            ? `0 8px 24px -8px ${colorConfig.value}40, 0 4px 8px -4px ${colorConfig.value}25`
+            : 'none',
         }}
       >
         {/* 标题栏 */}
         <div
-          className="absolute -top-7 left-0 flex items-center gap-1.5 px-2 py-1 rounded-t-md text-white text-sm font-medium cursor-move"
-          style={{ backgroundColor: colorConfig.value }}
+          className="absolute -top-8 left-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-white text-[12px] font-semibold cursor-move shadow-soft transition-all duration-200 hover:shadow-pop"
+          style={{
+            background: `linear-gradient(135deg, ${colorConfig.value}, ${colorConfig.value}dd)`,
+            border: `1px solid ${colorConfig.value}`,
+          }}
           onDoubleClick={handleDoubleClick}
         >
           <GripVertical className="w-3 h-3 opacity-70" />
           {isSubflow ? (
-            <Workflow className="w-3.5 h-3.5" />
+            <Workflow className="w-3.5 h-3.5" strokeWidth={2.4} />
           ) : (
-            <MessageSquare className="w-3.5 h-3.5" />
+            <MessageSquare className="w-3.5 h-3.5" strokeWidth={2.4} />
           )}
           {isEditing ? (
             <input
@@ -148,28 +154,26 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-white text-sm w-32"
+              className="bg-white/20 border border-white/30 rounded outline-none text-white text-[12px] w-32 px-1.5 placeholder:text-white/60"
               autoFocus
               onClick={(e) => e.stopPropagation()}
               placeholder={isSubflow ? "子流程名称" : "输入备注"}
             />
           ) : (
-            <span>
-              {isSubflow && ''}
-              {nodeData.label || (isSubflow ? '未命名子流程' : '')}
+            <span className="tracking-tight">
+              {nodeData.label || (isSubflow ? '未命名子流程' : '分组')}
             </span>
           )}
         </div>
-        
+
         {/* 子流程标识 */}
         {isSubflow && (
-          <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded">
-            子流程定义
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[hsl(var(--success-500))] text-white text-[9.5px] font-bold uppercase tracking-wider shadow-success-glow">
+            子流程
           </div>
         )}
       </div>
-      
-      {/* 隐藏的连接点（分组节点不需要连接） */}
+
       <Handle type="target" position={Position.Top} className="!opacity-0 !w-0 !h-0" />
       <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-0 !h-0" />
     </>
