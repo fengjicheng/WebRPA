@@ -31,6 +31,7 @@ import {
   Calculator,
   Clock,
   Puzzle,
+  Bot,
 } from 'lucide-react'
 import type { DocumentItem } from './types'
 
@@ -40,6 +41,12 @@ export const documents: DocumentItem[] = [
     title: '🚀 快速入门',
     icon: Rocket,
     description: '5分钟学会使用WebRPA',
+  },
+  {
+    id: 'ai-assistant-guide',
+    title: '🤖 AI 小助手指南',
+    icon: Bot,
+    description: '内置 AI 助手，自动操作 WebRPA、搭工作流、调配置',
   },
   {
     id: 'browser-guide',

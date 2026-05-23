@@ -33,9 +33,11 @@ import { aiVisionGuideContent } from './content-ai-vision'
 import { shareGuideContent } from './content-share'
 import { sapGuideContent } from './content-sap'
 import { feishuGuideContent } from './content-feishu'
+import { aiAssistantGuideContent } from './content-ai-assistant'
 
 export const documentContents: Record<string, string> = {
   'getting-started': gettingStartedContent,
+  'ai-assistant-guide': aiAssistantGuideContent,
   'browser-guide': browserGuideContent,
   'basic-modules': basicModulesContent,
   'variables-guide': variablesGuideContent,
