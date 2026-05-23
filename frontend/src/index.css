@@ -1393,7 +1393,9 @@ button.has-hover-only,
   justify-content: center;
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  border-radius: 9999px;
   background: linear-gradient(135deg,
     hsl(var(--brand-50)),
     hsl(var(--brand-100)));

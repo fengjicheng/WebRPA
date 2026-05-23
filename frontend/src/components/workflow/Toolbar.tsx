@@ -1037,13 +1037,8 @@ export function Toolbar() {
       }}
     >
       {/* Logo/标题 */}
-      <div className="flex items-center gap-2">
-        <div
-          className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-1 ring-[hsl(var(--brand-500)/0.3)]"
-        >
-          <img src="/logo.png" alt="Logo" className="w-4 h-4 brightness-[10] saturate-0" />
-        </div>
-        <span className="hidden sm:inline font-bold text-[15px] tracking-tight text-gradient">
+      <div className="flex items-center">
+        <span className="font-bold text-[16px] tracking-tight text-gradient leading-none">
           WebRPA
         </span>
       </div>

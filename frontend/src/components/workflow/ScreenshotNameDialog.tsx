@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, Image as ImageIcon, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
+import { X, Image as ImageIcon, AlertCircle, RotateCcw, Info } from 'lucide-react'
 
 interface ScreenshotNameDialogProps {
   defaultName: string
@@ -33,67 +33,62 @@ export function ScreenshotNameDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-[500px] max-w-[90vw] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in">
+      <div className="modern-dialog w-full max-w-[460px] animate-scale-in-bounce">
         {/* 标题栏 */}
-        <div className="bg-[hsl(var(--card))] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <ImageIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">截图成功</h2>
-              <p className="text-sm text-white/80">请为截图命名</p>
-            </div>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon modern-dialog-header-icon-success">
+            <ImageIcon className="w-5 h-5" strokeWidth={2.2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="modern-dialog-title">截图成功</h2>
+            <div className="modern-dialog-subtitle">为这张截图取个好记的名字</div>
           </div>
           <button
             onClick={onCancel}
-            className="w-8 h-8 rounded-lg hover:bg-white/20 "
+            className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 内容区 */}
-        <div className="p-6 space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              截图名称（不含扩展名）
+        <div className="px-5 py-4 space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-[12px] font-semibold text-[hsl(var(--slate-800))]">
+              截图名称
+              <span className="ml-1.5 text-[10.5px] font-normal text-[hsl(var(--muted-foreground))]">不含扩展名</span>
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="请输入截图名称"
-              className="text-base"
               autoFocus
             />
-            <p className="text-xs text-gray-500">
-              保存为: {name.trim() || '未命名'}.png
-            </p>
+            <div className="flex items-center gap-1.5 pl-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">
+              <span>保存为：</span>
+              <code className="px-1.5 py-0.5 rounded bg-[hsl(var(--brand-50))] border border-[hsl(var(--brand-500)/0.25)] text-[hsl(var(--brand-700))] font-mono">
+                {name.trim() || '未命名'}.png
+              </code>
+            </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              提示：截图已保存到图像资源，您可以在底部面板的"图像资源"标签中查看
-            </p>
+          <div className="status-row status-row-info !py-2">
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[12px]">
+              已保存到图像资源，可在底部面板的「图像资源」标签查看
+            </span>
           </div>
         </div>
 
         {/* 按钮栏 */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="min-w-[100px]"
-          >
+        <div className="dialog-footer-bar">
+          <Button variant="secondary" size="sm" onClick={onCancel}>
             取消
           </Button>
-          <Button
-            onClick={handleConfirm}
-            className="bg-[hsl(var(--card))] min-w-[100px]"
-          >
-            确定
+          <Button variant="success" size="sm" onClick={handleConfirm} disabled={!name.trim()}>
+            保存截图
           </Button>
         </div>
       </div>
@@ -127,77 +122,78 @@ export function ScreenshotErrorDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-[500px] max-w-[90vw] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in">
+      <div className="modern-dialog w-full max-w-[480px] animate-scale-in-bounce">
         {/* 标题栏 */}
-        <div className="bg-[hsl(var(--card))] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">截图失败</h2>
-              <p className="text-sm text-white/80">
-                {cancelled ? '您取消了截图' : '截图过程中出现问题'}
-              </p>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon modern-dialog-header-icon-danger">
+            <AlertCircle className="w-5 h-5" strokeWidth={2.2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="modern-dialog-title">截图失败</h2>
+            <div className="modern-dialog-subtitle">
+              {cancelled ? '您取消了截图操作' : '截图过程中出现问题'}
             </div>
           </div>
           <button
             onClick={onCancel}
-            className="w-8 h-8 rounded-lg hover:bg-white/20 "
+            className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 内容区 */}
-        <div className="p-6 space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-sm text-red-800 font-medium mb-2">错误信息：</p>
-            <p className="text-sm text-red-700 font-mono break-words">
+        <div className="px-5 py-4 space-y-3">
+          <div className="status-row status-row-danger !items-start !py-2.5 flex-col gap-1">
+            <p className="text-[11.5px] font-semibold uppercase tracking-wider w-full">错误信息</p>
+            <p className="text-[12px] font-mono break-words leading-relaxed w-full">
               {error === 'timeout'
-                ? '等待超时（90秒）- 您可能没有完成截图，或截图工具未正确启动'
+                ? '等待超时（90 秒） — 您可能没有完成截图，或截图工具未正确启动'
                 : error}
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              <strong>故障排查：</strong>
-            </p>
-            <ul className="text-sm text-blue-700 mt-2 space-y-1 ml-4 list-disc">
-              <li>确保 Windows 截图工具已启用</li>
-              <li>尝试手动按 Win+Shift+S 测试</li>
-              <li>如果仍然失败，请重试</li>
-            </ul>
+          <div className="section-block">
+            <div className="section-block-header">
+              <div className="icon-chip icon-chip-info !w-6 !h-6">
+                <Info className="w-3.5 h-3.5" />
+              </div>
+              故障排查
+            </div>
+            <div className="section-block-body !py-3">
+              <ul className="space-y-1.5 text-[12px] text-[hsl(var(--slate-700))]">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[hsl(var(--brand-600))] mt-0.5">•</span>
+                  <span>确保 Windows 截图工具已启用</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[hsl(var(--brand-600))] mt-0.5">•</span>
+                  <span>尝试手动按 <kbd className="px-1.5 py-0.5 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded text-[10px] font-mono shadow-xs">Win+Shift+S</kbd> 测试</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[hsl(var(--brand-600))] mt-0.5">•</span>
+                  <span>若仍失败，请点击右下角「重试截图」</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
         {/* 按钮栏 */}
-        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="min-w-[100px]"
-          >
+        <div className="dialog-footer-bar">
+          <Button variant="secondary" size="sm" onClick={onCancel}>
             关闭
           </Button>
           <Button
+            variant="default"
+            size="sm"
             onClick={handleRetry}
             disabled={retrying}
-            className="bg-[hsl(var(--card))] min-w-[120px]"
+            loading={retrying}
           >
-            {retrying ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                重试中...
-              </>
-            ) : (
-              <>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                重试截图
-              </>
-            )}
+            {!retrying && <RotateCcw className="w-3.5 h-3.5" />}
+            {retrying ? '重试中...' : '重试截图'}
           </Button>
         </div>
       </div>
