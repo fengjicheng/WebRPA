@@ -528,22 +528,27 @@ button {
   border: 2px solid hsl(var(--brand-500)) !important;
   width: 11px !important;
   height: 11px !important;
-  transition: transform 140ms var(--ease-out-back),
-              background 140ms var(--ease-out-quart),
-              box-shadow 140ms var(--ease-out-quart);
+  /* 关键：不动 transform / width / height / 任何会影响 layout 的属性 */
+  transition: background 160ms var(--ease-out-quart),
+              border-color 160ms var(--ease-out-quart),
+              box-shadow 200ms var(--ease-out-back);
 }
+/* 原地"放大"：用 box-shadow 创造光圈幻视，handle 本体完全不动，绝对不偏移 */
 .react-flow__handle:hover {
   background: hsl(var(--brand-500)) !important;
-  transform: scale(1.25);
-  box-shadow: 0 0 0 4px hsl(var(--brand-500) / 0.18);
+  border-color: hsl(var(--brand-700)) !important;
+  box-shadow:
+    0 0 0 3px hsl(var(--card)),
+    0 0 0 6px hsl(var(--brand-500) / 0.55),
+    0 0 0 10px hsl(var(--brand-500) / 0.18),
+    0 4px 12px hsl(var(--brand-500) / 0.4);
 }
 
 .react-flow__node {
-  transition: filter 160ms var(--ease-out-quart),
-              transform 160ms var(--ease-out-quart);
+  transition: filter 200ms var(--ease-out-quart);
 }
 .react-flow__node:hover {
-  filter: drop-shadow(0 6px 14px rgb(15 23 42 / 0.12));
+  filter: drop-shadow(0 6px 14px rgb(15 23 42 / 0.10));
 }
 .react-flow__node.selected {
   filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.5))

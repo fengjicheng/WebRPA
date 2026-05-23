@@ -1262,8 +1262,8 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     key={tab.id}
                     className={`px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center gap-1.5 relative ${
                       isActive
-                        ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
-                        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))] hover:bg-[hsl(var(--card)/0.6)]'
+                        ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
+                        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--card))]'
                     }`}
                     onClick={() => {
                       setActiveTab(tab.id as typeof activeTab)
@@ -1273,10 +1273,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                       }
                     }}
                   >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? `text-[hsl(var(--${tab.accent}-600))]` : ''}`} />
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : ''}`} />
                     <span className="hidden xl:inline">{tab.label}</span>
                     {tab.id === 'remote' && remoteMode !== 'none' && (
-                      <span className={`w-1.5 h-1.5 rounded-full ${remoteStatus === 'connected' ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--warning-500))]'} animate-pulse`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${remoteStatus === 'connected' ? 'bg-[hsl(var(--success-300))]' : 'bg-[hsl(var(--warning-300))]'} animate-pulse`} />
                     )}
                   </button>
                 )
@@ -1284,8 +1284,8 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
               <button
                 className={`px-2 py-1.5 rounded-[7px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                   activeTab === 'settings'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))] hover:bg-[hsl(var(--card)/0.6)]'
+                    ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--card))]'
                 }`}
                 onClick={() => setActiveTab('settings')}
                 title="设置"

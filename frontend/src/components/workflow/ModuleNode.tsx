@@ -117,22 +117,22 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
         isDisabled
           ? {}
           : {
-              scale: 1.03,
-              y: -2,
-              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
-              transition: { type: 'spring', stiffness: 400, damping: 25 },
+              y: -3,
+              transition: { type: 'spring', stiffness: 380, damping: 28, mass: 0.6 },
             }
       }
-      whileTap={{ scale: 0.98 }}
+      whileTap={isDisabled ? {} : { y: -1, transition: { duration: 0.08 } }}
       className={cn(
-        'relative px-4 py-3 rounded-[12px] border-[1.5px] shadow-soft min-w-[180px] max-w-[280px]',
-        'transition-shadow duration-200 ease-out',
-        'before:content-[""] before:absolute before:inset-0 before:rounded-[10px] before:pointer-events-none',
-        'before:bg-gradient-to-b before:from-white/60 before:to-transparent before:opacity-0 hover:before:opacity-100',
+        'group relative px-4 py-3 rounded-[12px] border-[1.5px] min-w-[180px] max-w-[280px]',
+        'shadow-soft hover:shadow-pop-lg',
+        'transition-[box-shadow,border-color] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]',
+        // 顶部高光：仅在 hover 时显现
+        'before:content-[""] before:absolute before:inset-x-0 before:top-0 before:h-[40%] before:rounded-t-[10px] before:pointer-events-none',
+        'before:bg-gradient-to-b before:from-white/50 before:to-transparent before:opacity-0 hover:before:opacity-100',
         'before:transition-opacity before:duration-200',
         isDisabled ? 'border-gray-300 bg-gray-100 text-gray-500 opacity-70' : (isCustomModule ? '' : colorClass),
-        selected && 'ring-2 ring-[hsl(var(--brand-500))] ring-offset-2 shadow-pop-lg scale-[1.02]',
-        isHighlighted && 'ring-4 ring-[hsl(var(--warning-500))] ring-offset-2 shadow-pop-xl scale-105 animate-pulse border-[hsl(var(--warning-500))]',
+        selected && 'ring-2 ring-[hsl(var(--brand-500))] ring-offset-2 shadow-pop-lg',
+        isHighlighted && 'ring-4 ring-[hsl(var(--warning-500))] ring-offset-2 shadow-pop-xl animate-pulse border-[hsl(var(--warning-500))]',
         isSubflow && nodeData.subflowName ? 'cursor-pointer' : ''
       )}
       style={
@@ -183,10 +183,8 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
       />
 
       {/* 节点内容 */}
-      <div className="flex items-center gap-2">
-        <motion.div
-          whileHover={{ rotate: [0, -10, 10, 0], transition: { duration: 0.4 } }}
-        >
+      <div className="flex items-center gap-2 relative">
+        <div className="transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110">
           {isCustomModule && customIcon ? (
             <span className="text-2xl">{customIcon}</span>
           ) : Icon ? (
@@ -194,7 +192,7 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
           ) : (
             <Globe className="w-5 h-5 text-current" />
           )}
-        </motion.div>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm truncate text-current">
             {nodeData.label}

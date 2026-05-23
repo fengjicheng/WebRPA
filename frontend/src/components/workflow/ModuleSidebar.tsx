@@ -2043,8 +2043,8 @@ export function ModuleSidebar() {
                 onClick={() => setActiveTab('builtin')}
                 className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
                   activeTab === 'builtin'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))]'
+                    ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--card))]'
                 }`}
               >
                 <Boxes className="w-3.5 h-3.5" />
@@ -2054,8 +2054,8 @@ export function ModuleSidebar() {
                 onClick={() => setActiveTab('custom')}
                 className={`flex-1 px-2.5 py-1.5 text-[12px] font-semibold rounded-[6px] transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] flex items-center justify-center gap-1.5 ${
                   activeTab === 'custom'
-                    ? 'bg-[hsl(var(--card))] text-[hsl(var(--violet-700))] shadow-soft'
-                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--slate-800))]'
+                    ? 'bg-[hsl(var(--violet-600))] text-white shadow-pop'
+                    : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--violet-700))] hover:bg-[hsl(var(--card))]'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />

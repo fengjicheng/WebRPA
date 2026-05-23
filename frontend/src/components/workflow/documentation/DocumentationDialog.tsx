@@ -340,7 +340,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                           className={cn(
                             'w-full flex items-center gap-2 px-2 py-2 rounded-[8px] text-left transition-all duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] border animate-fade-in-up',
                             isActive
-                              ? 'bg-[hsl(var(--brand-100))] text-[hsl(var(--brand-700))] border-[hsl(var(--brand-500)/0.4)] shadow-soft'
+                              ? 'bg-[hsl(var(--brand-600))] text-white border-transparent shadow-brand-glow'
                               : 'hover:bg-[hsl(var(--card))] text-[hsl(var(--slate-700))] border-transparent hover:border-[hsl(var(--border))] hover:shadow-xs hover:translate-x-0.5'
                           )}
                           style={{ animationDelay: `${idx * 18}ms` }}
@@ -350,15 +350,15 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                         >
                           <span className={cn(
                             'icon-chip !w-7 !h-7',
-                            isActive ? 'icon-chip-brand' : 'icon-chip-slate'
+                            isActive ? '!bg-white/20 !text-white !border-white/30' : 'icon-chip-slate'
                           )}>
                             <Icon className="w-3.5 h-3.5" />
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="text-[12.5px] font-semibold truncate">{doc.title}</div>
-                            <div className="text-[10.5px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">{doc.description}</div>
+                            <div className={cn('text-[10.5px] truncate mt-0.5', isActive ? 'text-white/80' : 'text-[hsl(var(--muted-foreground))]')}>{doc.description}</div>
                           </div>
-                          {isActive && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[hsl(var(--brand-600))]" />}
+                          {isActive && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-white" />}
                         </button>
                       )
                     })}

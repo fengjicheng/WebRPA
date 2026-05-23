@@ -148,17 +148,17 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up ${
                     isActive
-                      ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft border border-[hsl(var(--brand-500)/0.3)]'
+                      ? 'bg-[hsl(var(--brand-600))] text-white shadow-brand-glow border border-transparent'
                       : 'text-[hsl(var(--slate-700))] hover:bg-[hsl(var(--card))] hover:text-[hsl(var(--brand-700))] border border-transparent hover:shadow-xs hover:translate-x-0.5'
                   }`}
                   style={{ animationDelay: `${idx * 25}ms` }}
                 >
-                  <span className={`icon-chip icon-chip-${tab.accent} !w-7 !h-7`}>
+                  <span className={isActive ? 'icon-chip !bg-white/20 !text-white !border-white/30 !w-7 !h-7' : `icon-chip icon-chip-${tab.accent} !w-7 !h-7`}>
                     <Icon className="w-3.5 h-3.5" />
                   </span>
                   <span className="flex-1 text-left">{tab.label}</span>
                   {isActive && (
-                    <span className="w-1 h-4 rounded-full bg-[hsl(var(--brand-500))] animate-fade-in" />
+                    <span className="w-1 h-4 rounded-full bg-white/70 animate-fade-in" />
                   )}
                 </button>
               )
