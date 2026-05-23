@@ -4,7 +4,7 @@ import { moduleTypeLabels, useWorkflowStore } from '@/store/workflowStore'
 import { useModuleStatsStore } from '@/store/moduleStatsStore'
 import { useCustomModuleStore } from '@/store/customModuleStore'
 import type { ModuleType } from '@/types'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, memo } from 'react'
 import { pinyinMatch } from '@/lib/pinyin'
 import { createPortal } from 'react-dom'
 import { CustomModuleList } from './CustomModuleList'
@@ -1572,6 +1572,19 @@ const moduleCategories = [
   },
 ]
 
+// 模块项预设颜色 - 模块外定义，避免每次渲染重建数组
+const PRESET_COLORS = [
+  { name: '默认', value: undefined },
+  { name: '红色', value: '#ef4444' },
+  { name: '橙色', value: '#f97316' },
+  { name: '黄色', value: '#eab308' },
+  { name: '绿色', value: '#22c55e' },
+  { name: '青色', value: '#06b6d4' },
+  { name: '蓝色', value: '#3b82f6' },
+  { name: '紫色', value: '#a855f7' },
+  { name: '粉色', value: '#ec4899' },
+] as const
+
 interface ModuleItemProps {
   type: ModuleType
   highlight?: string
@@ -1589,7 +1602,7 @@ interface ModuleItemProps {
   sortDraggingType?: ModuleType | null
 }
 
-function ModuleItem({ 
+function ModuleItemRaw({ 
   type, 
   highlight, 
   isFavorite,
@@ -1609,19 +1622,6 @@ function ModuleItem({
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 })
   const colorButtonRef = useRef<HTMLButtonElement>(null)
-
-  // 预设颜色
-  const presetColors = [
-    { name: '默认', value: undefined },
-    { name: '红色', value: '#ef4444' },
-    { name: '橙色', value: '#f97316' },
-    { name: '黄色', value: '#eab308' },
-    { name: '绿色', value: '#22c55e' },
-    { name: '青色', value: '#06b6d4' },
-    { name: '蓝色', value: '#3b82f6' },
-    { name: '紫色', value: '#a855f7' },
-    { name: '粉色', value: '#ec4899' },
-  ]
 
   // 点击外部关闭颜色选择器
   useEffect(() => {
@@ -1817,7 +1817,7 @@ function ModuleItem({
         >
           <div className="text-[10px] uppercase tracking-wider font-bold text-[hsl(var(--muted-foreground))] mb-2.5">选择标签颜色</div>
           <div className="grid grid-cols-3 gap-1.5">
-            {presetColors.map((color) => (
+            {PRESET_COLORS.map((color) => (
               <button
                 key={color.name}
                 onClick={() => handleColorSelect(color.value)}
@@ -1843,7 +1843,12 @@ function ModuleItem({
   )
 }
 
-export function ModuleSidebar() {
+// 用 memo 包装：只有 props 真正变化时才重新渲染
+// 这是性能关键 —— 画布拖拽节点时，store 变化会触发 ModuleSidebar 重渲染，
+// 但 ModuleItem 的 props 没变，会被 memo 拦截
+const ModuleItem = memo(ModuleItemRaw)
+
+function ModuleSidebarRaw() {
   const [activeTab, setActiveTab] = useState<'builtin' | 'custom'>('builtin')
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
@@ -1855,8 +1860,8 @@ export function ModuleSidebar() {
   // 使用确认对话框hook
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm()
 
-  // 加载自定义模块
-  const { loadModules } = useCustomModuleStore()
+  // 加载自定义模块（只订阅需要的字段，不监听整个 store 变化）
+  const loadModules = useCustomModuleStore((s) => s.loadModules)
   useEffect(() => {
     // 组件挂载时加载自定义模块列表
     loadModules()
@@ -1879,8 +1884,17 @@ export function ModuleSidebar() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // 导入模块统计 store（包含收藏管理）
-  const { getSortedModules, incrementUsage, toggleFavorite, stats } = useModuleStatsStore()
+  // 导入模块统计 store（只订阅必要字段，避免整个 store 变化触发整侧栏重渲染）
+  const incrementUsage = useModuleStatsStore((s) => s.incrementUsage)
+  const toggleFavorite = useModuleStatsStore((s) => s.toggleFavorite)
+  const stats = useModuleStatsStore((s) => s.stats)
+  const getSortedModules = useModuleStatsStore((s) => s.getSortedModules)
+
+  // 稳定的颜色设置回调，避免 ModuleItem 因 inline 函数导致 memo 失效
+  const handleSetCustomColor = useCallback((type: ModuleType, color: string | undefined) => {
+    const { setCustomColor } = useModuleStatsStore.getState()
+    setCustomColor(type, color)
+  }, [])
 
   // 在组件挂载时获取一次排序结果并缓存（只在浏览器刷新时排序）
   const [sortedCategoriesCache] = useState(() => {
@@ -2138,34 +2152,32 @@ export function ModuleSidebar() {
                           {category.modules.length}
                         </span>
                       </button>
-                      <div className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${expanded ? 'max-h-[2000px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'}`}>
-                        <div className="ml-3 pl-2 space-y-0.5 border-l border-dashed border-[hsl(var(--border))]">
-                          {category.modules.map((type) => {
-                            return (
-                              <div key={type}>
-                                <ModuleItem
-                                  type={type}
-                                  highlight={searchQuery}
-                                  isFavorite={favoriteModules.includes(type)}
-                                  customColor={stats[type]?.customColor}
-                                  onToggleFavorite={toggleFavorite}
-                                  onSetCustomColor={(type, color) => {
-                                    const { setCustomColor } = useModuleStatsStore.getState()
-                                    setCustomColor(type, color)
-                                  }}
-                                  onIncrementUsage={incrementUsage}
-                                  enableSortDrag={false}
-                                  onSortDragStart={undefined}
-                                  onSortDragOver={undefined}
-                                  onSortDrop={undefined}
-                                  sortDragOverType={null}
-                                  sortDraggingType={null}
-                                />
-                              </div>
-                            )
-                          })}
+                      {/* 关键性能优化：未展开时完全不渲染子模块 DOM
+                          这样画布操作时不会有数百个隐形 ModuleItem 占用事件循环 */}
+                      {expanded && (
+                        <div className="mt-1 animate-fade-in">
+                          <div className="ml-3 pl-2 space-y-0.5 border-l border-dashed border-[hsl(var(--border))]">
+                            {category.modules.map((type) => (
+                              <ModuleItem
+                                key={type}
+                                type={type}
+                                highlight={searchQuery}
+                                isFavorite={favoriteModules.includes(type)}
+                                customColor={stats[type]?.customColor}
+                                onToggleFavorite={toggleFavorite}
+                                onSetCustomColor={handleSetCustomColor}
+                                onIncrementUsage={incrementUsage}
+                                enableSortDrag={false}
+                                onSortDragStart={undefined}
+                                onSortDragOver={undefined}
+                                onSortDrop={undefined}
+                                sortDragOverType={null}
+                                sortDraggingType={null}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )
                 })
@@ -2262,6 +2274,9 @@ export function ModuleSidebar() {
     </aside>
   )
 }
+
+// memo 包装，避免画布操作触发的父组件重渲染传到这里
+export const ModuleSidebar = memo(ModuleSidebarRaw)
 
 // 导出模块分类数据供其他组件使用
 export { moduleCategories }

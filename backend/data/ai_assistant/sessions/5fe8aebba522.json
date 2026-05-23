@@ -1,0 +1,25 @@
+{
+  "id": "5fe8aebba522",
+  "title": "你好",
+  "messages": [
+    {
+      "id": "b353b81d5169",
+      "role": "user",
+      "content": "你好",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 02:03:03.905699"
+    },
+    {
+      "id": "b9ab48999cb6",
+      "role": "assistant",
+      "content": "你好！我是 WebRPA 小助手，你的自动化流程搭建伙伴。我可以帮你：\n\n- 解答任何关于 WebRPA 的问题\n- 直接帮你创建、编辑、运行工作流\n- 配置全局设置和管理数据\n- 处理网页、桌面、手机、AI、数据库等各类自动化场景\n\n有什么我可以帮你的吗？",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 02:03:11.482146"
+    }
+  ],
+  "created_at": "2026-05-24 02:03:03.903754",
+  "updated_at": "2026-05-24 02:03:11.482324",
+  "summary": null
+}

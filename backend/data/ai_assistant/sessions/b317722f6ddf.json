@@ -1,0 +1,41 @@
+{
+  "id": "b317722f6ddf",
+  "title": "你好",
+  "messages": [
+    {
+      "id": "fc30c71ced88",
+      "role": "user",
+      "content": "你好",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 01:39:50.430124"
+    },
+    {
+      "id": "77dc9735bffc",
+      "role": "assistant",
+      "content": "你好！我是 WebRPA 小助手，很高兴为你服务。\n\n当前你的画布上有一个「打开网页」节点，工作流还没有保存。你可以告诉我你想做什么，比如：\n\n- 继续搭建这个工作流（比如在打开网页后做点击、输入等操作）\n- 帮你查找某个模块怎么用\n- 帮你配置全局设置（AI、浏览器、邮件等）\n- 保存当前工作流或打开已有的\n\n有什么需要，尽管说！",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 01:40:08.291368"
+    },
+    {
+      "id": "81ce1772de1f",
+      "role": "user",
+      "content": "你能干什么？",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 01:40:26.725027"
+    },
+    {
+      "id": "ed1aee24f809",
+      "role": "assistant",
+      "content": "[LLM 调用失败] LLM 请求异常: Server disconnected without sending a response.",
+      "tool_calls": [],
+      "tool_call_id": null,
+      "timestamp": "2026-05-24 01:41:33.978576"
+    }
+  ],
+  "created_at": "2026-05-24 01:39:50.428523",
+  "updated_at": "2026-05-24 01:41:33.978853",
+  "summary": null
+}

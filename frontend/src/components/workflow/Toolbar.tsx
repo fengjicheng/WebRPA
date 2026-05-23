@@ -1288,7 +1288,7 @@ export function Toolbar() {
           size="sm" 
           onClick={() => setShowGlobalConfig(true)}
         >
-          <Settings className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
+          <Settings className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">全局配置</span>
         </Button>
 

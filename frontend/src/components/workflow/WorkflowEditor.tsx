@@ -361,29 +361,30 @@ export function WorkflowEditor() {
   const preSelectionNodesRef = useRef<string[]>([]) // 框选开始前已选中的节点
   const isApplyingShiftSelectionRef = useRef(false) // 标志：正在应用 Shift 选择
   
-  const {
-    nodes,
-    edges,
-    variables,
-    name: workflowName,
-    onNodesChange,
-    onEdgesChange,
-    onConnect,
-    addNode,
-    selectNode,
-    selectedNodeId,
-    deleteNode,
-    copyNodes,
-    pasteNodes,
-    pasteNodesFromClipboard,
-    addLog,
-    mergeWorkflow,
-    toggleNodesDisabled,
-    undo,
-    redo,
-    loadWorkflow,
-    executionStatus,
-  } = useWorkflowStore()
+  // 性能：单值用 selector 订阅，actions 直接静态引用（避免整个 store 任意变化都触发重渲染）
+  const nodes = useWorkflowStore((s) => s.nodes)
+  const edges = useWorkflowStore((s) => s.edges)
+  const variables = useWorkflowStore((s) => s.variables)
+  const workflowName = useWorkflowStore((s) => s.name)
+  const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId)
+  const executionStatus = useWorkflowStore((s) => s.executionStatus)
+
+  // actions 是稳定引用，从 getState 拿
+  const onNodesChange = useWorkflowStore((s) => s.onNodesChange)
+  const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange)
+  const onConnect = useWorkflowStore((s) => s.onConnect)
+  const addNode = useWorkflowStore((s) => s.addNode)
+  const selectNode = useWorkflowStore((s) => s.selectNode)
+  const deleteNode = useWorkflowStore((s) => s.deleteNode)
+  const copyNodes = useWorkflowStore((s) => s.copyNodes)
+  const pasteNodes = useWorkflowStore((s) => s.pasteNodes)
+  const pasteNodesFromClipboard = useWorkflowStore((s) => s.pasteNodesFromClipboard)
+  const addLog = useWorkflowStore((s) => s.addLog)
+  const mergeWorkflow = useWorkflowStore((s) => s.mergeWorkflow)
+  const toggleNodesDisabled = useWorkflowStore((s) => s.toggleNodesDisabled)
+  const undo = useWorkflowStore((s) => s.undo)
+  const redo = useWorkflowStore((s) => s.redo)
+  const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow)
 
   // 获取选中的节点
   const selectedNodes = nodes.filter(n => n.selected)
