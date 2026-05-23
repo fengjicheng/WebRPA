@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { workflowApi } from '@/services/api'
+import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
 import { 
   Trash2, 
   Download, 
@@ -273,6 +274,32 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
       setDownloading(false)
     }
   }, [currentExecutionWorkflowId, collectedData, columns, downloadCsv, alert])
+
+  // 监听 AI 小助手发起的 UI 事件
+  useEffect(() => {
+    const offs: Array<() => void> = []
+    offs.push(onAssistantUiEvent('export_logs', () => {
+      handleExportLogs()
+    }))
+    offs.push(onAssistantUiEvent('download_data', () => {
+      handleDownloadData()
+    }))
+    offs.push(onAssistantUiEvent('upload_excel', () => {
+      // ExcelAssetsPanel 通过 window.__excelUploadTrigger 暴露上传函数
+      if ((window as any).__excelUploadTrigger) {
+        (window as any).__excelUploadTrigger()
+      }
+    }))
+    offs.push(onAssistantUiEvent('upload_image', () => {
+      if ((window as any).__imageUploadTrigger) {
+        (window as any).__imageUploadTrigger()
+      }
+    }))
+    return () => {
+      offs.forEach((off) => off())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleDownloadData])
 
   // 变量相关方法
   const parseVariableValue = (value: string, type: VariableType): unknown => {

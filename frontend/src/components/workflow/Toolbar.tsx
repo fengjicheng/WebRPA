@@ -620,43 +620,68 @@ export function Toolbar() {
     }
   }, []) // 空依赖数组，只注册一次
 
-  // 监听 AI 小助手发起的 UI 事件
+  // 监听 AI 小助手发起的 UI 事件 - 完整能力赋予
+  // 注意：handleExport 在更下方定义，用 ref 桥接避免使用前声明
+  const handleExportRef = useRef<((format: any) => Promise<void>) | null>(null)
+
   useEffect(() => {
-    const offSave = onAssistantUiEvent('save_workflow', () => {
+    const offs: Array<() => void> = []
+
+    // 工作流操作
+    offs.push(onAssistantUiEvent('save_workflow', () => {
       handleSave()
-    })
-    const offRun = onAssistantUiEvent('run_workflow', () => {
+    }))
+    offs.push(onAssistantUiEvent('run_workflow', (p: any) => {
       if (!isRunningRef.current) {
-        handleRunRef.current()
+        if (p?.headless) {
+          handleRunHeadless()
+        } else {
+          handleRunRef.current()
+        }
       }
-    })
-    const offStop = onAssistantUiEvent('stop_workflow', () => {
+    }))
+    offs.push(onAssistantUiEvent('stop_workflow', () => {
       if (isRunningRef.current) {
         handleStopRef.current()
       }
-    })
-    const offConfig = onAssistantUiEvent('open_global_config', () => {
-      setShowGlobalConfig(true)
-    })
-    const offLocal = onAssistantUiEvent('open_local_workflow', () => {
-      setShowLocalWorkflow(true)
-    })
-    const offScheduled = onAssistantUiEvent('open_scheduled_tasks', () => {
-      setShowScheduledTasks(true)
-    })
-    const offDoc = onAssistantUiEvent('open_documentation', () => {
-      setShowDocumentation(true)
-    })
+    }))
+    offs.push(onAssistantUiEvent('new_workflow', () => {
+      handleNewWorkflow()
+    }))
+    offs.push(onAssistantUiEvent('export_workflow', (p: any) => {
+      handleExportRef.current?.(p?.format || 'json')
+    }))
+    offs.push(onAssistantUiEvent('open_export_dialog', () => {
+      setShowExportDialog(true)
+    }))
+
+    // 弹窗 / 面板 - 打开
+    offs.push(onAssistantUiEvent('open_global_config', () => setShowGlobalConfig(true)))
+    offs.push(onAssistantUiEvent('close_global_config', () => setShowGlobalConfig(false)))
+    offs.push(onAssistantUiEvent('open_local_workflow', () => setShowLocalWorkflow(true)))
+    offs.push(onAssistantUiEvent('close_local_workflow', () => setShowLocalWorkflow(false)))
+    offs.push(onAssistantUiEvent('open_scheduled_tasks', () => setShowScheduledTasks(true)))
+    offs.push(onAssistantUiEvent('close_scheduled_tasks', () => setShowScheduledTasks(false)))
+    offs.push(onAssistantUiEvent('open_documentation', () => setShowDocumentation(true)))
+    offs.push(onAssistantUiEvent('close_documentation', () => setShowDocumentation(false)))
+    offs.push(onAssistantUiEvent('open_workflow_hub', () => setShowWorkflowHub(true)))
+    offs.push(onAssistantUiEvent('close_workflow_hub', () => setShowWorkflowHub(false)))
+    offs.push(onAssistantUiEvent('open_auto_browser', () => setShowAutoBrowser(true)))
+    offs.push(onAssistantUiEvent('close_auto_browser', () => setShowAutoBrowser(false)))
+    offs.push(onAssistantUiEvent('open_phone_mirror', () => setShowPhoneMirror(true)))
+    offs.push(onAssistantUiEvent('close_phone_mirror', () => setShowPhoneMirror(false)))
+    offs.push(onAssistantUiEvent('open_variable_tracking', () => setShowVariableTracking(true)))
+    offs.push(onAssistantUiEvent('close_variable_tracking', () => setShowVariableTracking(false)))
+
+    // 截图
+    offs.push(onAssistantUiEvent('take_screenshot', () => {
+      doScreenshotRef.current()
+    }))
+
     return () => {
-      offSave()
-      offRun()
-      offStop()
-      offConfig()
-      offLocal()
-      offScheduled()
-      offDoc()
+      offs.forEach((off) => off())
     }
-  }, [handleSave])
+  }, [handleSave, handleNewWorkflow, handleRunHeadless])
   
   // 通知后端当前工作流ID（用于全局热键控制）
   const handleOpen = () => {
@@ -939,6 +964,11 @@ export function Toolbar() {
         break
     }
   }, [handleExportPlaywright, handleExportJSON, handleExportMarkdown])
+
+  // 同步 handleExport 到 ref，便于上方 useEffect 中订阅 AI 助手事件时访问最新版本
+  useEffect(() => {
+    handleExportRef.current = handleExport
+  }, [handleExport])
 
   const handleBrowserLog = (level: 'info' | 'success' | 'warning' | 'error', message: string) => {
     addLog({ level, message })

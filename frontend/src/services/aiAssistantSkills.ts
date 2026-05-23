@@ -3,6 +3,9 @@
  *
  * 当后端 AI 助手返回 client_action 工具调用时，由这个文件负责实际操作 WebRPA。
  * 它会从 zustand store 中拿到当前 workflow 状态、并直接调用 store 的 actions。
+ *
+ * 设计原则：把所有用户能在 UI 上做的事都暴露成 action，
+ * 让小助手具有完全的前端操作能力。
  */
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
@@ -22,7 +25,7 @@ export interface ClientActionResult {
 }
 
 /**
- * 跨组件通信：让外部 UI 组件（GlobalConfigDialog、Toolbar 等）订阅事件来响应小助手的指令
+ * 跨组件通信：让外部 UI 组件订阅事件来响应小助手的指令
  */
 const listeners = new Map<string, Set<(payload: any) => void>>()
 
@@ -59,7 +62,9 @@ export async function executeClientAction(
 ): Promise<ClientActionResult> {
   try {
     switch (action) {
-      // === 画布操作 ===
+      // ============================================================
+      // 画布操作
+      // ============================================================
       case 'new_workflow': {
         useWorkflowStore.getState().clearWorkflow()
         return { success: true, message: '已新建空白工作流' }
@@ -72,9 +77,6 @@ export async function executeClientAction(
           return { success: false, error: '没有可添加的节点' }
         }
         const store = useWorkflowStore.getState()
-        const existingNodes = store.nodes
-        const existingEdges = store.edges
-        // 把后端给的简单节点结构转成画布节点（带 data.label/moduleType）
         const xyNodes = nodes.map((n) => ({
           id: n.id,
           type: n.type,
@@ -93,15 +95,14 @@ export async function executeClientAction(
           targetHandle: e.targetHandle,
         }))
         store.loadWorkflow({
-          nodes: [...existingNodes, ...xyNodes] as any,
-          edges: [...existingEdges, ...xyEdges] as any,
+          nodes: [...store.nodes, ...xyNodes] as any,
+          edges: [...store.edges, ...xyEdges] as any,
           name: store.name,
         })
         return { success: true, message: `已添加 ${xyNodes.length} 个节点` }
       }
 
       case 'load_workflow_from_data': {
-        // 直接载入完整的 nodes/edges/name（小助手生成完整工作流时使用）
         const nodes = (payload.nodes as any[]) || []
         const edges = (payload.edges as any[]) || []
         const name = (payload.name as string) || '未命名工作流'
@@ -141,14 +142,18 @@ export async function executeClientAction(
       }
 
       case 'save_workflow': {
-        // 触发 UI 上的保存动作（让用户看到保存进度）
         emitAssistantUiEvent('save_workflow', { filename: payload.filename })
         return { success: true, message: '已发起保存' }
       }
 
       case 'run_workflow': {
-        emitAssistantUiEvent('run_workflow', {})
-        return { success: true, message: '已发起运行' }
+        emitAssistantUiEvent('run_workflow', { headless: false })
+        return { success: true, message: '已发起运行（有头模式）' }
+      }
+
+      case 'run_workflow_headless': {
+        emitAssistantUiEvent('run_workflow', { headless: true })
+        return { success: true, message: '已发起运行（无头模式）' }
       }
 
       case 'stop_workflow': {
@@ -160,11 +165,31 @@ export async function executeClientAction(
         return { success: true, message: '已发起停止' }
       }
 
+      case 'export_workflow': {
+        // payload.format: 'json' | 'playwright' | 'markdown'
+        const format = (payload.format as string) || 'json'
+        emitAssistantUiEvent('export_workflow', { format })
+        return { success: true, message: `已发起导出（${format}）` }
+      }
+
+      // ============================================================
+      // 节点操作
+      // ============================================================
       case 'delete_node': {
         const nodeId = payload.node_id as string
         if (!nodeId) return { success: false, error: '缺少 node_id' }
         useWorkflowStore.getState().deleteNode(nodeId)
         return { success: true, message: `已删除节点 ${nodeId}` }
+      }
+
+      case 'delete_nodes': {
+        const nodeIds = (payload.node_ids as string[]) || []
+        if (!Array.isArray(nodeIds) || nodeIds.length === 0) {
+          return { success: false, error: '缺少 node_ids' }
+        }
+        const store = useWorkflowStore.getState()
+        nodeIds.forEach((id) => store.deleteNode(id))
+        return { success: true, message: `已删除 ${nodeIds.length} 个节点` }
       }
 
       case 'update_node_config': {
@@ -183,6 +208,34 @@ export async function executeClientAction(
         return { success: true, message: `已聚焦节点 ${nodeId}` }
       }
 
+      case 'toggle_node_disabled': {
+        const nodeIds = (payload.node_ids as string[]) || (payload.node_id ? [payload.node_id] : [])
+        if (nodeIds.length === 0) return { success: false, error: '缺少 node_ids' }
+        useWorkflowStore.getState().toggleNodesDisabled(nodeIds)
+        return { success: true, message: `已切换 ${nodeIds.length} 个节点的禁用状态` }
+      }
+
+      case 'align_nodes': {
+        // type: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom' | 'distribute-horizontal' | 'distribute-vertical'
+        const alignType = payload.type as any
+        if (!alignType) return { success: false, error: '缺少 type' }
+        useWorkflowStore.getState().alignNodes(alignType)
+        return { success: true, message: `已对齐：${alignType}` }
+      }
+
+      case 'copy_nodes': {
+        const nodeIds = (payload.node_ids as string[]) || []
+        if (nodeIds.length === 0) return { success: false, error: '缺少 node_ids' }
+        useWorkflowStore.getState().copyNodes(nodeIds)
+        return { success: true, message: `已复制 ${nodeIds.length} 个节点` }
+      }
+
+      case 'paste_nodes': {
+        const position = payload.position as { x: number; y: number } | undefined
+        useWorkflowStore.getState().pasteNodes(position)
+        return { success: true, message: '已粘贴节点' }
+      }
+
       case 'undo': {
         const s = useWorkflowStore.getState()
         if (!s.canUndo()) return { success: false, error: '没有可撤销的步骤' }
@@ -197,6 +250,9 @@ export async function executeClientAction(
         return { success: true, message: '已重做' }
       }
 
+      // ============================================================
+      // 工作流名称
+      // ============================================================
       case 'rename_workflow': {
         const name = payload.name as string
         if (!name) return { success: false, error: '缺少 name' }
@@ -204,6 +260,9 @@ export async function executeClientAction(
         return { success: true, message: `已改名为「${name}」` }
       }
 
+      // ============================================================
+      // 变量操作
+      // ============================================================
       case 'add_variable': {
         const name = payload.name as string
         const value = payload.value
@@ -229,6 +288,22 @@ export async function executeClientAction(
         return { success: true, message: `已删除变量 ${name}` }
       }
 
+      case 'rename_variable': {
+        const oldName = payload.old_name as string
+        const newName = payload.new_name as string
+        if (!oldName || !newName) return { success: false, error: '缺少 old_name / new_name' }
+        useWorkflowStore.getState().renameVariable(oldName, newName)
+        return { success: true, message: `已重命名变量：${oldName} → ${newName}` }
+      }
+
+      case 'list_variables': {
+        const variables = useWorkflowStore.getState().variables
+        return { success: true, data: variables }
+      }
+
+      // ============================================================
+      // 日志 / 数据 / 资源
+      // ============================================================
       case 'clear_logs': {
         useWorkflowStore.getState().clearLogs()
         return { success: true, message: '已清空日志' }
@@ -239,6 +314,42 @@ export async function executeClientAction(
         return { success: true, message: '已清空数据' }
       }
 
+      case 'set_verbose_log': {
+        const enabled = !!payload.enabled
+        useWorkflowStore.getState().setVerboseLog(enabled)
+        return { success: true, message: enabled ? '已开启详细日志' : '已切换为简洁日志' }
+      }
+
+      case 'set_max_log_count': {
+        const count = Number(payload.count)
+        if (!Number.isFinite(count) || count <= 0) return { success: false, error: 'count 必须是正数' }
+        useWorkflowStore.getState().setMaxLogCount(count)
+        return { success: true, message: `日志最大条数：${count}` }
+      }
+
+      case 'export_logs': {
+        emitAssistantUiEvent('export_logs', {})
+        return { success: true, message: '已发起日志下载' }
+      }
+
+      case 'download_data': {
+        emitAssistantUiEvent('download_data', {})
+        return { success: true, message: '已发起数据下载' }
+      }
+
+      case 'upload_excel': {
+        emitAssistantUiEvent('upload_excel', {})
+        return { success: true, message: '已触发 Excel 上传文件选择' }
+      }
+
+      case 'upload_image': {
+        emitAssistantUiEvent('upload_image', {})
+        return { success: true, message: '已触发图像上传文件选择' }
+      }
+
+      // ============================================================
+      // 底栏 Tab / 全局界面切换
+      // ============================================================
       case 'switch_bottom_panel': {
         const tab = payload.tab as any
         if (!tab) return { success: false, error: '缺少 tab' }
@@ -246,8 +357,10 @@ export async function executeClientAction(
         return { success: true, message: `已切换到 ${tab} 面板` }
       }
 
+      // ============================================================
+      // 工作流详情查询
+      // ============================================================
       case 'get_workflow_detail': {
-        // 给 LLM 返回详细工作流（节点的完整 data）
         const s = useWorkflowStore.getState()
         return {
           success: true,
@@ -261,11 +374,38 @@ export async function executeClientAction(
             })),
             edges: s.edges,
             variables: s.variables,
+            executionStatus: s.executionStatus,
+            currentExecutionWorkflowId: s.currentExecutionWorkflowId,
+            hasUnsavedChanges: s.hasUnsavedChanges,
           },
         }
       }
 
-      // === 全局配置 ===
+      case 'get_logs': {
+        const s = useWorkflowStore.getState()
+        const limit = Math.max(1, Math.min(500, Number(payload.limit) || 100))
+        return {
+          success: true,
+          data: s.logs.slice(-limit),
+        }
+      }
+
+      case 'get_collected_data': {
+        const s = useWorkflowStore.getState()
+        return {
+          success: true,
+          data: s.collectedData,
+        }
+      }
+
+      // ============================================================
+      // 全局配置（读 + 写）
+      // ============================================================
+      case 'get_global_config': {
+        const cfg = useGlobalConfigStore.getState().config
+        return { success: true, data: cfg }
+      }
+
       case 'update_global_config': {
         const section = payload.section as string
         const values = (payload.values as Record<string, any>) || {}
@@ -294,25 +434,98 @@ export async function executeClientAction(
         return { success: true, message: `已更新配置 ${section}` }
       }
 
+      // ============================================================
+      // 弹窗 / 面板 打开/关闭
+      // ============================================================
       case 'open_global_config':
         emitAssistantUiEvent('open_global_config', payload)
         return { success: true, message: '已打开全局配置' }
+
+      case 'close_global_config':
+        emitAssistantUiEvent('close_global_config', payload)
+        return { success: true, message: '已关闭全局配置' }
 
       case 'open_local_workflow_dialog':
         emitAssistantUiEvent('open_local_workflow', payload)
         return { success: true, message: '已打开本地工作流对话框' }
 
+      case 'close_local_workflow_dialog':
+        emitAssistantUiEvent('close_local_workflow', payload)
+        return { success: true, message: '已关闭本地工作流对话框' }
+
       case 'open_scheduled_tasks':
         emitAssistantUiEvent('open_scheduled_tasks', payload)
         return { success: true, message: '已打开计划任务面板' }
+
+      case 'close_scheduled_tasks':
+        emitAssistantUiEvent('close_scheduled_tasks', payload)
+        return { success: true, message: '已关闭计划任务面板' }
 
       case 'open_documentation':
         emitAssistantUiEvent('open_documentation', payload)
         return { success: true, message: '已打开使用文档' }
 
+      case 'close_documentation':
+        emitAssistantUiEvent('close_documentation', payload)
+        return { success: true, message: '已关闭使用文档' }
+
+      case 'open_workflow_hub':
+        emitAssistantUiEvent('open_workflow_hub', payload)
+        return { success: true, message: '已打开工作流仓库' }
+
+      case 'close_workflow_hub':
+        emitAssistantUiEvent('close_workflow_hub', payload)
+        return { success: true, message: '已关闭工作流仓库' }
+
+      case 'open_auto_browser':
+        emitAssistantUiEvent('open_auto_browser', payload)
+        return { success: true, message: '已打开自动化浏览器对话框' }
+
+      case 'close_auto_browser':
+        emitAssistantUiEvent('close_auto_browser', payload)
+        return { success: true, message: '已关闭自动化浏览器对话框' }
+
+      case 'open_phone_mirror':
+        emitAssistantUiEvent('open_phone_mirror', payload)
+        return { success: true, message: '已打开手机投屏' }
+
+      case 'close_phone_mirror':
+        emitAssistantUiEvent('close_phone_mirror', payload)
+        return { success: true, message: '已关闭手机投屏' }
+
+      case 'open_variable_tracking':
+        emitAssistantUiEvent('open_variable_tracking', payload)
+        return { success: true, message: '已打开变量追踪面板' }
+
+      case 'close_variable_tracking':
+        emitAssistantUiEvent('close_variable_tracking', payload)
+        return { success: true, message: '已关闭变量追踪面板' }
+
+      case 'open_export_dialog':
+        emitAssistantUiEvent('open_export_dialog', payload)
+        return { success: true, message: '已打开导出对话框' }
+
+      case 'open_module_search':
+        emitAssistantUiEvent('open_module_search', payload)
+        return { success: true, message: '已打开画布模块搜索框' }
+
+      case 'take_screenshot':
+        emitAssistantUiEvent('take_screenshot', payload)
+        return { success: true, message: '已发起截图' }
+
+      // ============================================================
+      // 通知 / 提示
+      // ============================================================
       case 'show_toast':
         emitAssistantUiEvent('show_toast', payload)
         return { success: true, message: '已显示提示' }
+
+      case 'add_log': {
+        const level = (payload.level as any) || 'info'
+        const message = (payload.message as string) || ''
+        useWorkflowStore.getState().addLog({ level, message })
+        return { success: true, message: '已添加日志' }
+      }
 
       default:
         return { success: false, error: `未知 action：${action}` }
@@ -341,6 +554,9 @@ export function buildWorkflowContext() {
     edges: s.edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
     variables: s.variables,
     currentExecutionWorkflowId: s.currentExecutionWorkflowId,
+    executionStatus: s.executionStatus,
+    bottomPanelTab: s.bottomPanelTab,
+    hasUnsavedChanges: s.hasUnsavedChanges,
   }
 }
 

@@ -7,11 +7,40 @@ import {
   Loader2,
   ChevronRight,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { marked } from 'marked'
 import type { ChatMessage, ToolCall } from '@/store/aiAssistantStore'
+
+// marked 配置 - 启用 GFM (GitHub 风格 Markdown：表格/任务列表/删除线/换行)
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+})
 
 interface MessageBubbleProps {
   message: ChatMessage
+}
+
+// 把 marked 输出的 HTML 包成可交互的 React 内容
+function MarkdownContent({ content }: { content: string }) {
+  const html = useMemo(() => {
+    try {
+      return marked.parse(content) as string
+    } catch {
+      return content.replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c] || c))
+    }
+  }, [content])
+
+  return (
+    <div className="ai-md">
+      <div
+        className="ai-md-body"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  )
 }
 
 function ToolCallCard({ tc }: { tc: ToolCall }) {
@@ -136,17 +165,20 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
-        <div className="inline-block max-w-full space-y-2">
+        <div className={`inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
           {message.content && (
             <div
               className={
-                'inline-block max-w-full px-3.5 py-2.5 text-[13px] leading-relaxed prose-compact ' +
-                (isUser
-                  ? 'bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-600))] text-white rounded-[14px] rounded-tr-[4px] shadow-brand-glow'
-                  : 'bg-[hsl(var(--card))] text-[hsl(var(--slate-800))] rounded-[14px] rounded-tl-[4px] border border-[hsl(var(--border))] shadow-soft')
+                isUser
+                  ? 'inline-block max-w-full px-3.5 py-2.5 text-[13px] leading-relaxed bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-600))] text-white rounded-[14px] rounded-tr-[4px] shadow-brand-glow whitespace-pre-wrap break-words'
+                  : 'block max-w-full px-4 py-3 text-[13.5px] bg-[hsl(var(--card))] text-[hsl(var(--slate-800))] rounded-[14px] rounded-tl-[4px] border border-[hsl(var(--border))] shadow-soft'
               }
             >
-              <div className="whitespace-pre-wrap break-words">{message.content}</div>
+              {isUser ? (
+                <div>{message.content}</div>
+              ) : (
+                <MarkdownContent content={message.content} />
+              )}
             </div>
           )}
           {!isUser && message.tool_calls && message.tool_calls.length > 0 && (

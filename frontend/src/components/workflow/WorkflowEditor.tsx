@@ -29,6 +29,7 @@ import { Toolbar } from './Toolbar'
 import { RemoteCursor } from './RemoteCursor'
 import { socketService } from '@/services/socket'
 import { remoteService } from '@/services/remote'
+import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
 import type { ModuleType } from '@/types'
 
 // 模块计数组件
@@ -174,6 +175,13 @@ function ModuleSearch({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isExpanded, searchResults.length, currentIndex, handleClear, handleNext, handlePrevious, jumpToModule])
+
+  // 监听 AI 小助手指令打开搜索框
+  useEffect(() => {
+    return onAssistantUiEvent('open_module_search', () => {
+      setIsExpanded(true)
+    })
+  }, [])
 
   if (!isExpanded) {
     return (

@@ -21,6 +21,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.4",
     "lucide-react": "^0.562.0",
+    "marked": "^18.0.4",
     "mermaid": "^11.12.2",
     "nanoid": "^5.1.6",
     "react": "^19.2.0",
