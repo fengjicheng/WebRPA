@@ -144,33 +144,44 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
         minWidth={150}
         minHeight={100}
         isVisible={selected}
-        lineClassName="!border-yellow-500"
-        handleClassName="!w-3 !h-3 !bg-yellow-500 !border-2 !border-background"
+        lineClassName="!border-[hsl(var(--brand-500))]"
+        handleClassName="!w-3 !h-3 !bg-[hsl(var(--brand-500))] !border-2 !border-white !rounded-full"
       />
       <div
-        className="w-full h-full rounded-md shadow-md flex flex-col"
+        className="w-full h-full rounded-[12px] flex flex-col overflow-hidden transition-shadow duration-200"
         style={{
           backgroundColor: colorConfig.value,
-          border: `2px solid ${selected ? colorConfig.border : 'transparent'}`,
+          border: `2px solid ${selected ? colorConfig.border : colorConfig.border + '60'}`,
+          boxShadow: selected
+            ? `0 8px 24px -8px ${colorConfig.border}50, 0 4px 8px -4px ${colorConfig.border}30`
+            : `0 2px 6px -1px ${colorConfig.border}30`,
         }}
       >
         <div
-          className="flex items-center justify-between px-2 py-1 border-b shrink-0"
-          style={{ borderColor: colorConfig.border + '40' }}
+          className="flex items-center justify-between px-2.5 py-1.5 shrink-0"
+          style={{
+            borderBottom: `1px dashed ${colorConfig.border}50`,
+            background: `linear-gradient(180deg, ${colorConfig.border}15, transparent)`,
+          }}
         >
-          <div className="flex items-center gap-1">
-            <StickyNote className="w-3.5 h-3.5" style={{ color: colorConfig.border }} />
-            <span className="text-xs font-medium" style={{ color: colorConfig.border }}>便签</span>
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ background: colorConfig.border + '25' }}
+            >
+              <StickyNote className="w-3 h-3" style={{ color: colorConfig.border }} strokeWidth={2.4} />
+            </div>
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: colorConfig.border }}>便签</span>
           </div>
           {selected && (
             <div
-              className="flex items-center gap-0.5"
+              className="flex items-center gap-0.5 bg-white/40 backdrop-blur-sm rounded-[6px] px-0.5 py-0.5"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div className="relative" ref={colorPickerRef}>
                 <button
-                  className="p-1 rounded hover:bg-black/10"
+                  className="p-1 rounded-[4px] hover:bg-black/10 active:scale-90 transition-all"
                   onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker) }}
                   onMouseDown={(e) => e.stopPropagation()}
                   title="选择颜色"
@@ -179,8 +190,8 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                 </button>
                 {showColorPicker && (
                   <div
-                    className="absolute top-full right-0 mt-1 p-2 bg-white rounded-lg shadow-lg border z-[100]"
-                    style={{ width: '110px' }}
+                    className="absolute top-full right-0 mt-1.5 p-2 bg-[hsl(var(--card))] rounded-[10px] shadow-pop-xl border border-[hsl(var(--border))] z-[100] animate-scale-in"
+                    style={{ width: '124px' }}
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
@@ -188,10 +199,11 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                       {COLORS.map((c) => (
                         <button
                           key={c.value}
-                          className="w-5 h-5 rounded border-2 hover:scale-110 transition-transform"
+                          className="w-6 h-6 rounded-full border-2 hover:scale-110 transition-transform shadow-xs"
                           style={{
                             backgroundColor: c.value,
-                            borderColor: localColor === c.value ? c.border : '#e5e7eb',
+                            borderColor: localColor === c.value ? c.border : 'rgba(0,0,0,0.06)',
+                            boxShadow: localColor === c.value ? `0 0 0 2px ${c.border}40` : undefined,
                           }}
                           onClick={(e) => { e.stopPropagation(); handleColorChange(c.value) }}
                           onMouseDown={(e) => e.stopPropagation()}
@@ -203,16 +215,16 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                 )}
               </div>
               <button
-                className="p-1 rounded hover:bg-black/10"
+                className="p-1 rounded-[4px] hover:bg-black/10 active:scale-90 transition-all"
                 onClick={(e) => { e.stopPropagation(); handleFontSizeChange(-1) }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="减小字体"
               >
                 <Minus className="w-3.5 h-3.5" style={{ color: colorConfig.border }} />
               </button>
-              <span className="text-xs min-w-[18px] text-center" style={{ color: colorConfig.border }}>{localFontSize}</span>
+              <span className="text-[10.5px] font-mono min-w-[20px] text-center font-bold" style={{ color: colorConfig.border }}>{localFontSize}</span>
               <button
-                className="p-1 rounded hover:bg-black/10"
+                className="p-1 rounded-[4px] hover:bg-black/10 active:scale-90 transition-all"
                 onClick={(e) => { e.stopPropagation(); handleFontSizeChange(1) }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="增大字体"
@@ -220,7 +232,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                 <Plus className="w-3.5 h-3.5" style={{ color: colorConfig.border }} />
               </button>
               <button
-                className={`p-1 rounded ${localFontBold ? 'bg-black/20' : 'hover:bg-black/10'}`}
+                className={`p-1 rounded-[4px] active:scale-90 transition-all ${localFontBold ? 'bg-black/20 shadow-inner' : 'hover:bg-black/10'}`}
                 onClick={(e) => { e.stopPropagation(); toggleBold() }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="加粗"
@@ -228,7 +240,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
                 <Bold className="w-3.5 h-3.5" style={{ color: colorConfig.border }} />
               </button>
               <button
-                className={`p-1 rounded ${localFontItalic ? 'bg-black/20' : 'hover:bg-black/10'}`}
+                className={`p-1 rounded-[4px] active:scale-90 transition-all ${localFontItalic ? 'bg-black/20 shadow-inner' : 'hover:bg-black/10'}`}
                 onClick={(e) => { e.stopPropagation(); toggleItalic() }}
                 onMouseDown={(e) => e.stopPropagation()}
                 title="斜体"
@@ -238,7 +250,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
             </div>
           )}
         </div>
-        <div className="flex-1 p-2 overflow-hidden cursor-text min-h-0" onDoubleClick={handleDoubleClick}>
+        <div className="flex-1 p-2.5 overflow-hidden cursor-text min-h-0" onDoubleClick={handleDoubleClick}>
           {isEditing ? (
             <textarea
               ref={textareaRef}
@@ -246,17 +258,17 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="w-full h-full bg-transparent border-none outline-none resize-none text-gray-700 overflow-hidden"
+              className="w-full h-full bg-transparent border-none outline-none resize-none text-[hsl(var(--slate-800))] overflow-hidden leading-relaxed"
               style={{ fontSize: `${localFontSize}px`, fontWeight: localFontBold ? 'bold' : 'normal', fontStyle: localFontItalic ? 'italic' : 'normal' }}
               placeholder="双击编辑内容..."
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <div
-              className="w-full h-full text-gray-700 overflow-hidden whitespace-pre-wrap break-words"
+              className="w-full h-full text-[hsl(var(--slate-800))] overflow-hidden whitespace-pre-wrap break-words leading-relaxed"
               style={{ fontSize: `${localFontSize}px`, fontWeight: localFontBold ? 'bold' : 'normal', fontStyle: localFontItalic ? 'italic' : 'normal' }}
             >
-              {nodeData.content || <span className="text-gray-400 italic font-normal">双击编辑内容...</span>}
+              {nodeData.content || <span className="text-[hsl(var(--slate-500))] italic font-normal">双击编辑内容...</span>}
             </div>
           )}
         </div>

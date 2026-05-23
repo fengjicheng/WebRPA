@@ -210,7 +210,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -218,91 +218,96 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 8 }}
           transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-          className="bg-white text-black rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden"
+          className="modern-dialog w-full max-w-5xl h-[88vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div className="flex items-center gap-2">
-            <motion.div animate={{ rotate: [0, -8, 8, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}>
-              <BookOpen className="w-6 h-6 text-blue-600" />
-            </motion.div>
-            <h2 className="text-xl font-semibold">教学文档</h2>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon modern-dialog-header-icon-info">
+            <BookOpen className="w-5 h-5" strokeWidth={2.2} />
           </div>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="outline" 
-              size="icon" 
+          <div className="flex-1">
+            <h2 className="modern-dialog-title">教学文档</h2>
+            <div className="modern-dialog-subtitle">
+              共 <span className="text-[hsl(var(--brand-700))] font-bold">{documents.length}</span> 篇 · 内置全文搜索
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="tonal"
+              size="icon-sm"
               onClick={handleDownloadCurrent}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
               title={`下载当前文档：${currentDoc?.title}`}
             >
-              <FileDown className="w-4 h-4" />
+              <FileDown className="w-3.5 h-3.5" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="tonal-success"
+              size="icon-sm"
               onClick={handleDownloadAll}
-              className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
               title="下载全部文档为一个文件"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
-
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+              title="关闭"
+            >
               <X className="w-4 h-4" />
-
-            </Button>
+            </button>
           </div>
         </div>
-        
-        <div className="flex-1 flex overflow-hidden rounded-b-lg">
-          <div className="w-72 border-r bg-gray-50 flex flex-col rounded-bl-lg">
+
+        <div className="flex-1 flex overflow-hidden">
+          <div className="w-72 border-r border-[hsl(var(--border))] bg-[hsl(var(--slate-50)/0.5)] flex flex-col">
             {/* 搜索框 */}
-            <div className="p-3 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="p-3 border-b border-[hsl(var(--border))]">
+              <div className="relative group">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))] group-focus-within:text-[hsl(var(--brand-600))] transition-colors duration-150" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="搜索文档内容..."
-                  className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-8 pr-7 h-8 text-[12px] border border-[hsl(var(--slate-200))] bg-[hsl(var(--card))] rounded-[8px] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.04)] focus:outline-none focus:border-[hsl(var(--brand-500))] focus:ring-2 focus:ring-[hsl(var(--brand-500)/0.18)] transition-all duration-150"
                 />
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[hsl(var(--danger-50))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] transition-all active:scale-90"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             </div>
-            
+
             {/* 搜索结果或文档目录 */}
-            <div className="flex-1 p-3 overflow-y-auto">
+            <div className="flex-1 p-2.5 overflow-y-auto">
               {isSearching && searchResults.length > 0 ? (
                 <>
-                  <h3 className="text-xs font-medium text-gray-500 mb-2">
-                    搜索结果 ({searchResults.length})
-                  </h3>
-                  <div className="space-y-2">
+                  <div className="text-[10px] uppercase tracking-wider font-semibold text-[hsl(var(--muted-foreground))] mb-2 flex items-center gap-1.5">
+                    <Search className="w-2.5 h-2.5" />
+                    搜索结果
+                    <span className="badge badge-brand !py-0">{searchResults.length}</span>
+                  </div>
+                  <div className="space-y-1">
                     {searchResults.map((result, idx) => (
                       <button
                         key={`${result.docId}-${idx}`}
-                        className="w-full text-left p-2 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors has-hover-only"
+                        className="w-full text-left p-2 rounded-[8px] hover:bg-[hsl(var(--brand-50))] border border-transparent hover:border-[hsl(var(--brand-500)/0.3)] transition-all duration-150 hover:translate-x-0.5"
                         onClick={() => selectSearchResult(result.docId)}
                       >
-                        <div className="text-xs text-gray-400 mb-0.5">{result.title}</div>
-                        <div className="text-sm font-medium text-gray-800 flex items-center gap-1">
-                          {result.level === 1 && <span className="text-blue-600">#</span>}
-                          {result.level === 2 && <span className="text-green-600">##</span>}
-                          {result.level === 3 && <span className="text-orange-600">###</span>}
-                          {result.heading}
+                        <div className="text-[10px] text-[hsl(var(--muted-foreground))] mb-0.5 truncate">{result.title}</div>
+                        <div className="text-[12px] font-medium text-[hsl(var(--slate-800))] flex items-center gap-1">
+                          {result.level === 1 && <span className="text-[hsl(var(--brand-600))] font-mono">#</span>}
+                          {result.level === 2 && <span className="text-[hsl(var(--success-600))] font-mono">##</span>}
+                          {result.level === 3 && <span className="text-[hsl(var(--warning-600))] font-mono">###</span>}
+                          <span className="truncate">{result.heading}</span>
                         </div>
                         {result.matches.length > 0 && (
-                          <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          <div className="text-[11px] text-[hsl(var(--muted-foreground))] mt-1 line-clamp-2">
                             {result.matches[0]}
                           </div>
                         )}
@@ -311,37 +316,49 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                   </div>
                 </>
               ) : isSearching && searchQuery ? (
-                <div className="text-center text-gray-500 py-8">
-                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">未找到相关内容</p>
-                  <p className="text-xs mt-1">试试其他关键词</p>
+                <div className="empty-state !py-10">
+                  <div className="empty-state-icon !w-12 !h-12">
+                    <Search className="w-5 h-5" />
+                  </div>
+                  <div className="empty-state-title !text-[13px]">未找到相关内容</div>
+                  <div className="empty-state-desc !text-[11px]">试试其他关键词</div>
                 </div>
               ) : (
                 <>
-                  <h3 className="text-xs font-medium text-gray-500 mb-2">文档目录</h3>
+                  <div className="text-[10px] uppercase tracking-wider font-semibold text-[hsl(var(--muted-foreground))] mb-2 flex items-center gap-1.5">
+                    <BookOpen className="w-2.5 h-2.5" />
+                    文档目录
+                    <span className="badge badge-default !py-0">{documents.length}</span>
+                  </div>
                   <div className="space-y-1">
-                    {documents.map(doc => {
+                    {documents.map((doc, idx) => {
                       const Icon = doc.icon
+                      const isActive = selectedDoc === doc.id
                       return (
                         <button
                           key={doc.id}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors border',
-                            selectedDoc === doc.id 
-                              ? 'bg-blue-100 text-blue-700 border-blue-200' 
-                              : 'hover:bg-gray-100 text-gray-700 border-transparent hover:border-gray-200 has-hover-only'
+                            'w-full flex items-center gap-2 px-2 py-2 rounded-[8px] text-left transition-all duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] border animate-fade-in-up',
+                            isActive
+                              ? 'bg-[hsl(var(--brand-100))] text-[hsl(var(--brand-700))] border-[hsl(var(--brand-500)/0.4)] shadow-soft'
+                              : 'hover:bg-[hsl(var(--card))] text-[hsl(var(--slate-700))] border-transparent hover:border-[hsl(var(--border))] hover:shadow-xs hover:translate-x-0.5'
                           )}
+                          style={{ animationDelay: `${idx * 18}ms` }}
                           onClick={() => {
                             setSelectedDoc(doc.id)
-                            // 切换文档时不清除搜索状态
                           }}
                         >
-                          <Icon className="w-4 h-4 shrink-0" />
+                          <span className={cn(
+                            'icon-chip !w-7 !h-7',
+                            isActive ? 'icon-chip-brand' : 'icon-chip-slate'
+                          )}>
+                            <Icon className="w-3.5 h-3.5" />
+                          </span>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{doc.title}</div>
-                            <div className="text-xs text-gray-500 truncate">{doc.description}</div>
+                            <div className="text-[12.5px] font-semibold truncate">{doc.title}</div>
+                            <div className="text-[10.5px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">{doc.description}</div>
                           </div>
-                          {selectedDoc === doc.id && <ChevronRight className="w-4 h-4 shrink-0" />}
+                          {isActive && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[hsl(var(--brand-600))]" />}
                         </button>
                       )
                     })}
@@ -349,30 +366,30 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
                 </>
               )}
             </div>
-            <div className="px-4 py-3 border-t text-xs text-gray-400 text-center shrink-0">
+            <div className="px-4 py-2.5 border-t border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))] text-center shrink-0 bg-[hsl(var(--card)/0.5)]">
               © 2026 青云制作_彭明航 版权所有
             </div>
           </div>
-          
-          <div className="flex-1 relative">
-            <div 
+
+          <div className="flex-1 relative bg-[hsl(var(--card))]">
+            <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
               className="h-full overflow-y-auto"
             >
-              <div className="p-8">
+              <div className="px-8 py-7 max-w-3xl">
                 <MarkdownRenderer content={content} highlightKeyword={highlightKeyword} />
               </div>
             </div>
-            
+
             {/* 返回顶部按钮 */}
             {showScrollTop && (
               <button
                 onClick={scrollToTop}
-                className="absolute bottom-6 right-6 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+                className="fab absolute bottom-6 right-6 !w-10 !h-10 animate-fade-in-up"
                 title="返回顶部"
               >
-                <ArrowUp className="w-5 h-5" />
+                <ArrowUp className="w-4 h-4" />
               </button>
             )}
           </div>

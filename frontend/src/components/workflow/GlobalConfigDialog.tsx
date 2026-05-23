@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
-import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot } from 'lucide-react'
+import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check } from 'lucide-react'
 import { systemApi } from '@/services/api'
 import { getBackendBaseUrl } from '@/services/config'
 
@@ -87,168 +87,86 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
     }
   }
 
+  // Tab 配置数组 - 统一管理样式与图标
+  const tabConfig: Array<{
+    id: typeof activeTab
+    label: string
+    Icon: typeof Settings
+    accent: 'brand' | 'violet' | 'info' | 'success' | 'warning' | 'rose' | 'amber' | 'teal' | 'slate'
+  }> = [
+    { id: 'system',      label: '系统',     Icon: Settings,       accent: 'brand'   },
+    { id: 'ai',          label: 'AI对话',   Icon: Brain,          accent: 'violet'  },
+    { id: 'aiAssistant', label: '小助手',   Icon: Bot,            accent: 'brand'   },
+    { id: 'aiScraper',   label: 'AI智能',   Icon: Brain,          accent: 'violet'  },
+    { id: 'email',       label: '邮件',     Icon: Mail,           accent: 'info'    },
+    { id: 'workflow',    label: '存储',     Icon: Folder,         accent: 'warning' },
+    { id: 'database',    label: '数据库',   Icon: Database,       accent: 'teal'    },
+    { id: 'display',     label: '显示',     Icon: Monitor,        accent: 'slate'   },
+    { id: 'browser',     label: '浏览器',   Icon: Globe,          accent: 'success' },
+    { id: 'triggers',    label: '触发器',   Icon: Zap,            accent: 'amber'   },
+    { id: 'qq',          label: 'QQ号',     Icon: MessageCircle,  accent: 'brand'   },
+    { id: 'feishu',      label: '飞书',     Icon: MessageSquare,  accent: 'info'    },
+  ]
+
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-fade-in"
+    <div
+      className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
-      <div 
-        className="bg-[hsl(var(--card))] text-[hsl(var(--foreground))] border border-[hsl(var(--border))] rounded-[10px] shadow-pop-xl w-full max-w-2xl overflow-hidden animate-scale-in"
+      <div
+        className="modern-dialog w-full max-w-4xl flex flex-col animate-scale-in-bounce"
+        style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-4 h-12 border-b border-[hsl(var(--border))]">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] flex items-center justify-center">
-              <Settings className="w-3.5 h-3.5 text-[hsl(var(--primary))]" />
-            </div>
-            <h3 className="font-semibold text-[14px] text-[hsl(var(--foreground))]">全局默认配置</h3>
+        <div className="modern-dialog-header">
+          <div className="modern-dialog-header-icon">
+            <Settings className="w-5 h-5" strokeWidth={2.2} />
           </div>
-          <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
-
+          <div className="flex-1">
+            <h3 className="modern-dialog-title">全局默认配置</h3>
+            <div className="modern-dialog-subtitle">在这里调整 WebRPA 的工作行为与默认参数</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+          >
             <X className="w-4 h-4" />
-
-          </Button>
-        </div>
-
-        {/* 标签页 */}
-        <div className="flex border-b border-[hsl(var(--border))] bg-[hsl(var(--background))] overflow-x-auto scrollbar-thin">
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'system'
-                ? 'border-[hsl(var(--brand-600))] text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('system')}
-          >
-            <Settings className={`w-4 h-4 ${activeTab === 'system' ? 'text-[hsl(var(--brand-600))]' : 'text-[hsl(var(--slate-500))]'}`} />
-            系统
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'ai'
-                ? 'border-[hsl(270_60%_55%)] text-[hsl(270_60%_45%)] bg-[hsl(270_100%_97%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('ai')}
-          >
-            <Brain className={`w-4 h-4 ${activeTab === 'ai' ? 'text-[hsl(270_60%_55%)]' : 'text-[hsl(270_60%_55%)]'}`} />
-            AI对话
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'aiAssistant'
-                ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_45%)] bg-[hsl(214_100%_97%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('aiAssistant')}
-          >
-            <Bot className={`w-4 h-4 ${activeTab === 'aiAssistant' ? 'text-[hsl(217_91%_60%)]' : 'text-[hsl(217_91%_60%)]'}`} />
-            小助手
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'aiScraper'
-                ? 'border-[hsl(280_60%_55%)] text-[hsl(280_60%_45%)] bg-[hsl(280_100%_97%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('aiScraper')}
-          >
-            <Brain className={`w-4 h-4 ${activeTab === 'aiScraper' ? 'text-[hsl(280_60%_55%)]' : 'text-[hsl(280_60%_55%)]'}`} />
-            AI智能
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'email'
-                ? 'border-[hsl(var(--info-500))] text-[hsl(199_89%_38%)] bg-[hsl(var(--info-50))]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('email')}
-          >
-            <Mail className={`w-4 h-4 ${activeTab === 'email' ? 'text-[hsl(var(--info-500))]' : 'text-[hsl(var(--info-500))]'}`} />
-            邮件
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'workflow'
-                ? 'border-[hsl(var(--warning-500))] text-[hsl(32_95%_38%)] bg-[hsl(var(--warning-50))]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('workflow')}
-          >
-            <Folder className={`w-4 h-4 ${activeTab === 'workflow' ? 'text-[hsl(var(--warning-500))]' : 'text-[hsl(var(--warning-500))]'}`} />
-            存储
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'database'
-                ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('database')}
-          >
-            <Database className={`w-4 h-4 ${activeTab === 'database' ? 'text-[hsl(199_89%_48%)]' : 'text-[hsl(199_89%_48%)]'}`} />
-            数据库
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'display'
-                ? 'border-[hsl(var(--slate-600))] text-[hsl(var(--slate-700))] bg-[hsl(var(--slate-100))]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('display')}
-          >
-            <Monitor className={`w-4 h-4 ${activeTab === 'display' ? 'text-[hsl(var(--slate-700))]' : 'text-[hsl(var(--slate-500))]'}`} />
-            显示
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'browser'
-                ? 'border-[hsl(var(--success-500))] text-[hsl(142_71%_28%)] bg-[hsl(var(--success-50))]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('browser')}
-          >
-            <Globe className={`w-4 h-4 ${activeTab === 'browser' ? 'text-[hsl(var(--success-500))]' : 'text-[hsl(var(--success-500))]'}`} />
-            浏览器
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'triggers'
-                ? 'border-[hsl(48_95%_50%)] text-[hsl(38_95%_38%)] bg-[hsl(48_100%_94%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('triggers')}
-          >
-            <Zap className={`w-4 h-4 ${activeTab === 'triggers' ? 'text-[hsl(38_95%_45%)]' : 'text-[hsl(48_95%_50%)]'}`} />
-            触发器
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'qq'
-                ? 'border-[hsl(217_91%_60%)] text-[hsl(217_91%_38%)] bg-[hsl(214_100%_97%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('qq')}
-          >
-            <MessageCircle className={`w-4 h-4 ${activeTab === 'qq' ? 'text-[hsl(217_91%_55%)]' : 'text-[hsl(217_91%_60%)]'}`} />
-            QQ号
-          </button>
-          <button
-            className={`flex items-center gap-1.5 px-3 h-9 text-[12.5px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'feishu'
-                ? 'border-[hsl(199_89%_48%)] text-[hsl(199_89%_38%)] bg-[hsl(199_95%_94%)]'
-                : 'border-[hsl(var(--slate-200))] bg-[hsl(var(--slate-100))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--slate-200))]'
-            }`}
-            onClick={() => setActiveTab('feishu')}
-          >
-            <MessageSquare className={`w-4 h-4 ${activeTab === 'feishu' ? 'text-[hsl(199_89%_48%)]' : 'text-[hsl(199_89%_48%)]'}`} />
-            飞书
           </button>
         </div>
 
-        {/* 内容区 */}
-        <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        {/* 主体：左侧导航 + 右侧内容 */}
+        <div className="flex flex-1 min-h-0">
+          {/* 左侧导航 */}
+          <nav className="w-44 flex-shrink-0 border-r border-[hsl(var(--border))] bg-[hsl(var(--slate-50)/0.5)] overflow-y-auto p-2 space-y-0.5">
+            {tabConfig.map((tab, idx) => {
+              const isActive = activeTab === tab.id
+              const Icon = tab.Icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[8px] text-[12.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up ${
+                    isActive
+                      ? 'bg-[hsl(var(--card))] text-[hsl(var(--brand-700))] shadow-soft border border-[hsl(var(--brand-500)/0.3)]'
+                      : 'text-[hsl(var(--slate-700))] hover:bg-[hsl(var(--card))] hover:text-[hsl(var(--brand-700))] border border-transparent hover:shadow-xs hover:translate-x-0.5'
+                  }`}
+                  style={{ animationDelay: `${idx * 25}ms` }}
+                >
+                  <span className={`icon-chip icon-chip-${tab.accent} !w-7 !h-7`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="flex-1 text-left">{tab.label}</span>
+                  {isActive && (
+                    <span className="w-1 h-4 rounded-full bg-[hsl(var(--brand-500))] animate-fade-in" />
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* 右侧内容区 */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-[400px]">
           {activeTab === 'system' && (
             <>
               <p className="text-xs text-gray-500 mb-4">
@@ -1554,39 +1472,41 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                   </div>
                 </div>
                 
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800">
-                    <strong>使用说明</strong><br/>
-                    • 配置后，新建飞书模块时会自动填充 App ID 和 App Secret<br/>
-                    • 如果不同的飞书模块需要使用不同的应用，可以在模块中单独修改<br/>
-                    • 这些配置仅存储在本地浏览器中，不会上传到服务器
-                  </p>
+                <div className="status-row status-row-info !items-start !py-2.5">
+                  <div className="text-[12px]">
+                    <strong>使用说明</strong>
+                    <br />• 配置后，新建飞书模块时会自动填充 App ID 和 App Secret
+                    <br />• 如果不同的飞书模块需要使用不同的应用，可以在模块中单独修改
+                    <br />• 这些配置仅存储在本地浏览器中，不会上传到服务器
+                  </div>
                 </div>
               </div>
             </>
           )}
+          </div>
         </div>
 
         {/* 底部按钮 */}
-        <div className="flex items-center justify-between p-4 border-t">
+        <div className="dialog-footer-bar !justify-between">
           <Button
-            variant="tonal-success"
+            variant="tonal-warning"
             size="sm"
-            className="border-gray-300 text-gray-700 hover:bg-gray-100"
             onClick={handleReset}
           >
-            <RotateCcw className="w-4 h-4 mr-1" />
+            <RotateCcw className="w-3.5 h-3.5" />
             重置全部
           </Button>
           <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            variant="default"
+            size="sm"
             onClick={onClose}
           >
-            完成
+            <Check className="w-3.5 h-3.5" />
+            完成保存
           </Button>
         </div>
       </div>
-      
+
       {/* 确认对话框 */}
       <ConfirmDialog />
     </div>

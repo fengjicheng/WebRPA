@@ -2041,61 +2041,71 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         />
       )}
       
-      <aside className={`border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ${isCollapsed ? 'w-12' : 'w-80'}`}>
+      <aside className={`relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isCollapsed ? 'w-12' : 'w-80'}`}
+        style={{ backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.3), hsl(var(--card)) 200px)' }}
+      >
         {isCollapsed ? (
-          <button 
+          <button
             type="button"
-            className="flex flex-col items-center py-3 gap-2 hover:bg-[hsl(var(--muted))] transition-colors h-full w-full"
+            className="flex flex-col items-center py-3 gap-2.5 hover:bg-[hsl(var(--brand-50))] transition-colors h-full w-full"
             onClick={() => setIsCollapsed(false)}
             title="展开配置面板"
           >
-            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
+            <span className="flex items-center justify-center w-8 h-8 rounded-[8px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] text-white shadow-brand-glow">
               <ChevronLeft className="w-4 h-4" />
             </span>
-            <Settings className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-            <span className="text-[10px] text-[hsl(var(--muted-foreground))]" style={{ writingMode: 'vertical-rl' }}>
-              {moduleTypeLabels[nodeData.moduleType]}
+            <span className="icon-chip icon-chip-brand !w-7 !h-7">
+              <Settings className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-[10px] text-[hsl(var(--brand-700))] font-semibold mt-1 tracking-wide" style={{ writingMode: 'vertical-rl' }}>
+              {String(moduleTypeLabels[nodeData.moduleType as keyof typeof moduleTypeLabels] ?? nodeData.moduleType)}
             </span>
           </button>
         ) : (
           <>
-            <div className="bg-[hsl(var(--card))] p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))] flex-shrink-0">
-                  <Settings className="w-4 h-4" />
-                </span>
+            <div
+              className="p-3.5 border-b border-[hsl(var(--border))] flex items-center justify-between"
+              style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.5), hsl(var(--card)))' }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="icon-block icon-block-brand !w-9 !h-9 !rounded-[10px] flex-shrink-0">
+                  <Settings className="w-4 h-4" strokeWidth={2.4} />
+                </div>
                 <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">{moduleTypeLabels[nodeData.moduleType]}</h2>
-                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-0.5">节点配置</p>
+                  <h2 className="text-[14px] font-bold text-[hsl(var(--slate-900))] truncate tracking-tight">{String(moduleTypeLabels[nodeData.moduleType as keyof typeof moduleTypeLabels] ?? nodeData.moduleType)}</h2>
+                  <p className="text-[11px] text-[hsl(var(--muted-foreground))] mt-0.5 flex items-center gap-1.5">
+                    <span className="badge badge-brand !py-0 !text-[9.5px]">{String(nodeData.moduleType)}</span>
+                    {Boolean(nodeData.disabled) && <span className="badge badge-warning !py-0 !text-[9.5px]">已禁用</span>}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant={nodeData.disabled ? 'tonal-warning' : 'outline'} 
-                  size="icon" 
+                <Button
+                  variant={nodeData.disabled ? 'tonal-warning' : 'tonal'}
+                  size="icon-sm"
                   onClick={() => {
                     toggleNodesDisabled([selectedNode.id])
                     addLog({ level: 'info', message: nodeData.disabled ? '已启用模块' : '已禁用模块' })
                   }}
                   title={nodeData.disabled ? '启用模块 (Ctrl+D)' : '禁用模块 (Ctrl+D)'}
                 >
-                  <Ban className="w-4 h-4" />
-                </Button>
-                <Button 
-                  variant="tonal-danger" 
-                  size="icon" 
-                  onClick={handleDelete} 
-                  title="删除模块"
-                >
-                  <Trash2 className="w-4 h-4" />
+                  <Ban className="w-3.5 h-3.5" />
                 </Button>
                 <Button
-                  variant="outline"
-                  size="icon"
+                  variant="tonal-danger"
+                  size="icon-sm"
+                  onClick={handleDelete}
+                  title="删除模块"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => setIsCollapsed(true)}
                   title="收起配置面板"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>

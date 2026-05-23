@@ -144,207 +144,249 @@ export function ScheduledTasksPage({ onClose }: ScheduledTasksPageProps = {}) {
   }
   
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-[hsl(var(--background))]">
       {/* 头部 */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">计划任务</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              管理定时任务、热键触发和启动任务
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowStatistics(true)}
-              className="gap-2"
-            >
-              <BarChart3 className="w-4 h-4" />
-              统计信息
-            </Button>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              创建任务
-            </Button>
-            {onClose && (
-              <Button variant="tonal-danger" size="icon" onClick={onClose} title="关闭">
-
-                <X className="w-4 h-4" />
-
-              </Button>
-            )}
+      <div className="modern-dialog-header">
+        <div className="modern-dialog-header-icon modern-dialog-header-icon-warning">
+          <Clock className="w-5 h-5" strokeWidth={2.2} />
+        </div>
+        <div className="flex-1">
+          <h1 className="modern-dialog-title">计划任务</h1>
+          <div className="modern-dialog-subtitle flex items-center gap-2">
+            <span>定时 / 热键 / 启动 / Webhook 触发</span>
+            <span className="badge badge-brand">
+              共 {tasks.length} 个
+            </span>
           </div>
         </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="tonal-info"
+            size="sm"
+            onClick={() => setShowStatistics(true)}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            统计信息
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            创建任务
+          </Button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-[7px] text-[hsl(var(--slate-500))] hover:bg-[hsl(var(--danger-50))] hover:text-[hsl(var(--danger-600))] hover:border-[hsl(var(--danger-500)/0.3)] border border-transparent transition-all duration-150 active:scale-90"
+              title="关闭"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
-      
+
       {/* 任务列表 */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-5">
         {loading && tasks.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-gray-500">加载中...</div>
+          <div className="flex items-center justify-center h-64 flex-col gap-3">
+            <div className="spinner spinner-lg" />
+            <div className="text-[12px] text-[hsl(var(--muted-foreground))]">加载任务列表中…</div>
           </div>
         ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <Clock className="w-16 h-16 mb-4 text-gray-300" />
-            <p className="text-lg font-medium">还没有计划任务</p>
-            <p className="text-sm mt-2">点击"创建任务"开始添加</p>
+          <div className="empty-state h-full">
+            <div className="empty-state-icon !w-20 !h-20" style={{ background: 'linear-gradient(135deg, hsl(var(--warning-50)), hsl(var(--warning-100)))', color: 'hsl(var(--warning-500))', borderColor: 'hsl(var(--warning-500) / 0.2)' }}>
+              <Clock className="w-9 h-9" strokeWidth={1.6} />
+            </div>
+            <div className="empty-state-title !text-[15px]">还没有计划任务</div>
+            <div className="empty-state-desc">
+              点击右上角「创建任务」按钮，添加你的第一个定时 / 热键 / 启动 / Webhook 触发任务
+            </div>
+            <Button
+              variant="warning"
+              size="lg"
+              onClick={() => setCreateDialogOpen(true)}
+              className="mt-5"
+            >
+              <Plus className="w-4 h-4" />
+              立即创建
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            {tasks.map(task => (
+            {tasks.map((task, idx) => (
               <div
                 key={task.id}
-                className={`bg-white rounded-lg border-2 p-4 transition-all ${
+                className={`relative bg-[hsl(var(--card))] rounded-[12px] border-[1.5px] p-4 transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] animate-fade-in-up overflow-hidden ${
                   task.enabled
-                    ? 'border-blue-200 hover:border-blue-300'
-                    : 'border-gray-200 hover:border-gray-300 opacity-60'
+                    ? 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-0.5'
+                    : 'border-[hsl(var(--border))] hover:border-[hsl(var(--slate-300))] opacity-60'
                 }`}
+                style={{ animationDelay: `${idx * 40}ms` }}
               >
+                {/* 卡片左侧色条 */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                  task.is_running ? 'bg-[hsl(var(--brand-500))]'
+                  : task.enabled ? (
+                    task.trigger.type === 'time' ? 'bg-[hsl(var(--brand-500))]'
+                    : task.trigger.type === 'hotkey' ? 'bg-[hsl(var(--amber-500))]'
+                    : task.trigger.type === 'startup' ? 'bg-[hsl(var(--success-500))]'
+                    : 'bg-[hsl(var(--violet-500))]'
+                  )
+                  : 'bg-[hsl(var(--slate-300))]'
+                }`} />
+
                 {/* 任务头部 */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 truncate">
+                      <h3 className="text-[14px] font-bold text-[hsl(var(--slate-900))] truncate">
                         {task.name}
                       </h3>
                       {task.is_running && (
-                        <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                        <span className="badge badge-brand">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" />
                           执行中
                         </span>
                       )}
                     </div>
                     {task.description && (
-                      <p className="text-sm text-gray-500 line-clamp-2">
+                      <p className="text-[12px] text-[hsl(var(--muted-foreground))] line-clamp-2 leading-relaxed">
                         {task.description}
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={() => handleToggle(task)}
-                    className={`ml-2 ${task.enabled ? 'text-green-600' : 'text-gray-400'}`}
+                    className={`shrink-0 p-1.5 rounded-[6px] transition-all duration-200 active:scale-90 ${
+                      task.enabled
+                        ? 'text-[hsl(var(--success-600))] hover:bg-[hsl(var(--success-50))] hover:shadow-success-glow'
+                        : 'text-[hsl(var(--slate-400))] hover:bg-[hsl(var(--slate-100))]'
+                    }`}
+                    title={task.enabled ? '点击禁用' : '点击启用'}
                   >
                     <Power className="w-4 h-4" />
-                  </Button>
+                  </button>
                 </div>
-                
+
                 {/* 工作流信息 */}
-                <div className="mb-3 p-2 bg-gray-50 rounded text-sm">
-                  <div className="text-gray-600">
-                    工作流: <span className="text-gray-900 font-medium">{task.workflow_name || task.workflow_id}</span>
+                <div className="mb-3 p-2.5 bg-[hsl(var(--slate-50))] rounded-[8px] border border-[hsl(var(--border))] text-[12px]">
+                  <div className="flex items-center gap-1.5 text-[hsl(var(--muted-foreground))]">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold">工作流</span>
+                    <span className="text-[hsl(var(--brand-700))] font-medium truncate">
+                      {task.workflow_name || task.workflow_id}
+                    </span>
                   </div>
                 </div>
-                
+
                 {/* 触发器信息 */}
-                <div className="mb-3 space-y-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    {task.trigger.type === 'time' && <Clock className="w-4 h-4 text-blue-500" />}
-                    {task.trigger.type === 'hotkey' && <Zap className="w-4 h-4 text-yellow-500" />}
-                    {task.trigger.type === 'startup' && <Power className="w-4 h-4 text-green-500" />}
-                    {task.trigger.type === 'webhook' && <Webhook className="w-4 h-4 text-purple-500" />}
-                    <span className="text-gray-600">{getTriggerTypeLabel(task.trigger.type)}</span>
+                <div className="mb-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-[12px]">
+                    {task.trigger.type === 'time' && <span className="icon-chip icon-chip-brand !w-6 !h-6"><Clock className="w-3 h-3" /></span>}
+                    {task.trigger.type === 'hotkey' && <span className="icon-chip icon-chip-amber !w-6 !h-6"><Zap className="w-3 h-3" /></span>}
+                    {task.trigger.type === 'startup' && <span className="icon-chip icon-chip-success !w-6 !h-6"><Power className="w-3 h-3" /></span>}
+                    {task.trigger.type === 'webhook' && <span className="icon-chip icon-chip-violet !w-6 !h-6"><Webhook className="w-3 h-3" /></span>}
+                    <span className="text-[hsl(var(--slate-700))] font-semibold">{getTriggerTypeLabel(task.trigger.type)}</span>
                   </div>
-                  <div className="text-sm text-gray-700 pl-6">
+                  <div className="text-[12px] text-[hsl(var(--slate-700))] pl-8">
                     {getTriggerDescription(task)}
                   </div>
                   {task.trigger.type === 'webhook' && task.trigger.webhook_path && (
-                    <div className="text-xs text-gray-500 pl-6 mt-1">
-                      <div className="p-2 bg-gray-50 rounded font-mono break-all">
+                    <div className="pl-8 mt-1">
+                      <div className="p-2 bg-[hsl(var(--violet-50))] rounded-[6px] border border-[hsl(var(--violet-500)/0.2)] font-mono text-[10.5px] text-[hsl(var(--violet-700))] break-all">
                         POST: /api/scheduled-tasks/webhook{task.trigger.webhook_path}
                       </div>
                     </div>
                   )}
                   {task.next_execution_time && (
-                    <div className="text-xs text-gray-500 pl-6">
-                      下次执行: {formatDateTime(task.next_execution_time)}
+                    <div className="text-[10.5px] text-[hsl(var(--muted-foreground))] pl-8 flex items-center gap-1">
+                      <span className="text-[hsl(var(--slate-500))]">下次：</span>
+                      <span className="font-mono">{formatDateTime(task.next_execution_time)}</span>
                     </div>
                   )}
                 </div>
-                
+
                 {/* 执行统计 */}
-                <div className="mb-3 grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="p-2 bg-gray-50 rounded">
-                    <div className="text-gray-600 text-xs">总执行</div>
-                    <div className="font-semibold text-gray-900">{task.total_executions}</div>
+                <div className="mb-3 grid grid-cols-3 gap-1.5 text-center">
+                  <div className="p-2 bg-[hsl(var(--slate-100))] rounded-[8px] border border-[hsl(var(--border))]">
+                    <div className="text-[hsl(var(--muted-foreground))] text-[10px] font-semibold uppercase tracking-wider">总计</div>
+                    <div className="text-[14px] font-bold text-[hsl(var(--slate-800))] tabular-nums">{task.total_executions}</div>
                   </div>
-                  <div className="p-2 bg-green-50 rounded">
-                    <div className="text-green-600 text-xs">成功</div>
-                    <div className="font-semibold text-green-700">{task.success_executions}</div>
+                  <div className="p-2 bg-[hsl(var(--success-50))] rounded-[8px] border border-[hsl(var(--success-500)/0.2)]">
+                    <div className="text-[hsl(var(--success-700))] text-[10px] font-semibold uppercase tracking-wider">成功</div>
+                    <div className="text-[14px] font-bold text-[hsl(var(--success-700))] tabular-nums">{task.success_executions}</div>
                   </div>
-                  <div className="p-2 bg-red-50 rounded">
-                    <div className="text-red-600 text-xs">失败</div>
-                    <div className="font-semibold text-red-700">{task.failed_executions}</div>
+                  <div className="p-2 bg-[hsl(var(--danger-50))] rounded-[8px] border border-[hsl(var(--danger-500)/0.2)]">
+                    <div className="text-[hsl(var(--danger-700))] text-[10px] font-semibold uppercase tracking-wider">失败</div>
+                    <div className="text-[14px] font-bold text-[hsl(var(--danger-700))] tabular-nums">{task.failed_executions}</div>
                   </div>
                 </div>
-                
+
                 {/* 成功率 */}
                 {task.total_executions > 0 && (
                   <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                      <span>成功率</span>
-                      <span className="font-medium">{getSuccessRate(task)}%</span>
+                    <div className="flex items-center justify-between text-[10.5px] text-[hsl(var(--muted-foreground))] mb-1">
+                      <span className="font-semibold uppercase tracking-wider">成功率</span>
+                      <span className="font-bold text-[hsl(var(--success-700))] tabular-nums">{getSuccessRate(task)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-[hsl(var(--slate-200))] rounded-full h-1.5 overflow-hidden shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.06)]">
                       <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
-                        style={{ width: `${getSuccessRate(task)}%` }}
+                        className="h-full rounded-full transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
+                        style={{
+                          width: `${getSuccessRate(task)}%`,
+                          background: 'linear-gradient(90deg, hsl(var(--success-500)), hsl(var(--success-600)))'
+                        }}
                       />
                     </div>
                   </div>
                 )}
-                
+
                 {/* 最后执行 */}
                 {task.last_execution_time && (
-                  <div className="mb-3 text-xs text-gray-500">
+                  <div className="mb-3 p-2 bg-[hsl(var(--slate-50))] rounded-[6px] text-[10.5px]">
                     <div className="flex items-center justify-between">
-                      <span>最后执行:</span>
-                      <span className={`font-medium ${
-                        task.last_execution_status === 'success' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <span className="text-[hsl(var(--muted-foreground))]">最后执行</span>
+                      <span className={`badge ${task.last_execution_status === 'success' ? 'badge-success' : 'badge-danger'}`}>
                         {task.last_execution_status === 'success' ? '成功' : '失败'}
                       </span>
                     </div>
-                    <div className="text-gray-400 mt-0.5">
+                    <div className="text-[hsl(var(--muted-foreground))] mt-0.5 font-mono">
                       {formatDateTime(task.last_execution_time)}
                     </div>
                   </div>
                 )}
-                
+
                 {/* 操作按钮 */}
-                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                <div className="flex gap-1.5 pt-3 border-t border-[hsl(var(--border))]">
                   {task.is_running ? (
                     <Button
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
                       onClick={() => handleStop(task)}
-                      className="flex-1 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="flex-1"
                     >
                       <Square className="w-3 h-3" />
                       停止
                     </Button>
                   ) : (
                     <Button
-                      variant="tonal-success"
+                      variant="success"
                       size="sm"
                       onClick={() => handleExecute(task)}
                       disabled={!task.enabled}
-                      className="flex-1 gap-1"
+                      className="flex-1"
                     >
                       <Play className="w-3 h-3" />
                       执行
                     </Button>
                   )}
                   <Button
-                    variant="outline"
+                    variant="tonal"
                     size="sm"
                     onClick={() => setLogsTask(task)}
-                    className="flex-1 gap-1"
+                    className="flex-1"
                   >
                     <FileText className="w-3 h-3" />
                     日志
