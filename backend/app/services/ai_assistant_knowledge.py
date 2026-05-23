@@ -243,6 +243,13 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "play_video": "播放视频",
         "view_image": "查看图片",
         "face_recognition": "人脸识别",
+        "download_m3u8": "M3U8/HLS 流媒体下载",
+        "ytdlp_download": "在线视频下载（YouTube/B站/抖音/Twitter 等 1000+ 站点，基于 yt-dlp）",
+        "ytdlp_download_audio": "在线音频下载并转码（mp3/wav/m4a/flac，基于 yt-dlp）",
+        "ytdlp_get_info": "查询在线视频元数据（标题/作者/时长/封面/简介，不下载本体）",
+        "ytdlp_list_formats": "列出在线视频所有可用清晰度与编码格式",
+        "ytdlp_download_subtitle": "下载在线视频字幕（支持自动生成字幕，srt/vtt/ass）",
+        "ytdlp_download_playlist": "批量下载播放列表/频道/合集",
     },
     "数据库": {
         "db_connect": "连接 MySQL",

@@ -286,6 +286,14 @@ import {
   CameraRecordConfig,
 } from './config-panels/MediaModuleConfigs'
 import {
+  YtDlpDownloadConfig,
+  YtDlpDownloadAudioConfig,
+  YtDlpGetInfoConfig,
+  YtDlpListFormatsConfig,
+  YtDlpDownloadSubtitleConfig,
+  YtDlpDownloadPlaylistConfig,
+} from './config-panels/YtDlpModuleConfigs'
+import {
   ListFilesConfig,
   CopyFileConfig,
   MoveFileConfig,
@@ -1428,6 +1436,18 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <ImageOCRConfig data={nodeData} onChange={handleChange} />
       case 'download_m3u8':
         return <DownloadM3U8Config data={nodeData} onChange={handleChange} />
+      case 'ytdlp_download':
+        return <YtDlpDownloadConfig data={nodeData} onChange={handleChange} />
+      case 'ytdlp_download_audio':
+        return <YtDlpDownloadAudioConfig data={nodeData} onChange={handleChange} />
+      case 'ytdlp_get_info':
+        return <YtDlpGetInfoConfig data={nodeData} onChange={handleChange} />
+      case 'ytdlp_list_formats':
+        return <YtDlpListFormatsConfig data={nodeData} onChange={handleChange} />
+      case 'ytdlp_download_subtitle':
+        return <YtDlpDownloadSubtitleConfig data={nodeData} onChange={handleChange} />
+      case 'ytdlp_download_playlist':
+        return <YtDlpDownloadPlaylistConfig data={nodeData} onChange={handleChange} />
       case 'rotate_video':
         return <RotateVideoConfig data={nodeData} onChange={handleChange} />
       case 'video_speed':

@@ -41,6 +41,7 @@ from . import database
 from . import media
 from . import media_record
 from . import media_m3u8
+from . import media_ytdlp  # yt-dlp 下载（视频/音频/字幕/播放列表）
 from . import qq
 from . import wechat
 from . import pdf_ops
