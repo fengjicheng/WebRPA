@@ -50,12 +50,12 @@ export function InputDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-1">
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -71,10 +71,12 @@ export function InputDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="secondary" size="sm" onClick={handleCancel}>
             取消
           </Button>
-          <Button onClick={handleConfirm}>确定</Button>
+          <Button size="sm" onClick={handleConfirm}>
+            确定
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -117,7 +119,7 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="whitespace-pre-line">
@@ -125,13 +127,10 @@ export function ConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="secondary" size="sm" onClick={handleCancel}>
             {cancelText}
           </Button>
-          <Button
-            variant={variant}
-            onClick={handleConfirm}
-          >
+          <Button variant={variant} size="sm" onClick={handleConfirm}>
             {confirmText}
           </Button>
         </DialogFooter>
@@ -165,52 +164,63 @@ export function AlertDialog({
     onOpenChange(false)
   }
 
-  // 根据 variant 设置图标和颜色
+  // 配色 token
   const getVariantStyles = () => {
     switch (variant) {
       case 'success':
         return {
           Icon: CheckCircle2,
-          iconClass: 'text-green-600 dark:text-green-400',
-          titleClass: 'text-green-600 dark:text-green-400',
+          iconClass: 'text-[hsl(var(--success-600))]',
+          iconBg: 'bg-[hsl(var(--success-50))] border-[hsl(var(--success-500)/0.3)] ring-[hsl(var(--success-500)/0.12)]',
+          btnVariant: 'success' as const,
         }
       case 'error':
         return {
           Icon: XCircle,
-          iconClass: 'text-red-600 dark:text-red-400',
-          titleClass: 'text-red-600 dark:text-red-400',
+          iconClass: 'text-[hsl(var(--danger-600))]',
+          iconBg: 'bg-[hsl(var(--danger-50))] border-[hsl(var(--danger-500)/0.3)] ring-[hsl(var(--danger-500)/0.12)]',
+          btnVariant: 'destructive' as const,
         }
       case 'warning':
         return {
           Icon: AlertTriangle,
-          iconClass: 'text-yellow-600 dark:text-yellow-400',
-          titleClass: 'text-yellow-600 dark:text-yellow-400',
+          iconClass: 'text-[hsl(var(--warning-600))]',
+          iconBg: 'bg-[hsl(var(--warning-50))] border-[hsl(var(--warning-500)/0.3)] ring-[hsl(var(--warning-500)/0.12)]',
+          btnVariant: 'warning' as const,
         }
       default:
         return {
           Icon: Info,
-          iconClass: 'text-blue-500 dark:text-blue-400',
-          titleClass: '',
+          iconClass: 'text-[hsl(var(--brand-600))]',
+          iconBg: 'bg-[hsl(var(--brand-50))] border-[hsl(var(--brand-500)/0.3)] ring-[hsl(var(--brand-500)/0.12)]',
+          btnVariant: 'default' as const,
         }
     }
   }
 
-  const { Icon, iconClass, titleClass } = getVariantStyles()
+  const { Icon, iconClass, iconBg, btnVariant } = getVariantStyles()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle className={cn('flex items-center gap-2', titleClass)}>
-            <Icon className={cn('w-5 h-5', iconClass)} />
-            <span>{title}</span>
-          </DialogTitle>
-          <DialogDescription className="whitespace-pre-line">
-            {description}
-          </DialogDescription>
+          <div className="flex items-start gap-3.5">
+            <div className={cn(
+              'shrink-0 w-10 h-10 rounded-full flex items-center justify-center border ring-[6px]',
+              iconBg
+            )}>
+              <Icon className={cn('w-5 h-5', iconClass)} strokeWidth={2.2} />
+            </div>
+            <div className="flex-1 pt-1">
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription className="whitespace-pre-line mt-1.5">
+                {description}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={handleConfirm} className="w-full">
+          <Button onClick={handleConfirm} variant={btnVariant} size="sm" className="w-full sm:w-auto">
             {confirmText}
           </Button>
         </DialogFooter>

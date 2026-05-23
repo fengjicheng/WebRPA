@@ -31,24 +31,49 @@ export function ConfirmDialog({
   const icon = (() => {
     switch (type) {
       case 'warning':
-        return <AlertTriangle className="w-4 h-4" />
+        return <AlertTriangle className="w-5 h-5" strokeWidth={2.2} />
       case 'alert':
-        return <Info className="w-4 h-4" />
+        return <Info className="w-5 h-5" strokeWidth={2.2} />
       case 'success':
-        return <CheckCircle2 className="w-4 h-4" />
+        return <CheckCircle2 className="w-5 h-5" strokeWidth={2.2} />
       default:
-        return <HelpCircle className="w-4 h-4" />
+        return <HelpCircle className="w-5 h-5" strokeWidth={2.2} />
     }
   })()
 
-  const iconBg = (() => {
+  // 图标视觉：彩色徽章 + 同色光晕环
+  const iconStyle = (() => {
     switch (type) {
       case 'warning':
-        return 'bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-500))]'
+        return {
+          bg: 'bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-600))] border border-[hsl(var(--warning-500)/0.3)]',
+          ring: 'ring-[6px] ring-[hsl(var(--warning-500)/0.12)]',
+        }
       case 'success':
-        return 'bg-[hsl(var(--success-50))] text-[hsl(var(--success-500))]'
+        return {
+          bg: 'bg-[hsl(var(--success-50))] text-[hsl(var(--success-600))] border border-[hsl(var(--success-500)/0.3)]',
+          ring: 'ring-[6px] ring-[hsl(var(--success-500)/0.12)]',
+        }
+      case 'alert':
+        return {
+          bg: 'bg-[hsl(var(--info-50))] text-[hsl(var(--info-600))] border border-[hsl(var(--info-500)/0.3)]',
+          ring: 'ring-[6px] ring-[hsl(var(--info-500)/0.12)]',
+        }
       default:
-        return 'bg-[hsl(var(--info-50))] text-[hsl(var(--info-500))]'
+        return {
+          bg: 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))] border border-[hsl(var(--brand-500)/0.3)]',
+          ring: 'ring-[6px] ring-[hsl(var(--brand-500)/0.12)]',
+        }
+    }
+  })()
+
+  // 顶部装饰条颜色
+  const stripeColor = (() => {
+    switch (type) {
+      case 'warning': return 'from-[hsl(var(--warning-500))] to-[hsl(var(--warning-400))]'
+      case 'success': return 'from-[hsl(var(--success-500))] to-[hsl(var(--success-400))]'
+      case 'alert':   return 'from-[hsl(var(--info-500))] to-[hsl(var(--info-400))]'
+      default:        return 'from-[hsl(var(--brand-500))] to-[hsl(var(--brand-400))]'
     }
   })()
 
@@ -61,39 +86,47 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-[100] bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
       onClick={() => {
         if (!isAlertOnly && onCancel) onCancel()
       }}
     >
       <div
-        className="bg-[hsl(var(--card))] rounded-[10px] border border-[hsl(var(--border))] shadow-pop-xl w-full max-w-sm overflow-hidden animate-scale-in"
+        className="relative bg-[hsl(var(--card))] rounded-[14px] border border-[hsl(var(--border))] shadow-pop-2xl w-full max-w-sm overflow-hidden animate-scale-in-bounce"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-5">
-          <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${iconBg}`}>
+        {/* 顶部彩色装饰条 */}
+        <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${stripeColor}`} />
+
+        <div className="p-5 pt-6">
+          <div className="flex items-start gap-3.5">
+            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${iconStyle.bg} ${iconStyle.ring}`}>
               {icon}
             </div>
-            <div className="flex-1 min-w-0 pt-0.5">
-              <h3 className="text-[14px] font-semibold text-[hsl(var(--foreground))] mb-1">
+            <div className="flex-1 min-w-0 pt-1">
+              <h3 className="text-[15px] font-semibold text-[hsl(var(--slate-900))] mb-1.5 tracking-tight">
                 {titleText}
               </h3>
-              <p className="text-[12.5px] leading-relaxed text-[hsl(var(--muted-foreground))] whitespace-pre-wrap">
+              <p className="text-[13px] leading-relaxed text-[hsl(var(--slate-600))] whitespace-pre-wrap">
                 {message}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-3 bg-[hsl(var(--muted))] border-t border-[hsl(var(--border))]">
+
+        <div className="flex items-center justify-end gap-2 px-5 py-3.5 bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))]">
           {!isAlertOnly && onCancel && (
-            <Button variant="outline" size="sm" onClick={onCancel}>
+            <Button variant="secondary" size="sm" onClick={onCancel}>
               {cancelText}
             </Button>
           )}
           <Button
             size="sm"
-            variant={type === 'warning' ? 'destructive' : 'default'}
+            variant={
+              type === 'warning' ? 'destructive'
+              : type === 'success' ? 'success'
+              : 'default'
+            }
             onClick={onConfirm}
           >
             {confirmText}

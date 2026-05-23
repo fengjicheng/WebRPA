@@ -1,5 +1,6 @@
 /**
- * Popover 弹出层组件 - 简化版本
+ * Popover 弹出层组件 - 简化版
+ * 视觉：圆角 10px、阴影 pop-xl、品牌蓝边框
  */
 import * as React from "react"
 import { cn } from "@/lib/utils"
@@ -25,7 +26,7 @@ const PopoverContext = React.createContext<{
 
 export function Popover({ open: controlledOpen, onOpenChange, children }: PopoverProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
-  
+
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
   const setOpen = React.useCallback((newOpen: boolean) => {
     if (controlledOpen === undefined) {
@@ -51,7 +52,6 @@ export const PopoverTrigger = React.forwardRef<
 >(({ className, children, onClick, asChild = false, ...props }, ref) => {
   const { open, setOpen } = React.useContext(PopoverContext)
 
-  // asChild 模式下：把 onClick 注入到子元素
   if (asChild && React.isValidElement(children)) {
     const child = children as React.ReactElement<any>
     return React.cloneElement(child, {
@@ -84,7 +84,7 @@ PopoverTrigger.displayName = "PopoverTrigger"
 export const PopoverContent = React.forwardRef<
   HTMLDivElement,
   PopoverContentProps
->(({ className, align = "center", sideOffset = 4, children, ...props }, _ref) => {
+>(({ className, align = "center", sideOffset = 6, children, ...props }, _ref) => {
   const { open, setOpen } = React.useContext(PopoverContext)
   const contentRef = React.useRef<HTMLDivElement>(null)
 
@@ -118,7 +118,8 @@ export const PopoverContent = React.forwardRef<
     <div
       ref={contentRef}
       className={cn(
-        "absolute z-50 mt-2 rounded-md border bg-white shadow-md outline-none animate-in fade-in-0 zoom-in-95",
+        "absolute z-50 mt-2 rounded-[10px] border border-[hsl(var(--border))] bg-[hsl(var(--popover))] " +
+          "shadow-pop-xl outline-none animate-scale-in",
         align === 'start' && 'left-0',
         align === 'center' && 'left-1/2 -translate-x-1/2',
         align === 'end' && 'right-0',
@@ -132,4 +133,3 @@ export const PopoverContent = React.forwardRef<
   )
 })
 PopoverContent.displayName = "PopoverContent"
-

@@ -18,14 +18,21 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
       onValueChange?.([newValue])
     }
 
-    // 计算进度百分比
     const percentage = ((value[0] - min) / (max - min)) * 100
 
     return (
-      <div className={cn("relative flex w-full touch-none select-none items-center", className)}>
-        <div className="relative h-2 w-full grow overflow-hidden rounded-full bg-gray-200">
-          <div 
-            className="absolute h-full bg-blue-500 rounded-full"
+      <div
+        className={cn(
+          "relative flex w-full touch-none select-none items-center group",
+          disabled && "opacity-50 cursor-not-allowed",
+          className
+        )}
+      >
+        {/* 轨道 */}
+        <div className="relative h-[5px] w-full grow overflow-hidden rounded-full bg-[hsl(var(--slate-200))] shadow-[inset_0_1px_2px_rgb(15_23_42_/_0.06)]">
+          {/* 已填充部分 */}
+          <div
+            className="absolute h-full rounded-full bg-gradient-to-r from-[hsl(var(--brand-500))] to-[hsl(var(--brand-600))] transition-[width] duration-150 ease-[cubic-bezier(0.25,1,0.5,1)]"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -40,8 +47,14 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
           disabled={disabled}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
-        <div 
-          className="absolute h-4 w-4 rounded-full border-2 border-blue-500 bg-white shadow-md transition-transform hover:scale-110"
+        {/* 拖把 */}
+        <div
+          className={cn(
+            "absolute h-4 w-4 rounded-full border-2 border-[hsl(var(--brand-500))] bg-white shadow-soft pointer-events-none",
+            "transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.25,1,0.5,1)]",
+            "group-hover:scale-110 group-hover:shadow-ring",
+            "group-active:scale-125"
+          )}
           style={{ left: `calc(${percentage}% - 8px)` }}
         />
       </div>

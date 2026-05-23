@@ -1028,14 +1028,22 @@ export function Toolbar() {
 
   return (
     <header
-      className="h-12 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] flex items-center px-3 gap-3 flex-shrink-0 shadow-xs"
+      className="relative h-12 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] flex items-center px-3 gap-3 flex-shrink-0 shadow-soft
+        before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px]
+        before:bg-gradient-to-r before:from-[hsl(var(--brand-500))] before:via-[hsl(var(--brand-400))] before:to-[hsl(var(--info-500))]
+        before:opacity-90"
+      style={{
+        backgroundImage: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.4), hsl(var(--card)))',
+      }}
     >
       {/* Logo/标题 */}
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] flex items-center justify-center">
-          <img src="/logo.png" alt="Logo" className="w-4 h-4" />
+        <div
+          className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-1 ring-[hsl(var(--brand-500)/0.3)]"
+        >
+          <img src="/logo.png" alt="Logo" className="w-4 h-4 brightness-[10] saturate-0" />
         </div>
-        <span className="hidden sm:inline font-semibold text-[14px] text-[hsl(var(--foreground))]">
+        <span className="hidden sm:inline font-bold text-[15px] tracking-tight text-gradient">
           WebRPA
         </span>
       </div>
@@ -1259,13 +1267,13 @@ export function Toolbar() {
 
       {/* 右侧操作 - 大屏幕显示部分，小屏幕使用下拉菜单 */}
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        {/* 工作流仓库 - 紫色 */}
+        {/* 工作流仓库 - 紫色（语义：内容/收藏） */}
         <Button 
           variant="tonal" 
           size="sm" 
           onClick={() => setShowWorkflowHub(true)}
           title="工作流仓库"
-          className="!bg-[hsl(280_100%_96%)] !text-[hsl(280_60%_45%)] !border-[hsl(280_60%_55%/0.3)] hover:!bg-[hsl(280_100%_92%)]"
+          className="!bg-[hsl(var(--violet-50))] !text-[hsl(var(--violet-700))] !border-[hsl(var(--violet-500)/0.3)] hover:!bg-[hsl(var(--violet-100))] hover:!border-[hsl(var(--violet-500)/0.5)]"
         >
           <Package className="w-4 h-4 sm:mr-1" />
           <span className="hidden lg:inline">工作流仓库</span>

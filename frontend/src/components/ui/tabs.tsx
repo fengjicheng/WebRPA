@@ -11,7 +11,9 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-9 items-center justify-center rounded-[6px] bg-[hsl(var(--muted))] p-0.5 text-[hsl(var(--muted-foreground))]',
+      'inline-flex h-9 items-center justify-center rounded-[8px] ' +
+        'bg-[hsl(var(--slate-100))] p-1 text-[hsl(var(--muted-foreground))] ' +
+        'border border-[hsl(var(--slate-200))]',
       className
     )}
     {...props}
@@ -26,12 +28,16 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[5px] px-3 py-1 ' +
-        'text-[12px] font-medium transition-colors duration-100 ' +
+      'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[6px] px-3 py-1 ' +
+        'text-[12px] font-medium ' +
+        'transition-[background-color,color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] ' +
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ' +
         'disabled:pointer-events-none disabled:opacity-50 ' +
-        'data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-[hsl(var(--foreground))] data-[state=active]:shadow-soft ' +
-        'data-[state=inactive]:hover:text-[hsl(var(--foreground))]',
+        // 激活：白卡片 + 深蓝字 + 阴影 + 微抬升
+        'data-[state=active]:bg-[hsl(var(--card))] data-[state=active]:text-[hsl(var(--brand-700))] ' +
+        'data-[state=active]:shadow-soft data-[state=active]:font-semibold ' +
+        // 未激活悬浮
+        'data-[state=inactive]:hover:bg-[hsl(var(--card)/0.6)] data-[state=inactive]:hover:text-[hsl(var(--slate-900))]',
       className
     )}
     {...props}
@@ -46,7 +52,8 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]',
+      'mt-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ' +
+        'data-[state=active]:animate-fade-in-up',
       className
     )}
     {...props}

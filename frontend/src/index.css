@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 /* ============================================================
-   WebRPA 设计系统 - 专业、克制、现代化（强制浅色）
-   原则：
-   - 颜色与层级语义化，避免过度饱和的渐变作为主色
-   - 动画只用于反馈状态变化（聚焦、出现、消失），不用于装饰
-   - 圆角统一、阴影克制、字号阶梯清晰
-   - 多端：桌面优先，平板/手机响应式
-   注：因为 167 个老组件大量硬编码 bg-white/text-gray，
-       项目暂只提供浅色主题，不跟随系统暗色（避免黑白割裂）
+   WebRPA 设计系统 v2 - 蓝白主调 · 专业 · 现代 · 丝滑
+   设计原则：
+   - 主色：稳重深蓝 + 纯净白（主体），辅以功能色按钮（按功能配色）
+   - 严禁蓝紫色渐变；允许：纯色、同色调单向渐变、玻璃态
+   - 动效服务于反馈与空间连续性，时长 120-280ms，自然缓动
+   - 阴影分层、圆角统一、字号阶梯清晰
+   - 强制浅色（项目暂不支持暗色，避免与海量历史代码冲突）
    ============================================================ */
 
 :root {
   color-scheme: light only;
 
-  /* 中性灰阶（slate 系，专业、低饱和） */
-  --slate-50: 210 20% 98%;
+  /* ----- 中性灰阶（slate · 低饱和、专业） ----- */
+  --slate-50:  210 20% 98%;
   --slate-100: 220 14% 96%;
+  --slate-150: 220 13% 94%;
   --slate-200: 220 13% 91%;
   --slate-300: 216 12% 84%;
   --slate-400: 218 11% 65%;
@@ -27,25 +27,73 @@
   --slate-900: 222 47% 11%;
   --slate-950: 229 84% 5%;
 
-  /* 品牌色：稳重的蓝 */
-  --brand-50: 214 100% 95%;
-  --brand-100: 214 95% 90%;
+  /* ----- 品牌主色：稳重深蓝（不偏紫） ----- */
+  --brand-50:  214 100% 97%;
+  --brand-100: 214 95% 93%;
+  --brand-200: 213 97% 87%;
+  --brand-300: 212 96% 78%;
+  --brand-400: 213 94% 68%;
   --brand-500: 217 91% 55%;
   --brand-600: 221 83% 48%;
   --brand-700: 224 76% 41%;
+  --brand-800: 226 71% 35%;
+  --brand-900: 224 64% 28%;
 
-  /* 语义色 */
+  /* ----- 功能色板（按钮按功能着色用） ----- */
+  --success-50:  142 76% 94%;
+  --success-100: 141 84% 88%;
   --success-500: 142 71% 41%;
-  --success-50: 138 76% 92%;
-  --warning-500: 32 95% 50%;
-  --warning-50: 48 100% 92%;
-  --danger-500: 0 72% 51%;
-  --danger-50: 0 86% 94%;
-  --info-500: 199 89% 48%;
-  --info-50: 199 95% 92%;
+  --success-600: 142 76% 36%;
+  --success-700: 142 72% 29%;
 
-  /* shadcn 标准 token（兼容） */
-  --background: 220 14% 94%;     /* 画布背景：稍深的浅灰，与卡片白形成层次 */
+  --warning-50:  43 100% 94%;
+  --warning-100: 43 96% 86%;
+  --warning-500: 32 95% 50%;
+  --warning-600: 25 95% 45%;
+  --warning-700: 21 90% 40%;
+
+  --danger-50:  0 86% 96%;
+  --danger-100: 0 93% 92%;
+  --danger-500: 0 72% 51%;
+  --danger-600: 0 74% 44%;
+  --danger-700: 0 73% 38%;
+
+  --info-50:  199 95% 95%;
+  --info-100: 199 90% 88%;
+  --info-500: 199 89% 48%;
+  --info-600: 200 91% 42%;
+  --info-700: 201 90% 36%;
+
+  /* 紫罗兰：留作"自定义模块/AI 助手"等专属语义（非渐变） */
+  --violet-50:  270 100% 96%;
+  --violet-100: 269 100% 92%;
+  --violet-500: 262 83% 58%;
+  --violet-600: 263 70% 50%;
+  --violet-700: 263 69% 42%;
+
+  /* 青绿：留作"录制/媒体"等语义 */
+  --teal-50:  166 76% 93%;
+  --teal-100: 167 85% 86%;
+  --teal-500: 173 80% 40%;
+  --teal-600: 175 84% 32%;
+  --teal-700: 175 77% 26%;
+
+  /* 玫瑰：留作"删除高亮/强警示"等语义（备选） */
+  --rose-50:  356 100% 95%;
+  --rose-100: 355 100% 90%;
+  --rose-500: 347 77% 50%;
+  --rose-600: 348 83% 43%;
+  --rose-700: 348 81% 35%;
+
+  /* 琥珀：留作"调试/Beta"等 */
+  --amber-50:  48 100% 94%;
+  --amber-100: 48 96% 86%;
+  --amber-500: 38 92% 50%;
+  --amber-600: 32 95% 44%;
+
+  /* ----- shadcn 标准 token（兼容） ----- */
+  --background: 214 32% 95%;       /* 画布：极浅蓝灰，带蓝白主题暗示 */
+  --background-elevated: 0 0% 100%;
   --foreground: var(--slate-900);
   --card: 0 0% 100%;
   --card-foreground: var(--slate-900);
@@ -57,37 +105,66 @@
   --secondary-foreground: var(--slate-900);
   --muted: var(--slate-100);
   --muted-foreground: var(--slate-500);
-  --accent: var(--slate-100);
-  --accent-foreground: var(--slate-900);
+  --accent: var(--brand-50);
+  --accent-foreground: var(--brand-700);
   --destructive: var(--danger-500);
   --destructive-foreground: 0 0% 100%;
   --border: var(--slate-200);
   --input: var(--slate-200);
   --ring: var(--brand-500);
 
-  /* 圆角阶梯 */
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* ----- 圆角阶梯 ----- */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius:    7px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
 
-  /* 阴影阶梯（专业级、低高度） */
+  /* ----- 阴影体系（层次更立体、克制专业） ----- */
   --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
-  --shadow-md: 0 4px 8px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.04);
-  --shadow-lg: 0 12px 20px -6px rgb(15 23 42 / 0.10), 0 4px 8px -4px rgb(15 23 42 / 0.06);
-  --shadow-xl: 0 20px 40px -10px rgb(15 23 42 / 0.12), 0 8px 16px -8px rgb(15 23 42 / 0.06);
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05),
+               0 1px 3px -1px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 8px -2px rgb(15 23 42 / 0.08),
+               0 2px 4px -2px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 20px -6px rgb(15 23 42 / 0.10),
+               0 4px 8px -4px rgb(15 23 42 / 0.06);
+  --shadow-xl: 0 20px 40px -10px rgb(15 23 42 / 0.12),
+               0 8px 16px -8px rgb(15 23 42 / 0.06);
+  --shadow-2xl: 0 28px 56px -14px rgb(15 23 42 / 0.18),
+                0 12px 24px -8px rgb(15 23 42 / 0.10);
 
-  /* 字号阶梯 */
-  --text-xs: 11px;
-  --text-sm: 12px;
+  /* 品牌色光晕（聚焦/激活） */
+  --shadow-ring: 0 0 0 3px hsl(var(--brand-500) / 0.18);
+  --shadow-ring-strong: 0 0 0 4px hsl(var(--brand-500) / 0.25);
+  --shadow-brand-glow: 0 6px 20px -6px hsl(var(--brand-500) / 0.45);
+  --shadow-success-glow: 0 6px 20px -6px hsl(var(--success-500) / 0.4);
+  --shadow-warning-glow: 0 6px 20px -6px hsl(var(--warning-500) / 0.4);
+  --shadow-danger-glow:  0 6px 20px -6px hsl(var(--danger-500) / 0.4);
+
+  /* ----- 字号阶梯 ----- */
+  --text-2xs: 10px;
+  --text-xs:  11px;
+  --text-sm:  12px;
   --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 16px;
-  --text-xl: 18px;
+  --text-md:  14px;
+  --text-lg:  16px;
+  --text-xl:  18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+
+  /* ----- 缓动（自然丝滑） ----- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ----- 全局基础 ----- */
+/* ============================================================
+   全局基础
+   ============================================================ */
 * {
   border-color: hsl(var(--border));
 }
@@ -97,7 +174,6 @@ html, body, #root {
 }
 
 html {
-  /* 显式声明浅色，防止系统级强制暗色 */
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
@@ -105,22 +181,29 @@ html {
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
+               'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei',
+               system-ui, sans-serif;
   font-size: var(--text-md);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'tnum' 1;
+  font-feature-settings: 'tnum' 1, 'cv03' 1, 'cv04' 1;
+  /* 画布：纯净浅蓝，带极淡的纵向高光（非渐变品牌色，不是装饰） */
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, hsl(var(--brand-100) / 0.45), transparent 60%);
+  background-attachment: fixed;
 }
 
 code, pre, kbd, samp {
-  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'SF Mono', Consolas, 'Menlo', monospace;
+  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'SF Mono',
+               Consolas, 'Menlo', monospace;
   font-size: 0.92em;
 }
 
 ::selection {
-  background: hsl(var(--brand-500) / 0.18);
+  background: hsl(var(--brand-500) / 0.22);
   color: hsl(var(--foreground));
 }
 
@@ -145,32 +228,79 @@ button {
   cursor: pointer;
 }
 
-/* ============ 兜底：让"看不出来是按钮"的可点击元素有可见底 ============ */
-/* 业务里大量原生 button（关闭X、工具栏图标等）只有 hover:bg- 类，平时透明，
-   在白底面板上看不出来是按钮。我们给所有"被显式设置了 hover 颜色但默认透明"
-   的 button 一个温和的浅灰底兜底。
-   
-   实现方式：基于 Tailwind hover:bg-* 会产生 .hover\:bg-{color}:hover 选择器，
-   但平时没有 bg。我们通过 :not 列表精确排除：
-   - DropdownMenu 内部菜单项（已有自己的 hover 样式）
-   - ReactFlow 节点 button（节点本体已经有色彩）
-   - 含 group-hover 的（跟随父级状态，加底反而干扰）
-   - 含 opacity-0 的（默认隐藏的悬浮控件）
-   只让"独立的工具按钮"中招 */
+/* ============================================================
+   动效关键帧（专业级、丝滑、有空间感）
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes scaleInBounce {
+  0%   { opacity: 0; transform: scale(0.92); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInBottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInTop {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 hsl(var(--brand-500) / 0.5); }
+  70%  { box-shadow: 0 0 0 8px hsl(var(--brand-500) / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--brand-500) / 0); }
+}
+@keyframes softFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+@keyframes spinSmooth {
+  to { transform: rotate(360deg); }
+}
+@keyframes progressIndeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
 
-/* ----- 动画（仅状态反馈） ----- */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes slideInLeft { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-
-.animate-fade-in { animation: fadeIn 160ms ease-out; }
-.animate-fade-in-up { animation: fadeInUp 200ms ease-out; }
-.animate-scale-in { animation: scaleIn 180ms ease-out; }
-.animate-slide-in-right { animation: slideInRight 220ms ease-out; }
-.animate-slide-in-left { animation: slideInLeft 220ms ease-out; }
+.animate-fade-in        { animation: fadeIn 180ms var(--ease-out-quart) both; }
+.animate-fade-in-up     { animation: fadeInUp 220ms var(--ease-out-quart) both; }
+.animate-fade-in-down   { animation: fadeInDown 220ms var(--ease-out-quart) both; }
+.animate-scale-in       { animation: scaleIn 180ms var(--ease-out-quart) both; }
+.animate-scale-in-bounce{ animation: scaleInBounce 280ms var(--ease-out-back) both; }
+.animate-slide-in-right { animation: slideInRight 240ms var(--ease-out-quart) both; }
+.animate-slide-in-left  { animation: slideInLeft 240ms var(--ease-out-quart) both; }
+.animate-slide-in-bottom{ animation: slideInBottom 260ms var(--ease-out-quart) both; }
+.animate-slide-in-top   { animation: slideInTop 260ms var(--ease-out-quart) both; }
+.animate-pulse-ring     { animation: pulseRing 1.6s var(--ease-out-quart) infinite; }
+.animate-soft-float     { animation: softFloat 3.2s var(--ease-in-out) infinite; }
+.animate-spin-smooth    { animation: spinSmooth 800ms linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -180,209 +310,269 @@ button {
   }
 }
 
-/* ----- 滚动条（克制） ----- */
+/* ============================================================
+   滚动条（更细腻、品牌化）
+   ============================================================ */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.25);
+  background: hsl(var(--slate-400) / 0.45);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  transition: background 160ms var(--ease-out-quart);
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.45);
+  background: hsl(var(--brand-500) / 0.55);
   background-clip: padding-box;
 }
-
+::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--brand-600) / 0.7);
+  background-clip: padding-box;
+}
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 
-/* ----- 工具类 ----- */
+/* ============================================================
+   表面 / 玻璃态 / 工具类
+   ============================================================ */
 .surface-1 {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
 }
-
 .surface-2 {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
+.surface-3 {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
 
+/* 浅蓝玻璃面板 - 工具栏、悬浮控件 */
 .glass {
-  background: hsl(var(--card) / 0.85);
-  backdrop-filter: saturate(180%) blur(12px);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  background: hsl(0 0% 100% / 0.78);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
   border: 1px solid hsl(var(--border) / 0.7);
 }
-
 .glass-strong {
-  background: hsl(var(--card) / 0.92);
+  background: hsl(0 0% 100% / 0.92);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-lg);
+}
+.glass-blue {
+  background: linear-gradient(180deg,
+    hsl(var(--brand-50) / 0.85),
+    hsl(0 0% 100% / 0.85));
   backdrop-filter: saturate(180%) blur(16px);
   -webkit-backdrop-filter: saturate(180%) blur(16px);
-  border: 1px solid hsl(var(--border));
+  border: 1px solid hsl(var(--brand-500) / 0.18);
 }
 
+/* 品牌渐变文字 - 仅用于点睛 LOGO/大标题，非装饰性 */
 .text-gradient {
-  color: hsl(var(--brand-700));
+  background: linear-gradient(135deg,
+    hsl(var(--brand-700)) 0%,
+    hsl(var(--brand-500)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-weight: 600;
 }
 
-.shadow-xs { box-shadow: var(--shadow-xs); }
-.shadow-soft { box-shadow: var(--shadow-sm); }
-.shadow-pop { box-shadow: var(--shadow-md); }
-.shadow-pop-lg { box-shadow: var(--shadow-lg); }
-.shadow-pop-xl { box-shadow: var(--shadow-xl); }
+.shadow-xs       { box-shadow: var(--shadow-xs); }
+.shadow-soft     { box-shadow: var(--shadow-sm); }
+.shadow-pop      { box-shadow: var(--shadow-md); }
+.shadow-pop-lg   { box-shadow: var(--shadow-lg); }
+.shadow-pop-xl   { box-shadow: var(--shadow-xl); }
+.shadow-pop-2xl  { box-shadow: var(--shadow-2xl); }
+.shadow-ring     { box-shadow: var(--shadow-ring); }
+.shadow-brand-glow   { box-shadow: var(--shadow-brand-glow); }
+.shadow-success-glow { box-shadow: var(--shadow-success-glow); }
+.shadow-warning-glow { box-shadow: var(--shadow-warning-glow); }
+.shadow-danger-glow  { box-shadow: var(--shadow-danger-glow); }
 
-/* ----- 状态徽章 ----- */
+/* ============================================================
+   状态徽章（语义化、按功能配色）
+   ============================================================ */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
-
 .badge-default {
-  background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  border-color: hsl(var(--border));
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-700));
+  border-color: hsl(var(--slate-200));
 }
-
 .badge-info {
   background: hsl(var(--info-50));
-  color: hsl(var(--info-500));
-  border-color: hsl(var(--info-500) / 0.2);
+  color: hsl(var(--info-700));
+  border-color: hsl(var(--info-500) / 0.25);
 }
-
+.badge-brand {
+  background: hsl(var(--brand-50));
+  color: hsl(var(--brand-700));
+  border-color: hsl(var(--brand-500) / 0.25);
+}
 .badge-success {
   background: hsl(var(--success-50));
-  color: hsl(var(--success-500));
-  border-color: hsl(var(--success-500) / 0.25);
+  color: hsl(var(--success-700));
+  border-color: hsl(var(--success-500) / 0.3);
 }
-
 .badge-warning {
   background: hsl(var(--warning-50));
-  color: hsl(var(--warning-500));
-  border-color: hsl(var(--warning-500) / 0.25);
+  color: hsl(var(--warning-700));
+  border-color: hsl(var(--warning-500) / 0.3);
 }
-
 .badge-danger {
   background: hsl(var(--danger-50));
-  color: hsl(var(--danger-500));
-  border-color: hsl(var(--danger-500) / 0.25);
+  color: hsl(var(--danger-700));
+  border-color: hsl(var(--danger-500) / 0.3);
 }
 
-/* ----- ReactFlow 克制处理 ----- */
+/* ============================================================
+   ReactFlow 画布美化（保留原有结构、强化质感）
+   ============================================================ */
 .react-flow {
-  background-color: hsl(var(--background));
+  background-color: transparent;
 }
-
 .react-flow__background {
-  background-color: hsl(var(--background));
+  background-color: transparent;
+}
+.react-flow__background pattern circle {
+  fill: hsl(var(--slate-300) / 0.6) !important;
 }
 
 .react-flow__controls {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius-md) !important;
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: var(--shadow-md) !important;
   overflow: hidden;
 }
-
 .react-flow__controls-button {
   background: transparent !important;
   border: none !important;
   border-bottom: 1px solid hsl(var(--border)) !important;
-  color: hsl(var(--foreground)) !important;
-  transition: background 120ms ease !important;
+  color: hsl(var(--slate-700)) !important;
+  transition: background 140ms var(--ease-out-quart),
+              color 140ms var(--ease-out-quart) !important;
 }
-
 .react-flow__controls-button:last-child { border-bottom: none !important; }
-.react-flow__controls-button:hover { background: hsl(var(--muted)) !important; }
+.react-flow__controls-button:hover {
+  background: hsl(var(--brand-50)) !important;
+  color: hsl(var(--brand-700)) !important;
+}
 .react-flow__controls-button svg { fill: currentColor !important; }
 
 .react-flow__minimap {
   background: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius-md) !important;
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
 }
 
 .react-flow__edge-path {
   stroke: hsl(var(--slate-400)) !important;
   stroke-width: 1.6 !important;
+  transition: stroke 140ms var(--ease-out-quart),
+              stroke-width 140ms var(--ease-out-quart) !important;
 }
-
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: hsl(var(--brand-500)) !important;
+  stroke-width: 2.4 !important;
+  filter: drop-shadow(0 0 4px hsl(var(--brand-500) / 0.4));
+}
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: hsl(var(--brand-500) / 0.8) !important;
   stroke-width: 2.2 !important;
 }
-
-.react-flow__edge:hover .react-flow__edge-path {
-  stroke: hsl(var(--brand-500) / 0.7) !important;
-  stroke-width: 2 !important;
-}
-
 .react-flow__connection-path {
   stroke: hsl(var(--brand-500)) !important;
-  stroke-width: 1.8 !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 6 4;
 }
-
 .react-flow__selection {
   background: hsl(var(--brand-500) / 0.08) !important;
-  border: 1px dashed hsl(var(--brand-500)) !important;
+  border: 1.5px dashed hsl(var(--brand-500)) !important;
+  border-radius: var(--radius);
 }
 
 .react-flow__handle {
   background: hsl(var(--card)) !important;
   border: 2px solid hsl(var(--brand-500)) !important;
-  width: 10px !important;
-  height: 10px !important;
-  transition: transform 120ms ease, background 120ms ease;
+  width: 11px !important;
+  height: 11px !important;
+  transition: transform 140ms var(--ease-out-back),
+              background 140ms var(--ease-out-quart),
+              box-shadow 140ms var(--ease-out-quart);
 }
-
 .react-flow__handle:hover {
   background: hsl(var(--brand-500)) !important;
-  transform: scale(1.15);
+  transform: scale(1.25);
+  box-shadow: 0 0 0 4px hsl(var(--brand-500) / 0.18);
 }
 
-.react-flow__node { transition: filter 120ms ease; }
-.react-flow__node:hover { filter: drop-shadow(0 4px 8px rgb(15 23 42 / 0.10)); }
-.react-flow__node.selected { filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.45)); }
-
+.react-flow__node {
+  transition: filter 160ms var(--ease-out-quart),
+              transform 160ms var(--ease-out-quart);
+}
+.react-flow__node:hover {
+  filter: drop-shadow(0 6px 14px rgb(15 23 42 / 0.12));
+}
+.react-flow__node.selected {
+  filter: drop-shadow(0 0 0 2px hsl(var(--brand-500) / 0.5))
+          drop-shadow(0 6px 18px hsl(var(--brand-500) / 0.25));
+}
 .react-flow__node-groupNode,
-.react-flow__node-noteNode { z-index: -1 !important; }
+.react-flow__node-noteNode {
+  z-index: -1 !important;
+}
 
-/* ----- Tooltip / 骨架 / 状态点 ----- */
+/* ============================================================
+   Tooltip / Skeleton / 状态点
+   ============================================================ */
 [role="tooltip"], .tooltip {
   background: hsl(var(--slate-900));
   color: hsl(var(--slate-50));
   font-size: var(--text-xs);
-  padding: 5px 9px;
+  font-weight: 500;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
+  letter-spacing: 0.02em;
 }
 
 .skeleton {
-  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.12) 50%, hsl(var(--muted)) 100%);
+  background: linear-gradient(90deg,
+    hsl(var(--slate-100)) 0%,
+    hsl(var(--slate-200)) 50%,
+    hsl(var(--slate-100)) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: var(--radius);
@@ -395,69 +585,97 @@ button {
   border-radius: 999px;
   flex-shrink: 0;
 }
-.status-dot-running { background: hsl(var(--brand-500)); box-shadow: 0 0 0 2px hsl(var(--brand-500) / 0.18); }
-.status-dot-success { background: hsl(var(--success-500)); }
-.status-dot-warning { background: hsl(var(--warning-500)); }
-.status-dot-danger  { background: hsl(var(--danger-500)); }
+.status-dot-running {
+  background: hsl(var(--brand-500));
+  box-shadow: 0 0 0 3px hsl(var(--brand-500) / 0.2);
+  animation: pulseRing 1.6s var(--ease-out-quart) infinite;
+}
+.status-dot-success { background: hsl(var(--success-500)); box-shadow: 0 0 0 3px hsl(var(--success-500) / 0.18); }
+.status-dot-warning { background: hsl(var(--warning-500)); box-shadow: 0 0 0 3px hsl(var(--warning-500) / 0.18); }
+.status-dot-danger  { background: hsl(var(--danger-500));  box-shadow: 0 0 0 3px hsl(var(--danger-500) / 0.18); }
 .status-dot-idle    { background: hsl(var(--slate-400)); }
 
-/* ----- 多端响应式 ----- */
-@media (max-width: 768px) {
-  body { font-size: 14px; }
-  .responsive-drawer-right {
-    width: 100% !important;
-    left: 0 !important;
-  }
-}
-
-/* ----- Markdown / 富文本 ----- */
-.prose-compact { font-size: var(--text-md); line-height: 1.6; word-break: break-word; }
-.prose-compact p { margin: 0 0 0.6em 0; }
+/* ============================================================
+   Markdown / 富文本（更舒适的阅读体验）
+   ============================================================ */
+.prose-compact { font-size: var(--text-md); line-height: 1.65; word-break: break-word; }
+.prose-compact p { margin: 0 0 0.65em 0; }
 .prose-compact p:last-child { margin-bottom: 0; }
-.prose-compact ul, .prose-compact ol { margin: 0 0 0.6em 1.4em; padding: 0; }
-.prose-compact li { margin-bottom: 0.2em; }
+.prose-compact ul, .prose-compact ol { margin: 0 0 0.65em 1.4em; padding: 0; }
+.prose-compact li { margin-bottom: 0.25em; }
 .prose-compact code {
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
-  padding: 1px 5px;
+  background: hsl(var(--brand-50));
+  border: 1px solid hsl(var(--brand-500) / 0.2);
+  color: hsl(var(--brand-700));
+  padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.88em;
+  font-weight: 500;
 }
 .prose-compact pre {
-  background: hsl(var(--muted));
-  border: 1px solid hsl(var(--border));
-  padding: 10px 12px;
+  background: hsl(var(--slate-900));
+  color: hsl(var(--slate-50));
+  border: 1px solid hsl(var(--slate-800));
+  padding: 12px 14px;
   border-radius: var(--radius);
   overflow-x: auto;
-  margin: 0.5em 0;
+  margin: 0.6em 0;
+  box-shadow: var(--shadow-sm);
 }
-.prose-compact pre code { background: none; border: none; padding: 0; }
+.prose-compact pre code { background: none; border: none; padding: 0; color: inherit; }
 .prose-compact a {
   color: hsl(var(--brand-600));
   text-decoration: underline;
   text-underline-offset: 2px;
+  font-weight: 500;
+  transition: color 120ms;
 }
-.prose-compact strong { font-weight: 600; }
+.prose-compact a:hover { color: hsl(var(--brand-700)); }
+.prose-compact strong { font-weight: 600; color: hsl(var(--slate-900)); }
 
-/* ----- 兼容旧类名（保留布局，移除装饰） ----- */
-.gradient-primary { background: hsl(var(--brand-600)); color: white; }
-.gradient-primary-soft { background: hsl(var(--brand-50)); color: hsl(var(--brand-700)); }
+/* ============================================================
+   兼容旧类名（彻底剥离蓝紫渐变，保留语义降级）
+   ============================================================ */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--brand-600)), hsl(var(--brand-500)));
+  color: white;
+}
+.gradient-primary-soft {
+  background: linear-gradient(180deg, hsl(var(--brand-50)), hsl(var(--brand-100)));
+  color: hsl(var(--brand-700));
+}
 
+/* 旧版蓝紫/紫粉/紫蓝渐变全部降级为纯卡片色 - 严格执行禁令 */
 .gradient-mesh,
 .gradient-purple-blue,
-.gradient-cyan-blue,
 .gradient-pink-purple,
-.gradient-emerald-cyan,
-.gradient-orange-pink,
-.gradient-indigo-purple {
+.gradient-indigo-purple,
+.gradient-soft-purple,
+.gradient-soft-pink {
   background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
 }
 
-.gradient-soft-blue,
-.gradient-soft-purple,
-.gradient-soft-pink,
+/* 其他渐变保留原有视觉效果（非蓝紫） */
+.gradient-cyan-blue {
+  background: linear-gradient(135deg, hsl(var(--info-500)), hsl(var(--brand-500)));
+  color: white;
+}
+.gradient-emerald-cyan {
+  background: linear-gradient(135deg, hsl(var(--success-500)), hsl(var(--teal-500)));
+  color: white;
+}
+.gradient-orange-pink {
+  background: linear-gradient(135deg, hsl(var(--warning-500)), hsl(var(--rose-500)));
+  color: white;
+}
+.gradient-soft-blue {
+  background: linear-gradient(180deg, hsl(var(--brand-50)), hsl(var(--brand-100)));
+  color: hsl(var(--brand-700));
+}
 .gradient-soft-emerald {
-  background: hsl(var(--muted));
+  background: linear-gradient(180deg, hsl(var(--success-50)), hsl(var(--success-100)));
+  color: hsl(var(--success-700));
 }
 
 .gradient-tag,
@@ -465,36 +683,56 @@ button {
 .badge-gradient {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 2px 9px;
   border-radius: 999px;
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: 600;
   background: hsl(var(--brand-50));
   color: hsl(var(--brand-700));
-  border: 1px solid hsl(var(--brand-500) / 0.2);
+  border: 1px solid hsl(var(--brand-500) / 0.25);
 }
 
 .btn-gradient,
-.btn-gradient-purple,
-.btn-gradient-emerald,
-.btn-gradient-pink,
-.btn-gradient-orange {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  transition: background 120ms ease;
+.btn-gradient-purple {
+  background: linear-gradient(135deg, hsl(var(--brand-600)), hsl(var(--brand-500)));
+  color: white;
+  box-shadow: var(--shadow-sm);
+  transition: filter 140ms var(--ease-out-quart),
+              box-shadow 140ms var(--ease-out-quart),
+              transform 140ms var(--ease-out-quart);
 }
-
 .btn-gradient:hover,
-.btn-gradient-purple:hover,
-.btn-gradient-emerald:hover,
-.btn-gradient-pink:hover,
-.btn-gradient-orange:hover {
-  background: hsl(var(--brand-700));
+.btn-gradient-purple:hover {
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-brand-glow);
+  transform: translateY(-1px);
+}
+.btn-gradient:active,
+.btn-gradient-purple:active {
+  transform: translateY(0);
+}
+.btn-gradient-emerald {
+  background: linear-gradient(135deg, hsl(var(--success-600)), hsl(var(--success-500)));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.btn-gradient-emerald:hover {
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-success-glow);
+}
+.btn-gradient-pink {
+  background: linear-gradient(135deg, hsl(var(--rose-600)), hsl(var(--rose-500)));
+  color: white;
+}
+.btn-gradient-orange {
+  background: linear-gradient(135deg, hsl(var(--warning-600)), hsl(var(--warning-500)));
+  color: white;
 }
 
-.shadow-glow, .shadow-glow-lg { box-shadow: var(--shadow-md); }
+.shadow-glow,
+.shadow-glow-lg { box-shadow: var(--shadow-md); }
 
-/* 装饰类全部降级为温和淡入 */
+/* 装饰性老类降级为温和淡入 */
 .animate-pulse-glow,
 .animate-shimmer,
 .animate-float,
@@ -507,52 +745,87 @@ button {
 .animate-breathing,
 .animate-highlight,
 .animate-spin-slow {
-  animation: fadeIn 200ms ease-out;
+  animation: fadeIn 220ms var(--ease-out-quart);
 }
 
-/* hover 类降级 */
+/* hover 类升级为更精细的丝滑反馈 */
 .hover-lift,
 .hover-scale,
 .hover-glow,
 .card-hover-float,
 .card-3d {
-  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  transition: background-color 160ms var(--ease-out-quart),
+              border-color 160ms var(--ease-out-quart),
+              box-shadow 200ms var(--ease-out-quart),
+              transform 200ms var(--ease-out-quart);
 }
-
-.hover-lift:hover,
-.hover-scale:hover,
-.hover-glow:hover,
-.card-hover-float:hover,
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--brand-500) / 0.3);
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+.hover-glow:hover {
+  box-shadow: var(--shadow-brand-glow);
+  border-color: hsl(var(--brand-500) / 0.4);
+}
+.card-hover-float:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
 .card-3d:hover {
-  background: hsl(var(--muted));
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: var(--shadow-lg);
 }
 
-.hover-lift:hover { box-shadow: var(--shadow-sm); }
-
-.text-gradient-animated { color: hsl(var(--brand-600)); }
+.text-gradient-animated {
+  background: linear-gradient(90deg,
+    hsl(var(--brand-700)),
+    hsl(var(--brand-500)),
+    hsl(var(--brand-700)));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 .input-modern,
 .input-animated {
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
   background: hsl(var(--card));
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: border-color 140ms var(--ease-out-quart),
+              box-shadow 140ms var(--ease-out-quart),
+              background-color 140ms var(--ease-out-quart);
 }
-
+.input-modern:hover,
+.input-animated:hover {
+  border-color: hsl(var(--slate-300));
+}
 .input-modern:focus,
 .input-animated:focus {
   outline: none;
   border-color: hsl(var(--brand-500));
-  box-shadow: 0 0 0 3px hsl(var(--brand-500) / 0.15);
+  box-shadow: var(--shadow-ring);
+  background: hsl(var(--card));
 }
 
 .card-modern {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
 }
 
-.divider-gradient { height: 1px; background: hsl(var(--border)); }
+.divider-gradient {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--border)),
+    transparent);
+}
 
 .border-gradient {
   border: 1px solid hsl(var(--border));
@@ -563,89 +836,208 @@ button {
 .variable-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: var(--radius-sm);
   background: hsl(var(--brand-50));
-  border: 1px solid hsl(var(--brand-500) / 0.25);
+  border: 1px solid hsl(var(--brand-500) / 0.3);
   font-family: ui-monospace, monospace;
   font-size: var(--text-xs);
   color: hsl(var(--brand-700));
+  font-weight: 500;
 }
 
 .dragging {
   opacity: 0.85;
   box-shadow: var(--shadow-lg);
+  transform: rotate(1deg);
 }
 
 .drop-zone-active {
   background: hsl(var(--brand-500) / 0.08);
   border: 1.5px dashed hsl(var(--brand-500));
+  box-shadow: inset 0 0 0 4px hsl(var(--brand-500) / 0.05);
 }
 
 .skeleton-wave {
-  background: hsl(var(--muted));
+  background: linear-gradient(90deg,
+    hsl(var(--slate-100)) 0%,
+    hsl(var(--slate-200)) 50%,
+    hsl(var(--slate-100)) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
   border-radius: var(--radius);
 }
 
-/* ----- 滑动条 ----- */
+/* ============================================================
+   原生滑动条美化
+   ============================================================ */
 input[type="range"].slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
 }
-
 input[type="range"].slider-thumb::-webkit-slider-runnable-track {
-  height: 4px;
-  background: hsl(var(--border));
+  height: 5px;
+  background: linear-gradient(90deg,
+    hsl(var(--brand-500)) var(--progress, 0%),
+    hsl(var(--slate-200)) var(--progress, 0%));
   border-radius: 999px;
 }
-
 input[type="range"].slider-thumb::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: hsl(var(--brand-500));
-  border: 2px solid hsl(var(--card));
-  margin-top: -6px;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--brand-500));
+  margin-top: -5.5px;
   box-shadow: var(--shadow-sm);
-  transition: transform 120ms ease;
+  transition: transform 140ms var(--ease-out-back),
+              box-shadow 140ms var(--ease-out-quart);
 }
-
-input[type="range"].slider-thumb::-webkit-slider-thumb:hover { transform: scale(1.1); }
-
+input[type="range"].slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: var(--shadow-ring);
+}
+input[type="range"].slider-thumb::-webkit-slider-thumb:active {
+  transform: scale(1.25);
+  background: hsl(var(--brand-500));
+}
 input[type="range"].slider-thumb::-moz-range-track {
-  height: 4px;
-  background: hsl(var(--border));
+  height: 5px;
+  background: hsl(var(--slate-200));
   border-radius: 999px;
 }
-
 input[type="range"].slider-thumb::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: hsl(var(--brand-500));
-  border: 2px solid hsl(var(--card));
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--brand-500));
   box-shadow: var(--shadow-sm);
 }
 
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .responsive-drawer-right {
+    width: 100% !important;
+    left: 0 !important;
+  }
+}
 
-/* ============ 全局兜底：可点击按钮可见性 ============
-   配合脚本改造：所有原生 button + 仅有 hover:bg-* 没有默认 bg 的，
-   通过 .has-hover-only 标记类获得彩色品牌底兜底，一眼能看出"是按钮"。 */
+/* ============================================================
+   兜底：彩色"看得出来是按钮"
+   保留旧脚本注入的 .has-hover-only 标记类，确保可点击元素可见
+   ============================================================ */
 button.has-hover-only,
 .has-hover-only {
   background-color: hsl(var(--brand-50));
   border: 1px solid hsl(var(--brand-500) / 0.3);
   color: hsl(var(--brand-700));
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  border-radius: var(--radius);
+  transition: background-color 140ms var(--ease-out-quart),
+              border-color 140ms var(--ease-out-quart),
+              color 140ms var(--ease-out-quart),
+              box-shadow 140ms var(--ease-out-quart),
+              transform 100ms var(--ease-out-quart);
 }
 .has-hover-only:hover {
   background-color: hsl(var(--brand-100));
   border-color: hsl(var(--brand-500) / 0.5);
+  box-shadow: var(--shadow-xs);
 }
 .has-hover-only:active {
   transform: translateY(1px);
 }
+
+/* ============================================================
+   面板标题区 / 区段头（强化层次感）
+   ============================================================ */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: linear-gradient(180deg,
+    hsl(var(--brand-50) / 0.3),
+    hsl(var(--card)));
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: hsl(var(--slate-800));
+}
+.panel-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: hsl(var(--brand-50));
+  color: hsl(var(--brand-600));
+  border: 1px solid hsl(var(--brand-500) / 0.2);
+}
+
+/* ============================================================
+   按功能着色的按钮工具类（供老组件直接挂载，无需改 JSX 结构）
+   ============================================================ */
+.btn-fn-run        { /* 运行类 - 绿 */
+  --btn-bg: hsl(var(--success-600));
+  --btn-bg-hover: hsl(var(--success-700));
+  --btn-glow: var(--shadow-success-glow);
+}
+.btn-fn-stop       { /* 停止类 - 红 */
+  --btn-bg: hsl(var(--danger-500));
+  --btn-bg-hover: hsl(var(--danger-600));
+  --btn-glow: var(--shadow-danger-glow);
+}
+.btn-fn-save       { /* 保存类 - 主蓝 */
+  --btn-bg: hsl(var(--brand-600));
+  --btn-bg-hover: hsl(var(--brand-700));
+  --btn-glow: var(--shadow-brand-glow);
+}
+.btn-fn-warn       { /* 警告类 - 橙 */
+  --btn-bg: hsl(var(--warning-500));
+  --btn-bg-hover: hsl(var(--warning-600));
+  --btn-glow: var(--shadow-warning-glow);
+}
+
+/* ============================================================
+   Loading（细腻的进度感）
+   ============================================================ */
+.progress-indeterminate {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--slate-100));
+  border-radius: 999px;
+  height: 4px;
+}
+.progress-indeterminate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--brand-500)),
+    transparent);
+  animation: progressIndeterminate 1.4s var(--ease-in-out) infinite;
+}
+
+/* 旋转加载图标统一手感 */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid hsl(var(--slate-200));
+  border-top-color: hsl(var(--brand-500));
+  border-radius: 50%;
+  animation: spinSmooth 700ms linear infinite;
+}
+.spinner-sm { width: 12px; height: 12px; border-width: 1.5px; }
+.spinner-lg { width: 24px; height: 24px; border-width: 3px; }

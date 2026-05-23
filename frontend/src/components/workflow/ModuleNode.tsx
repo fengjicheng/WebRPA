@@ -125,10 +125,14 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
       }
       whileTap={{ scale: 0.98 }}
       className={cn(
-        'relative px-4 py-3 rounded-lg border-2 shadow-sm min-w-[180px] max-w-[280px]',
-        isDisabled ? 'border-gray-300 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' : (isCustomModule ? '' : colorClass),
-        selected && 'ring-2 ring-primary ring-offset-2 shadow-lg scale-[1.02]',
-        isHighlighted && 'ring-4 ring-amber-500 ring-offset-2 shadow-2xl scale-105 animate-pulse border-amber-500',
+        'relative px-4 py-3 rounded-[12px] border-[1.5px] shadow-soft min-w-[180px] max-w-[280px]',
+        'transition-shadow duration-200 ease-out',
+        'before:content-[""] before:absolute before:inset-0 before:rounded-[10px] before:pointer-events-none',
+        'before:bg-gradient-to-b before:from-white/60 before:to-transparent before:opacity-0 hover:before:opacity-100',
+        'before:transition-opacity before:duration-200',
+        isDisabled ? 'border-gray-300 bg-gray-100 text-gray-500 opacity-70' : (isCustomModule ? '' : colorClass),
+        selected && 'ring-2 ring-[hsl(var(--brand-500))] ring-offset-2 shadow-pop-lg scale-[1.02]',
+        isHighlighted && 'ring-4 ring-[hsl(var(--warning-500))] ring-offset-2 shadow-pop-xl scale-105 animate-pulse border-[hsl(var(--warning-500))]',
         isSubflow && nodeData.subflowName ? 'cursor-pointer' : ''
       )}
       style={
