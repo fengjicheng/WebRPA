@@ -284,6 +284,12 @@ class ImageOCRExecutor(ModuleExecutor):
                     return result
                 else:
                     # 修复：将 pil_image 转为 numpy 数组传给 easyocr
+                    # 大图自动缩放到最长边 1600px，避免 CPU 推理过慢
+                    max_side = max(pil_image.width, pil_image.height)
+                    if max_side > 1600:
+                        scale = 1600 / max_side
+                        new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
+                        pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
                     img_array = np.array(pil_image)
                     reader = get_easyocr_reader()
                     results = reader.readtext(img_array)

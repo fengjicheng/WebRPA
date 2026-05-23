@@ -154,6 +154,17 @@ async def startup_event():
     """应用启动时设置主事件循环"""
     loop = asyncio.get_event_loop()
     set_main_loop(loop)
+
+    # 后台预热 OCR 模型，避免首次调用时阻塞 30+ 秒
+    async def _preload_ocr():
+        try:
+            from app.executors.media_recognition import get_easyocr_reader
+            await asyncio.get_event_loop().run_in_executor(None, get_easyocr_reader)
+            print("[Startup] EasyOCR 模型预加载完成")
+        except Exception as e:
+            print(f"[Startup] EasyOCR 模型预加载失败: {e}")
+
+    asyncio.create_task(_preload_ocr())
     
     # 启动剪贴板监听服务（用于检测用户截图）
     try:

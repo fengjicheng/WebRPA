@@ -340,7 +340,7 @@ export const browserApi = {
   getUrl: () => apiRequest('/browser/url'),
   getSelector: (description: string) =>
     apiRequest('/browser/get-selector', { method: 'POST', body: JSON.stringify({ description }) }),
-  startPicker: () => apiRequest('/element-picker/start', { method: 'POST' }),
+  startPicker: () => apiRequest('/element-picker/start', { method: 'POST', body: JSON.stringify({}) }),
   stopPicker: () => apiRequest('/element-picker/stop', { method: 'POST' }),
 }
 

@@ -1330,6 +1330,12 @@ class ImageOCRExecutor(ModuleExecutor):
                     else:
                         # 通用OCR模式 - 使用 easyocr（缓存单例）
                         reader = get_easyocr_reader()
+                        # 大图自动缩放到最长边 1600px
+                        max_side = max(pil_image.width, pil_image.height)
+                        if max_side > 1600:
+                            scale = 1600 / max_side
+                            new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
+                            pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
                         img_array = np.array(pil_image)
                         results = reader.readtext(img_array)
                         results_sorted = sorted(results, key=lambda x: (x[0][0][1], x[0][0][0]))
@@ -1386,6 +1392,12 @@ class ImageOCRExecutor(ModuleExecutor):
                         else:
                             # 通用OCR模式 - 使用 easyocr（缓存单例）
                             reader = get_easyocr_reader()
+                            # 大图自动缩放到最长边 1600px
+                            max_side = max(pil_image.width, pil_image.height)
+                            if max_side > 1600:
+                                scale = 1600 / max_side
+                                new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
+                                pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
                             img_array = np.array(pil_image)
                             results = reader.readtext(img_array)
                             results_sorted = sorted(results, key=lambda x: (x[0][0][1], x[0][0][0]))

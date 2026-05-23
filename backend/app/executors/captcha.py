@@ -95,6 +95,8 @@ class SliderCaptchaExecutor(ModuleExecutor):
         slider_selector = context.resolve_value(config.get('sliderSelector', ''))
         background_selector = context.resolve_value(config.get('backgroundSelector', ''))
         gap_selector = context.resolve_value(config.get('gapSelector', ''))
+        # 用户手动指定的滑动距离（支持变量引用）
+        target_distance_raw = context.resolve_value(config.get('targetDistance', ''))
         
         if not slider_selector:
             return ModuleResult(success=False, error="滑块选择器不能为空")
@@ -109,10 +111,16 @@ class SliderCaptchaExecutor(ModuleExecutor):
             if not slider_box:
                 return ModuleResult(success=False, error="无法获取滑块位置")
             
-            slide_distance = 200  # 默认滑动距离
+            # 优先级：用户手动距离 > OpenCV 自动检测 > 默认 200
+            slide_distance: int | None = None
+            if target_distance_raw not in (None, ''):
+                try:
+                    slide_distance = int(float(str(target_distance_raw).strip()))
+                except (TypeError, ValueError):
+                    slide_distance = None
             
-            # 使用 OpenCV 进行滑块缺口匹配
-            if background_selector and gap_selector:
+            # 使用 OpenCV 进行滑块缺口匹配（仅当用户没指定 distance 时）
+            if slide_distance is None and background_selector and gap_selector:
                 try:
                     import cv2
                     import numpy as np
@@ -152,6 +160,10 @@ class SliderCaptchaExecutor(ModuleExecutor):
                         slide_distance = gap_x
                 except Exception:
                     pass  # 匹配失败时使用默认距离
+
+            # 兜底：若用户未指定 + OpenCV 也没识别出，才用默认 200
+            if slide_distance is None:
+                slide_distance = 200
             
             start_x = slider_box['x'] + slider_box['width'] / 2
             start_y = slider_box['y'] + slider_box['height'] / 2

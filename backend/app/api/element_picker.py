@@ -14,11 +14,13 @@ class StartPickerRequest(BaseModel):
 
 
 @router.post("/start")
-async def api_start_picker(request: StartPickerRequest):
+async def api_start_picker(request: StartPickerRequest | None = None):
     """启动元素选择器 - 使用全局浏览器，支持复用"""
     from app.services import browser_engine
     from app.services.browser_manager import _start_picker_engine
 
+    if request is None:
+        request = StartPickerRequest()
     url = request.url.strip() if request.url else None
     browser_config = request.browserConfig or {}
     browser_type = browser_config.get('type', 'msedge')

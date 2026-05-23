@@ -471,11 +471,20 @@ async def main():
             '--disable-infobars',  # 禁用信息栏
             '--disable-notifications',  # 禁用通知
         ]
-        # 如果用户指定了自定义启动参数，则使用用户参数；否则使用默认参数
+        # 如果用户指定了自定义启动参数，与默认参数合并；用户参数优先
         if custom_launch_args:
             user_args = [arg.strip() for arg in custom_launch_args.split('\n') if arg.strip()]
-            launch_args_list = user_args if user_args else _default_launch_args
-            print(f"[BrowserProcess] 使用用户自定义启动参数: {len(launch_args_list)} 个", file=sys.stderr)
+            if user_args:
+                def _flag(a: str) -> str:
+                    return a.split('=', 1)[0].strip()
+                user_flag_names = {_flag(a) for a in user_args}
+                merged = [a for a in _default_launch_args if _flag(a) not in user_flag_names]
+                merged.extend(user_args)
+                launch_args_list = merged
+                print(f"[BrowserProcess] 合并启动参数: 默认 {len(_default_launch_args)} + 用户 {len(user_args)} = {len(launch_args_list)} 个", file=sys.stderr)
+            else:
+                launch_args_list = _default_launch_args
+                print(f"[BrowserProcess] 使用默认启动参数: {len(launch_args_list)} 个", file=sys.stderr)
         else:
             launch_args_list = _default_launch_args
             print(f"[BrowserProcess] 使用默认启动参数: {len(launch_args_list)} 个", file=sys.stderr)

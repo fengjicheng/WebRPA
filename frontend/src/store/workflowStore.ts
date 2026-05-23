@@ -889,7 +889,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   batch_format_convert: 3600, // 60分钟，批量转换很耗时
   // AI识别
   face_recognition: 60, // 1分钟
-  image_ocr: 60,        // 1分钟
+  image_ocr: 240,       // 4分钟，CPU 上 EasyOCR 首次加载 + 大图识别可能很慢
   // PDF处理
   pdf_to_images: 120,     // 2分钟
   images_to_pdf: 120,     // 2分钟

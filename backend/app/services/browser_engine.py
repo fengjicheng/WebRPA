@@ -69,6 +69,10 @@ def _get_user_data_dir(browser_type: str, custom_dir: Optional[str] = None) -> s
 
 
 def _build_launch_args(custom_args_str: str = '') -> list:
+    """构造 Playwright 启动参数列表
+    
+    默认参数 + 用户自定义参数合并；用户参数若与默认重复以用户为准。
+    """
     default_args = [
         '--disable-blink-features=AutomationControlled',
         '--start-maximized',
@@ -79,10 +83,22 @@ def _build_launch_args(custom_args_str: str = '') -> list:
         '--disable-infobars',
         '--disable-notifications',
     ]
-    if custom_args_str:
-        user_args = [a.strip() for a in custom_args_str.split('\n') if a.strip()]
-        return user_args if user_args else default_args
-    return default_args
+    if not custom_args_str:
+        return default_args
+
+    user_args = [a.strip() for a in custom_args_str.split('\n') if a.strip()]
+    if not user_args:
+        return default_args
+
+    # 用户参数中提取 flag 名（取 = 之前的部分）
+    def _flag_name(arg: str) -> str:
+        return arg.split('=', 1)[0].strip()
+
+    user_flag_names = {_flag_name(a) for a in user_args}
+    # 默认参数若被用户覆写则跳过
+    merged = [a for a in default_args if _flag_name(a) not in user_flag_names]
+    merged.extend(user_args)
+    return merged
 
 
 async def _inject_userscript(pg: Page):
