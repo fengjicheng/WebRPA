@@ -837,7 +837,6 @@ a:focus-visible {
 .dragging {
   opacity: 0.85;
   box-shadow: var(--shadow-lg);
-  transform: rotate(1deg);
 }
 
 .drop-zone-active {
