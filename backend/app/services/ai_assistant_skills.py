@@ -1415,6 +1415,406 @@ async def skill_check_python_environment(**_: Any) -> dict[str, Any]:
     }
 
 
+# === 7b. 网页感知（让 AI 真正"看见"网页） ===
+#
+# 这一组 skill 让 AI 在搭建工作流前可以先真实地访问目标网站，
+# 拿到实际的标题、链接、按钮、表单、推荐 CSS selector，
+# 从而把模块配置（URL、selector、文本等）一次性正确地填好。
+#
+# 核心原则：先看 → 再造工作流。绝对不要凭空猜 selector。
+
+async def skill_fetch_page_html(url: str, max_size: int = 30000, **_: Any) -> dict[str, Any]:
+    """简单 HTTP GET 抓取 HTML（适用于静态页）。
+    最多返回 max_size 字符；不会执行 JS。返回 status / title / 截断后的 html。
+    """
+    import re as _re
+    if not url or not url.strip():
+        return {"error": "url 不能为空"}
+    target = url.strip()
+    if not target.startswith(("http://", "https://")):
+        target = "https://" + target
+
+    try:
+        import httpx as _httpx
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+        }
+        async with _httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers=headers) as client:
+            resp = await client.get(target)
+            html = resp.text or ""
+            status = resp.status_code
+    except Exception as e:
+        return {"error": f"请求失败：{e}"}
+
+    title_m = _re.search(r"<title[^>]*>(.*?)</title>", html, _re.IGNORECASE | _re.DOTALL)
+    title = (title_m.group(1).strip() if title_m else "").strip()
+    truncated = False
+    if len(html) > max_size:
+        html = html[:max_size]
+        truncated = True
+
+    return {
+        "url": target,
+        "status": status,
+        "title": title,
+        "html_truncated": truncated,
+        "html_size": len(html),
+        "html": html,
+    }
+
+
+# 用于 probe_page / get_page_dom_snapshot 的浏览器内 JS：
+# 一次性把页面骨架抽出，避免来回多次 evaluate。
+_PROBE_JS = r"""
+() => {
+  const cssEscape = window.CSS && CSS.escape ? CSS.escape : (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, c => '\\' + c);
+  function buildSelector(el) {
+    if (!el || el.nodeType !== 1) return '';
+    if (el.id) return '#' + cssEscape(el.id);
+    const classes = (el.className && typeof el.className === 'string')
+      ? el.className.trim().split(/\s+/).filter(Boolean)
+      : [];
+    if (classes.length > 0) return el.tagName.toLowerCase() + '.' + classes.map(cssEscape).join('.');
+    const parent = el.parentElement;
+    if (!parent) return el.tagName.toLowerCase();
+    const sameTag = Array.from(parent.children).filter(c => c.tagName === el.tagName);
+    const idx = sameTag.indexOf(el) + 1;
+    return el.tagName.toLowerCase() + (sameTag.length > 1 ? `:nth-of-type(${idx})` : '');
+  }
+  function visibleText(el) {
+    if (!el) return '';
+    const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    return t.length > 200 ? t.slice(0, 200) + '…' : t;
+  }
+  const result = {
+    url: location.href,
+    title: document.title,
+    headings: [],
+    links: [],
+    buttons: [],
+    inputs: [],
+    forms: [],
+    lists: [],
+    images_count: document.images.length,
+  };
+  document.querySelectorAll('h1,h2,h3').forEach((h, i) => {
+    if (i < 30) result.headings.push({ tag: h.tagName.toLowerCase(), text: visibleText(h), selector: buildSelector(h) });
+  });
+  let aIdx = 0;
+  document.querySelectorAll('a[href]').forEach(a => {
+    if (aIdx >= 60) return;
+    const text = visibleText(a); if (!text) return;
+    result.links.push({ text, href: a.href, selector: buildSelector(a) });
+    aIdx++;
+  });
+  document.querySelectorAll('button, [role=button]').forEach((b, i) => {
+    if (i >= 40) return;
+    const text = visibleText(b);
+    if (!text && !b.getAttribute('aria-label')) return;
+    result.buttons.push({ text: text || b.getAttribute('aria-label') || '', selector: buildSelector(b) });
+  });
+  document.querySelectorAll('input, textarea, select').forEach((inp, i) => {
+    if (i >= 30) return;
+    result.inputs.push({
+      tag: inp.tagName.toLowerCase(),
+      type: inp.getAttribute('type') || '',
+      name: inp.getAttribute('name') || '',
+      placeholder: inp.getAttribute('placeholder') || '',
+      selector: buildSelector(inp),
+    });
+  });
+  document.querySelectorAll('form').forEach((f, i) => {
+    if (i >= 10) return;
+    result.forms.push({ action: f.getAttribute('action') || '', method: f.getAttribute('method') || 'get', selector: buildSelector(f) });
+  });
+  document.querySelectorAll('ul, ol, table').forEach((lst, i) => {
+    if (i >= 12) return;
+    const items = lst.querySelectorAll('li, tr');
+    if (items.length < 2) return;
+    const sample = [];
+    for (let k = 0; k < Math.min(5, items.length); k++) {
+      const t = visibleText(items[k]);
+      if (t) sample.push(t);
+    }
+    result.lists.push({
+      tag: lst.tagName.toLowerCase(),
+      item_count: items.length,
+      item_selector: buildSelector(items[0]),
+      container_selector: buildSelector(lst),
+      samples: sample,
+    });
+  });
+  return result;
+}
+"""
+
+
+async def skill_probe_page(url: str, timeout: int = 20000, **_: Any) -> dict[str, Any]:
+    """用 Playwright 真实打开 URL 并探查页面：返回标题、可见标题/链接/按钮/表单/列表，
+    以及对常见目标（"百度热榜"、"列表项"等）的 selector 推荐。
+
+    AI 在搭建网页类工作流前应当先调用本 skill 拿到真实 DOM 信息。
+    """
+    if not url or not url.strip():
+        return {"error": "url 不能为空"}
+    target = url.strip()
+    if not target.startswith(("http://", "https://")):
+        target = "https://" + target
+
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        return {"error": "playwright 未安装。请先在 Python313 环境安装：pip install playwright"}
+
+    snapshot: dict[str, Any] | None = None
+    err: str | None = None
+
+    try:
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
+            )
+            ctx = await browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                viewport={"width": 1366, "height": 900},
+            )
+            page = await ctx.new_page()
+            try:
+                await page.goto(target, wait_until="domcontentloaded", timeout=int(timeout))
+                # 等一小段给 JS 渲染完成
+                try:
+                    await page.wait_for_load_state("networkidle", timeout=8000)
+                except Exception:
+                    pass
+                snapshot = await page.evaluate(_PROBE_JS)
+            except Exception as e:
+                err = f"页面加载/解析失败：{e}"
+            finally:
+                try:
+                    await ctx.close()
+                except Exception:
+                    pass
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
+    except Exception as e:
+        return {"error": f"启动 playwright 失败：{e}（提示：确保已运行 playwright install chromium）"}
+
+    if snapshot is None:
+        return {"error": err or "未拿到页面快照"}
+
+    # 给一些常见关键词的 selector 推荐
+    recommendations = _build_selector_hints(snapshot)
+    snapshot["selector_hints"] = recommendations
+    snapshot["probe_url"] = target
+    return snapshot
+
+
+def _build_selector_hints(snap: dict[str, Any]) -> dict[str, Any]:
+    """根据 probe 出的页面骨架，针对常见目标给出推荐 selector"""
+    hints: dict[str, Any] = {}
+
+    # 百度热榜专项
+    title = (snap.get("title") or "").lower()
+    if "百度" in (snap.get("title") or "") or "baidu" in title:
+        # 经典选择器（百度近年改版多次，常见的容器名）
+        hints["baidu_hot_list_candidates"] = [
+            ".theme-hot",
+            ".hotsearch-content-wrapper",
+            "#hotsearch-content-wrapper",
+            ".s-hotsearch-content",
+            "#hotsearch-refresh-btn ~ *",
+        ]
+        hints["baidu_hot_item_text_candidates"] = [
+            ".title-content-title",
+            ".title_dIF3B",
+            "a.title-content",
+            ".c-single-text-ellipsis",
+        ]
+
+    # 通用：列表型目标 → 取 item_count 最大的 list
+    lists = snap.get("lists") or []
+    if lists:
+        top = sorted(lists, key=lambda x: -int(x.get("item_count") or 0))[:3]
+        hints["top_lists"] = [
+            {
+                "container": l.get("container_selector"),
+                "item": l.get("item_selector"),
+                "count": l.get("item_count"),
+                "samples": l.get("samples", [])[:3],
+            }
+            for l in top
+        ]
+
+    # 搜索框
+    search_inputs = [
+        i for i in (snap.get("inputs") or [])
+        if i.get("type") in ("search", "text") or any(
+            k in (i.get("placeholder") or "").lower() or k in (i.get("name") or "").lower()
+            for k in ("search", "搜索", "query", "wd", "kw")
+        )
+    ]
+    if search_inputs:
+        hints["search_input"] = search_inputs[0]
+
+    # 主标题（优先 h1）
+    h1s = [h for h in (snap.get("headings") or []) if h.get("tag") == "h1"]
+    if h1s:
+        hints["main_heading"] = h1s[0]
+
+    return hints
+
+
+async def skill_get_page_dom_snapshot(target_description: str = "", **_: Any) -> dict[str, Any]:
+    """直接对当前用户已打开的浏览器页面（browser_engine 管理的）做一次 DOM 快照，
+    无需跳转 URL。AI 用它来"看到"用户当前正在浏览的页面。
+
+    target_description 留空时返回完整骨架；
+    填入文字（如"百度热榜"）时会同时把 selector_hints 中相关的字段挑出来高亮返回。
+    """
+    try:
+        from app.services import browser_engine as _be
+    except Exception as e:
+        return {"error": f"加载 browser_engine 失败：{e}"}
+
+    page = _be.get_page()
+    if page is None:
+        return {"error": "当前没有已打开的浏览器页面。请先调用 client_action open_auto_browser 或让用户启动浏览器"}
+
+    try:
+        snapshot: dict[str, Any] = await page.evaluate(_PROBE_JS)
+    except Exception as e:
+        return {"error": f"读取页面 DOM 失败：{e}"}
+
+    snapshot["selector_hints"] = _build_selector_hints(snapshot)
+    if target_description:
+        snapshot["target_description"] = target_description
+    return snapshot
+
+
+async def skill_suggest_selector(
+    target_description: str,
+    url: str | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """综合 probe_page + 启发式，给一个目标描述（如"百度热榜列表"）输出最合适的 CSS selector 候选。
+
+    若提供 url：先 probe_page（无头打开）再分析；
+    若不提供：尝试从用户当前已打开的页面（get_page）拿快照。
+    """
+    desc = (target_description or "").strip()
+    if not desc:
+        return {"error": "target_description 不能为空"}
+
+    if url:
+        snap = await skill_probe_page(url=url)
+    else:
+        snap = await skill_get_page_dom_snapshot(target_description=desc)
+    if snap.get("error"):
+        return snap
+
+    hints = snap.get("selector_hints") or {}
+    candidates: list[dict[str, Any]] = []
+
+    lower = desc.lower()
+    # 百度热榜 / hot list 常见关键词匹配
+    if any(k in desc for k in ("热榜", "热搜", "热门", "排行")):
+        # 优先用百度专项推荐
+        for sel in hints.get("baidu_hot_list_candidates", []) or []:
+            candidates.append({
+                "selector": sel,
+                "reason": "百度风格热榜容器候选（出现在百度系页面）",
+                "confidence": 0.7,
+            })
+        for sel in hints.get("baidu_hot_item_text_candidates", []) or []:
+            candidates.append({
+                "selector": sel,
+                "reason": "百度风格热榜单项文本",
+                "confidence": 0.65,
+            })
+
+    # 通用："列表" / "list" → 用 top_lists
+    if any(k in lower for k in ("list", "列表", "项目", "条目", "items")) or any(k in desc for k in ("热榜", "热搜", "排行", "榜单")):
+        for tl in (hints.get("top_lists") or [])[:3]:
+            if tl.get("item"):
+                candidates.append({
+                    "selector": tl["item"],
+                    "reason": f"页面中条目最多的列表（{tl.get('count')} 项），item selector",
+                    "confidence": 0.8,
+                    "samples": tl.get("samples", []),
+                })
+            if tl.get("container"):
+                candidates.append({
+                    "selector": tl["container"],
+                    "reason": "对应列表的容器 selector",
+                    "confidence": 0.7,
+                })
+
+    # "搜索框" / "search"
+    if any(k in lower for k in ("search", "搜索框", "搜索", "输入")):
+        si = hints.get("search_input")
+        if si and si.get("selector"):
+            candidates.append({
+                "selector": si["selector"],
+                "reason": "推断的搜索输入框",
+                "confidence": 0.85,
+            })
+
+    # "标题" / "title"
+    if any(k in lower for k in ("标题", "title", "heading")):
+        mh = hints.get("main_heading")
+        if mh and mh.get("selector"):
+            candidates.append({
+                "selector": mh["selector"],
+                "reason": "页面 H1 主标题",
+                "confidence": 0.9,
+            })
+
+    # 文本匹配兜底：在 links/buttons/headings 文本里模糊找
+    text_targets: list[dict[str, Any]] = []
+    for src, items in (("link", snap.get("links") or []), ("button", snap.get("buttons") or []), ("heading", snap.get("headings") or [])):
+        for it in items:
+            t = it.get("text") or ""
+            if t and (desc in t or t in desc):
+                text_targets.append({
+                    "selector": it.get("selector"),
+                    "reason": f"文本匹配（{src}：{t[:30]}）",
+                    "confidence": 0.6,
+                    "text": t,
+                })
+    candidates.extend(text_targets[:6])
+
+    # 去重（按 selector）
+    seen: set[str] = set()
+    uniq: list[dict[str, Any]] = []
+    for c in candidates:
+        sel = c.get("selector") or ""
+        if not sel or sel in seen:
+            continue
+        seen.add(sel)
+        uniq.append(c)
+
+    return {
+        "target_description": desc,
+        "url": snap.get("url") or snap.get("probe_url"),
+        "title": snap.get("title"),
+        "candidates": uniq,
+        "candidate_count": len(uniq),
+        "tip": (
+            "首选 confidence 最高的 selector 填到模块配置；如不确定可用 fetch_page_html 看原文，"
+            "或让用户在 WebRPA 元素拾取器里 Alt+点击精确选取"
+        ),
+    }
+
+
 # === 8. 计划任务真生效 CRUD（直接调用 scheduled_task_manager） ===
 
 async def skill_create_scheduled_task(
@@ -2313,6 +2713,75 @@ def _register_all() -> None:
         description="检查 WebRPA 内置 Python 是否可用、列出版本和已安装的常用库",
         parameters={"type": "object", "properties": {}},
         handler=skill_check_python_environment,
+    ))
+
+    # === 网页感知（让 AI 真正"看见"网页） ===
+    registry.register(Skill(
+        name="probe_page",
+        description=(
+            "用真实浏览器（Playwright Chromium 无头）打开任意 URL，分析页面骨架并返回结构化结果："
+            "title / headings / links / buttons / inputs / forms / lists / images_count / selector_hints。"
+            "selector_hints 中已经针对常见目标（百度热榜、列表条目、搜索框、主标题）给出推荐 selector。"
+            "AI 在搭建涉及具体网页操作的工作流前必须先调用本 skill，绝对不要凭空猜 selector。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "完整 URL 或域名（自动补 https://）"},
+                "timeout": {"type": "integer", "description": "页面加载超时（毫秒），默认 20000", "default": 20000},
+            },
+            "required": ["url"],
+        },
+        handler=skill_probe_page,
+    ))
+    registry.register(Skill(
+        name="fetch_page_html",
+        description=(
+            "简单 HTTP GET 抓取目标 URL 的 HTML（不执行 JS，不能拿动态渲染内容）。"
+            "适用于静态页面或当 probe_page 因某些原因失败时的兜底。"
+            "返回 status / title / 截断后的 html（默认最大 30000 字符）。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"},
+                "max_size": {"type": "integer", "description": "HTML 截断长度上限", "default": 30000},
+            },
+            "required": ["url"],
+        },
+        handler=skill_fetch_page_html,
+    ))
+    registry.register(Skill(
+        name="get_page_dom_snapshot",
+        description=(
+            "对用户当前已打开的浏览器页面（WebRPA browser_engine 管理）做 DOM 快照，"
+            "无需重新打开 URL。当用户已经在 WebRPA 内置浏览器里打开了目标网页时，"
+            "用本 skill 比 probe_page 更快、更接近用户真实视角。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_description": {"type": "string", "description": "目标元素的自然语言描述（可选）", "default": ""},
+            },
+        },
+        handler=skill_get_page_dom_snapshot,
+    ))
+    registry.register(Skill(
+        name="suggest_selector",
+        description=(
+            "给一个目标的自然语言描述（如「百度热榜列表」「搜索框」「主标题」），"
+            "结合 probe_page 或当前页面 DOM 给出最合适的 CSS selector 候选列表（按 confidence 排序）。"
+            "AI 在配置 click_element / get_text / get_attribute / fill_input 等模块的 selector 字段时，应当先调用本 skill 拿到真实 selector。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "target_description": {"type": "string", "description": "目标元素的自然语言描述"},
+                "url": {"type": "string", "description": "如要针对某个 URL 探查则传入；不传时使用当前已打开页面"},
+            },
+            "required": ["target_description"],
+        },
+        handler=skill_suggest_selector,
     ))
 
     # === 计划任务 真生效 CRUD ===

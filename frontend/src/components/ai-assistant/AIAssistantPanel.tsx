@@ -40,7 +40,6 @@ export function AIAssistantPanel() {
   const messages = useAIAssistantStore((s) => s.messages)
   const setMessages = useAIAssistantStore((s) => s.setMessages)
   const appendMessage = useAIAssistantStore((s) => s.appendMessage)
-  const upsertMessage = useAIAssistantStore((s) => s.upsertMessage)
   const isSending = useAIAssistantStore((s) => s.isSending)
   const setSending = useAIAssistantStore((s) => s.setSending)
   const currentSessionId = useAIAssistantStore((s) => s.currentSessionId)

@@ -734,6 +734,23 @@ def build_system_prompt(
 8. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
 9. **效率优先：可以同时调用多个无依赖的工具**（例如同时 search_modules('键盘') 和 search_modules('循环')），后端会并行执行
 10. 关键节点完成后，可以调用 `client_action(action="show_toast", payload={message:"...", type:"success"})` 给用户一个明显的提示
+
+# 网页自动化的硬性纪律（必读）
+
+涉及"打开网页 / 抓取网页元素 / 填表单 / 点击网页按钮"的工作流，必须按照下面流程：
+
+1. **先 probe → 再造工作流**。在调用 `build_workflow` 之前，必须先调 `probe_page(url=...)`（或用 `get_page_dom_snapshot` 看用户当前页面）。绝对不要凭空猜 selector。
+2. probe_page 返回的 `selector_hints` 里就是推荐 selector；列表型目标看 `top_lists`，搜索框看 `search_input`，主标题看 `main_heading`。
+3. 拿不准时再调一次 `suggest_selector(target_description="百度热榜列表")`，它会综合骨架+启发式给出按 confidence 排序的候选。
+4. 把拿到的 selector 直接填进 `click_element` / `get_text` / `fill_input` / `get_attribute` 等模块的 selector 字段，再用 build_workflow 落地。
+5. 如果 probe_page 失败（playwright 没装、网络超时等），降级用 `fetch_page_html(url=...)` 看静态 HTML，从中找规律。
+6. 每次完成网页类工作流后，提醒用户也可以用 WebRPA 自带的「元素拾取器」Alt+点击进一步精确选取，作为补充。
+
+举例：用户说"打开百度首页，把热榜内容打印出来"，正确做法是：
+  ① 调 `probe_page(url="https://www.baidu.com")`
+  ② 看 selector_hints.baidu_hot_item_text_candidates 拿到 `.title-content-title` 之类的真实 selector
+  ③ 调 `build_workflow` 生成 [打开页面 → 等待元素 → 获取列表文本（多个） → 循环打印]
+绝对不能跳过 ① 直接编 selector！
 """)
 
     if user_extra_prompt:
