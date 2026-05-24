@@ -613,6 +613,9 @@ export function ImageAssetsPanel() {
         <div
           className={cn(
             'p-3 min-h-full transition-all duration-200',
+            (imageAssets.length === 0 && folders.length === 0) || (subfolders.length === 0 && files.length === 0)
+              ? 'h-full flex items-center justify-center'
+              : '',
             dragOverFolder === currentPath && 'bg-[hsl(var(--brand-50))] ring-2 ring-dashed ring-[hsl(var(--brand-500))] ring-inset'
           )}
           onDragOver={handleDragOver}
@@ -621,7 +624,7 @@ export function ImageAssetsPanel() {
           onContextMenu={(e) => handleContextMenu(e)}
         >
           {imageAssets.length === 0 && folders.length === 0 ? (
-            <div className="empty-state h-full !py-12">
+            <div className="empty-state !py-0">
               <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--warning-50)), hsl(var(--warning-100)))', color: 'hsl(var(--warning-500))', borderColor: 'hsl(var(--warning-500) / 0.2)' }}>
                 <ImageIcon className="w-7 h-7" strokeWidth={1.6} />
               </div>
@@ -629,7 +632,7 @@ export function ImageAssetsPanel() {
               <div className="empty-state-desc">点击上方按钮上传，或将图片直接拖拽到此处</div>
             </div>
           ) : subfolders.length === 0 && files.length === 0 ? (
-            <div className="empty-state h-full !py-12">
+            <div className="empty-state !py-0">
               <div className="empty-state-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--warning-50)), hsl(var(--warning-100)))', color: 'hsl(var(--warning-500))', borderColor: 'hsl(var(--warning-500) / 0.2)' }}>
                 <Folder className="w-7 h-7" strokeWidth={1.6} />
               </div>
