@@ -531,6 +531,8 @@ import {
   PrinterCallConfig,
 } from './config-panels/UtilityToolsConfigs'
 import { CustomModuleConfig } from './config-panels/CustomModuleConfig'
+import { PanelResizer } from './PanelResizer'
+import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 interface ConfigPanelProps {
   selectedNodeId?: string | null  // 改为可选，优先使用 store 中的值
@@ -557,6 +559,11 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   const [pickerUrl, setPickerUrl] = useState('')
   const [pendingField, setPendingField] = useState<string | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  // 受 layoutStore 控制的宽度（用户可拖拽）
+  const rightWidth = useLayoutStore((s) => s.rightWidth)
+  const setRightWidth = useLayoutStore((s) => s.setRightWidth)
+  const [draftRightWidth, setDraftRightWidth] = useState<number | null>(null)
+  const effectiveRightWidth = draftRightWidth ?? rightWidth
   const pollingRef = useRef<number | null>(null)
   
   // 响应式：小屏幕自动折叠
@@ -861,7 +868,13 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
 
   if (!selectedNode || !nodeData) {
     return (
-      <aside className={`border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ${isCollapsed ? 'w-12' : 'w-80'}`}>
+      <aside
+        className="relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col"
+        style={{
+          width: isCollapsed ? 48 : effectiveRightWidth,
+          transition: draftRightWidth === null ? 'width 200ms ease-out' : 'none',
+        }}
+      >
         {isCollapsed ? (
           <button 
             type="button"
@@ -902,6 +915,21 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               </div>
             </div>
           </>
+        )}
+        {!isCollapsed && (
+          <PanelResizer
+            direction="horizontal"
+            side="left"
+            size={effectiveRightWidth}
+            minSize={LAYOUT_LIMITS.right.min}
+            maxSize={LAYOUT_LIMITS.right.max}
+            factor={-1}
+            onLive={(w) => setDraftRightWidth(w)}
+            onCommit={(w) => {
+              setRightWidth(w)
+              setDraftRightWidth(null)
+            }}
+          />
         )}
       </aside>
     )
@@ -2061,7 +2089,12 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         />
       )}
       
-      <aside className={`relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ease-out ${isCollapsed ? 'w-12' : 'w-80'}`}
+      <aside
+        className="relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col"
+        style={{
+          width: isCollapsed ? 48 : effectiveRightWidth,
+          transition: draftRightWidth === null ? 'width 200ms ease-out' : 'none',
+        }}
       >
         {isCollapsed ? (
           <button
@@ -2225,6 +2258,21 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               </div>
             </ScrollArea>
           </>
+        )}
+        {!isCollapsed && (
+          <PanelResizer
+            direction="horizontal"
+            side="left"
+            size={effectiveRightWidth}
+            minSize={LAYOUT_LIMITS.right.min}
+            maxSize={LAYOUT_LIMITS.right.max}
+            factor={-1}
+            onLive={(w) => setDraftRightWidth(w)}
+            onCommit={(w) => {
+              setRightWidth(w)
+              setDraftRightWidth(null)
+            }}
+          />
         )}
       </aside>
     </>

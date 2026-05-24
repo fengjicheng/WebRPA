@@ -592,6 +592,56 @@ async def download_data(workflow_id: str):
     )
 
 
+@router.get("/data-latest/full")
+async def get_latest_full_collected_data():
+    """获取最近一次执行收集到的完整数据（前端 currentExecutionWorkflowId 丢失时兜底）
+
+    遍历 execution_data 找最后一个非空的 entry。
+    """
+    if not execution_data:
+        # 兜底：找到一个仍在 store 里的执行器实时取数据
+        for wid, executor in list(executions_store.items()):
+            try:
+                rows = executor.get_collected_data()
+                if rows:
+                    cols: list[str] = []
+                    seen_local = set()
+                    for r in rows:
+                        for k in r.keys():
+                            if k not in seen_local:
+                                seen_local.add(k)
+                                cols.append(k)
+                    return {"workflow_id": wid, "rows": rows, "columns": cols, "total": len(rows)}
+            except Exception:
+                continue
+        raise HTTPException(status_code=404, detail="没有可下载的数据")
+
+    # execution_data 是普通 dict，py3.7+ 保留插入顺序，最后插入的就是最近的
+    last_wid = None
+    last_rows: list[dict] | None = None
+    for wid, rows in execution_data.items():
+        if rows:
+            last_wid = wid
+            last_rows = rows
+    if last_rows is None:
+        raise HTTPException(status_code=404, detail="没有可下载的数据")
+
+    columns: list[str] = []
+    seen = set()
+    for r in last_rows:
+        for k in r.keys():
+            if k not in seen:
+                seen.add(k)
+                columns.append(k)
+
+    return {
+        "workflow_id": last_wid,
+        "rows": last_rows,
+        "columns": columns,
+        "total": len(last_rows),
+    }
+
+
 @router.get("/{workflow_id}/data/full")
 async def get_full_collected_data(workflow_id: str):
     """获取本次执行收集到的完整数据（不限 20 条预览上限）"""

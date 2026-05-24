@@ -839,6 +839,44 @@ a:focus-visible {
   box-shadow: var(--shadow-lg);
 }
 
+/* 面板边缘拖拽手柄 - VSCode 风格 */
+.panel-resizer {
+  background: transparent;
+  transition: background-color 120ms ease-out;
+}
+.panel-resizer:hover,
+.panel-resizer:active {
+  background: hsl(var(--brand-500) / 0.45);
+}
+.panel-resizer:active {
+  background: hsl(var(--brand-500) / 0.65);
+}
+/* 让水平/垂直手柄居中显示一根细线，提升可发现性 */
+.panel-resizer::before {
+  content: '';
+  position: absolute;
+  background: hsl(var(--border));
+  transition: background-color 120ms ease-out, opacity 120ms ease-out;
+  opacity: 0.6;
+}
+.panel-resizer[aria-orientation="vertical"]::before {
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+.panel-resizer[aria-orientation="horizontal"]::before {
+  left: 0; right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+.panel-resizer:hover::before,
+.panel-resizer:active::before {
+  background: hsl(var(--brand-600));
+  opacity: 1;
+}
+
 .drop-zone-active {
   background: hsl(var(--brand-500) / 0.08);
   border: 1.5px dashed hsl(var(--brand-500));

@@ -182,6 +182,8 @@ import {
   Boxes,
 } from 'lucide-react'
 import { TestReportIcon } from './icons/TestReportIcon'
+import { PanelResizer } from './PanelResizer'
+import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 // 收藏模块现在统一由 moduleStatsStore 管理，不再使用单独的 localStorage
 
@@ -2005,8 +2007,17 @@ function ModuleSidebarRaw() {
     return expandedCategories.has(categoryName)
   }
 
+  // 受 layoutStore 控制的宽度（用户可拖拽）
+  const leftWidth = useLayoutStore((s) => s.leftWidth)
+  const setLeftWidth = useLayoutStore((s) => s.setLeftWidth)
+  // 拖拽过程使用本地 state 避免 store 在每帧写入触发其他订阅者
+  const [draftWidth, setDraftWidth] = useState<number | null>(null)
+  const effectiveWidth = draftWidth ?? leftWidth
+
   return (
-    <aside className={`relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col transition-[width] duration-200 ease-out group/sidebar ${isCollapsed ? 'w-12' : 'w-64'}`}
+    <aside
+      className="relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col group/sidebar"
+      style={{ width: isCollapsed ? 48 : effectiveWidth, transition: draftWidth === null ? 'width 200ms ease-out' : 'none' }}
     >
       {/* 收起状态下的图标列表 */}
       {isCollapsed ? (
@@ -2283,6 +2294,23 @@ function ModuleSidebarRaw() {
       
       {/* 确认对话框 */}
       <ConfirmDialog />
+
+      {/* 右边缘拖拽手柄（仅未折叠时显示）*/}
+      {!isCollapsed && (
+        <PanelResizer
+          direction="horizontal"
+          side="right"
+          size={effectiveWidth}
+          minSize={LAYOUT_LIMITS.left.min}
+          maxSize={LAYOUT_LIMITS.left.max}
+          factor={1}
+          onLive={(w) => setDraftWidth(w)}
+          onCommit={(w) => {
+            setLeftWidth(w)
+            setDraftWidth(null)
+          }}
+        />
+      )}
     </aside>
   )
 }

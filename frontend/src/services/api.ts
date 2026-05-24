@@ -171,6 +171,11 @@ export const workflowApi = {
     apiRequest<{ rows: Record<string, unknown>[]; columns: string[]; total: number }>(
       `/workflows/${id}/data/full`
     ),
+  /** 取最近一次执行收集到的完整数据（兜底：currentExecutionWorkflowId 丢失或不一致时用） */
+  getLatestFullData: () =>
+    apiRequest<{ workflow_id: string; rows: Record<string, unknown>[]; columns: string[]; total: number }>(
+      `/workflows/data-latest/full`
+    ),
 }
 
 // ==================== 本地工作流 API ====================

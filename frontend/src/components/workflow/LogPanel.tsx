@@ -33,6 +33,8 @@ import { ExcelAssetsPanel } from './ExcelAssetsPanel'
 import { ImageAssetsPanel } from './ImageAssetsPanel'
 import { LogList } from './LogList'
 import { DataTable } from './DataTable'
+import { PanelResizer } from './PanelResizer'
+import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 interface LogPanelProps {
   onLogClick?: (nodeId: string) => void
@@ -233,59 +235,66 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     URL.revokeObjectURL(url)
   }, [workflowName])
 
-  // 智能下载：优先拉后端完整数据；后端没有则用本地预览数据兜底
+  // 智能下载：永远优先后端完整数据；本地预览数据仅最后兜底
   const [downloading, setDownloading] = useState(false)
   const handleDownloadData = useCallback(async () => {
     setDownloading(true)
     try {
-      // 优先：从后端取完整数据（包含所有写入的行，不受前端预览数量影响）
+      const tryDownload = async (rows: Record<string, unknown>[], serverColumns: string[] | undefined) => {
+        const finalCols: string[] = serverColumns ? [...serverColumns] : []
+        const seen = new Set<string>(finalCols)
+        rows.forEach(r => {
+          Object.keys(r).forEach(k => {
+            if (!seen.has(k)) {
+              seen.add(k)
+              finalCols.push(k)
+            }
+          })
+        })
+        downloadCsv(rows as DataRow[], finalCols)
+      }
+
       let backendError = ''
+
+      // 第 1 层：用当前执行 ID 取
       if (currentExecutionWorkflowId) {
         try {
           const result = await workflowApi.getFullData(currentExecutionWorkflowId)
-          if (result.success && result.data) {
-            const { rows, columns: serverColumns, total } = result.data
-            if (total && rows.length > 0) {
-              const finalCols: string[] = [...serverColumns]
-              const seen = new Set<string>(finalCols)
-              rows.forEach(r => {
-                Object.keys(r).forEach(k => {
-                  if (!seen.has(k)) {
-                    seen.add(k)
-                    finalCols.push(k)
-                  }
-                })
-              })
-              downloadCsv(rows as DataRow[], finalCols)
-              return
-            }
-            // total === 0：后端确实没有数据，改用本地兜底
-            backendError = 'empty'
-          } else {
-            backendError = result.error || ''
+          if (result.success && result.data && result.data.total > 0) {
+            await tryDownload(result.data.rows, result.data.columns)
+            return
           }
+          backendError = result.error || (result.data?.total === 0 ? 'empty' : 'unknown')
         } catch (e) {
           backendError = e instanceof Error ? e.message : String(e)
         }
       }
 
-      // 回退：使用本地预览数据（用户手动添加的或没有执行记录的场景）
+      // 第 2 层：兜底 latest（防止 currentExecutionWorkflowId 与后端不一致 / 已 LRU 清理）
+      try {
+        const latest = await workflowApi.getLatestFullData()
+        if (latest.success && latest.data && latest.data.total > 0) {
+          await tryDownload(latest.data.rows, latest.data.columns)
+          return
+        }
+      } catch {
+        // 忽略，继续兜底本地
+      }
+
+      // 第 3 层：本地预览数据（仅兜底；本地 5000 条上限基本不会触达）
       if (collectedData.length === 0) {
         await alert(
           backendError && backendError !== 'empty'
             ? `从后端获取完整数据失败：${backendError}\n并且本地没有任何收集数据可下载`
-            : '暂无数据可下载',
+            : '暂无数据可下载（请先运行一次工作流）',
         )
         return
       }
-      // 如果是"后端有 ID 但拿不到完整数据"，告诉用户可能存在不一致，再让 ta 决定
-      if (backendError && backendError !== 'empty') {
-        const ok = await confirm(
-          `无法从后端获取完整数据（${backendError}）。\n是否使用本地预览的 ${collectedData.length} 条数据继续下载？`,
-          { title: '后端取数失败', type: 'warning', confirmText: '继续下载本地' },
-        )
-        if (!ok) return
-      }
+      const ok = await confirm(
+        `后端最近的执行数据已被清理或不可用，将使用本地 ${collectedData.length} 条预览数据。继续？`,
+        { title: '使用本地数据', type: 'warning', confirmText: '继续下载本地' },
+      )
+      if (!ok) return
       downloadCsv(collectedData, columns)
     } finally {
       setDownloading(false)
@@ -435,16 +444,40 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     setEditingVarName(null)
   }
 
+  // 受 layoutStore 控制的高度（用户可拖拽）
+  const bottomHeight = useLayoutStore((s) => s.bottomHeight)
+  const setBottomHeight = useLayoutStore((s) => s.setBottomHeight)
+  const [draftBottomHeight, setDraftBottomHeight] = useState<number | null>(null)
+  const effectiveBottomHeight = draftBottomHeight ?? bottomHeight
+
   return (
     <motion.footer
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 30, delay: 0.1 }}
       className={cn(
-        'border-t border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_-4px_12px_-6px_rgb(15_23_42_/_0.06)]',
-        isCollapsed ? 'h-10' : 'h-64'
+        'relative border-t border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_-4px_12px_-6px_rgb(15_23_42_/_0.06)]',
       )}
+      style={{
+        height: isCollapsed ? 40 : effectiveBottomHeight,
+        transition: draftBottomHeight === null ? 'height 300ms cubic-bezier(0.25,1,0.5,1)' : 'none',
+      }}
     >
+      {!isCollapsed && (
+        <PanelResizer
+          direction="vertical"
+          side="top"
+          size={effectiveBottomHeight}
+          minSize={LAYOUT_LIMITS.bottom.min}
+          maxSize={LAYOUT_LIMITS.bottom.max}
+          factor={-1}
+          onLive={(h) => setDraftBottomHeight(h)}
+          onCommit={(h) => {
+            setBottomHeight(h)
+            setDraftBottomHeight(null)
+          }}
+        />
+      )}
       <div
         className="h-10 px-2 sm:px-4 flex items-center justify-between border-b border-[hsl(var(--border))] overflow-x-auto"
         style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.5), hsl(var(--card)))' }}
