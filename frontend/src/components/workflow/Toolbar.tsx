@@ -883,8 +883,42 @@ export function Toolbar() {
       return
     }
 
+    // NodeData 字段中需要从配置导出里排除的元字段
+    const META_FIELDS = new Set([
+      'label',
+      'moduleType',
+      'isHighlighted',
+      'remark',
+      'customName',
+      'subflowName',
+      'subflowGroupId',
+      'isSubflow',
+      'customModuleId',
+      'parameterValues',
+    ])
+
+    const formatValue = (v: unknown): string => {
+      if (v === undefined || v === null) return '-'
+      if (typeof v === 'string') {
+        if (v === '') return '-'
+        // 多行文本用代码块
+        if (v.includes('\n')) return '\n  ```\n  ' + v.replace(/\n/g, '\n  ') + '\n  ```'
+        return '`' + v.replace(/`/g, '\\`') + '`'
+      }
+      if (typeof v === 'number' || typeof v === 'boolean') return '`' + String(v) + '`'
+      try {
+        const s = JSON.stringify(v)
+        return '`' + (s.length > 200 ? s.slice(0, 200) + '…' : s) + '`'
+      } catch {
+        return '`[复杂对象]`'
+      }
+    }
+
     let markdown = `# ${name}\n\n`
-    markdown += `> 导出时间: ${new Date().toLocaleString('zh-CN')}\n\n`
+    markdown += `> 导出时间: ${new Date().toLocaleString('zh-CN')}  \n`
+    markdown += `> 节点数量: ${nodes.length}  \n`
+    markdown += `> 连接数量: ${edges.length}  \n`
+    markdown += `> 变量数量: ${variables.length}\n\n`
     markdown += `---\n\n`
 
     // 变量列表
@@ -893,7 +927,10 @@ export function Toolbar() {
       markdown += `| 变量名 | 类型 | 默认值 | 作用域 |\n`
       markdown += `|--------|------|--------|--------|\n`
       variables.forEach(v => {
-        markdown += `| ${v.name} | ${v.type} | ${v.value || '-'} | ${v.scope} |\n`
+        const val = v.value === undefined || v.value === null || v.value === ''
+          ? '-'
+          : (typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value))
+        markdown += `| ${v.name} | ${v.type} | ${String(val).replace(/\|/g, '\\|')} | ${v.scope || 'global'} |\n`
       })
       markdown += `\n`
     }
@@ -901,20 +938,30 @@ export function Toolbar() {
     // 节点列表
     markdown += `## 模块列表\n\n`
     markdown += `共 ${nodes.length} 个模块\n\n`
-    
+
     nodes.forEach((node, index) => {
-      const data = node.data
-      markdown += `### ${index + 1}. ${data.label || data.moduleType}\n\n`
+      const data = node.data as any
+      const title = data.customName || data.label || data.moduleType
+      markdown += `### ${index + 1}. ${title}\n\n`
       markdown += `- **类型**: \`${data.moduleType}\`\n`
+      markdown += `- **节点 ID**: \`${node.id}\`\n`
       markdown += `- **位置**: (${Math.round(node.position.x)}, ${Math.round(node.position.y)})\n`
-      
-      // 配置信息
-      if (data.config && Object.keys(data.config).length > 0) {
+      if (data.remark) {
+        markdown += `- **备注**: ${data.remark}\n`
+      }
+
+      // 节点配置：直接读取 data 中除元字段外的所有字段
+      const configEntries = Object.entries(data).filter(([k, v]) => {
+        if (META_FIELDS.has(k)) return false
+        if (v === undefined || v === null || v === '') return false
+        if (typeof v === 'function') return false
+        return true
+      })
+
+      if (configEntries.length > 0) {
         markdown += `- **配置**:\n`
-        Object.entries(data.config).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            markdown += `  - ${key}: \`${JSON.stringify(value)}\`\n`
-          }
+        configEntries.forEach(([k, v]) => {
+          markdown += `  - ${k}: ${formatValue(v)}\n`
         })
       }
       markdown += `\n`
@@ -922,13 +969,13 @@ export function Toolbar() {
 
     // 连接关系
     if (edges.length > 0) {
-      markdown += `## 🔗 连接关系\n\n`
+      markdown += `## 连接关系\n\n`
       markdown += `共 ${edges.length} 条连接\n\n`
       edges.forEach((edge, index) => {
         const sourceNode = nodes.find(n => n.id === edge.source)
         const targetNode = nodes.find(n => n.id === edge.target)
-        const sourceLabel = sourceNode?.data.label || edge.source
-        const targetLabel = targetNode?.data.label || edge.target
+        const sourceLabel = (sourceNode?.data as any)?.customName || sourceNode?.data.label || edge.source
+        const targetLabel = (targetNode?.data as any)?.customName || targetNode?.data.label || edge.target
         markdown += `${index + 1}. ${sourceLabel} → ${targetLabel}\n`
       })
       markdown += `\n`
@@ -1063,10 +1110,18 @@ export function Toolbar() {
         before:bg-gradient-to-r before:from-[hsl(var(--brand-500))] before:via-[hsl(var(--brand-400))] before:to-[hsl(var(--info-500))]
         before:opacity-90"
     >
-      {/* Logo/标题 */}
-      <div className="flex items-center">
-        <span className="font-bold text-[16px] tracking-tight text-gradient leading-none">
-          WebRPA
+      {/* Logo/标题 - 艺术字风格 */}
+      <div className="flex items-center select-none">
+        <span className="webrpa-logo" aria-label="WebRPA">
+          <span className="webrpa-logo-letter webrpa-logo-letter-w">W</span>
+          <span className="webrpa-logo-letter webrpa-logo-letter-e">e</span>
+          <span className="webrpa-logo-letter webrpa-logo-letter-b">b</span>
+          <span className="webrpa-logo-r-pill">
+            <span className="webrpa-logo-letter webrpa-logo-letter-r">R</span>
+            <span className="webrpa-logo-letter webrpa-logo-letter-p">P</span>
+            <span className="webrpa-logo-letter webrpa-logo-letter-a">A</span>
+          </span>
+          <span className="webrpa-logo-shine" aria-hidden="true" />
         </span>
       </div>
 

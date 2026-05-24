@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -6,6 +6,7 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { X, FileJson, Trash2, RefreshCw, Search, FolderOpen, Clock, HardDrive } from 'lucide-react'
 import { getBackendBaseUrl } from '@/services/config'
+import { useVirtualizer } from '@/hooks/useVirtualizer'
 
 interface LocalWorkflowDialogProps {
   isOpen: boolean
@@ -223,48 +224,12 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
               </div>
             </div>
           ) : (
-            <div className="p-2 space-y-1">
-              {filteredWorkflows.map((workflow, idx) => (
-                <div
-                  key={workflow.filename}
-                  className="row-card group !p-3 animate-fade-in-up"
-                  style={{ animationDelay: `${idx * 30}ms` }}
-                  onClick={() => handleOpen(workflow)}
-                >
-                  <div className="icon-chip icon-chip-brand !w-9 !h-9 !rounded-[8px]">
-                    <FileJson className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13.5px] font-semibold text-[hsl(var(--slate-900))] truncate">
-                      {workflow.name}
-                    </div>
-                    <div className="text-[11px] text-[hsl(var(--muted-foreground))] flex items-center gap-3 mt-0.5">
-                      <span className="flex items-center gap-1">
-                        <FileJson className="w-2.5 h-2.5" />
-                        <code className="font-mono">{workflow.filename}</code>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5" />
-                        {workflow.modifiedTime}
-                      </span>
-                      <span className="badge badge-default !py-0">
-                        {formatSize(workflow.size)}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(workflow)
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[6px] text-[hsl(var(--slate-500))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] border border-transparent hover:border-[hsl(var(--danger-500)/0.3)] transition-all active:scale-90"
-                    title="删除工作流"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <WorkflowVirtualList
+              workflows={filteredWorkflows}
+              onOpen={handleOpen}
+              onDelete={handleDelete}
+              formatSize={formatSize}
+            />
           )}
         </div>
 
@@ -285,6 +250,102 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
       </div>
 
       <ConfirmDialog />
+    </div>
+  )
+}
+
+
+// =============================================================
+// 工作流虚拟列表 - 文件多时也能丝滑滚动
+// =============================================================
+const ROW_HEIGHT = 64
+
+interface WorkflowVirtualListProps {
+  workflows: WorkflowInfo[]
+  onOpen: (workflow: WorkflowInfo) => void
+  onDelete: (workflow: WorkflowInfo) => void
+  formatSize: (bytes: number) => string
+}
+
+function WorkflowVirtualList({ workflows, onOpen, onDelete, formatSize }: WorkflowVirtualListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const getScrollElement = useCallback(() => scrollRef.current, [])
+
+  const { virtualItems, totalSize } = useVirtualizer({
+    count: workflows.length,
+    getScrollElement,
+    estimateSize: ROW_HEIGHT,
+    overscan: 6,
+  })
+
+  // 列表数量较少时关闭动效（数百以上动效叠加会卡），少量时保留动效
+  const animate = workflows.length <= 60
+
+  return (
+    <div ref={scrollRef} className="h-full overflow-auto">
+      <div className="p-2" style={{ height: totalSize, position: 'relative' }}>
+        {virtualItems.map((v) => {
+          const workflow = workflows[v.index]
+          if (!workflow) return null
+          return (
+            <div
+              key={workflow.filename}
+              style={{
+                position: 'absolute',
+                top: v.start,
+                left: 0,
+                right: 0,
+                height: ROW_HEIGHT,
+                paddingLeft: 8,
+                paddingRight: 8,
+                paddingTop: 4,
+                paddingBottom: 4,
+              }}
+            >
+              <div
+                className={
+                  'row-card group !p-3 h-full ' +
+                  (animate ? 'animate-fade-in-up' : '')
+                }
+                style={animate ? { animationDelay: `${Math.min(v.index, 20) * 25}ms` } : undefined}
+                onClick={() => onOpen(workflow)}
+              >
+                <div className="icon-chip icon-chip-brand !w-9 !h-9 !rounded-[8px]">
+                  <FileJson className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13.5px] font-semibold text-[hsl(var(--slate-900))] truncate">
+                    {workflow.name}
+                  </div>
+                  <div className="text-[11px] text-[hsl(var(--muted-foreground))] flex items-center gap-3 mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <FileJson className="w-2.5 h-2.5" />
+                      <code className="font-mono truncate max-w-[180px]">{workflow.filename}</code>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      {workflow.modifiedTime}
+                    </span>
+                    <span className="badge badge-default !py-0">
+                      {formatSize(workflow.size)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(workflow)
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[6px] text-[hsl(var(--slate-500))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] border border-transparent hover:border-[hsl(var(--danger-500)/0.3)] transition-all active:scale-90"
+                  title="删除工作流"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
