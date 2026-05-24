@@ -34,6 +34,7 @@ import { ImageAssetsPanel } from './ImageAssetsPanel'
 import { LogList } from './LogList'
 import { DataTable } from './DataTable'
 import { PanelResizer } from './PanelResizer'
+import { DockHandle } from './DockHandle'
 import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 interface LogPanelProps {
@@ -444,11 +445,35 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     setEditingVarName(null)
   }
 
-  // 受 layoutStore 控制的高度（用户可拖拽）
+  // 受 layoutStore 控制的尺寸（用户可拖拽 + 可在 zone 间切换）
+  const myZone = useLayoutStore((s) => s.panelDocks.log)
+  const leftWidth = useLayoutStore((s) => s.leftWidth)
+  const rightWidth = useLayoutStore((s) => s.rightWidth)
+  const topHeight = useLayoutStore((s) => s.topHeight)
   const bottomHeight = useLayoutStore((s) => s.bottomHeight)
+  const setLeftWidth = useLayoutStore((s) => s.setLeftWidth)
+  const setRightWidth = useLayoutStore((s) => s.setRightWidth)
+  const setTopHeight = useLayoutStore((s) => s.setTopHeight)
   const setBottomHeight = useLayoutStore((s) => s.setBottomHeight)
-  const [draftBottomHeight, setDraftBottomHeight] = useState<number | null>(null)
-  const effectiveBottomHeight = draftBottomHeight ?? bottomHeight
+  const [draftSize, setDraftSize] = useState<number | null>(null)
+  const isHorizontalZone = myZone === 'left' || myZone === 'right'
+  const sizeFromStore = myZone === 'left' ? leftWidth : myZone === 'right' ? rightWidth : myZone === 'top' ? topHeight : bottomHeight
+  const limits = LAYOUT_LIMITS[myZone]
+  const effectiveSize = draftSize ?? sizeFromStore
+  const commitSize = (s: number) => {
+    if (myZone === 'left') setLeftWidth(s)
+    else if (myZone === 'right') setRightWidth(s)
+    else if (myZone === 'top') setTopHeight(s)
+    else setBottomHeight(s)
+  }
+  const factor: 1 | -1 = myZone === 'left' || myZone === 'top' ? 1 : -1
+  const resizerSide: 'right' | 'left' | 'bottom' | 'top' =
+    myZone === 'left' ? 'right' : myZone === 'right' ? 'left' : myZone === 'top' ? 'bottom' : 'top'
+  const borderClass =
+    myZone === 'left' ? 'border-r' :
+    myZone === 'right' ? 'border-l' :
+    myZone === 'top' ? 'border-b' : 'border-t'
+  const collapsedSize = isHorizontalZone ? 48 : 40
 
   return (
     <motion.footer
@@ -456,25 +481,28 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 30, delay: 0.1 }}
       className={cn(
-        'relative border-t border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_-4px_12px_-6px_rgb(15_23_42_/_0.06)]',
+        `relative ${borderClass} border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-[0_-4px_12px_-6px_rgb(15_23_42_/_0.06)] flex flex-col`,
       )}
       style={{
-        height: isCollapsed ? 40 : effectiveBottomHeight,
-        transition: draftBottomHeight === null ? 'height 300ms cubic-bezier(0.25,1,0.5,1)' : 'none',
+        ...(isHorizontalZone
+          ? { width: isCollapsed ? collapsedSize : effectiveSize, height: '100%' }
+          : { height: isCollapsed ? collapsedSize : effectiveSize, width: '100%' }),
+        transition: draftSize === null ? (isHorizontalZone ? 'width 200ms ease-out' : 'height 200ms ease-out') : 'none',
+        flex: '0 0 auto',
       }}
     >
       {!isCollapsed && (
         <PanelResizer
-          direction="vertical"
-          side="top"
-          size={effectiveBottomHeight}
-          minSize={LAYOUT_LIMITS.bottom.min}
-          maxSize={LAYOUT_LIMITS.bottom.max}
-          factor={-1}
-          onLive={(h) => setDraftBottomHeight(h)}
-          onCommit={(h) => {
-            setBottomHeight(h)
-            setDraftBottomHeight(null)
+          direction={isHorizontalZone ? 'horizontal' : 'vertical'}
+          side={resizerSide}
+          size={effectiveSize}
+          minSize={limits.min}
+          maxSize={limits.max}
+          factor={factor}
+          onLive={(s) => setDraftSize(s)}
+          onCommit={(s) => {
+            commitSize(s)
+            setDraftSize(null)
           }}
         />
       )}
@@ -483,6 +511,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
         style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.5), hsl(var(--card)))' }}
       >
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <DockHandle panelId="log" />
           {/* 分页标签 - 现代化彩色徽章 Tab */}
           <div className="flex items-center gap-1">
             {/* 执行日志 - 蓝 */}

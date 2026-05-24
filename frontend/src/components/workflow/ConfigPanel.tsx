@@ -532,6 +532,7 @@ import {
 } from './config-panels/UtilityToolsConfigs'
 import { CustomModuleConfig } from './config-panels/CustomModuleConfig'
 import { PanelResizer } from './PanelResizer'
+import { DockHandle } from './DockHandle'
 import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 interface ConfigPanelProps {
@@ -559,11 +560,41 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   const [pickerUrl, setPickerUrl] = useState('')
   const [pendingField, setPendingField] = useState<string | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  // 受 layoutStore 控制的宽度（用户可拖拽）
+  // 受 layoutStore 控制的尺寸（用户可拖拽 + 可在 zone 间切换）
+  const myZone = useLayoutStore((s) => s.panelDocks.config)
+  const leftWidth = useLayoutStore((s) => s.leftWidth)
   const rightWidth = useLayoutStore((s) => s.rightWidth)
+  const topHeight = useLayoutStore((s) => s.topHeight)
+  const bottomHeight = useLayoutStore((s) => s.bottomHeight)
+  const setLeftWidth = useLayoutStore((s) => s.setLeftWidth)
   const setRightWidth = useLayoutStore((s) => s.setRightWidth)
-  const [draftRightWidth, setDraftRightWidth] = useState<number | null>(null)
-  const effectiveRightWidth = draftRightWidth ?? rightWidth
+  const setTopHeight = useLayoutStore((s) => s.setTopHeight)
+  const setBottomHeight = useLayoutStore((s) => s.setBottomHeight)
+  const [draftSize, setDraftSize] = useState<number | null>(null)
+  const isHorizontalZone = myZone === 'left' || myZone === 'right'
+  const sizeFromStore = myZone === 'left' ? leftWidth : myZone === 'right' ? rightWidth : myZone === 'top' ? topHeight : bottomHeight
+  const limits = LAYOUT_LIMITS[myZone]
+  const effectiveSize = draftSize ?? sizeFromStore
+  const commitSize = (s: number) => {
+    if (myZone === 'left') setLeftWidth(s)
+    else if (myZone === 'right') setRightWidth(s)
+    else if (myZone === 'top') setTopHeight(s)
+    else setBottomHeight(s)
+  }
+  const factor: 1 | -1 = myZone === 'left' || myZone === 'top' ? 1 : -1
+  const resizerSide: 'right' | 'left' | 'bottom' | 'top' =
+    myZone === 'left' ? 'right' : myZone === 'right' ? 'left' : myZone === 'top' ? 'bottom' : 'top'
+  const borderClass =
+    myZone === 'left' ? 'border-r' :
+    myZone === 'right' ? 'border-l' :
+    myZone === 'top' ? 'border-b' : 'border-t'
+  const asideStyle: React.CSSProperties = {
+    ...(isHorizontalZone
+      ? { width: isCollapsed ? 48 : effectiveSize, height: '100%' }
+      : { height: isCollapsed ? 40 : effectiveSize, width: '100%' }),
+    transition: draftSize === null ? (isHorizontalZone ? 'width 200ms ease-out' : 'height 200ms ease-out') : 'none',
+    flex: '0 0 auto',
+  }
   const pollingRef = useRef<number | null>(null)
   
   // 响应式：小屏幕自动折叠
@@ -869,11 +900,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   if (!selectedNode || !nodeData) {
     return (
       <aside
-        className="relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col"
-        style={{
-          width: isCollapsed ? 48 : effectiveRightWidth,
-          transition: draftRightWidth === null ? 'width 200ms ease-out' : 'none',
-        }}
+        className={`relative ${borderClass} border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col`}
+        style={asideStyle}
       >
         {isCollapsed ? (
           <button 
@@ -891,6 +919,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
           <>
             <div className="p-4 border-b border-[hsl(var(--border))] flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <DockHandle panelId="config" />
                 <span className="flex items-center justify-center w-7 h-7 rounded-md bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-600))]">
                   <Settings className="w-4 h-4" />
                 </span>
@@ -918,16 +947,16 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         )}
         {!isCollapsed && (
           <PanelResizer
-            direction="horizontal"
-            side="left"
-            size={effectiveRightWidth}
-            minSize={LAYOUT_LIMITS.right.min}
-            maxSize={LAYOUT_LIMITS.right.max}
-            factor={-1}
-            onLive={(w) => setDraftRightWidth(w)}
-            onCommit={(w) => {
-              setRightWidth(w)
-              setDraftRightWidth(null)
+            direction={isHorizontalZone ? 'horizontal' : 'vertical'}
+            side={resizerSide}
+            size={effectiveSize}
+            minSize={limits.min}
+            maxSize={limits.max}
+            factor={factor}
+            onLive={(s) => setDraftSize(s)}
+            onCommit={(s) => {
+              commitSize(s)
+              setDraftSize(null)
             }}
           />
         )}
@@ -2090,11 +2119,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
       )}
       
       <aside
-        className="relative border-l border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col"
-        style={{
-          width: isCollapsed ? 48 : effectiveRightWidth,
-          transition: draftRightWidth === null ? 'width 200ms ease-out' : 'none',
-        }}
+        className={`relative ${borderClass} border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col`}
+        style={asideStyle}
       >
         {isCollapsed ? (
           <button
@@ -2120,6 +2146,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.5), hsl(var(--card)))' }}
             >
               <div className="flex items-center gap-2.5 min-w-0">
+                <DockHandle panelId="config" />
                 <div className="icon-block icon-block-brand !w-9 !h-9 !rounded-[10px] flex-shrink-0">
                   <Settings className="w-4 h-4" strokeWidth={2.4} />
                 </div>
@@ -2261,16 +2288,16 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         )}
         {!isCollapsed && (
           <PanelResizer
-            direction="horizontal"
-            side="left"
-            size={effectiveRightWidth}
-            minSize={LAYOUT_LIMITS.right.min}
-            maxSize={LAYOUT_LIMITS.right.max}
-            factor={-1}
-            onLive={(w) => setDraftRightWidth(w)}
-            onCommit={(w) => {
-              setRightWidth(w)
-              setDraftRightWidth(null)
+            direction={isHorizontalZone ? 'horizontal' : 'vertical'}
+            side={resizerSide}
+            size={effectiveSize}
+            minSize={limits.min}
+            maxSize={limits.max}
+            factor={factor}
+            onLive={(s) => setDraftSize(s)}
+            onCommit={(s) => {
+              commitSize(s)
+              setDraftSize(null)
             }}
           />
         )}
