@@ -13,6 +13,8 @@ USER_DATA_DIR.mkdir(exist_ok=True)
 
 # picker 脚本（保留，供 browser_engine 或独立进程使用）
 _picker_active = False
+# 是否已经给 BrowserContext 注册 init_script，避免每次启动 picker 时重复注册
+_picker_init_script_registered = False
 
 
 def get_user_data_dir() -> str:
@@ -159,259 +161,76 @@ def send_command(action: str, **kwargs) -> dict:
 # =================== Picker 辅助 ===================
 
 def _load_picker_script() -> str:
-    # 直接内嵌完整版 picker 脚本（包含 Ctrl 单选、Alt 相似元素选择）
-    return """
-(function() {
-    if (window.__elementPickerActive) {
-        console.log('[ElementPicker] Already active');
-        return;
-    }
-    window.__elementPickerActive = true;
-    console.log('[ElementPicker] Initializing v2 (with similar selection)...');
-
-    // 高亮框（鼠标悬停）
-    var box = document.createElement('div');
-    box.id = '__picker_box';
-    box.style.cssText = 'position:fixed;pointer-events:none;border:3px solid #3b82f6;background:rgba(59,130,246,0.18);z-index:2147483647;border-radius:4px;display:none;transition:all 0.05s;';
-    document.body.appendChild(box);
-
-    // 相似元素高亮容器
-    var similarBoxes = [];
-    function clearSimilarBoxes() {
-        similarBoxes.forEach(function(b) { try { b.remove(); } catch(e) {} });
-        similarBoxes = [];
-    }
-    function highlightSimilar(elements) {
-        clearSimilarBoxes();
-        elements.forEach(function(el) {
-            try {
-                var r = el.getBoundingClientRect();
-                var b = document.createElement('div');
-                b.className = '__picker_similar_box';
-                b.style.cssText = 'position:fixed;pointer-events:none;border:2px solid #f59e0b;background:rgba(245,158,11,0.18);z-index:2147483646;border-radius:3px;';
-                b.style.left = r.left + 'px';
-                b.style.top = r.top + 'px';
-                b.style.width = r.width + 'px';
-                b.style.height = r.height + 'px';
-                document.body.appendChild(b);
-                similarBoxes.push(b);
-            } catch(e) {}
-        });
-    }
-
-    // 提示条
-    var tip = document.createElement('div');
-    tip.id = '__picker_tip';
-    tip.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1e40af;color:white;padding:10px 20px;border-radius:8px;font-size:14px;z-index:2147483647;font-family:sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-    tip.textContent = 'Ctrl+点击选择单个元素 | Alt+点击选择相似元素';
-    document.body.appendChild(tip);
-
-    // 工具：判断是否是 picker 自身的 UI 元素
-    function isPickerUI(el) {
-        if (!el) return true;
-        if (el === box || el === tip) return true;
-        if (el.id === '__picker_box' || el.id === '__picker_tip') return true;
-        if (el.className && typeof el.className === 'string' && el.className.indexOf('__picker_similar_box') !== -1) return true;
-        return false;
-    }
-
-    // 转义 CSS 类名
-    function cssEscape(s) {
-        if (!s) return '';
-        if (typeof CSS !== 'undefined' && CSS && typeof CSS.escape === 'function') {
-            try { return CSS.escape(s); } catch(e) {}
-        }
-        return String(s).replace(/([!"#$%&'()*+,./:;<=>?@\\[\\\\\\]^`{|}~])/g, '\\\\$1');
-    }
-
-    // 生成稳定选择器
-    function getSelector(el) {
-        if (!el || el === document.body || el === document.documentElement) return 'body';
-        if (el.id) {
-            try {
-                var sel = '#' + cssEscape(el.id);
-                if (document.querySelectorAll(sel).length === 1) return sel;
-            } catch(e) {}
-        }
-        if (el.className && typeof el.className === 'string') {
-            var classes = el.className.trim().split(/\\s+/).filter(function(c) {
-                return c && c.length < 50 && !/^(active|hover|focus|selected|disabled)$/.test(c);
-            });
-            for (var i = 0; i < classes.length; i++) {
-                try {
-                    var s = el.tagName.toLowerCase() + '.' + cssEscape(classes[i]);
-                    if (document.querySelectorAll(s).length === 1) return s;
-                } catch(e) {}
-            }
-        }
-        // 路径
-        var path = [];
-        var current = el;
-        while (current && current !== document.body && path.length < 6) {
-            var tag = current.tagName.toLowerCase();
-            var parent = current.parentElement;
-            if (parent) {
-                var siblings = Array.from(parent.children).filter(function(c) {
-                    return c.tagName === current.tagName;
-                });
-                if (siblings.length > 1) {
-                    var idx = siblings.indexOf(current) + 1;
-                    tag += ':nth-of-type(' + idx + ')';
-                }
-            }
-            path.unshift(tag);
-            current = parent;
-        }
-        return path.join(' > ');
-    }
-
-    // 查找相似元素：先尝试同 class，再回退到同父同 tag
-    function findSimilar(el) {
-        var tag = el.tagName;
-        var parent = el.parentElement;
-        var bestList = [el];
-
-        // 策略1：document 范围内同 tag + 主要 class
-        if (el.className && typeof el.className === 'string') {
-            var classes = el.className.trim().split(/\\s+/).filter(function(c) {
-                return c && c.length < 50 && !/^(active|hover|focus|selected|disabled)$/.test(c);
-            });
-            for (var i = 0; i < classes.length; i++) {
-                try {
-                    var sel = tag.toLowerCase() + '.' + cssEscape(classes[i]);
-                    var found = Array.from(document.querySelectorAll(sel));
-                    if (found.length > 1 && found.length <= 200) {
-                        bestList = found;
-                        break;
-                    }
-                } catch(e) {}
-            }
-        }
-        // 策略2：同父同 tag
-        if (bestList.length <= 1 && parent) {
-            var sib = Array.from(parent.children).filter(function(c) {
-                return c.tagName === tag;
-            });
-            if (sib.length > 1) bestList = sib;
-        }
-        return bestList;
-    }
-
-    // 生成相似元素的 pattern（含 {index}）
-    function buildSimilarPattern(el, list) {
-        var tag = el.tagName.toLowerCase();
-        // 优先：document 内同 tag+class 完全匹配 list
-        if (el.className && typeof el.className === 'string') {
-            var classes = el.className.trim().split(/\\s+/).filter(function(c) {
-                return c && c.length < 50 && !/^(active|hover|focus|selected|disabled)$/.test(c);
-            });
-            for (var i = 0; i < classes.length; i++) {
-                try {
-                    var sel = tag + '.' + cssEscape(classes[i]);
-                    var f = Array.from(document.querySelectorAll(sel));
-                    if (f.length === list.length) {
-                        // 使用 :nth-of-type 不一定准确，使用 nth-match 模拟：用 :nth-child 序号 -> 对单 selector 难表达
-                        // 使用 (sel):nth-of-type({index}) 形式 - 对 jQuery/Playwright 都不通用
-                        // 改为返回 sel 加上 [data-index='{index}'] 占位 - 不可行
-                        // 这里使用 ":nth-match" 不是标准, 还是用父+nth-of-type
-                        break;
-                    }
-                } catch(e) {}
-            }
-        }
-        // 通用：父 + nth-of-type({index})
-        var parent = el.parentElement;
-        if (parent) {
-            var parentSel = getSelector(parent);
-            return parentSel + ' > ' + tag + ':nth-of-type({index})';
-        }
-        return tag + ':nth-of-type({index})';
-    }
-
-    // 鼠标移动高亮
-    document.addEventListener('mousemove', function(e) {
-        var el = document.elementFromPoint(e.clientX, e.clientY);
-        if (isPickerUI(el)) return;
-        if (!el) return;
-        var r = el.getBoundingClientRect();
-        box.style.display = 'block';
-        box.style.left = r.left + 'px';
-        box.style.top = r.top + 'px';
-        box.style.width = r.width + 'px';
-        box.style.height = r.height + 'px';
-    }, true);
-
-    // 点击选择
-    document.addEventListener('click', function(e) {
-        if (!e.ctrlKey && !e.altKey) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-
-        var el = document.elementFromPoint(e.clientX, e.clientY);
-        if (!el || isPickerUI(el)) return;
-
-        if (e.altKey) {
-            // 相似元素
-            var list = findSimilar(el);
-            var pattern = buildSimilarPattern(el, list);
-            highlightSimilar(list);
-
-            window.__elementPickerSimilar = {
-                pattern: pattern,
-                count: list.length,
-                indices: list.map(function(_, i) { return i + 1; }),
-                minIndex: 1,
-                maxIndex: list.length,
-                selector1: getSelector(list[0]),
-                selector2: list.length > 1 ? getSelector(list[1]) : ''
-            };
-            tip.textContent = '已选择 ' + list.length + ' 个相似元素';
-            tip.style.background = '#059669';
-            console.log('[ElementPicker] Similar:', pattern, 'count:', list.length);
-        } else if (e.ctrlKey) {
-            var sel = getSelector(el);
-            var rect = el.getBoundingClientRect();
-            var attrs = {};
-            try {
-                Array.from(el.attributes).forEach(function(a) { attrs[a.name] = a.value; });
-            } catch(_) {}
-            window.__elementPickerResult = {
-                selector: sel,
-                tagName: el.tagName.toLowerCase(),
-                text: ((el.innerText || el.textContent || '') + '').substring(0, 100).trim(),
-                attributes: attrs,
-                rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
-            };
-            tip.textContent = '已选择: ' + sel;
-            tip.style.background = '#059669';
-            console.log('[ElementPicker] Selected:', sel);
-        }
-    }, true);
-
-    console.log('[ElementPicker] Ready!');
-})();
-"""
+    """统一从 element_picker/script.py 加载共享 picker 脚本，
+    避免 5 份拷贝各自维护、改一份漏其他几份的混乱。
+    """
+    try:
+        from app.services.element_picker.script import PICKER_SCRIPT as _SCRIPT
+        return _SCRIPT
+    except Exception as _e:
+        print(f"[browser_manager] 加载共享 picker 脚本失败，回退内嵌: {_e}")
+    return ""
 
 
 PICKER_SCRIPT = _load_picker_script()
 
 
 async def _start_picker_engine() -> dict:
-    global _picker_active
+    """启动元素选择器：
+
+    跨页面注入：
+    - 给 BrowserContext 注册 add_init_script，所有新打开/跳转的页面都会自动注入；
+    - 同时对当前所有已打开页面立即 evaluate 注入。
+    用户切到新网址或新开 tab 后也能继续用 Ctrl+点击 / Alt+两点采样。
+    """
+    global _picker_active, _picker_init_script_registered
     from app.services import browser_engine
-    pg = browser_engine.get_page()
-    if pg is None:
-        return {"success": False, "error": "没有活跃页面"}
+
+    ctx = browser_engine.get_context()
+    if ctx is None:
+        return {"success": False, "error": "没有活跃浏览器上下文"}
+
+    # 给 context 注册一次 init script（每个新文档/跳转都会自动跑）
+    if not _picker_init_script_registered:
+        try:
+            await ctx.add_init_script(PICKER_SCRIPT)
+            _picker_init_script_registered = True
+        except Exception as e:
+            print(f"[browser_manager] 注册 picker init_script 失败：{e}")
+
+    # 每次 start 都先清除"已禁用"标志，确保跳转/新页面里脚本能正常激活
+    for pg in ctx.pages:
+        try:
+            await pg.evaluate("() => { window.__elementPickerDisabled = false; }")
+        except Exception:
+            pass
     try:
-        await pg.evaluate(PICKER_SCRIPT)
-        _picker_active = True
-        return {"success": True, "data": {"message": "选择器已启动"}}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+        await ctx.add_init_script(
+            "window.__elementPickerDisabled = false;"
+        )
+    except Exception:
+        pass
+
+    # 立即给所有现有页面注入一次（init_script 只对未来文档生效）
+    injected = 0
+    for pg in ctx.pages:
+        try:
+            await pg.evaluate(PICKER_SCRIPT)
+            injected += 1
+        except Exception as e:
+            print(f"[browser_manager] 注入到 {pg.url} 失败：{e}")
+
+    _picker_active = True
+    return {"success": True, "data": {"message": f"选择器已启动（覆盖 {injected} 个页面，跨网站持续生效）"}}
 
 
 async def _stop_picker_engine() -> dict:
+    """停止元素选择器：
+
+    Playwright 的 add_init_script 一旦注册无法移除，
+    所以这里给所有页面挂一个 window.__elementPickerDisabled 标志，
+    让脚本启动逻辑识别后自我退出；同时主动清理已注入页面的 UI。
+    """
     global _picker_active
     from app.services import browser_engine
     _picker_active = False
@@ -427,12 +246,20 @@ async def _stop_picker_engine() -> dict:
                         });
                         document.querySelectorAll('.__picker_similar_box').forEach(el => el.remove());
                         window.__elementPickerActive = false;
+                        window.__elementPickerDisabled = true;
                         window.__elementPickerResult = null;
                         window.__elementPickerSimilar = null;
                     }
                 """)
             except Exception:
                 pass
+        # 同时给后续新页面挂上禁用标志
+        try:
+            await ctx.add_init_script(
+                "window.__elementPickerDisabled = true;"
+            )
+        except Exception:
+            pass
     return {"success": True, "data": {"message": "选择器已停止"}}
 
 

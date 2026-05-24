@@ -1,425 +1,352 @@
-"""元素选择器注入脚本"""
+"""WebRPA 元素选择器统一注入脚本（共享给所有 picker 入口）
 
-PICKER_SCRIPT = """(function() {
-    // 防止重复注入
-    if (window.__elementPickerActive) {
-        console.log('[ElementPicker] Already active');
+支持：
+- Ctrl+点击：选中单个元素，输出稳定 selector
+- Alt+点击两次：第一次记样本 A，第二次拿样本 B，对两者做路径对比，
+  把唯一不同那一段替换成 {index} 生成相似选择器；适用于卡片/列表/分类标签等重复结构
+- window.__elementPickerDisabled 标志：让外层 stop 后即便脚本被 init_script 重新注入也能立刻退出
+- 跨页面：本脚本被 BrowserContext.add_init_script 注册后，
+  所有跳转/新开 tab/iframe 主文档都会自动重新注入
+"""
+
+PICKER_SCRIPT = r"""(function() {
+    if (window.__elementPickerDisabled === true) {
+        // 用户已主动停止 picker，即便 init_script 在新页面重新跑也立刻退出
         return;
     }
+    if (window.__elementPickerActive) return;
     window.__elementPickerActive = true;
-    console.log('[ElementPicker] Initializing...');
-    
-    // 创建高亮框
-    var box = document.createElement('div');
-    box.id = '__element_picker_box';
-    box.style.cssText = 'position:fixed;pointer-events:none;border:3px solid #3b82f6;background:rgba(59,130,246,0.2);z-index:2147483647;border-radius:4px;display:none;transition:all 0.1s;';
-    document.body.appendChild(box);
-    
-    // 创建提示条
-    var tip = document.createElement('div');
-    tip.id = '__element_picker_tip';
-    tip.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1e40af;color:white;padding:10px 20px;border-radius:8px;font-size:14px;z-index:2147483647;font-family:sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-    tip.textContent = 'Ctrl+点击：选 1 个元素 | Alt+点击两次：第 1 次定样本，第 2 次推断相似元素';
-    document.body.appendChild(tip);
-    
-    console.log('[ElementPicker] UI created');
-    
-    // 生成选择器
-    function getSelector(el) {
-        if (!el || el === document.body || el === document.documentElement) {
-            return 'body';
-        }
-        
-        // 优先使用 id
-        if (el.id) {
-            return '#' + el.id;
-        }
-        
-        // 使用 class
-        if (el.className && typeof el.className === 'string') {
-            var classes = el.className.trim().split(/\\s+/);
-            for (var i = 0; i < classes.length; i++) {
-                if (classes[i] && classes[i].length < 50) {
-                    var sel = el.tagName.toLowerCase() + '.' + classes[i];
-                    try {
-                        if (document.querySelectorAll(sel).length === 1) {
-                            return sel;
-                        }
-                    } catch(e) {}
-                }
-            }
-        }
 
-        // 使用路径
+    // ===== UI 元素 =====
+    var box = document.createElement('div');
+    box.id = '__picker_box';
+    box.style.cssText = 'position:fixed;pointer-events:none;border:3px solid #3b82f6;background:rgba(59,130,246,0.18);z-index:2147483647;border-radius:4px;display:none;transition:all 0.05s;';
+
+    var firstBox = document.createElement('div');
+    firstBox.id = '__picker_first_box';
+    firstBox.style.cssText = 'position:fixed;pointer-events:none;border:3px dashed #f59e0b;background:rgba(245,158,11,0.18);z-index:2147483646;border-radius:4px;display:none;';
+
+    var tip = document.createElement('div');
+    tip.id = '__picker_tip';
+    tip.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1e40af;color:white;padding:10px 20px;border-radius:8px;font-size:14px;z-index:2147483647;font-family:sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+    tip.textContent = 'Ctrl+点击：选 1 个元素 | Alt+点击两次：分别点击两个相似元素';
+
+    function attachUI() {
+        if (!document.body) return;
+        if (!box.isConnected) document.body.appendChild(box);
+        if (!firstBox.isConnected) document.body.appendChild(firstBox);
+        if (!tip.isConnected) document.body.appendChild(tip);
+    }
+    if (document.body) attachUI();
+    else document.addEventListener('DOMContentLoaded', attachUI);
+
+    // 相似元素高亮容器
+    var similarBoxes = [];
+    function clearSimilar() {
+        similarBoxes.forEach(function(b) { try { b.remove(); } catch (e) {} });
+        similarBoxes = [];
+    }
+    function highlightSimilar(elements) {
+        clearSimilar();
+        elements.forEach(function(el) {
+            try {
+                var r = el.getBoundingClientRect();
+                var b = document.createElement('div');
+                b.className = '__picker_similar_box';
+                b.style.cssText = 'position:fixed;pointer-events:none;border:2px solid #f59e0b;background:rgba(245,158,11,0.18);z-index:2147483646;border-radius:3px;';
+                b.style.left = r.left + 'px';
+                b.style.top = r.top + 'px';
+                b.style.width = r.width + 'px';
+                b.style.height = r.height + 'px';
+                document.body.appendChild(b);
+                similarBoxes.push(b);
+            } catch (e) {}
+        });
+    }
+
+    function isPickerUI(el) {
+        if (!el) return true;
+        if (el === box || el === tip || el === firstBox) return true;
+        var id = el.id || '';
+        if (id === '__picker_box' || id === '__picker_tip' || id === '__picker_first_box') return true;
+        if (el.className && typeof el.className === 'string' && el.className.indexOf('__picker_similar_box') !== -1) return true;
+        return false;
+    }
+
+    function cssEscape(s) {
+        if (!s) return '';
+        if (typeof CSS !== 'undefined' && CSS && typeof CSS.escape === 'function') {
+            try { return CSS.escape(s); } catch (e) {}
+        }
+        return String(s).replace(/[^a-zA-Z0-9_-]/g, function(c) { return '\\' + c; });
+    }
+"""
+
+PICKER_SCRIPT += r"""
+    // ===== 路径采样：把元素到 root 之间的每一层抓取下来，含 tag/id/class/nthChild =====
+    function getPath(el) {
         var path = [];
         var current = el;
-        while (current && current !== document.body && path.length < 5) {
-            var tag = current.tagName.toLowerCase();
-            var parent = current.parentElement;
-            if (parent) {
-                var siblings = Array.from(parent.children).filter(function(c) {
-                    return c.tagName === current.tagName;
-                });
-                if (siblings.length > 1) {
-                    var idx = siblings.indexOf(current) + 1;
-                    tag += ':nth-of-type(' + idx + ')';
-                }
-            }
-            path.unshift(tag);
-            current = parent;
-        }
-        return path.join(' > ');
-    }
-    
-    // 查找相似元素（多策略：先按 className 匹配，再按 tag + 父级结构，最后按 tag 同辈）
-    function findSimilar(el) {
-        if (!el || el === document.documentElement || el === document.body) return [el];
-
-        var tag = el.tagName;
-        var classList = (el.className && typeof el.className === 'string')
-            ? el.className.trim().split(/\s+/).filter(function(c) { return c && !/^(active|hover|selected|focus|current)/i.test(c); })
-            : [];
-
-        // 策略 1：相同主要 className 的全局元素（最准确）
-        if (classList.length > 0) {
-            for (var i = 0; i < classList.length; i++) {
-                var cls = classList[i];
-                if (cls.length < 2) continue;
-                try {
-                    var nodes = document.querySelectorAll(tag.toLowerCase() + '.' + CSS.escape(cls));
-                    if (nodes.length >= 2 && nodes.length <= 200) {
-                        return Array.from(nodes);
-                    }
-                } catch (err) {}
-            }
-        }
-
-        // 策略 2：父元素下相同 tag（原始逻辑）
-        var parent = el.parentElement;
-        if (parent) {
-            var siblings = Array.from(parent.children).filter(function(c) {
-                return c.tagName === tag;
-            });
-            if (siblings.length >= 2 && siblings.length <= 200) {
-                return siblings;
-            }
-        }
-
-        // 策略 3：祖父元素下，同 tag + 类似嵌套深度（处理 <div><a/></div><div><a/></div>）
-        var grand = parent && parent.parentElement;
-        if (grand) {
-            var pTag = parent.tagName;
-            var cousinParents = Array.from(grand.children).filter(function(c) {
-                return c.tagName === pTag;
-            });
-            var cousins = [];
-            for (var k = 0; k < cousinParents.length; k++) {
-                var matched = cousinParents[k].querySelector(tag.toLowerCase());
-                if (matched) cousins.push(matched);
-            }
-            if (cousins.length >= 2 && cousins.length <= 200) {
-                return cousins;
-            }
-        }
-
-        // 策略 4：相同 role 属性
-        if (el.getAttribute('role')) {
-            try {
-                var byRole = document.querySelectorAll(tag.toLowerCase() + '[role="' + el.getAttribute('role') + '"]');
-                if (byRole.length >= 2 && byRole.length <= 200) {
-                    return Array.from(byRole);
-                }
-            } catch (err) {}
-        }
-
-        return [el];
-    }
-
-    // ===== 两点采样：根据 A、B 两个样本元素推断"重复模式" =====
-
-    // 取祖先链（含自身），从 root 到自身排序
-    function getAncestors(el) {
-        var arr = [];
-        var c = el;
-        while (c && c !== document.body && c !== document.documentElement) {
-            arr.unshift(c);
-            c = c.parentElement;
-        }
-        return arr;
-    }
-
-    // 找两元素的最低公共祖先
-    function lowestCommonAncestor(a, b) {
-        var pa = new Set();
-        var c = a;
-        while (c) { pa.add(c); c = c.parentElement; }
-        c = b;
-        while (c) {
-            if (pa.has(c)) return c;
-            c = c.parentElement;
-        }
-        return document.body;
-    }
-
-    // 给定两个元素，提取它们共有的 class（用于全局匹配 selector）
-    function commonClasses(a, b) {
-        function listOf(el) {
-            return (el.className && typeof el.className === 'string')
-                ? el.className.trim().split(/\s+/).filter(function(c) {
-                    return c && !/^(active|hover|selected|focus|current|on|is-)/i.test(c) && c.length > 1;
+        while (current && current !== document.body && current !== document.documentElement) {
+            var p = current.parentElement;
+            var nthChild = p ? Array.prototype.indexOf.call(p.children, current) + 1 : 0;
+            var sameTag = p ? Array.prototype.filter.call(p.children, function(c) { return c.tagName === current.tagName; }) : [];
+            var nthOfType = sameTag.length > 1 ? sameTag.indexOf(current) + 1 : 0;
+            var classes = (current.className && typeof current.className === 'string')
+                ? current.className.trim().split(/\s+/).filter(function(c) {
+                    return c && c.length < 50 && !/^(active|hover|focus|selected|disabled|on|is-)/i.test(c);
                 })
                 : [];
+            path.unshift({
+                tag: current.tagName,
+                id: current.id || '',
+                classes: classes,
+                nthChild: nthChild,
+                nthOfType: nthOfType,
+                el: current
+            });
+            current = p;
         }
-        var la = listOf(a), lb = new Set(listOf(b));
-        return la.filter(function(c) { return lb.has(c); });
+        return path;
     }
 
-    // 从两个样本元素推断完整的相似元素集合
+    // 单元素稳定 selector
+    function getSelector(el) {
+        if (!el || el === document.body || el === document.documentElement) return 'body';
+        if (el.id) {
+            try {
+                var idSel = '#' + cssEscape(el.id);
+                if (document.querySelectorAll(idSel).length === 1) return idSel;
+            } catch (e) {}
+        }
+        if (el.className && typeof el.className === 'string') {
+            var classes = el.className.trim().split(/\s+/).filter(function(c) {
+                return c && c.length < 50 && !/^(active|hover|focus|selected|disabled)$/.test(c);
+            });
+            for (var i = 0; i < classes.length; i++) {
+                try {
+                    var sel = el.tagName.toLowerCase() + '.' + cssEscape(classes[i]);
+                    if (document.querySelectorAll(sel).length === 1) return sel;
+                } catch (e) {}
+            }
+        }
+        var path = getPath(el);
+        var parts = [];
+        var startIdx = 0;
+        for (var k = 0; k < path.length; k++) {
+            if (path[k].id) { startIdx = k; break; }
+        }
+        for (var j = startIdx; j < path.length; j++) {
+            var n = path[j];
+            if (n.id) parts.push('#' + cssEscape(n.id));
+            else if (n.classes.length > 0) parts.push(n.tag.toLowerCase() + '.' + cssEscape(n.classes[0]));
+            else if (n.nthOfType > 0) parts.push(n.tag.toLowerCase() + ':nth-of-type(' + n.nthOfType + ')');
+            else parts.push(n.tag.toLowerCase());
+        }
+        return parts.join(' > ');
+    }
+"""
+
+PICKER_SCRIPT += r"""
+    // ===== 两点采样：把 A、B 两个元素的 path 对齐对比 =====
+    // 返回 { pattern: 含 {index} 的 selector, elements: 命中元素数组, indices: 每个元素对应的索引值 }
     function findSimilarFromTwo(a, b) {
         if (!a || !b) return null;
-        if (a === b) return [a];
+        if (a === b) return null;
         if (a.tagName !== b.tagName) return null;
 
-        var tag = a.tagName.toLowerCase();
+        var pa = getPath(a), pb = getPath(b);
+        if (pa.length !== pb.length) return null;
 
-        // 策略 A：两元素共有的 className → 全局匹配
-        var common = commonClasses(a, b);
-        for (var i = 0; i < common.length; i++) {
-            var cls = common[i];
-            try {
-                var nodes = document.querySelectorAll(tag + '.' + CSS.escape(cls));
-                if (nodes.length >= 2 && nodes.length <= 500
-                    && Array.prototype.indexOf.call(nodes, a) >= 0
-                    && Array.prototype.indexOf.call(nodes, b) >= 0) {
-                    return { items: Array.from(nodes), pattern: tag + '.' + CSS.escape(cls), strategy: 'common-class' };
-                }
-            } catch (err) {}
-        }
-
-        // 策略 B：找 LCA，把 a、b 投影到 LCA 直接子节点的层（卡片型重复结构）
-        var lca = lowestCommonAncestor(a, b);
-        if (lca && lca !== document.body) {
-            var aChain = getAncestors(a), bChain = getAncestors(b);
-            var aIdx = aChain.indexOf(lca), bIdx = bChain.indexOf(lca);
-            // a/b 在 LCA 之下的"第一个分叉子节点"
-            var aProj = aChain[aIdx + 1], bProj = bChain[bIdx + 1];
-            if (aProj && bProj && aProj !== bProj && aProj.tagName === bProj.tagName) {
-                // 收集 LCA 下所有同 tag 的兄弟，从中挑出与 aProj 类结构相似的
-                var siblings = Array.from(lca.children).filter(function(c) {
-                    return c.tagName === aProj.tagName;
-                });
-                if (siblings.length >= 2 && siblings.length <= 500
-                    && siblings.indexOf(aProj) >= 0 && siblings.indexOf(bProj) >= 0) {
-                    // 共有 className 进一步精确化
-                    var projCommon = commonClasses(aProj, bProj);
-                    if (projCommon.length > 0) {
-                        for (var j = 0; j < projCommon.length; j++) {
-                            var pc = projCommon[j];
-                            var matched = siblings.filter(function(s) {
-                                return s.classList && s.classList.contains(pc);
-                            });
-                            if (matched.length >= 2 && matched.indexOf(aProj) >= 0 && matched.indexOf(bProj) >= 0) {
-                                // 现在 matched 是父级容器层的列表，需要把 a、b 在容器内的相对路径还原
-                                var mapped = mapItemsByRelativePath(matched, aProj, a, bProj, b);
-                                if (mapped) return { items: mapped, pattern: 'lca-relative', strategy: 'lca-class' };
-                                return { items: matched, pattern: 'lca-tag', strategy: 'lca-class-only' };
-                            }
-                        }
-                    }
-                    var mapped2 = mapItemsByRelativePath(siblings, aProj, a, bProj, b);
-                    if (mapped2) return { items: mapped2, pattern: 'lca-relative', strategy: 'lca-tag' };
-                    return { items: siblings, pattern: 'lca-tag', strategy: 'lca-tag-only' };
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // 给定 LCA 下的容器列表（containers），以及两组样本 (containerA→leafA, containerB→leafB)，
-    // 推断"从容器到 leaf 的相对路径"，再批量映射到所有 container 上得到完整 leaf 列表
-    function mapItemsByRelativePath(containers, contA, leafA, contB, leafB) {
-        function relPath(cont, leaf) {
-            var path = [];
-            var c = leaf;
-            while (c && c !== cont) {
-                var p = c.parentElement;
-                if (!p) return null;
-                var sameTag = Array.prototype.filter.call(p.children, function(s) { return s.tagName === c.tagName; });
-                var idx = sameTag.indexOf(c);
-                path.unshift({ tag: c.tagName, idx: idx, total: sameTag.length });
-                c = p;
-            }
-            return path;
-        }
-        var pa = relPath(contA, leafA), pb = relPath(contB, leafB);
-        if (!pa || !pb || pa.length !== pb.length) return null;
-        // 路径必须 tag 完全一致（每层），idx 可不同（兼容多个相同结构卡片中"子项位置"略有差异）
+        // 找到唯一不同的层级，要求每层 tag 必须一致
+        var diffIdx = -1;
         for (var i = 0; i < pa.length; i++) {
             if (pa[i].tag !== pb[i].tag) return null;
-        }
-        // 用第一组路径作为模板批量取
-        var results = [];
-        for (var k = 0; k < containers.length; k++) {
-            var cur = containers[k];
-            var ok = true;
-            for (var d = 0; d < pa.length && cur; d++) {
-                var sameTag = Array.prototype.filter.call(cur.children, function(s) { return s.tagName === pa[d].tag; });
-                if (sameTag.length === 0) { ok = false; break; }
-                // 优先用 a 路径的 idx；越界则用最后一个
-                var idx = Math.min(pa[d].idx, sameTag.length - 1);
-                cur = sameTag[idx];
-            }
-            if (ok && cur) results.push(cur);
-        }
-        if (results.length >= 2) return results;
-        return null;
-    }
-
-    // 给定一组相似元素，生成最佳 CSS selector 模式
-    function buildSimilarSelector(el, similar, sampleB) {
-        if (similar.length <= 1) return getSelector(el);
-
-        var classList = (el.className && typeof el.className === 'string')
-            ? el.className.trim().split(/\s+/).filter(function(c) { return c && !/^(active|hover|selected|focus|current)/i.test(c); })
-            : [];
-
-        // 优先用 className（短而精）
-        // 如果传入了第二个样本，优先用 A、B 共有 className
-        if (sampleB) {
-            var common = commonClasses(el, sampleB);
-            for (var c = 0; c < common.length; c++) {
-                try {
-                    var sel0 = el.tagName.toLowerCase() + '.' + CSS.escape(common[c]);
-                    var hits0 = document.querySelectorAll(sel0);
-                    if (hits0.length === similar.length) {
-                        return sel0;
-                    }
-                } catch (err) {}
+            if (pa[i].nthChild !== pb[i].nthChild) {
+                if (diffIdx >= 0) return null;  // 多于一层不同，无法用单 {index} 表达
+                diffIdx = i;
             }
         }
-        for (var i = 0; i < classList.length; i++) {
-            var cls = classList[i];
-            if (cls.length < 2) continue;
-            try {
-                var sel = el.tagName.toLowerCase() + '.' + CSS.escape(cls);
-                var hits = document.querySelectorAll(sel);
-                if (hits.length === similar.length) {
-                    // 用 :nth-of-type 兼容，大多数 RPA 引擎更熟
-                    return sel;
+        if (diffIdx < 0) return null;
+
+        // 从最近的有 id 的祖先开始，作为绝对锚点
+        var startIdx = 0;
+        for (var k = 0; k <= diffIdx; k++) {
+            if (pa[k].id) { startIdx = k; break; }
+        }
+
+        // 构建 selector：固定层用 tag.class 或 tag:nth-child(n)，不同那一层用 {index}
+        var parts = [];
+        for (var j = startIdx; j < pa.length; j++) {
+            var n = pa[j];
+            if (n.id) {
+                parts.push('#' + cssEscape(n.id));
+                continue;
+            }
+            if (j === diffIdx) {
+                // 不同的层：用共有 className 优先；否则 tag:nth-child({index})
+                var commonClasses = pa[j].classes.filter(function(c) {
+                    return pb[j].classes.indexOf(c) >= 0;
+                });
+                if (commonClasses.length > 0) {
+                    parts.push(n.tag.toLowerCase() + '.' + cssEscape(commonClasses[0]) + ':nth-child({index})');
+                } else {
+                    parts.push(n.tag.toLowerCase() + ':nth-child({index})');
                 }
-            } catch (err) {}
+                continue;
+            }
+            // 固定层：优先 className（结构更稳），否则 nth-of-type
+            if (n.classes.length > 0 && pa[j].classes[0] === pb[j].classes[0]) {
+                parts.push(n.tag.toLowerCase() + '.' + cssEscape(n.classes[0]));
+            } else if (n.nthOfType > 0) {
+                parts.push(n.tag.toLowerCase() + ':nth-of-type(' + n.nthOfType + ')');
+            } else {
+                parts.push(n.tag.toLowerCase());
+            }
+        }
+        var pattern = parts.join(' > ');
+
+        // 找出所有兄弟元素：在 diffIdx 层的父节点下，所有同 tag 的同辈
+        var diffParent = pa[diffIdx].el.parentElement;
+        var sameTagSibs = diffParent ? Array.prototype.filter.call(diffParent.children, function(c) {
+            return c.tagName === pa[diffIdx].tag;
+        }) : [];
+
+        // 对每个 sibling，重建从 diffIdx 之后那段路径，定位到对应叶子
+        var elements = [];
+        var indices = [];
+        for (var s = 0; s < sameTagSibs.length; s++) {
+            var sib = sameTagSibs[s];
+            var cur = sib;
+            var ok = true;
+            for (var d = diffIdx + 1; d < pa.length && cur; d++) {
+                var info = pa[d];
+                var children = Array.prototype.filter.call(cur.children, function(c) { return c.tagName === info.tag; });
+                if (children.length === 0) { ok = false; break; }
+                // 用 nthOfType 在子节点中定位（A 路径作模板）
+                var idx = info.nthOfType > 0 ? Math.min(info.nthOfType, children.length) - 1 : 0;
+                cur = children[idx];
+            }
+            if (ok && cur) {
+                elements.push(cur);
+                // 真实 nth-child 序号
+                var realIdx = Array.prototype.indexOf.call(diffParent.children, sib) + 1;
+                indices.push(realIdx);
+            }
         }
 
-        // 退而求其次：parent + nth-of-type
-        var parent = el.parentElement;
-        if (parent) {
-            var parentSel = getSelector(parent);
-            var tag = el.tagName.toLowerCase();
-            return parentSel + ' > ' + tag + ':nth-of-type({index})';
-        }
-        return getSelector(el);
+        if (elements.length < 2) return null;
+
+        return { pattern: pattern, elements: elements, indices: indices };
     }
-    
-    // 鼠标移动高亮
+"""
+
+PICKER_SCRIPT += r"""
+    // ===== 鼠标事件 =====
+    var firstSample = null;
+    var firstSampleTime = 0;
+
+    function setFirstSampleBox(el) {
+        if (!el) {
+            firstBox.style.display = 'none';
+            return;
+        }
+        var r = el.getBoundingClientRect();
+        firstBox.style.left = r.left + 'px';
+        firstBox.style.top = r.top + 'px';
+        firstBox.style.width = r.width + 'px';
+        firstBox.style.height = r.height + 'px';
+        firstBox.style.display = 'block';
+    }
+
     document.addEventListener('mousemove', function(e) {
+        if (window.__elementPickerDisabled === true) return;
         var el = document.elementFromPoint(e.clientX, e.clientY);
-        if (!el || el === tip || el === box || el.id === '__element_picker_tip' || el.id === '__element_picker_box') {
-            return;
-        }
-        var rect = el.getBoundingClientRect();
-        box.style.left = rect.left + 'px';
-        box.style.top = rect.top + 'px';
-        box.style.width = rect.width + 'px';
-        box.style.height = rect.height + 'px';
+        if (!el || isPickerUI(el)) return;
+        var r = el.getBoundingClientRect();
         box.style.display = 'block';
-    }, true);
-    
-    // 点击选择
-    document.addEventListener('click', function(e) {
-        // 只响应 Ctrl 或 Alt 点击
-        if (!e.ctrlKey && !e.altKey) {
-            return;
+        box.style.left = r.left + 'px';
+        box.style.top = r.top + 'px';
+        box.style.width = r.width + 'px';
+        box.style.height = r.height + 'px';
+        if (e.altKey) {
+            box.style.borderColor = '#f59e0b';
+            box.style.background = 'rgba(245,158,11,0.18)';
+        } else {
+            box.style.borderColor = '#3b82f6';
+            box.style.background = 'rgba(59,130,246,0.18)';
         }
-        
+    }, true);
+
+    document.addEventListener('click', function(e) {
+        if (window.__elementPickerDisabled === true) return;
+        if (!e.ctrlKey && !e.altKey) return;
         e.preventDefault();
         e.stopPropagation();
-        e.stopImmediatePropagation();
-        
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
         var el = document.elementFromPoint(e.clientX, e.clientY);
-        if (!el || el === tip || el === box) {
-            return;
-        }
-        
-        console.log('[ElementPicker] Click detected, ctrl:', e.ctrlKey, 'alt:', e.altKey);
-        
+        if (!el || isPickerUI(el)) return;
+
         if (e.altKey) {
-            // Alt+点击：两次采样选择相似元素
-            // 第一次 Alt+点击 → 暂存样本 A，提示用户再点第二个
-            // 第二次 Alt+点击 → 用 A、B 推断完整重复模式（最准）
-            // 若用户长时间未点第二个或主动按 Esc，退化为单点猜测
             var now = Date.now();
-            var stash = window.__elementPickerSampleA;
-            // 30 秒后自动失效
-            if (stash && (now - stash.time) > 30000) stash = null;
-
-            if (!stash || stash.el === el) {
-                // 第一次：先存样本 A，并给元素加个虚框提示用户
-                window.__elementPickerSampleA = { el: el, time: now };
-                tip.textContent = '已选第 1 个样本，请 Alt+点击第 2 个相似元素（30 秒内）';
-                tip.style.background = '#0ea5e9';
-                box.style.borderColor = '#f59e0b';
-                box.style.background = 'rgba(245,158,11,0.25)';
-                console.log('[ElementPicker] Sample A locked:', el);
-            } else {
-                // 第二次：根据 A、B 推断
-                var sampleA = stash.el;
-                window.__elementPickerSampleA = null;
-                box.style.borderColor = '#3b82f6';
-                box.style.background = 'rgba(59,130,246,0.2)';
-
-                var inferred = findSimilarFromTwo(sampleA, el);
-                var similar, selector;
-                if (inferred && inferred.items.length >= 2) {
-                    similar = inferred.items;
-                    selector = buildSimilarSelector(sampleA, similar, el);
-                    console.log('[ElementPicker] Two-sample inference:', inferred.strategy, 'count:', similar.length);
-                } else {
-                    // 推断失败 → 退化为单点猜
-                    similar = findSimilar(el);
-                    selector = buildSimilarSelector(el, similar);
-                    console.log('[ElementPicker] Two-sample failed, fallback to single:', similar.length);
-                }
-
-                window.__elementPickerSimilar = {
-                    pattern: selector,
-                    count: similar.length,
-                    indices: similar.map(function(s, i) { return i + 1; }),
-                    minIndex: 1,
-                    maxIndex: similar.length
-                };
-
-                tip.textContent = '已识别 ' + similar.length + ' 个相似元素';
-                tip.style.background = '#059669';
+            // 30 秒后样本 A 自动失效
+            if (firstSample && (now - firstSampleTime) > 30000) {
+                firstSample = null;
             }
+
+            if (!firstSample || firstSample === el) {
+                firstSample = el;
+                firstSampleTime = now;
+                setFirstSampleBox(el);
+                tip.textContent = '已记录第 1 个样本，请 Alt+点击第 2 个相似元素（30 秒内）';
+                tip.style.background = '#d97706';
+                return;
+            }
+
+            // 第 2 次：进行两点采样推断
+            var sampleA = firstSample;
+            var sampleB = el;
+            firstSample = null;
+            setFirstSampleBox(null);
+
+            var result = findSimilarFromTwo(sampleA, sampleB);
+            if (!result || result.elements.length < 2) {
+                tip.textContent = '无法识别相似模式，两个元素结构不一致或层级不同';
+                tip.style.background = '#dc2626';
+                clearSimilar();
+                return;
+            }
+
+            highlightSimilar(result.elements);
+            window.__elementPickerSimilar = {
+                pattern: result.pattern,
+                count: result.elements.length,
+                indices: result.indices,
+                minIndex: result.indices.length > 0 ? Math.min.apply(null, result.indices) : 1,
+                maxIndex: result.indices.length > 0 ? Math.max.apply(null, result.indices) : result.elements.length,
+                selector1: getSelector(sampleA),
+                selector2: getSelector(sampleB)
+            };
+            tip.textContent = '已识别 ' + result.elements.length + ' 个相似元素：' + result.pattern.slice(0, 60);
+            tip.style.background = '#059669';
         } else if (e.ctrlKey) {
-            // Ctrl+点击：选择单个元素
-            var selector = getSelector(el);
+            var sel = getSelector(el);
             var rect = el.getBoundingClientRect();
-            
+            var attrs = {};
+            try {
+                Array.prototype.forEach.call(el.attributes, function(a) { attrs[a.name] = a.value; });
+            } catch (_) {}
             window.__elementPickerResult = {
-                selector: selector,
+                selector: sel,
                 tagName: el.tagName.toLowerCase(),
-                text: (el.textContent || '').substring(0, 100).trim(),
-                attributes: { id: el.id || '', className: el.className || '' },
+                text: ((el.innerText || el.textContent || '') + '').substring(0, 100).trim(),
+                attributes: attrs,
                 rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
             };
-            
-            tip.textContent = '已选择: ' + selector;
+            tip.textContent = '已选择: ' + sel.slice(0, 80);
             tip.style.background = '#059669';
-            console.log('[ElementPicker] Element selected:', selector);
         }
     }, true);
-    
-    console.log('[ElementPicker] Ready!');
-})();"""
+})();
+"""
