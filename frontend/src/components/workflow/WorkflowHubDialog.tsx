@@ -393,7 +393,14 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
           setGuestbookMessages(prev => [...prev, ...newMessages])
           setGuestbookPage(currentPage + 1)
         } else {
-          setGuestbookMessages(newMessages)
+          // 首次/刷新加载：保留刚刚乐观追加但服务端尚未拉到的消息（用内容+昵称去重）
+          setGuestbookMessages(prev => {
+            const realKeys = new Set(
+              newMessages.map((m: GuestbookMessage) => `${m.nickname}|${m.content}`)
+            )
+            const optimisticOnly = prev.filter(m => !realKeys.has(`${m.nickname}|${m.content}`))
+            return [...optimisticOnly, ...newMessages]
+          })
           setGuestbookPage(2)
         }
         setGuestbookHasMore(currentPage < totalPages)
@@ -411,28 +418,58 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
     setSubmittingGuestbook(true)
     try {
+      const nickname = guestbookNickname.trim() || '匿名用户'
+      const content = guestbookContent.trim()
+      const messageType = guestbookType
       const response = await fetch(`${hubUrl}/api/guestbook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nickname: guestbookNickname.trim() || '匿名用户',
-          content: guestbookContent.trim(),
-          messageType: guestbookType,
+          nickname,
+          content,
+          messageType,
           clientId: getClientId(),
         }),
       })
 
       if (response.ok) {
+        // 乐观追加：服务器可能存在写入与读取的延迟（CDN/缓存/异步），
+        // 立刻把刚发的内容插到列表头，让用户看到反馈。
+        let serverMsg: any = null
+        try {
+          const respData = await response.clone().json()
+          serverMsg = respData?.message || respData?.data || null
+        } catch {}
+        const optimistic: GuestbookMessage = {
+          id: serverMsg?.id ?? Date.now(),
+          nickname,
+          content,
+          message_type: serverMsg?.message_type ?? messageType,
+          created_at: serverMsg?.created_at ?? new Date().toISOString(),
+          isOwner: true,
+        }
+        setGuestbookMessages(prev => {
+          // 避免与服务器返回真实数据后重复
+          if (optimistic.id && prev.some(m => m.id === optimistic.id)) return prev
+          return [optimistic, ...prev]
+        })
         setGuestbookContent('')
         setGuestbookPage(1)
         setGuestbookHasMore(true)
-        loadGuestbook(false)
+        // 短暂延迟后再拉取，等待远端持久化完成
+        setTimeout(() => {
+          loadGuestbook(false)
+        }, 500)
       } else {
-        const data = await response.json()
-        await alert(data.error || '留言发布失败', { title: '发布失败' })
+        let errMsg = '留言发布失败'
+        try {
+          const data = await response.json()
+          errMsg = data.error || data.message || errMsg
+        } catch {}
+        await alert(`${errMsg}（HTTP ${response.status}）`, { title: '发布失败' })
       }
     } catch (e) {
-      await alert('网络错误，请稍后重试', { title: '发布失败' })
+      await alert(`网络错误，请稍后重试：${e instanceof Error ? e.message : String(e)}`, { title: '发布失败' })
     } finally {
       setSubmittingGuestbook(false)
     }
