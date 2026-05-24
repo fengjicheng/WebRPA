@@ -118,7 +118,7 @@ async def skill_list_modules_in_category(category: str, **_: Any) -> dict[str, A
 
 
 async def skill_describe_module(module_type: str, **_: Any) -> dict[str, Any]:
-    """获取某个模块的描述"""
+    """获取某个模块的描述 + 配置字段示例（自动从本地工作流和当前画布学习）"""
     desc = find_module_description(module_type)
 
     # 检查执行器是否真实注册
@@ -133,22 +133,80 @@ async def skill_describe_module(module_type: str, **_: Any) -> dict[str, Any]:
         return {
             "error": f"未找到模块 {module_type}，它可能不存在或拼写错误",
         }
+
+    # 从所有本地工作流中找出该 type 的节点作为配置参考
+    config_examples: list[dict[str, Any]] = []
+    config_field_names: set[str] = set()
+    META_FIELDS = {"label", "moduleType", "remark", "customName", "subflowName",
+                   "subflowGroupId", "isSubflow", "customModuleId", "isHighlighted",
+                   "parameterValues"}
+    try:
+        folder = _get_workflow_folder()
+        seen_count = 0
+        for fp in folder.glob("*.json"):
+            if seen_count >= 3:
+                break
+            try:
+                data = json.loads(fp.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            for n in (data.get("nodes") or []):
+                ntype = n.get("type") or (n.get("data") or {}).get("moduleType")
+                if ntype != module_type:
+                    continue
+                ndata = n.get("data") or {}
+                cfg: dict[str, Any] = {}
+                for k, v in ndata.items():
+                    if k in META_FIELDS:
+                        continue
+                    if v is None or v == "":
+                        continue
+                    cfg[k] = v
+                    config_field_names.add(k)
+                if cfg:
+                    config_examples.append({
+                        "from_workflow": fp.stem,
+                        "label": ndata.get("label") or "",
+                        "config": cfg,
+                    })
+                    seen_count += 1
+                    if seen_count >= 3:
+                        break
+    except Exception:
+        pass
+
     return {
         "type": module_type,
         "description": desc or "（暂无文档）",
         "registered": is_registered,
+        "config_field_names": sorted(config_field_names),
+        "config_examples": config_examples[:3],
+        "tip": (
+            "上述 config_field_names 是该模块在历史工作流中实际用过的配置字段名。"
+            "config_examples 给出真实样例。需要更精准的字段说明可同时调用 search_in_workflows 查找该模块的全部用法。"
+        ) if config_examples else (
+            "本地工作流中尚无该模块的使用样例。"
+            "建议参考 WebRPA 教学文档或在 build_workflow 时仅传必填字段。"
+        ),
     }
 
 
 async def skill_search_modules(keyword: str, **_: Any) -> dict[str, Any]:
-    """按关键词搜索模块"""
+    """按关键词搜索模块（支持中英文模糊匹配，最多返回 50 条）"""
+    if not keyword or not keyword.strip():
+        return {"error": "关键词不能为空"}
     keyword = keyword.lower().strip()
     matches: list[dict[str, str]] = []
     for cat, modules in MODULE_CATEGORIES.items():
         for mtype, desc in modules.items():
-            if keyword in mtype.lower() or keyword in desc.lower():
+            if keyword in mtype.lower() or keyword in desc.lower() or keyword in cat.lower():
                 matches.append({"category": cat, "type": mtype, "description": desc})
-    return {"keyword": keyword, "count": len(matches), "matches": matches[:30]}
+    return {
+        "keyword": keyword,
+        "count": len(matches),
+        "matches": matches[:50],
+        "tip": "拿到 type 后用 describe_module 查看配置字段示例，再写 build_workflow",
+    }
 
 
 # === 2. 工作流文件管理类 ===
