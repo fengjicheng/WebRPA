@@ -1248,7 +1248,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       defaultData = {
         loopType: 'count',
         loopCount: '1',
-        indexVariable: 'i',
+        indexVariable: 'index',
         step: '1',
         timeout: 0,
         onTimeout: 'retry',

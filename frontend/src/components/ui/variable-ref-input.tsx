@@ -37,7 +37,7 @@ const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
     indexVariable: 'index',
   },
   loop: {
-    indexVariable: 'loop_index',
+    indexVariable: 'index',
   },
   // 触发器模块
   element_change_trigger: {
