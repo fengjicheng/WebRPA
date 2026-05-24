@@ -1415,6 +1415,464 @@ async def skill_check_python_environment(**_: Any) -> dict[str, Any]:
     }
 
 
+# === 8. 计划任务真生效 CRUD（直接调用 scheduled_task_manager） ===
+
+async def skill_create_scheduled_task(
+    name: str,
+    workflow_id: str,
+    trigger: dict,
+    description: str | None = None,
+    workflow_name: str | None = None,
+    enabled: bool = True,
+    headless: bool = False,
+    open_monitor: bool = False,
+    **_: Any,
+) -> dict[str, Any]:
+    """创建一个计划任务并真正注册到调度器。
+
+    trigger 至少包含 type 字段，常见用法：
+      {"type": "time", "schedule_type": "daily", "daily_time": "09:00:00", "repeat_enabled": false}
+      {"type": "time", "schedule_type": "interval", "interval_seconds": 60}
+      {"type": "time", "schedule_type": "once", "start_date": "2026-06-01", "start_time": "10:00:00"}
+      {"type": "time", "schedule_type": "weekly", "weekly_days": [1,3,5], "weekly_time": "09:00:00"}
+      {"type": "webhook", "webhook_path": "/my-task"}
+      {"type": "hotkey", "hotkey": "ctrl+alt+r"}
+      {"type": "startup"}
+    """
+    if not name or not name.strip():
+        return {"error": "任务名称不能为空"}
+    if not workflow_id:
+        return {"error": "workflow_id 不能为空"}
+    if not isinstance(trigger, dict) or not trigger.get("type"):
+        return {"error": "trigger 必须包含 type 字段"}
+
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        from app.models.scheduled_task import ScheduledTask, ScheduledTaskTrigger
+        trigger_obj = ScheduledTaskTrigger(**trigger)
+        task = ScheduledTask(
+            name=name.strip(),
+            description=description or "",
+            workflow_id=workflow_id,
+            workflow_name=workflow_name or "",
+            trigger=trigger_obj,
+            enabled=bool(enabled),
+            headless=bool(headless),
+            open_monitor=bool(open_monitor),
+        )
+        created = scheduled_task_manager.create_task(task)
+        return {
+            "success": True,
+            "task": created.model_dump() if hasattr(created, "model_dump") else created.dict(),
+            "message": f"已创建计划任务「{created.name}」并已注册触发器",
+        }
+    except Exception as e:
+        return {"error": f"创建计划任务失败：{e}"}
+
+
+async def skill_update_scheduled_task(
+    task_id: str,
+    updates: dict | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """更新计划任务的字段。updates 可包含：name/description/workflow_id/workflow_name/trigger/enabled/headless/open_monitor"""
+    if not task_id:
+        return {"error": "task_id 不能为空"}
+    if not isinstance(updates, dict) or not updates:
+        return {"error": "updates 不能为空"}
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        # 触发器更新需要保留 dict 形式，update_task 内部会自动转 obj
+        task = scheduled_task_manager.update_task(task_id, updates)
+        if not task:
+            return {"error": f"任务不存在：{task_id}"}
+        return {
+            "success": True,
+            "task": task.model_dump() if hasattr(task, "model_dump") else task.dict(),
+            "message": f"已更新计划任务「{task.name}」",
+        }
+    except Exception as e:
+        return {"error": f"更新计划任务失败：{e}"}
+
+
+async def skill_delete_scheduled_task(task_id: str, **_: Any) -> dict[str, Any]:
+    """删除计划任务（不可恢复）"""
+    if not task_id:
+        return {"error": "task_id 不能为空"}
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        ok = scheduled_task_manager.delete_task(task_id)
+        if not ok:
+            return {"error": f"任务不存在：{task_id}"}
+        return {"success": True, "message": f"已删除计划任务 {task_id}"}
+    except Exception as e:
+        return {"error": f"删除失败：{e}"}
+
+
+async def skill_toggle_scheduled_task(task_id: str, enabled: bool, **_: Any) -> dict[str, Any]:
+    """启用/禁用计划任务"""
+    if not task_id:
+        return {"error": "task_id 不能为空"}
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        task = scheduled_task_manager.toggle_task(task_id, bool(enabled))
+        if not task:
+            return {"error": f"任务不存在：{task_id}"}
+        return {
+            "success": True,
+            "message": f"已{'启用' if enabled else '禁用'}计划任务「{task.name}」",
+        }
+    except Exception as e:
+        return {"error": f"切换失败：{e}"}
+
+
+async def skill_execute_scheduled_task(task_id: str, **_: Any) -> dict[str, Any]:
+    """手动执行一次计划任务（异步加入队列）"""
+    if not task_id:
+        return {"error": "task_id 不能为空"}
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        task = scheduled_task_manager.get_task(task_id)
+        if not task:
+            return {"error": f"任务不存在：{task_id}"}
+        await scheduled_task_manager.enqueue_task(task_id, "manual")
+        queue_size = scheduled_task_manager.task_queue.qsize() if scheduled_task_manager.task_queue else 0
+        return {
+            "success": True,
+            "message": f"已加入执行队列：{task.name}",
+            "queue_size": queue_size,
+        }
+    except Exception as e:
+        return {"error": f"执行失败：{e}"}
+
+
+async def skill_stop_scheduled_task(task_id: str, **_: Any) -> dict[str, Any]:
+    """强制停止正在执行的计划任务"""
+    if not task_id:
+        return {"error": "task_id 不能为空"}
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        task = scheduled_task_manager.get_task(task_id)
+        if not task:
+            return {"error": f"任务不存在：{task_id}"}
+        ok = await scheduled_task_manager.stop_task(task_id)
+        if not ok:
+            return {"error": "任务未在执行中"}
+        return {"success": True, "message": f"已停止计划任务「{task.name}」"}
+    except Exception as e:
+        return {"error": f"停止失败：{e}"}
+
+
+async def skill_clear_scheduled_task_logs(task_id: str | None = None, **_: Any) -> dict[str, Any]:
+    """清空计划任务日志。task_id 留空则清全部"""
+    try:
+        from app.services.scheduled_task_manager import scheduled_task_manager
+        scheduled_task_manager.clear_logs(task_id)
+        return {
+            "success": True,
+            "message": f"已清空{'指定任务' if task_id else '所有任务'}的执行日志",
+        }
+    except Exception as e:
+        return {"error": f"清空失败：{e}"}
+
+
+# === 9. 自定义模块真生效 CRUD ===
+
+async def skill_create_custom_module(
+    name: str,
+    display_name: str,
+    workflow: dict,
+    description: str = "",
+    icon: str = "",
+    color: str = "#8B5CF6",
+    category: str = "custom",
+    parameters: list | None = None,
+    outputs: list | None = None,
+    tags: list | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """创建一个自定义模块（封装一组节点为可复用模块）"""
+    if not name or not name.strip():
+        return {"error": "name 不能为空"}
+    if not display_name or not display_name.strip():
+        return {"error": "display_name 不能为空"}
+    if not isinstance(workflow, dict) or not workflow.get("nodes"):
+        return {"error": "workflow.nodes 不能为空"}
+    try:
+        from app.api.custom_modules import create_custom_module
+        from app.models.custom_module import CustomModuleCreate
+        req = CustomModuleCreate(
+            name=name.strip(),
+            display_name=display_name.strip(),
+            description=description,
+            icon=icon or "📦",
+            color=color,
+            category=category,
+            parameters=parameters or [],
+            outputs=outputs or [],
+            workflow=workflow,
+            tags=tags or [],
+        )
+        result = await create_custom_module(req)
+        return {
+            "success": True,
+            "module": result.model_dump() if hasattr(result, "model_dump") else result,
+            "message": f"已创建自定义模块「{display_name}」",
+        }
+    except Exception as e:
+        return {"error": f"创建自定义模块失败：{e}"}
+
+
+async def skill_update_custom_module(
+    module_id: str,
+    updates: dict | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """更新自定义模块。updates 可含：name/display_name/description/icon/color/category/parameters/outputs/workflow/tags"""
+    if not module_id:
+        return {"error": "module_id 不能为空"}
+    if not isinstance(updates, dict) or not updates:
+        return {"error": "updates 不能为空"}
+    try:
+        from app.api.custom_modules import update_custom_module
+        from app.models.custom_module import CustomModuleUpdate
+        req = CustomModuleUpdate(**updates)
+        result = await update_custom_module(module_id, req)
+        return {
+            "success": True,
+            "module": result.model_dump() if hasattr(result, "model_dump") else result,
+            "message": f"已更新自定义模块",
+        }
+    except Exception as e:
+        return {"error": f"更新自定义模块失败：{e}"}
+
+
+async def skill_delete_custom_module(module_id: str, **_: Any) -> dict[str, Any]:
+    """删除自定义模块（不可恢复）"""
+    if not module_id:
+        return {"error": "module_id 不能为空"}
+    try:
+        from app.api.custom_modules import delete_custom_module
+        result = await delete_custom_module(module_id)
+        return {"success": True, "data": result, "message": f"已删除自定义模块 {module_id}"}
+    except Exception as e:
+        return {"error": f"删除失败：{e}"}
+
+
+# === 10. 工作流真生效 - 后端持久化 ===
+
+async def skill_save_local_workflow(
+    name: str,
+    nodes: list,
+    edges: list,
+    variables: list | None = None,
+    folder: str | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """把工作流保存为本地文件（与前端"保存"按钮等效）"""
+    if not name or not name.strip():
+        return {"error": "name 不能为空"}
+    if not isinstance(nodes, list) or not nodes:
+        return {"error": "nodes 不能为空"}
+    try:
+        from app.api.local_workflows import save_workflow_to_folder, SaveWorkflowRequest
+        content = {
+            "name": name.strip(),
+            "nodes": nodes,
+            "edges": edges or [],
+            "variables": variables or [],
+            "saved_at": datetime.now().isoformat(),
+        }
+        req = SaveWorkflowRequest(
+            filename=name.strip(),
+            content=content,
+            folder=folder or "",
+        )
+        result = await save_workflow_to_folder(req)
+        if not result.get("success"):
+            return {"error": result.get("error", "保存失败")}
+        return {
+            "success": True,
+            "message": f"已保存到 {result.get('filepath')}",
+            "path": result.get("filepath"),
+        }
+    except Exception as e:
+        return {"error": f"保存失败：{e}"}
+
+
+async def skill_run_workflow_now(
+    nodes: list,
+    edges: list,
+    variables: list | None = None,
+    headless: bool = True,
+    name: str = "AI 临时工作流",
+    **_: Any,
+) -> dict[str, Any]:
+    """立即在后端执行一个工作流（不依赖前端，等同于点"运行"按钮）。
+    返回 workflow_id，可以再用 get_recent_logs(workflow_id) 拿执行日志。
+    """
+    if not isinstance(nodes, list) or not nodes:
+        return {"error": "nodes 不能为空"}
+    try:
+        from app.api.workflows import (
+            create_workflow,
+            execute_workflow,
+            executions_store,
+            execution_results,
+        )
+        from app.models.workflow import WorkflowCreate, ExecuteOptions
+        from fastapi import BackgroundTasks
+        # 1) 创建 workflow（直接复用现有 API 内部函数）
+        wf_req = WorkflowCreate(
+            name=name,
+            nodes=nodes,
+            edges=edges or [],
+            variables=variables or [],
+        )
+        created = await create_workflow(wf_req)
+        wf_id = created.get("id") if isinstance(created, dict) else getattr(created, "id", None)
+        if not wf_id:
+            return {"error": "创建 workflow 失败：无 id"}
+        # 2) 异步触发执行
+        bg = BackgroundTasks()
+        await execute_workflow(wf_id, bg, ExecuteOptions(headless=headless))
+        # FastAPI 的 BackgroundTasks 在请求结束后执行；这里我们直接把任务放到事件循环
+        try:
+            for t in bg.tasks:
+                asyncio.create_task(t())  # type: ignore
+        except Exception:
+            pass
+        return {
+            "success": True,
+            "workflow_id": wf_id,
+            "message": f"已发起执行（headless={headless}）。可用 get_recent_logs(workflow_id='{wf_id}') 查询结果",
+        }
+    except Exception as e:
+        return {"error": f"执行失败：{e}"}
+
+
+async def skill_stop_workflow_now(workflow_id: str, **_: Any) -> dict[str, Any]:
+    """停止后端正在执行的工作流"""
+    if not workflow_id:
+        return {"error": "workflow_id 不能为空"}
+    try:
+        from app.api.workflows import stop_workflow
+        result = await stop_workflow(workflow_id)
+        return {"success": True, "data": result, "message": f"已发起停止：{workflow_id}"}
+    except Exception as e:
+        return {"error": f"停止失败：{e}"}
+
+
+# === 11. 全局变量真生效（后端持久化） ===
+
+def _global_vars_file() -> Path:
+    return _get_data_folder() / "global_vars.json"
+
+
+def _load_global_vars() -> dict[str, Any]:
+    fp = _global_vars_file()
+    if not fp.exists():
+        return {}
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_global_vars(data: dict[str, Any]) -> None:
+    fp = _global_vars_file()
+    fp.parent.mkdir(parents=True, exist_ok=True)
+    fp.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+
+
+async def skill_set_global_variable(name: str, value: Any, **_: Any) -> dict[str, Any]:
+    """设置/创建后端持久化的全局变量"""
+    if not name or not str(name).strip():
+        return {"error": "变量名不能为空"}
+    try:
+        data = _load_global_vars()
+        data[str(name).strip()] = value
+        _save_global_vars(data)
+        return {"success": True, "message": f"已设置全局变量 {name}", "total": len(data)}
+    except Exception as e:
+        return {"error": f"设置失败：{e}"}
+
+
+async def skill_delete_global_variable(name: str, **_: Any) -> dict[str, Any]:
+    """删除后端持久化的全局变量"""
+    if not name:
+        return {"error": "变量名不能为空"}
+    try:
+        data = _load_global_vars()
+        if name not in data:
+            return {"error": f"变量不存在：{name}"}
+        del data[name]
+        _save_global_vars(data)
+        return {"success": True, "message": f"已删除全局变量 {name}", "total": len(data)}
+    except Exception as e:
+        return {"error": f"删除失败：{e}"}
+
+
+async def skill_clear_global_variables(**_: Any) -> dict[str, Any]:
+    """清空后端持久化的全部全局变量"""
+    try:
+        _save_global_vars({})
+        return {"success": True, "message": "已清空全部全局变量"}
+    except Exception as e:
+        return {"error": f"清空失败：{e}"}
+
+
+# === 12. 资源管理真生效 ===
+
+async def skill_delete_data_asset(asset_id: str, **_: Any) -> dict[str, Any]:
+    """删除一个 Excel 数据资源"""
+    if not asset_id:
+        return {"error": "asset_id 不能为空"}
+    try:
+        from app.api.data_assets import delete_asset
+        result = await delete_asset(asset_id)
+        return {"success": True, "data": result, "message": "已删除"}
+    except Exception as e:
+        return {"error": f"删除失败：{e}"}
+
+
+async def skill_rename_data_asset(asset_id: str, new_name: str, **_: Any) -> dict[str, Any]:
+    """重命名 Excel 数据资源"""
+    if not asset_id or not new_name:
+        return {"error": "asset_id 和 new_name 都不能为空"}
+    try:
+        from app.api.data_assets import rename_asset
+        result = await rename_asset(asset_id, new_name)
+        return {"success": True, "data": result, "message": f"已重命名为 {new_name}"}
+    except Exception as e:
+        return {"error": f"重命名失败：{e}"}
+
+
+async def skill_delete_image_asset(image_id: str, **_: Any) -> dict[str, Any]:
+    """删除一个图像资源"""
+    if not image_id:
+        return {"error": "image_id 不能为空"}
+    try:
+        from app.api.image_assets import delete_image
+        result = await delete_image(image_id)
+        return {"success": True, "data": result, "message": "已删除"}
+    except Exception as e:
+        return {"error": f"删除失败：{e}"}
+
+
+async def skill_rename_image_asset(image_id: str, new_name: str, **_: Any) -> dict[str, Any]:
+    """重命名图像资源"""
+    if not image_id or not new_name:
+        return {"error": "image_id 和 new_name 都不能为空"}
+    try:
+        from app.api.image_assets import rename_image
+        result = await rename_image(image_id, new_name)
+        return {"success": True, "data": result, "message": f"已重命名为 {new_name}"}
+    except Exception as e:
+        return {"error": f"重命名失败：{e}"}
+
+
 # ---------- 注册所有 Skills ----------
 
 def _register_all() -> None:
@@ -1855,6 +2313,286 @@ def _register_all() -> None:
         description="检查 WebRPA 内置 Python 是否可用、列出版本和已安装的常用库",
         parameters={"type": "object", "properties": {}},
         handler=skill_check_python_environment,
+    ))
+
+    # === 计划任务 真生效 CRUD ===
+    registry.register(Skill(
+        name="create_scheduled_task",
+        description=(
+            "在后端真正创建一个计划任务（直接注册到 APScheduler 调度器，立即生效）。"
+            "trigger 必须包含 type 字段：time/hotkey/webhook/startup。"
+            "时间触发器示例：{type:'time', schedule_type:'daily', daily_time:'09:00:00'} "
+            "或 {type:'time', schedule_type:'interval', interval_seconds:60} "
+            "或 {type:'time', schedule_type:'weekly', weekly_days:[1,3,5], weekly_time:'09:00:00'}。"
+            "Webhook 示例：{type:'webhook', webhook_path:'/my-task'}。"
+            "热键示例：{type:'hotkey', hotkey:'ctrl+alt+r'}。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "workflow_id": {"type": "string", "description": "要执行的工作流 id（来自 list_workflows 的结果）"},
+                "trigger": {"type": "object"},
+                "description": {"type": "string"},
+                "workflow_name": {"type": "string"},
+                "enabled": {"type": "boolean"},
+                "headless": {"type": "boolean", "description": "是否无头模式运行"},
+                "open_monitor": {"type": "boolean", "description": "执行时是否打开监控"},
+            },
+            "required": ["name", "workflow_id", "trigger"],
+        },
+        handler=skill_create_scheduled_task,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="update_scheduled_task",
+        description="更新计划任务字段。可改 name/description/workflow_id/workflow_name/trigger/enabled/headless/open_monitor",
+        parameters={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "updates": {"type": "object"},
+            },
+            "required": ["task_id", "updates"],
+        },
+        handler=skill_update_scheduled_task,
+    ))
+    registry.register(Skill(
+        name="delete_scheduled_task",
+        description="删除计划任务（不可恢复，立即注销触发器）",
+        parameters={
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+        handler=skill_delete_scheduled_task,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="toggle_scheduled_task",
+        description="启用/禁用计划任务（立即注册或注销触发器）",
+        parameters={
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "enabled": {"type": "boolean"},
+            },
+            "required": ["task_id", "enabled"],
+        },
+        handler=skill_toggle_scheduled_task,
+    ))
+    registry.register(Skill(
+        name="execute_scheduled_task",
+        description="立即手动执行一次计划任务（异步加入队列）",
+        parameters={
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+        handler=skill_execute_scheduled_task,
+    ))
+    registry.register(Skill(
+        name="stop_scheduled_task",
+        description="强制停止正在执行的计划任务",
+        parameters={
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+        handler=skill_stop_scheduled_task,
+    ))
+    registry.register(Skill(
+        name="clear_scheduled_task_logs",
+        description="清空计划任务执行日志（不传 task_id 则清全部）",
+        parameters={
+            "type": "object",
+            "properties": {"task_id": {"type": "string", "description": "可选，留空清全部"}},
+        },
+        handler=skill_clear_scheduled_task_logs,
+        requires_approval=True,
+    ))
+
+    # === 自定义模块 真生效 CRUD ===
+    registry.register(Skill(
+        name="create_custom_module",
+        description=(
+            "创建一个自定义模块（把一组节点封装成可复用模块）。"
+            "name 是英文标识符（^[A-Za-z_][A-Za-z0-9_]*$）；display_name 是中文显示名。"
+            "workflow 必须包含 nodes 数组（建议先用 build_workflow 搞出 nodes/edges，再调本工具封装）。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "英文标识符"},
+                "display_name": {"type": "string"},
+                "workflow": {"type": "object", "description": "{nodes: [...], edges: [...]}"},
+                "description": {"type": "string"},
+                "icon": {"type": "string"},
+                "color": {"type": "string", "description": "十六进制色值，例如 #8B5CF6"},
+                "category": {"type": "string"},
+                "parameters": {"type": "array", "items": {"type": "object"}, "description": "输入参数定义"},
+                "outputs": {"type": "array", "items": {"type": "object"}},
+                "tags": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["name", "display_name", "workflow"],
+        },
+        handler=skill_create_custom_module,
+    ))
+    registry.register(Skill(
+        name="update_custom_module",
+        description="更新自定义模块。updates 可含 name/display_name/description/icon/color/category/parameters/outputs/workflow/tags",
+        parameters={
+            "type": "object",
+            "properties": {
+                "module_id": {"type": "string"},
+                "updates": {"type": "object"},
+            },
+            "required": ["module_id", "updates"],
+        },
+        handler=skill_update_custom_module,
+    ))
+    registry.register(Skill(
+        name="delete_custom_module",
+        description="删除自定义模块",
+        parameters={
+            "type": "object",
+            "properties": {"module_id": {"type": "string"}},
+            "required": ["module_id"],
+        },
+        handler=skill_delete_custom_module,
+        requires_approval=True,
+    ))
+
+    # === 工作流 真生效（后端持久化 + 后端执行） ===
+    registry.register(Skill(
+        name="save_local_workflow",
+        description=(
+            "把一个完整工作流保存为本地 JSON 文件（与前端「保存」按钮等效，用户重启后还在）。"
+            "推荐用于把 build_workflow 生成的 nodes/edges 一键存档。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "工作流名（也是文件名）"},
+                "nodes": {"type": "array", "items": {"type": "object"}},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "variables": {"type": "array", "items": {"type": "object"}},
+                "folder": {"type": "string", "description": "可选目录，留空用默认"},
+            },
+            "required": ["name", "nodes", "edges"],
+        },
+        handler=skill_save_local_workflow,
+    ))
+    registry.register(Skill(
+        name="run_workflow_now",
+        description=(
+            "立即在后端执行一个临时工作流（不依赖前端是否打开），并返回 workflow_id 用于查执行结果。"
+            "适合定期检测、批量处理这类无需用户交互的任务。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "nodes": {"type": "array", "items": {"type": "object"}},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "variables": {"type": "array", "items": {"type": "object"}},
+                "headless": {"type": "boolean", "description": "默认 true"},
+            },
+            "required": ["nodes", "edges"],
+        },
+        handler=skill_run_workflow_now,
+    ))
+    registry.register(Skill(
+        name="stop_workflow_now",
+        description="停止后端正在跑的工作流",
+        parameters={
+            "type": "object",
+            "properties": {"workflow_id": {"type": "string"}},
+            "required": ["workflow_id"],
+        },
+        handler=skill_stop_workflow_now,
+    ))
+
+    # === 全局变量 真生效（后端持久化） ===
+    registry.register(Skill(
+        name="set_global_variable",
+        description="设置后端持久化的全局变量（写入 backend/data/global_vars.json，重启仍在）",
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "value": {"description": "任意 JSON 可序列化值"},
+            },
+            "required": ["name", "value"],
+        },
+        handler=skill_set_global_variable,
+    ))
+    registry.register(Skill(
+        name="delete_global_variable",
+        description="删除后端持久化的全局变量",
+        parameters={
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        },
+        handler=skill_delete_global_variable,
+    ))
+    registry.register(Skill(
+        name="clear_global_variables",
+        description="清空全部后端持久化全局变量（高危）",
+        parameters={"type": "object", "properties": {}},
+        handler=skill_clear_global_variables,
+        requires_approval=True,
+    ))
+
+    # === 资源管理 真生效 ===
+    registry.register(Skill(
+        name="delete_data_asset",
+        description="删除一个 Excel 数据资源",
+        parameters={
+            "type": "object",
+            "properties": {"asset_id": {"type": "string"}},
+            "required": ["asset_id"],
+        },
+        handler=skill_delete_data_asset,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="rename_data_asset",
+        description="重命名 Excel 数据资源",
+        parameters={
+            "type": "object",
+            "properties": {
+                "asset_id": {"type": "string"},
+                "new_name": {"type": "string"},
+            },
+            "required": ["asset_id", "new_name"],
+        },
+        handler=skill_rename_data_asset,
+    ))
+    registry.register(Skill(
+        name="delete_image_asset",
+        description="删除一个图像资源",
+        parameters={
+            "type": "object",
+            "properties": {"image_id": {"type": "string"}},
+            "required": ["image_id"],
+        },
+        handler=skill_delete_image_asset,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="rename_image_asset",
+        description="重命名图像资源",
+        parameters={
+            "type": "object",
+            "properties": {
+                "image_id": {"type": "string"},
+                "new_name": {"type": "string"},
+            },
+            "required": ["image_id", "new_name"],
+        },
+        handler=skill_rename_image_asset,
     ))
 
     # === 7. 客户端操作（标记型 Skills） ===
