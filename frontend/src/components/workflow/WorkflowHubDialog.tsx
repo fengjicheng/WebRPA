@@ -1320,11 +1320,15 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                   />
                 </div>
                 <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-                  {categories.map((cat) => (
-                    <option key={cat.name} value={cat.name}>
-                      {cat.name} ({cat.count})
-                    </option>
-                  ))}
+                  {categories.length === 0 ? (
+                    <option value="全部">全部</option>
+                  ) : (
+                    categories.map((cat) => (
+                      <option key={cat.name} value={cat.name}>
+                        {cat.name} ({cat.count})
+                      </option>
+                    ))
+                  )}
                 </Select>
                 <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
                   <option value="newest">最新发布</option>
