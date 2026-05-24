@@ -542,12 +542,57 @@ export async function executeClientAction(
       // ============================================================
       case 'get_global_config': {
         const cfg = useGlobalConfigStore.getState().config
-        return { success: true, data: cfg }
+        // 屏蔽敏感字段，避免 AI 不慎把密钥写回去或外泄到对话历史
+        const SENSITIVE_KEYS = new Set([
+          'apiKey', 'authCode', 'password', 'accessToken', 'appSecret',
+          'azureApiKey',
+        ])
+        const masked = JSON.parse(JSON.stringify(cfg))
+        const walk = (obj: any) => {
+          if (!obj || typeof obj !== 'object') return
+          for (const k of Object.keys(obj)) {
+            if (SENSITIVE_KEYS.has(k)) {
+              const v = obj[k]
+              obj[k] = v ? `[已配置 长度=${String(v).length}]` : '[未配置]'
+            } else if (typeof obj[k] === 'object') {
+              walk(obj[k])
+            }
+          }
+        }
+        walk(masked)
+        return {
+          success: true,
+          data: masked,
+          message: '已读取全局配置（敏感字段已脱敏）',
+        }
+      }
+
+      case 'reset_global_config': {
+        const cfgStore = useGlobalConfigStore.getState() as any
+        if (typeof cfgStore.resetConfig === 'function') {
+          cfgStore.resetConfig()
+          emitAssistantUiEvent('show_toast', {
+            message: '全局配置已重置为默认值',
+            type: 'warning',
+          })
+          try {
+            useWorkflowStore.getState().addLog({
+              level: 'warning',
+              message: '[小助手] 已重置全局配置为默认值',
+            })
+          } catch {}
+          return { success: true, message: '已重置全局配置为默认值' }
+        }
+        return { success: false, error: 'resetConfig 方法不存在' }
       }
 
       case 'update_global_config': {
         const section = payload.section as string
         const values = (payload.values as Record<string, any>) || {}
+        if (!section) return { success: false, error: '缺少 section' }
+        if (!values || Object.keys(values).length === 0) {
+          return { success: false, error: 'values 不能为空' }
+        }
         const cfgStore = useGlobalConfigStore.getState() as any
         const updateMap: Record<string, string> = {
           system: 'updateSystemConfig',
@@ -567,10 +612,47 @@ export async function executeClientAction(
         }
         const fnName = updateMap[section]
         if (!fnName || typeof cfgStore[fnName] !== 'function') {
-          return { success: false, error: `未知配置段：${section}` }
+          return {
+            success: false,
+            error: `未知配置段：${section}。可选值：${Object.keys(updateMap).join(', ')}`,
+          }
         }
-        cfgStore[fnName](values)
-        return { success: true, message: `已更新配置 ${section}` }
+        // 调用 store 更新方法（zustand persist 会自动写入 localStorage）
+        try {
+          cfgStore[fnName](values)
+        } catch (err) {
+          return {
+            success: false,
+            error: `更新配置失败：${err instanceof Error ? err.message : String(err)}`,
+          }
+        }
+        // 在工作流日志面板加一条记录，让用户能看到 AI 改了什么
+        try {
+          const changedKeys = Object.keys(values)
+          const summary = changedKeys
+            .map((k) => {
+              const v = values[k]
+              const SENSITIVE = new Set(['apiKey', 'authCode', 'password', 'accessToken', 'appSecret', 'azureApiKey'])
+              if (SENSITIVE.has(k)) return `${k}=***`
+              if (typeof v === 'object') return `${k}=(对象)`
+              return `${k}=${String(v).slice(0, 60)}`
+            })
+            .join(', ')
+          useWorkflowStore.getState().addLog({
+            level: 'info',
+            message: `[小助手] 已更新全局配置 ${section}: ${summary}`,
+          })
+        } catch {}
+        // 给用户一个明显的 toast 提示
+        emitAssistantUiEvent('show_toast', {
+          message: `小助手已更新「${section}」配置`,
+          type: 'success',
+        })
+        return {
+          success: true,
+          message: `已更新配置 ${section}（共 ${Object.keys(values).length} 个字段，已自动持久化到本地）`,
+          data: { section, fields: Object.keys(values) },
+        }
       }
 
       // ============================================================
