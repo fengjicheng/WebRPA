@@ -58,9 +58,12 @@ function flattenOptions(children: React.ReactNode): ParsedOption[] {
           group: groupLabel,
         })
       })
-    } else if (Array.isArray(props?.children)) {
-      // React Fragment 等情况
-      out.push(...flattenOptions(props.children))
+    } else {
+      // Fragment / 其它包装节点：递归解析其 children
+      // 兼容 children 是数组、单个 node 或 undefined 三种形态
+      if (props?.children !== undefined && props?.children !== null) {
+        out.push(...flattenOptions(props.children))
+      }
     }
   })
   return out

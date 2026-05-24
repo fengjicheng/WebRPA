@@ -1321,7 +1321,15 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                 </div>
                 <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
                   {categories.length === 0 ? (
-                    <option value="全部">全部</option>
+                    <>
+                      <option value="全部">全部</option>
+                      <option value="数据采集">数据采集</option>
+                      <option value="自动化操作">自动化操作</option>
+                      <option value="表单填写">表单填写</option>
+                      <option value="AI应用">AI应用</option>
+                      <option value="定时任务">定时任务</option>
+                      <option value="其他">其他</option>
+                    </>
                   ) : (
                     categories.map((cat) => (
                       <option key={cat.name} value={cat.name}>
