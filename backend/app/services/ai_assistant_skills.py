@@ -809,12 +809,297 @@ async def skill_get_global_config_keys(**_: Any) -> dict[str, Any]:
     }
 
 
+# === 7. 系统执行能力（PowerShell + Python 临时脚本） ===
+
+import asyncio as _asyncio
+import os as _os
+import sys as _sys
+import tempfile as _tempfile
+
+
+def _project_root() -> Path:
+    """WebRPA 项目根目录（包含 backend/ 和 Python313/）"""
+    # backend/app/services/ai_assistant_skills.py -> backend/app/services -> backend/app -> backend -> 根
+    return Path(__file__).parent.parent.parent.parent
+
+
+def _get_bundled_python_path() -> str:
+    """获取 WebRPA 内置的 Python313/python.exe；不存在时回退到当前解释器"""
+    py = _project_root() / "Python313" / "python.exe"
+    if py.exists():
+        return str(py)
+    # macOS / Linux 的子目录可能叫 python313/bin/python
+    py_unix = _project_root() / "Python313" / "bin" / "python"
+    if py_unix.exists():
+        return str(py_unix)
+    return _sys.executable
+
+
+async def skill_run_shell_command(
+    command: str,
+    cwd: str | None = None,
+    timeout: int = 60,
+    shell: str | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """执行系统 shell 命令（Windows 默认走 PowerShell，其他平台走默认 shell）。
+
+    Args:
+        command: 要执行的命令（多行命令也支持）
+        cwd: 工作目录，留空 = 项目根目录
+        timeout: 超时秒数，最大 600
+        shell: 强制指定 shell：'powershell' / 'cmd' / 'bash' / 'sh'。留空走平台默认
+    """
+    if not command or not command.strip():
+        return {"error": "命令不能为空"}
+
+    timeout = min(max(int(timeout), 1), 600)
+    work_dir = cwd or str(_project_root())
+    is_windows = _os.name == "nt"
+
+    # 决定使用什么 shell
+    s = (shell or "").strip().lower()
+    if not s:
+        s = "powershell" if is_windows else "bash"
+
+    if s == "powershell":
+        # 用 -NoProfile 避免加载用户 profile 拖慢启动
+        cmd_args = [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy", "Bypass",
+            "-Command", command,
+        ]
+        shell_kwargs: dict[str, Any] = {}
+    elif s == "cmd":
+        cmd_args = ["cmd.exe", "/c", command]
+        shell_kwargs = {}
+    elif s in ("bash", "sh"):
+        cmd_args = [s, "-c", command]
+        shell_kwargs = {}
+    else:
+        return {"error": f"不支持的 shell：{shell}"}
+
+    creationflags = 0x08000000 if is_windows else 0  # CREATE_NO_WINDOW
+
+    try:
+        process = await _asyncio.create_subprocess_exec(
+            *cmd_args,
+            cwd=work_dir,
+            stdout=_asyncio.subprocess.PIPE,
+            stderr=_asyncio.subprocess.PIPE,
+            creationflags=creationflags,
+            **shell_kwargs,
+        )
+    except Exception as e:
+        return {"error": f"启动子进程失败：{e}"}
+
+    try:
+        stdout_b, stderr_b = await _asyncio.wait_for(process.communicate(), timeout=timeout)
+    except _asyncio.TimeoutError:
+        try:
+            process.kill()
+            await process.wait()
+        except Exception:
+            pass
+        return {"error": f"命令超时（{timeout} 秒），已强制终止"}
+
+    # Windows 默认 GBK，尝试用 utf-8 + gbk 兜底
+    def _decode(b: bytes) -> str:
+        if not b:
+            return ""
+        for enc in ("utf-8", "gbk", "cp936"):
+            try:
+                return b.decode(enc)
+            except UnicodeDecodeError:
+                continue
+        return b.decode("utf-8", errors="replace")
+
+    stdout = _decode(stdout_b)
+    stderr = _decode(stderr_b)
+    return_code = process.returncode
+
+    # 截断超长输出
+    MAX_LEN = 20000
+    truncated = False
+    if len(stdout) > MAX_LEN:
+        stdout = stdout[:MAX_LEN] + f"\n…（已截断，原长度 {len(stdout_b)} 字节）"
+        truncated = True
+    if len(stderr) > MAX_LEN:
+        stderr = stderr[:MAX_LEN] + f"\n…（已截断，原长度 {len(stderr_b)} 字节）"
+        truncated = True
+
+    return {
+        "command": command,
+        "shell": s,
+        "cwd": work_dir,
+        "return_code": return_code,
+        "success_exit": return_code == 0,
+        "stdout": stdout,
+        "stderr": stderr,
+        "truncated": truncated,
+    }
+
+
+async def skill_run_python_script(
+    code: str,
+    timeout: int = 120,
+    args: list[str] | None = None,
+    extra_env: dict[str, str] | None = None,
+    **_: Any,
+) -> dict[str, Any]:
+    """写一段 Python 代码到临时文件，使用 WebRPA 内置 Python 3.13 运行，
+    拿到 stdout/stderr/returncode 后**自动销毁临时文件**。
+
+    Args:
+        code: 完整可执行的 Python 源码（应当能独立运行，包含必要的 import）
+        timeout: 超时秒数，最大 1800
+        args: 传给脚本的命令行参数（sys.argv[1:]）
+        extra_env: 追加到进程环境变量的键值对
+    """
+    if not code or not code.strip():
+        return {"error": "Python 代码不能为空"}
+
+    timeout = min(max(int(timeout), 1), 1800)
+    py_exe = _get_bundled_python_path()
+
+    # 写临时脚本文件（带 BOM 头，确保 Windows Python 用 UTF-8 解码）
+    tmp_dir = Path(_tempfile.gettempdir()) / "webrpa_ai_scripts"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    script_path = tmp_dir / f"ai_script_{uuid.uuid4().hex[:10]}.py"
+
+    # 强制声明 utf-8（避免 Windows 默认 cp1252 解码报错）
+    final_code = "# -*- coding: utf-8 -*-\nimport sys\ntry:\n    sys.stdout.reconfigure(encoding='utf-8')\n    sys.stderr.reconfigure(encoding='utf-8')\nexcept Exception:\n    pass\n\n" + code
+
+    try:
+        script_path.write_text(final_code, encoding="utf-8")
+    except Exception as e:
+        return {"error": f"写入临时脚本失败：{e}"}
+
+    is_windows = _os.name == "nt"
+    creationflags = 0x08000000 if is_windows else 0
+    cmd_args = [py_exe, "-X", "utf8", str(script_path)]
+    if args:
+        cmd_args.extend(str(a) for a in args)
+
+    env = dict(_os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+    if extra_env:
+        for k, v in extra_env.items():
+            env[str(k)] = str(v)
+
+    try:
+        process = await _asyncio.create_subprocess_exec(
+            *cmd_args,
+            cwd=str(_project_root()),
+            stdout=_asyncio.subprocess.PIPE,
+            stderr=_asyncio.subprocess.PIPE,
+            env=env,
+            creationflags=creationflags,
+        )
+    except Exception as e:
+        try:
+            script_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return {"error": f"启动 Python 子进程失败：{e}"}
+
+    timed_out = False
+    try:
+        stdout_b, stderr_b = await _asyncio.wait_for(process.communicate(), timeout=timeout)
+    except _asyncio.TimeoutError:
+        timed_out = True
+        try:
+            process.kill()
+            await process.wait()
+        except Exception:
+            pass
+        stdout_b = b""
+        stderr_b = f"超时（{timeout} 秒），进程已被强制终止".encode()
+
+    # 自动销毁临时文件
+    try:
+        script_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    def _decode(b: bytes) -> str:
+        if not b:
+            return ""
+        for enc in ("utf-8", "gbk", "cp936"):
+            try:
+                return b.decode(enc)
+            except UnicodeDecodeError:
+                continue
+        return b.decode("utf-8", errors="replace")
+
+    stdout = _decode(stdout_b)
+    stderr = _decode(stderr_b)
+    return_code = process.returncode if not timed_out else -9
+
+    # 截断
+    MAX_LEN = 30000
+    truncated = False
+    if len(stdout) > MAX_LEN:
+        stdout = stdout[:MAX_LEN] + f"\n…（已截断，原长度 {len(stdout_b)} 字节）"
+        truncated = True
+    if len(stderr) > MAX_LEN:
+        stderr = stderr[:MAX_LEN] + f"\n…（已截断，原长度 {len(stderr_b)} 字节）"
+        truncated = True
+
+    return {
+        "python_path": py_exe,
+        "return_code": return_code,
+        "timed_out": timed_out,
+        "success_exit": return_code == 0 and not timed_out,
+        "stdout": stdout,
+        "stderr": stderr,
+        "truncated": truncated,
+        "script_lifecycle": "已自动销毁",
+    }
+
+
+async def skill_check_python_environment(**_: Any) -> dict[str, Any]:
+    """快速验证 WebRPA 内置 Python 是否可用，返回版本与已安装的关键包"""
+    py_exe = _get_bundled_python_path()
+    check_code = (
+        "import sys, platform, json\n"
+        "info = {\n"
+        "    'python_version': sys.version,\n"
+        "    'platform': platform.platform(),\n"
+        "    'executable': sys.executable,\n"
+        "    'prefix': sys.prefix,\n"
+        "}\n"
+        "available = []\n"
+        "for pkg in ['requests', 'pandas', 'numpy', 'openpyxl', 'pillow', 'PIL', 'bs4', 'lxml', 'playwright', 'httpx', 'aiohttp', 'fastapi', 'uvicorn']:\n"
+        "    try:\n"
+        "        __import__(pkg)\n"
+        "        available.append(pkg)\n"
+        "    except Exception:\n"
+        "        pass\n"
+        "info['available_packages'] = available\n"
+        "print(json.dumps(info, ensure_ascii=False))\n"
+    )
+    res = await skill_run_python_script(code=check_code, timeout=20)
+    if res.get("success_exit") and res.get("stdout"):
+        try:
+            parsed = json.loads(res["stdout"].strip().splitlines()[-1])
+            return {"python_executable": py_exe, **parsed}
+        except Exception:
+            pass
+    return {
+        "python_executable": py_exe,
+        "raw_stdout": res.get("stdout", ""),
+        "raw_stderr": res.get("stderr", ""),
+        "error": "无法解析 Python 环境信息",
+    }
+
+
 # ---------- 注册所有 Skills ----------
 
 def _register_all() -> None:
-    """注册全部 Skills"""
-
-    # 模块信息
     registry.register(Skill(
         name="list_module_categories",
         description="列出 WebRPA 中所有内置模块的分类",
@@ -1129,6 +1414,66 @@ def _register_all() -> None:
         description="列出 WebRPA 全局配置可用的字段。需要修改时使用 client_action 工具让前端执行",
         parameters={"type": "object", "properties": {}},
         handler=skill_get_global_config_keys,
+    ))
+
+    # === 系统执行能力（PowerShell + Python 临时脚本） ===
+    registry.register(Skill(
+        name="run_shell_command",
+        description=(
+            "执行系统 shell 命令并返回 stdout/stderr/return_code。"
+            "Windows 下默认使用 PowerShell。可用于：查询系统信息、列文件、操作 git、调用 cli 工具等。"
+            "高风险（如 rm -rf、del /q、Remove-Item -Recurse、reg delete、format 等）需要在确认后再执行。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "完整命令字符串（支持多行）"},
+                "cwd": {"type": "string", "description": "工作目录，留空则在 WebRPA 项目根目录执行"},
+                "timeout": {"type": "integer", "description": "超时秒数（默认 60，最大 600）"},
+                "shell": {
+                    "type": "string",
+                    "description": "强制指定 shell：powershell / cmd / bash / sh。Windows 默认 powershell",
+                    "enum": ["powershell", "cmd", "bash", "sh"],
+                },
+            },
+            "required": ["command"],
+        },
+        handler=skill_run_shell_command,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="run_python_script",
+        description=(
+            "把一段 Python 代码写到临时脚本，使用 WebRPA 内置 Python 3.13 运行，"
+            "拿到运行结果后**自动销毁**该临时脚本（三步走：写入 → 运行 → 销毁）。"
+            "适合做：数据处理、文件批量操作、网络请求、JSON/CSV/Excel 解析、算法计算、调用第三方库等。"
+            "注意：脚本默认 utf-8 编码，可直接 print 中文；不要在脚本里写绝对依赖外部状态的代码。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "description": "完整可运行的 Python 源码（含必要的 import）"},
+                "timeout": {"type": "integer", "description": "超时秒数（默认 120，最大 1800）"},
+                "args": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "传给脚本的命令行参数（脚本里通过 sys.argv[1:] 读取）",
+                },
+                "extra_env": {
+                    "type": "object",
+                    "description": "追加到子进程的环境变量字典",
+                },
+            },
+            "required": ["code"],
+        },
+        handler=skill_run_python_script,
+        requires_approval=True,
+    ))
+    registry.register(Skill(
+        name="check_python_environment",
+        description="检查 WebRPA 内置 Python 是否可用、列出版本和已安装的常用库",
+        parameters={"type": "object", "properties": {}},
+        handler=skill_check_python_environment,
     ))
 
     # === 7. 客户端操作（标记型 Skills） ===

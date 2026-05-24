@@ -359,6 +359,13 @@ export function WorkflowEditor() {
   // 用于防抖处理框选时的节点选择更新
   const selectionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSelectionRef = useRef<string | null>(null)
+  // 框选 rAF 节流，避免每次微小变化都重算分组包含关系
+  const selectionRafRef = useRef<number | null>(null)
+  // 分组包含关系缓存：节点列表引用变化时才重算
+  const groupContainmentCacheRef = useRef<{
+    nodesRef: unknown
+    map: Map<string, Set<string>>
+  } | null>(null)
   
   // 用于 Shift 范围选择
   const lastClickedNodeIdRef = useRef<string | null>(null)
@@ -999,6 +1006,9 @@ export function WorkflowEditor() {
       if (selectionDebounceRef.current) {
         clearTimeout(selectionDebounceRef.current)
       }
+      if (selectionRafRef.current !== null) {
+        cancelAnimationFrame(selectionRafRef.current)
+      }
     }
   }, [])
 
@@ -1336,165 +1346,165 @@ export function WorkflowEditor() {
     ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
       // 更新选中的边（边的选择不需要防抖，因为不会触发重渲染）
       setSelectedEdgeIds(selectedEdges.map(e => e.id))
-      
+
       // 如果正在应用 Shift 选择，跳过此次回调，避免循环
       if (isApplyingShiftSelectionRef.current) {
         return
       }
-      
-      // 获取当前所有节点
-      const currentNodes = useWorkflowStore.getState().nodes
-      
-      // 找出所有被选中的分组
-      const selectedGroupIds = new Set(
-        selectedNodes.filter(n => n.type === 'groupNode').map(n => n.id)
-      )
-      
-      // 找出所有分组节点
-      const allGroupNodes = currentNodes.filter(n => n.type === 'groupNode')
-      
-      // 为每个分组建立其包含的节点列表
-      const groupContainedNodes = new Map<string, Set<string>>()
-      
-      for (const groupNode of allGroupNodes) {
-        const groupWidth = (groupNode.data.width as number) || (groupNode.style?.width as number) || 300
-        const groupHeight = (groupNode.data.height as number) || (groupNode.style?.height as number) || 200
-        
+
+      // 框选时这个回调每 16ms 内可能被触发多次，rAF 节流避免 1 帧多次重算
+      if (selectionRafRef.current !== null) {
+        cancelAnimationFrame(selectionRafRef.current)
+      }
+      const selectedNodesSnapshot = selectedNodes
+      selectionRafRef.current = requestAnimationFrame(() => {
+        selectionRafRef.current = null
+        processSelectionChange(selectedNodesSnapshot)
+      })
+    },
+    []
+  )
+
+  // 计算分组包含关系（自动缓存：节点引用未变即复用上次结果，避免框选时高频重算）
+  const getGroupContainmentMap = useCallback(
+    (currentNodes: Node<NodeData>[]): Map<string, Set<string>> => {
+      const cache = groupContainmentCacheRef.current
+      if (cache && cache.nodesRef === currentNodes) {
+        return cache.map
+      }
+      const map = new Map<string, Set<string>>()
+      const groupNodes = currentNodes.filter(n => n.type === 'groupNode')
+      if (groupNodes.length === 0) {
+        groupContainmentCacheRef.current = { nodesRef: currentNodes, map }
+        return map
+      }
+      for (const groupNode of groupNodes) {
+        const groupWidth =
+          (groupNode.data.width as number) || ((groupNode.style?.width as number) ?? 300)
+        const groupHeight =
+          (groupNode.data.height as number) || ((groupNode.style?.height as number) ?? 200)
+        const gx0 = groupNode.position.x
+        const gy0 = groupNode.position.y
+        const gx1 = gx0 + groupWidth
+        const gy1 = gy0 + groupHeight
+        const margin = 10
         const containedNodeIds = new Set<string>()
-        
         for (const node of currentNodes) {
-          // 跳过分组自己和其他分组/便签
           if (node.id === groupNode.id || node.type === 'groupNode' || node.type === 'noteNode') {
             continue
           }
-          
-          // 计算节点中心点
-          const nodeWidth = (node.data.width as number) || (node.style?.width as number) || (node.width as number) || 200
-          const nodeHeight = (node.data.height as number) || (node.style?.height as number) || (node.height as number) || 100
-          
-          const nodeCenterX = node.position.x + nodeWidth / 2
-          const nodeCenterY = node.position.y + nodeHeight / 2
-          
-          const margin = 10
-          const isInGroup = (
-            nodeCenterX >= groupNode.position.x + margin &&
-            nodeCenterX <= groupNode.position.x + groupWidth - margin &&
-            nodeCenterY >= groupNode.position.y + margin &&
-            nodeCenterY <= groupNode.position.y + groupHeight - margin
-          )
-          
-          if (isInGroup) {
+          const nodeWidth =
+            (node.data.width as number) ||
+            ((node.style?.width as number) ?? (node.width as number) ?? 200)
+          const nodeHeight =
+            (node.data.height as number) ||
+            ((node.style?.height as number) ?? (node.height as number) ?? 100)
+          const cx = node.position.x + nodeWidth / 2
+          const cy = node.position.y + nodeHeight / 2
+          if (cx >= gx0 + margin && cx <= gx1 - margin && cy >= gy0 + margin && cy <= gy1 - margin) {
             containedNodeIds.add(node.id)
           }
         }
-        
-        groupContainedNodes.set(groupNode.id, containedNodeIds)
+        map.set(groupNode.id, containedNodeIds)
       }
-      
-      // 过滤选中的节点：排除那些在未被选中的分组内的节点
-      const filteredSelectedNodes = selectedNodes.filter(node => {
-        // 分组节点和便签节点总是保留
-        if (node.type === 'groupNode' || node.type === 'noteNode') {
+      groupContainmentCacheRef.current = { nodesRef: currentNodes, map }
+      return map
+    },
+    []
+  )
+
+  // 处理框选变化的实际逻辑（rAF 节流后调用，避免框选时碰一下卡一下）
+  const processSelectionChange = useCallback(
+    (selectedNodes: Array<{ id: string; type?: string }>) => {
+      const currentNodes = useWorkflowStore.getState().nodes
+
+      // 没有任何分组节点时直接快路径，跳过昂贵的包含计算
+      const hasGroupNodes = currentNodes.some(n => n.type === 'groupNode')
+
+      let filteredSelectedNodes: Array<{ id: string; type?: string }> = selectedNodes
+      if (hasGroupNodes) {
+        // 找出所有被选中的分组
+        const selectedGroupIds = new Set(
+          selectedNodes.filter(n => n.type === 'groupNode').map(n => n.id)
+        )
+
+        // 获取/构建分组包含关系缓存
+        const groupContainedNodes = getGroupContainmentMap(currentNodes)
+
+        // 过滤选中的节点：排除那些在未被选中的分组内的节点
+        filteredSelectedNodes = selectedNodes.filter(node => {
+          if (node.type === 'groupNode' || node.type === 'noteNode') {
+            return true
+          }
+          for (const [groupId, containedNodeIds] of groupContainedNodes.entries()) {
+            if (selectedGroupIds.has(groupId)) {
+              continue
+            }
+            if (containedNodeIds.has(node.id)) {
+              return false
+            }
+          }
           return true
+        })
+
+        // 如果过滤后的选择与原始选择不同，需要更新选择状态
+        if (filteredSelectedNodes.length !== selectedNodes.length) {
+          const filteredIds = new Set(filteredSelectedNodes.map(n => n.id))
+          const changes = currentNodes.map(n => ({
+            type: 'select' as const,
+            id: n.id,
+            selected: filteredIds.has(n.id),
+          }))
+          setTimeout(() => {
+            onNodesChange(changes)
+          }, 0)
+          return
         }
-        
-        // 检查节点是否在某个未被选中的分组内
-        for (const [groupId, containedNodeIds] of groupContainedNodes.entries()) {
-          // 如果分组已被选中，跳过
-          if (selectedGroupIds.has(groupId)) {
-            continue
-          }
-          
-          // 如果节点在这个未被选中的分组内，排除它
-          if (containedNodeIds.has(node.id)) {
-            return false
-          }
-        }
-        
-        return true
-      })
-      
-      // 如果过滤后的选择与原始选择不同，需要更新选择状态
-      if (filteredSelectedNodes.length !== selectedNodes.length) {
-        const filteredIds = new Set(filteredSelectedNodes.map(n => n.id))
-        const changes = currentNodes.map(n => ({
-          type: 'select' as const,
-          id: n.id,
-          selected: filteredIds.has(n.id)
-        }))
-        
-        // 延迟应用更改，避免在回调中直接修改状态
-        setTimeout(() => {
-          onNodesChange(changes)
-        }, 0)
-        
-        return
       }
-      
+
       // 如果按住 Shift 键框选，且有预先选中的节点，合并选择
       if (preSelectionNodesRef.current.length > 0 && filteredSelectedNodes.length > 0) {
         const newlySelectedIds = filteredSelectedNodes.map(n => n.id)
         const allSelectedIds = Array.from(new Set([...preSelectionNodesRef.current, ...newlySelectedIds]))
-        
-        // 只在第一次合并时更新，避免循环
+
         if (allSelectedIds.length > newlySelectedIds.length) {
-          // 设置标志，防止循环
           isApplyingShiftSelectionRef.current = true
-          
-          // 使用 setTimeout 延迟执行，避免在 onSelectionChange 回调中直接调用 onNodesChange
           setTimeout(() => {
-            // 获取最新的 nodes
-            const currentNodes = useWorkflowStore.getState().nodes
-            const changes = currentNodes.map(n => ({
+            const latestNodes = useWorkflowStore.getState().nodes
+            const changes = latestNodes.map(n => ({
               type: 'select' as const,
               id: n.id,
-              selected: allSelectedIds.includes(n.id)
+              selected: allSelectedIds.includes(n.id),
             }))
-            
             onNodesChange(changes)
-            
-            // 延迟重置标志，确保选择已经应用
             setTimeout(() => {
               isApplyingShiftSelectionRef.current = false
             }, 100)
           }, 0)
-          
-          // 清空预选节点，避免重复触发
           preSelectionNodesRef.current = []
-          
-          // 多选时不显示配置面板
           selectNode(null)
-          
           return
         }
       }
-      
+
       // 对节点选择使用防抖，避免框选过程中频繁更新配置面板导致卡顿
       const newSelectedNodeId = filteredSelectedNodes.length === 1 ? filteredSelectedNodes[0].id : null
-      
-      // 如果选择没有变化，不做任何处理
       if (pendingSelectionRef.current === newSelectedNodeId) {
         return
       }
-      
       pendingSelectionRef.current = newSelectedNodeId
-      
-      // 清除之前的防抖定时器
+
       if (selectionDebounceRef.current) {
         clearTimeout(selectionDebounceRef.current)
       }
-      
-      // 使用防抖延迟更新，框选结束后才更新配置面板
       selectionDebounceRef.current = setTimeout(() => {
         selectNode(pendingSelectionRef.current)
-        
-        // 记录最后选中的节点（用于 Shift 范围选择）
         if (pendingSelectionRef.current) {
           lastClickedNodeIdRef.current = pendingSelectionRef.current
         }
-      }, 50) // 50ms 防抖延迟，足够短以保证响应性，又能避免频繁更新
+      }, 80) // 80ms 防抖（之前 50ms），框选高频时更省渲染
     },
-    [selectNode, onNodesChange]
+    [selectNode, onNodesChange, getGroupContainmentMap]
   )
 
   // 验证连接是否有效

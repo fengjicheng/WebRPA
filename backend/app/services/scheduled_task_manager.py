@@ -638,20 +638,31 @@ class ScheduledTaskManager:
             self._save_tasks()
             self._save_logs()
             print(f"[ScheduledTaskManager] 任务状态已清理: {task.name}, is_running={task.is_running}")
-            
-            # 处理重复执行
-            if task.trigger.repeat_enabled:
-                task.current_repeat_count += 1
-                if (task.trigger.repeat_count is None or 
-                    task.current_repeat_count < task.trigger.repeat_count):
-                    # 继续重复
-                    if task.trigger.repeat_interval:
-                        await asyncio.sleep(task.trigger.repeat_interval)
-                        await self.enqueue_task(task_id, trigger_type)
-                else:
-                    # 重复完成，重置计数
-                    task.current_repeat_count = 0
-                    self._save_tasks()
+
+        # 处理重复执行（移到 finally 外面，避免长 sleep 阻塞队列处理器）
+        # 把 sleep 调度到独立 task，立刻返回让队列处理下一条
+        if task.trigger.repeat_enabled and task.last_execution_status != 'stopped':
+            task.current_repeat_count += 1
+            if (task.trigger.repeat_count is None or
+                task.current_repeat_count < task.trigger.repeat_count):
+                interval = task.trigger.repeat_interval or 0
+                async def _repeat_after(delay: float, tid: str, ttype: str):
+                    try:
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        # 再次确认任务仍然存在且启用
+                        latest = self.tasks.get(tid)
+                        if latest and latest.enabled and not latest.is_running:
+                            await self.enqueue_task(tid, ttype)
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        print(f"[ScheduledTaskManager] 重复任务调度失败: {e}")
+                asyncio.create_task(_repeat_after(interval, task_id, trigger_type))
+            else:
+                # 重复完成，重置计数
+                task.current_repeat_count = 0
+                self._save_tasks()
     
     async def execute_task_manually(self, task_id: str):
         """手动执行任务（加入队列）"""
@@ -737,6 +748,11 @@ class ScheduledTaskManager:
                     data = json.load(f)
                     for task_data in data:
                         task = ScheduledTask(**task_data)
+                        # 启动时强制重置运行态（防止上次崩溃时残留 is_running=True 导致永远跑不了）
+                        task.is_running = False
+                        # 重置重复计数（避免持久化的中间态）
+                        if hasattr(task, 'current_repeat_count'):
+                            task.current_repeat_count = 0
                         self.tasks[task.id] = task
                         # 注意：不在这里注册触发器，等待调度器启动后再注册
                 print(f"[ScheduledTaskManager] 加载了 {len(self.tasks)} 个任务")

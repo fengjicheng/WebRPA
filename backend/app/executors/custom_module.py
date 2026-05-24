@@ -15,8 +15,8 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
 CUSTOM_MODULES_DIR = _BACKEND_DIR / "data" / "custom_modules"
 
 
-# 校验 module_id 是否合法（只允许字母、数字、下划线、横线、UUID 格式）
-_MODULE_ID_PATTERN = re.compile(r'^[A-Za-z0-9_\-]+$')
+# 校验 module_id 是否合法（与 api/custom_modules.py 保持一致：字母/数字/下划线/连字符/中文）
+_MODULE_ID_PATTERN = re.compile(r'^[A-Za-z0-9_\-\u4e00-\u9fa5]+$')
 
 
 def load_custom_module_definition(module_id: str) -> Dict[str, Any]:
@@ -26,7 +26,7 @@ def load_custom_module_definition(module_id: str) -> Dict[str, Any]:
     - 校验 module_id 只能包含安全字符
     - 用 resolve() 后比较前缀防止路径穿越
     """
-    if not module_id or not _MODULE_ID_PATTERN.match(module_id):
+    if not module_id or len(module_id) > 200 or not _MODULE_ID_PATTERN.match(module_id):
         raise FileNotFoundError(f"自定义模块ID无效: {module_id}")
     
     base = CUSTOM_MODULES_DIR.resolve()

@@ -220,17 +220,43 @@ async def update_custom_module(module_id: str, update_data: CustomModuleUpdate):
         module = _load_module(module_id)
         if not module:
             raise HTTPException(status_code=404, detail="模块不存在")
-        
-        # 更新字段
+
+        # 取得用户提交的字段
         update_dict = update_data.model_dump(exclude_unset=True)
+
+        # 不允许通过 update 改 id
+        update_dict.pop('id', None)
+
+        # 如果改了 name，需要检查是否与其他模块冲突
+        new_name = update_dict.get('name')
+        if new_name is not None and new_name != module.name:
+            new_name = (new_name or '').strip()
+            if not new_name:
+                raise HTTPException(status_code=400, detail="模块名称不能为空")
+            if len(new_name) > 50:
+                raise HTTPException(status_code=400, detail="模块名称过长（最多 50 字符）")
+            existing_modules = _load_all_modules()
+            if any(m.id != module_id and m.name == new_name for m in existing_modules):
+                raise HTTPException(status_code=400, detail=f"模块名称 '{new_name}' 已存在")
+            update_dict['name'] = new_name
+
+        # 校验工作流（如果传了）
+        if 'workflow' in update_dict:
+            wf = update_dict['workflow']
+            if not isinstance(wf, dict):
+                raise HTTPException(status_code=400, detail="workflow 必须是对象")
+            if 'nodes' not in wf or not wf['nodes']:
+                raise HTTPException(status_code=400, detail="工作流必须包含至少一个节点")
+
+        # 应用更新
         for key, value in update_dict.items():
             setattr(module, key, value)
-        
+
         module.updated_at = datetime.now()
-        
+
         # 保存
         _save_module(module)
-        
+
         return module
     except HTTPException:
         raise
@@ -264,18 +290,34 @@ async def duplicate_custom_module(module_id: str, new_name: str):
         original = _load_module(module_id)
         if not original:
             raise HTTPException(status_code=404, detail="模块不存在")
-        
-        # 生成新ID
+
+        # 校验/清洗新名称
+        new_name = (new_name or '').strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="新名称不能为空")
+        if len(new_name) > 50:
+            raise HTTPException(status_code=400, detail="新名称过长（最多 50 字符）")
+
+        # 检查名称是否已存在
+        existing_modules = _load_all_modules()
+        if any(m.name == new_name for m in existing_modules):
+            raise HTTPException(status_code=400, detail=f"模块名称 '{new_name}' 已存在")
+
+        # 生成新ID（清洗非法字符防止路径穿越）
         import uuid
-        new_id = f"custom_{new_name}_{uuid.uuid4().hex[:8]}"
-        
-        # 创建副本
+        sanitized_name = re.sub(r'[^A-Za-z0-9_\-\u4e00-\u9fa5]', '_', new_name)[:50]
+        if not sanitized_name:
+            sanitized_name = 'module'
+        new_id = f"custom_{sanitized_name}_{uuid.uuid4().hex[:8]}"
+
+        # 创建副本（保留所有字段）
         duplicate = CustomModule(
             id=new_id,
             name=new_name,
             display_name=f"{original.display_name} (副本)",
             description=original.description,
             icon=original.icon,
+            color=original.color,
             category=original.category,
             parameters=original.parameters,
             outputs=original.outputs,
@@ -283,13 +325,14 @@ async def duplicate_custom_module(module_id: str, new_name: str):
             tags=original.tags,
             author=original.author,
             version=original.version,
+            usage_count=0,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-        
+
         # 保存
         _save_module(duplicate)
-        
+
         return duplicate
     except HTTPException:
         raise
