@@ -629,17 +629,22 @@ async def chat_once(
 
                 tool_tasks = [asyncio.create_task(run_one_tool(tc)) for tc in tool_calls]
                 cancel_wait = asyncio.create_task(cancel_token.wait())
-                gather_task = asyncio.create_task(asyncio.gather(*tool_tasks, return_exceptions=True))
+                # 等所有工具完成或被取消（不要再 create_task gather，gather 本身就是 awaitable）
                 done, pending = await asyncio.wait(
-                    {gather_task, cancel_wait}, return_when=asyncio.FIRST_COMPLETED
+                    set(tool_tasks) | {cancel_wait},
+                    return_when=asyncio.FIRST_COMPLETED,
                 )
-                if cancel_wait in done and gather_task not in done:
+                # 用户取消：把还没跑完的 tool 全部 cancel
+                if cancel_wait in done:
                     for t in tool_tasks:
-                        t.cancel()
-                    gather_task.cancel()
+                        if not t.done():
+                            t.cancel()
                     raise _Cancelled()
-                for p in pending:
-                    p.cancel()
+                # 某个 tool 先完成而其他还在跑：继续等剩下的全部完成
+                if any(not t.done() for t in tool_tasks):
+                    await asyncio.gather(*tool_tasks, return_exceptions=True)
+                if not cancel_wait.done():
+                    cancel_wait.cancel()
 
                 # 把每条工具的结果消息追加到会话
                 for tc in tool_calls:

@@ -1963,13 +1963,67 @@ _register_all()
 
 # ---------- 公共调度入口 ----------
 
+def _coerce_arguments(skill: "Skill", arguments: dict[str, Any]) -> dict[str, Any]:
+    """LLM 偶尔会把数组/对象类型的参数二次 JSON 序列化为字符串。
+    根据 skill 的 parameters schema 自动把字符串还原成对应的 list/dict。
+
+    若解析失败会在 dict 中添加 _coerce_warnings 字段，但保留原值，由 handler 报错。
+    """
+    if not isinstance(arguments, dict):
+        return arguments
+    props = (skill.parameters or {}).get("properties") or {}
+    if not isinstance(props, dict):
+        return arguments
+    fixed = dict(arguments)
+    warnings: list[str] = []
+    for key, schema in props.items():
+        if key not in fixed:
+            continue
+        v = fixed[key]
+        expected = schema.get("type") if isinstance(schema, dict) else None
+        if expected in ("array", "object") and isinstance(v, str):
+            stripped = v.strip()
+            if not stripped:
+                fixed[key] = [] if expected == "array" else {}
+                continue
+            # 尝试 1：直接 json.loads
+            try:
+                parsed = json.loads(stripped)
+                fixed[key] = parsed
+                continue
+            except Exception:
+                pass
+            # 尝试 2：去掉可能的代码块 ``` 或前后空白
+            cleaned = stripped
+            if cleaned.startswith("```"):
+                # 去掉 ```json / ``` 头尾
+                cleaned = cleaned.split("```", 2)
+                cleaned = cleaned[1] if len(cleaned) > 1 else stripped
+                if cleaned.startswith("json"):
+                    cleaned = cleaned[4:]
+                cleaned = cleaned.strip().rstrip("`").strip()
+            try:
+                parsed = json.loads(cleaned)
+                fixed[key] = parsed
+                continue
+            except Exception as e:
+                warnings.append(f"参数 {key} 应为 {expected}，但传入了无法解析的字符串：{e}")
+    if warnings:
+        # 日志记录，让用户能从 backend stdout 看到原因
+        for w in warnings:
+            print(f"[execute_skill] {skill.name}: {w}")
+    return fixed
+
+
 async def execute_skill(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     """调度执行某个 Skill"""
     skill = registry.get(name)
     if skill is None:
         return {"error": f"未知工具: {name}"}
     try:
-        result = await skill.handler(**arguments)
+        # 兼容部分 LLM 把 array/object 参数二次序列化为字符串的 bug
+        coerced = _coerce_arguments(skill, arguments or {})
+        result = await skill.handler(**coerced)
         return {"success": True, "result": result}
     except TypeError as e:
         return {"error": f"参数错误: {e}"}
