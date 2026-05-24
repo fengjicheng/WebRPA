@@ -21,6 +21,138 @@ interface MessageBubbleProps {
   message: ChatMessage
 }
 
+// 工具名 → 中文显示
+const TOOL_NAME_LABELS: Record<string, string> = {
+  client_action: '操作 WebRPA',
+  build_workflow: '设计工作流',
+  build_node: '构造节点',
+  describe_module: '查询模块用法',
+  list_module_categories: '列出模块分类',
+  list_modules_in_category: '列出分类下模块',
+  search_modules: '搜索模块',
+  list_workflows: '列出本地工作流',
+  read_workflow: '读取本地工作流',
+  save_workflow_file: '保存工作流到本地',
+  delete_workflow: '删除工作流',
+  list_executors: '列出执行器',
+  list_canvas_executors: '列出画布可用执行器',
+  list_custom_modules: '列出自定义模块',
+  list_scheduled_tasks: '列出计划任务',
+  get_recent_logs: '获取近期执行日志',
+  get_full_snapshot: '获取项目全量快照',
+  list_global_variables: '读取全局变量',
+  get_scheduled_task: '查看计划任务',
+  get_scheduled_task_logs: '读计划任务日志',
+  list_data_assets: '列出 Excel 资源',
+  list_image_assets: '列出图像资源',
+  get_custom_module: '读取自定义模块',
+  search_in_workflows: '全文搜索工作流',
+  summarize_workflow: '工作流结构摘要',
+  remember: '记住信息',
+  recall: '回忆信息',
+  forget: '遗忘记忆',
+  get_global_config_keys: '查全局配置项',
+}
+
+// client_action 的 action 字段中文化
+const CLIENT_ACTION_LABELS: Record<string, string> = {
+  new_workflow: '新建工作流',
+  load_workflow: '打开工作流',
+  load_workflow_from_data: '装载工作流到画布',
+  save_workflow: '保存工作流',
+  run_workflow: '运行工作流（有头）',
+  run_workflow_headless: '运行工作流（无头）',
+  stop_workflow: '停止运行',
+  export_workflow: '导出工作流',
+  rename_workflow: '重命名工作流',
+  get_workflow_detail: '读取画布详情',
+  get_logs: '读取日志',
+  get_collected_data: '读取数据表',
+  add_nodes: '添加节点',
+  delete_node: '删除节点',
+  delete_nodes: '批量删除节点',
+  update_node_config: '修改节点配置',
+  focus_node: '聚焦节点',
+  toggle_node_disabled: '启用/禁用节点',
+  align_nodes: '对齐节点',
+  copy_nodes: '复制节点',
+  paste_nodes: '粘贴节点',
+  move_node: '移动节点',
+  rename_node: '重命名节点',
+  find_nodes_by_type: '按类型查找节点',
+  connect_nodes: '连接节点',
+  disconnect_edge: '删除连线',
+  select_all_nodes: '全选节点',
+  clear_selection: '取消选中',
+  fit_view: '适配画布',
+  run_single_node: '运行单节点',
+  undo: '撤销',
+  redo: '重做',
+  add_variable: '新增变量',
+  update_variable: '更新变量',
+  delete_variable: '删除变量',
+  rename_variable: '重命名变量',
+  list_variables: '列出变量',
+  clear_logs: '清空日志',
+  clear_data: '清空数据',
+  set_verbose_log: '切换详细日志',
+  set_max_log_count: '设置日志条数',
+  export_logs: '导出日志',
+  download_data: '下载数据',
+  upload_excel: '上传 Excel',
+  upload_image: '上传图片',
+  add_log: '添加日志',
+  switch_bottom_panel: '切换底栏',
+  open_global_config: '打开全局配置',
+  close_global_config: '关闭全局配置',
+  open_local_workflow_dialog: '打开本地工作流',
+  close_local_workflow_dialog: '关闭本地工作流',
+  open_scheduled_tasks: '打开计划任务',
+  close_scheduled_tasks: '关闭计划任务',
+  open_documentation: '打开文档',
+  close_documentation: '关闭文档',
+  open_workflow_hub: '打开工作流仓库',
+  close_workflow_hub: '关闭工作流仓库',
+  open_auto_browser: '打开自动化浏览器',
+  close_auto_browser: '关闭自动化浏览器',
+  open_phone_mirror: '打开手机投屏',
+  close_phone_mirror: '关闭手机投屏',
+  open_variable_tracking: '打开变量追踪',
+  close_variable_tracking: '关闭变量追踪',
+  open_export_dialog: '打开导出对话框',
+  open_module_search: '打开模块搜索框',
+  take_screenshot: '触发截图',
+  get_global_config: '读取全局配置',
+  update_global_config: '更新全局配置',
+  show_toast: '显示提示',
+}
+
+function getToolLabel(tc: ToolCall): { label: string; sublabel?: string } {
+  const base = TOOL_NAME_LABELS[tc.name] || tc.name
+  if (tc.name === 'client_action') {
+    const action = (tc.arguments as any)?.action
+    const actionLabel = action ? (CLIENT_ACTION_LABELS[action] || action) : ''
+    return { label: actionLabel || base, sublabel: action }
+  }
+  if (tc.name === 'describe_module' || tc.name === 'search_modules') {
+    const arg = (tc.arguments as any)?.module_type || (tc.arguments as any)?.keyword
+    return { label: base, sublabel: arg ? String(arg) : undefined }
+  }
+  if (tc.name === 'build_workflow') {
+    const name = (tc.arguments as any)?.name
+    return { label: base, sublabel: name }
+  }
+  return { label: base }
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: '待执行',
+  running: '执行中',
+  success: '已完成',
+  failed: '失败',
+  rejected: '已拒绝',
+}
+
 // 把 marked 输出的 HTML 包成可交互的 React 内容
 function MarkdownContent({ content }: { content: string }) {
   const html = useMemo(() => {
@@ -45,6 +177,7 @@ function MarkdownContent({ content }: { content: string }) {
 
 function ToolCallCard({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false)
+  const { label, sublabel } = getToolLabel(tc)
 
   const styling = (() => {
     switch (tc.status) {
@@ -96,12 +229,19 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
         onClick={() => setExpanded((v) => !v)}
       >
         <span className={styling.chip}>{styling.el}</span>
-        <code className="font-mono text-[12px] text-[hsl(var(--slate-800))] truncate flex-1 font-medium">
-          {tc.name}
-        </code>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="text-[12.5px] text-[hsl(var(--slate-800))] font-medium leading-tight truncate">
+            {label}
+          </div>
+          {sublabel && (
+            <code className="font-mono text-[10.5px] text-[hsl(var(--muted-foreground))] truncate leading-tight mt-0.5">
+              {sublabel}
+            </code>
+          )}
+        </div>
         <span className={`badge ${styling.status}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${styling.dot}`} />
-          {tc.status}
+          {STATUS_LABELS[tc.status] || tc.status}
         </span>
         <ChevronRight
           className={`w-3.5 h-3.5 text-[hsl(var(--muted-foreground))] transition-transform duration-200 ${

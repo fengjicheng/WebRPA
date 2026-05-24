@@ -237,7 +237,160 @@ def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]
 
 # ---------- 主对话循环 ----------
 
-MAX_TOOL_ROUNDS = 5  # 单次用户消息最多轮工具调用
+MAX_TOOL_ROUNDS = 8  # 单次用户消息最多轮工具调用（提升以支持复杂任务）
+
+# 上下文压缩阈值：消息总条数超过此值时，自动总结早期消息
+CONTEXT_COMPRESSION_THRESHOLD = 50
+CONTEXT_KEEP_RECENT = 20  # 压缩时保留最近多少条消息
+
+# 会话级"取消令牌"——用户在 AI 工作期间发新消息时，旧任务会读到这个 token 然后立刻退出
+_cancel_tokens: dict[str, asyncio.Event] = {}
+
+
+def cancel_session(session_id: str) -> bool:
+    """中断指定会话当前正在跑的对话/工具任务"""
+    ev = _cancel_tokens.get(session_id)
+    if ev is None:
+        return False
+    ev.set()
+    return True
+
+
+def _get_or_create_cancel_token(session_id: str) -> asyncio.Event:
+    ev = _cancel_tokens.get(session_id)
+    if ev is None or ev.is_set():
+        ev = asyncio.Event()
+        _cancel_tokens[session_id] = ev
+    return ev
+
+
+def _release_cancel_token(session_id: str) -> None:
+    _cancel_tokens.pop(session_id, None)
+
+
+class _Cancelled(Exception):
+    """内部信号：当前会话被取消"""
+
+
+def _check_cancel(token: asyncio.Event) -> None:
+    if token.is_set():
+        raise _Cancelled()
+
+
+async def _maybe_compress_messages(
+    session: ChatSession,
+    *,
+    config: AssistantConfig,
+) -> None:
+    """会话超长时自动压缩：把早期消息合并成一个 system 摘要消息
+
+    策略：
+    - 总消息数超 CONTEXT_COMPRESSION_THRESHOLD
+    - 保留最后 CONTEXT_KEEP_RECENT 条消息
+    - 把更早的消息（不含 system）调用 LLM 摘要成一段文字，存为伪 system 消息
+    - 失败时退化为：拼接前 N 条文本截短作为摘要
+    """
+    if len(session.messages) <= CONTEXT_COMPRESSION_THRESHOLD:
+        return
+
+    keep_count = CONTEXT_KEEP_RECENT
+    older_msgs = session.messages[:-keep_count] if keep_count > 0 else session.messages[:]
+    recent_msgs = session.messages[-keep_count:] if keep_count > 0 else []
+
+    # 已经压缩过一次的话，会话第一条会是我们注入的 ASSISTANT_SUMMARY；继续往前合并
+    summary_text_parts: list[str] = []
+    raw_lines: list[str] = []
+    for m in older_msgs:
+        role = m.role.value if hasattr(m.role, "value") else str(m.role)
+        if role == "tool":
+            raw_lines.append(f"[工具结果] {(m.content or '')[:240]}")
+        elif role == "assistant":
+            if m.tool_calls:
+                tnames = ", ".join(tc.name for tc in m.tool_calls)
+                raw_lines.append(f"[助手调用] {tnames}")
+            if m.content:
+                raw_lines.append(f"[助手] {m.content[:240]}")
+        elif role == "user":
+            raw_lines.append(f"[用户] {(m.content or '')[:240]}")
+        elif role == "system":
+            # 历史 system 摘要直接保留进新摘要里
+            summary_text_parts.append(m.content or "")
+
+    # 限制原始日志长度
+    raw_text = "\n".join(raw_lines)
+    if len(raw_text) > 8000:
+        raw_text = raw_text[:4000] + "\n…（中间内容已省略）…\n" + raw_text[-3000:]
+
+    summary_prompt = (
+        "下面是一段 WebRPA 小助手与用户之间的较早对话摘录（包含用户提问、助手回答、工具调用与结果）。\n"
+        "请用中文产出一份 200~400 字的精炼摘要，提取出：\n"
+        "1) 用户的核心目标与重要偏好\n"
+        "2) 已经达成的关键事实（搭建过哪些工作流、改过哪些配置等）\n"
+        "3) 未完成或被中断的事项\n"
+        "4) 对后续对话有用的上下文\n"
+        "不要复述工具名，只保留有意义的实质信息。\n\n"
+        f"对话内容：\n{raw_text}"
+    )
+
+    summary = ""
+    try:
+        if config.api_url and config.model:
+            # 用同一个模型做摘要，但单独请求，控制开销
+            data = await _call_llm(
+                config=config,
+                messages=[
+                    {"role": "system", "content": "你是一个善于总结对话上下文的助手。"},
+                    {"role": "user", "content": summary_prompt},
+                ],
+                tools=None,
+            )
+            summary, _ = _parse_assistant_response(data)
+    except Exception as e:
+        print(f"[AIAssistant] 自动压缩 LLM 摘要失败：{e}")
+
+    if not summary:
+        # 退化方案：直接截短拼接
+        summary = "（自动摘要失败，回退原始截断）\n" + raw_text[:1500]
+
+    # 拼装新 history
+    parts = []
+    parts.extend(summary_text_parts)
+    parts.append("【上下文自动摘要】\n" + summary)
+    merged_summary = "\n\n".join(p for p in parts if p)
+
+    summary_msg = ChatMessage(
+        id=uuid.uuid4().hex[:12],
+        role=MessageRole.SYSTEM,
+        content=merged_summary,
+    )
+    session.messages = [summary_msg] + recent_msgs
+    print(f"[AIAssistant] 已自动压缩上下文：{len(older_msgs)} 条 → 1 条摘要，保留最近 {len(recent_msgs)} 条")
+
+
+async def _auto_remember_if_needed(
+    user_message: str,
+    *,
+    config: AssistantConfig,
+) -> None:
+    """检测用户消息中是否包含明显的偏好/约定，自动写入长期记忆。
+
+    通过简单关键词触发：包含"记住/我习惯/我喜欢/我项目/请记得"等。
+    避免把每条普通消息都塞进记忆。
+    """
+    text = (user_message or "").strip()
+    if not text or len(text) < 4:
+        return
+
+    triggers = ("记住", "记得", "记一下", "请记住", "我习惯", "我喜欢", "我的项目", "以后都", "之后都", "默认用", "默认使用", "我偏好")
+    if not any(t in text for t in triggers):
+        return
+
+    try:
+        from app.services.ai_assistant_skills import skill_remember
+        await skill_remember(content=text[:500], tags=["auto"])
+        print(f"[AIAssistant] 自动写入记忆: {text[:50]}…")
+    except Exception as e:
+        print(f"[AIAssistant] 自动记忆失败：{e}")
 
 
 async def chat_once(
@@ -256,6 +409,15 @@ async def chat_once(
         - "assistant_partial": 中间助手回合
     """
 
+    # 0. 注册取消令牌（同会话再次调用时旧任务可被取消）
+    cancel_token = _get_or_create_cancel_token(session.id)
+
+    # 0b. 自动写入用户偏好（异步，不阻塞主流程）
+    try:
+        asyncio.create_task(_auto_remember_if_needed(user_message_text, config=config))
+    except Exception:
+        pass
+
     # 1. 把用户消息追加进会话
     user_msg = ChatMessage(
         id=uuid.uuid4().hex[:12],
@@ -272,6 +434,12 @@ async def chat_once(
         if len(title) > 26:
             title = title[:26] + "…"
         session.title = title or "新对话"
+
+    # 2b. 上下文自动压缩（消息过长时合并早期消息为摘要）
+    try:
+        await _maybe_compress_messages(session, config=config)
+    except Exception as e:
+        print(f"[AIAssistant] 自动压缩失败：{e}")
 
     # 3. 构造系统提示词（每次重新构造，让最新的工作流上下文生效）
     workflow_summary = ""
@@ -375,93 +543,144 @@ async def chat_once(
 
     final_assistant_msg: ChatMessage | None = None
 
-    for round_idx in range(MAX_TOOL_ROUNDS + 1):
-        # 拼装发送给 LLM 的 messages
-        llm_messages: list[dict[str, Any]] = [{"role": "system", "content": system_text}]
-        # 把会话里所有非系统消息按顺序加进去
-        for m in session.messages:
-            llm_messages.append(_convert_message_for_llm(m))
+    try:
+        for round_idx in range(MAX_TOOL_ROUNDS + 1):
+            _check_cancel(cancel_token)
 
-        try:
-            raw = await _call_llm(config=config, messages=llm_messages, tools=tools)
-        except LLMError as e:
-            err_msg = ChatMessage(
-                id=uuid.uuid4().hex[:12],
-                role=MessageRole.ASSISTANT,
-                content=f"[LLM 调用失败] {e}",
-            )
-            session.messages.append(err_msg)
-            final_assistant_msg = err_msg
-            break
+            # 拼装发送给 LLM 的 messages
+            llm_messages: list[dict[str, Any]] = [{"role": "system", "content": system_text}]
+            for m in session.messages:
+                llm_messages.append(_convert_message_for_llm(m))
 
-        content, tool_calls = _parse_assistant_response(raw)
+            # LLM 调用与取消监听同时跑
+            try:
+                llm_task = asyncio.create_task(_call_llm(config=config, messages=llm_messages, tools=tools))
+                cancel_wait = asyncio.create_task(cancel_token.wait())
+                done, pending = await asyncio.wait(
+                    {llm_task, cancel_wait}, return_when=asyncio.FIRST_COMPLETED
+                )
+                if cancel_wait in done and llm_task not in done:
+                    llm_task.cancel()
+                    for p in pending:
+                        if p is not llm_task:
+                            p.cancel()
+                    raise _Cancelled()
+                # llm 已先完成
+                for p in pending:
+                    p.cancel()
+                raw = llm_task.result()
+            except _Cancelled:
+                raise
+            except LLMError as e:
+                err_msg = ChatMessage(
+                    id=uuid.uuid4().hex[:12],
+                    role=MessageRole.ASSISTANT,
+                    content=f"[LLM 调用失败] {e}",
+                )
+                session.messages.append(err_msg)
+                final_assistant_msg = err_msg
+                break
 
-        # 如果模型给出了工具调用
-        if tool_calls and config.enable_tools and round_idx < MAX_TOOL_ROUNDS:
-            assistant_msg = ChatMessage(
+            content, tool_calls = _parse_assistant_response(raw)
+
+            if tool_calls and config.enable_tools and round_idx < MAX_TOOL_ROUNDS:
+                assistant_msg = ChatMessage(
+                    id=uuid.uuid4().hex[:12],
+                    role=MessageRole.ASSISTANT,
+                    content=content,
+                    tool_calls=tool_calls,
+                )
+                session.messages.append(assistant_msg)
+
+                if on_event:
+                    try:
+                        await _maybe_await(on_event("assistant_partial", {
+                            "message": assistant_msg.model_dump(mode="json"),
+                        }))
+                    except Exception:
+                        pass
+
+                # ===== 并行执行所有工具调用 =====
+                async def run_one_tool(tc: ToolCall) -> ToolCall:
+                    tc.status = ToolCallStatus.RUNNING
+                    tc.started_at = datetime.now()
+                    if on_event:
+                        try:
+                            await _maybe_await(on_event("tool_call", {"tool_call": tc.model_dump(mode="json")}))
+                        except Exception:
+                            pass
+                    try:
+                        exec_result = await execute_skill(tc.name, tc.arguments)
+                    except Exception as ex:
+                        exec_result = {"error": f"工具异常：{ex}"}
+                    tc.completed_at = datetime.now()
+                    if exec_result.get("success"):
+                        tc.status = ToolCallStatus.SUCCESS
+                        tc.result = exec_result.get("result")
+                    else:
+                        tc.status = ToolCallStatus.FAILED
+                        tc.error = exec_result.get("error", "未知错误")
+                    if on_event:
+                        try:
+                            await _maybe_await(on_event("tool_result", {"tool_call": tc.model_dump(mode="json")}))
+                        except Exception:
+                            pass
+                    return tc
+
+                tool_tasks = [asyncio.create_task(run_one_tool(tc)) for tc in tool_calls]
+                cancel_wait = asyncio.create_task(cancel_token.wait())
+                gather_task = asyncio.create_task(asyncio.gather(*tool_tasks, return_exceptions=True))
+                done, pending = await asyncio.wait(
+                    {gather_task, cancel_wait}, return_when=asyncio.FIRST_COMPLETED
+                )
+                if cancel_wait in done and gather_task not in done:
+                    for t in tool_tasks:
+                        t.cancel()
+                    gather_task.cancel()
+                    raise _Cancelled()
+                for p in pending:
+                    p.cancel()
+
+                # 把每条工具的结果消息追加到会话
+                for tc in tool_calls:
+                    tool_msg = ChatMessage(
+                        id=uuid.uuid4().hex[:12],
+                        role=MessageRole.TOOL,
+                        content=json.dumps(
+                            tc.result if tc.status == ToolCallStatus.SUCCESS else {"error": tc.error},
+                            ensure_ascii=False,
+                            default=str,
+                        ),
+                        tool_call_id=tc.id,
+                    )
+                    session.messages.append(tool_msg)
+
+                continue  # 进入下一轮
+
+            # 模型给出最终文本回复
+            final_assistant_msg = ChatMessage(
                 id=uuid.uuid4().hex[:12],
                 role=MessageRole.ASSISTANT,
                 content=content,
-                tool_calls=tool_calls,
             )
-            session.messages.append(assistant_msg)
+            session.messages.append(final_assistant_msg)
+            break
 
-            if on_event:
-                try:
-                    await _maybe_await(on_event("assistant_partial", {
-                        "message": assistant_msg.model_dump(mode="json"),
-                    }))
-                except Exception:
-                    pass
-
-            # 执行每个工具调用
-            for tc in tool_calls:
-                tc.status = ToolCallStatus.RUNNING
-                tc.started_at = datetime.now()
-                if on_event:
-                    try:
-                        await _maybe_await(on_event("tool_call", {"tool_call": tc.model_dump(mode="json")}))
-                    except Exception:
-                        pass
-                exec_result = await execute_skill(tc.name, tc.arguments)
-                tc.completed_at = datetime.now()
-                if exec_result.get("success"):
-                    tc.status = ToolCallStatus.SUCCESS
-                    tc.result = exec_result.get("result")
-                else:
-                    tc.status = ToolCallStatus.FAILED
-                    tc.error = exec_result.get("error", "未知错误")
-
-                # 把工具结果作为 tool 角色消息加入
-                tool_msg = ChatMessage(
-                    id=uuid.uuid4().hex[:12],
-                    role=MessageRole.TOOL,
-                    content=json.dumps(
-                        tc.result if tc.status == ToolCallStatus.SUCCESS else {"error": tc.error},
-                        ensure_ascii=False,
-                        default=str,
-                    ),
-                    tool_call_id=tc.id,
-                )
-                session.messages.append(tool_msg)
-
-                if on_event:
-                    try:
-                        await _maybe_await(on_event("tool_result", {"tool_call": tc.model_dump(mode="json")}))
-                    except Exception:
-                        pass
-
-            # 进入下一轮，让模型基于工具结果继续输出
-            continue
-
-        # 模型给出最终文本回复
-        final_assistant_msg = ChatMessage(
+    except _Cancelled:
+        cancel_msg = ChatMessage(
             id=uuid.uuid4().hex[:12],
             role=MessageRole.ASSISTANT,
-            content=content,
+            content="[已停止] 任务被你打断，未完成的工具调用已取消。",
         )
-        session.messages.append(final_assistant_msg)
-        break
+        session.messages.append(cancel_msg)
+        final_assistant_msg = cancel_msg
+        if on_event:
+            try:
+                await _maybe_await(on_event("cancelled", {"reason": "user_cancelled"}))
+            except Exception:
+                pass
+    finally:
+        _release_cancel_token(session.id)
 
     save_session(session)
     return session

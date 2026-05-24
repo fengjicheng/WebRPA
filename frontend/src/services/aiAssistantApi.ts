@@ -50,11 +50,18 @@ export const aiAssistantApi = {
       body: JSON.stringify({ title }),
     }),
 
-  chat: (req: ChatRequestPayload) =>
+  chat: (req: ChatRequestPayload, signal?: AbortSignal) =>
     apiRequest<ChatResponsePayload>('/ai-assistant/chat', {
       method: 'POST',
       body: JSON.stringify(req),
+      signal,
     }),
+
+  cancel: (sessionId: string) =>
+    apiRequest<{ success: boolean; session_id: string }>(
+      `/ai-assistant/sessions/${sessionId}/cancel`,
+      { method: 'POST' }
+    ),
 
   listSkills: () =>
     apiRequest<{ count: number; skills: any[] }>('/ai-assistant/skills'),

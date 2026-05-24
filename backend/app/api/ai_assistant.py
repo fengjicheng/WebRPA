@@ -19,6 +19,7 @@ from app.services.ai_assistant_service import (
     list_sessions,
     load_session,
     save_session,
+    cancel_session,
 )
 from app.services.ai_assistant_skills import registry as skill_registry
 
@@ -121,6 +122,13 @@ async def api_chat(req: ChatRequest):
         raise HTTPException(status_code=500, detail="助手未返回任何消息")
 
     return ChatResponse(session_id=session.id, message=last_assistant)
+
+
+@router.post("/sessions/{session_id}/cancel")
+async def api_cancel_session(session_id: str):
+    """中断当前会话正在跑的对话/工具任务"""
+    ok = cancel_session(session_id)
+    return {"success": ok, "session_id": session_id}
 
 
 # ---------- Skills 元数据 ----------

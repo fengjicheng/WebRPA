@@ -463,11 +463,14 @@ def build_system_prompt(
 
 1. 当用户提出涉及"现有工作流"、"已经有的"、"项目里"等字眼的需求时，先调用 `get_full_snapshot` 拿到整体上下文
 2. 当用户描述要做的事但没有明说节点时，先用 `search_modules` 搜出可能的模块
-3. 设计完节点后用 `build_workflow` 一次性产出节点+边，再用 `client_action(action="load_workflow_from_data", payload={...})` 装入画布
+3. **关键：用户让你"搭建/创建/做一个工作流"时，必须调用 `build_workflow` 一次性产出节点+边**。
+   后台会自动把 build_workflow 的结果装入画布（你不需要再手动调 load_workflow_from_data）。
 4. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
 5. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测
 6. 长期偏好（"我习惯用 Edge"、"项目目录在 D:\\Tools"）请用 `remember` 写入；下次会话开始时自动有 `recall` 摘要
 7. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
+8. **效率优先：可以同时调用多个无依赖的工具**（例如同时 search_modules('键盘') 和 search_modules('循环')），后端会并行执行
+9. 关键节点完成后，可以调用 `client_action(action="show_toast", payload={message:"...", type:"success"})` 给用户一个明显的提示
 """)
 
     if user_extra_prompt:

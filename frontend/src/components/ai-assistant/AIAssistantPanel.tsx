@@ -3,7 +3,7 @@ import {
   X,
   Sparkles,
   Send,
-  Loader2,
+  Square,
   Plus,
   Trash2,
   History,
@@ -56,6 +56,9 @@ export function AIAssistantPanel() {
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // 用于打断当前任务：保留正在跑的 sessionId 和 AbortController
+  const inflightSessionIdRef = useRef<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -78,9 +81,53 @@ export function AIAssistantPanel() {
 
   useEffect(() => {
     bindAssistantSocketEvents({
-      onToolCall: () => {},
-      onToolResult: () => {},
-      onAssistantPartial: () => {},
+      onToolCall: (data: any) => {
+        // 工具开始执行：实时把工具卡片插入到最新的助手消息里
+        const tc = data?.tool_call
+        if (!tc) return
+        const state = useAIAssistantStore.getState()
+        const msgs = state.messages
+        // 找到最近的、还没有这个 tc 的助手消息，把工具加进去
+        for (let i = msgs.length - 1; i >= Math.max(0, msgs.length - 10); i--) {
+          const m = msgs[i]
+          if (m.role !== 'assistant') continue
+          const existing = m.tool_calls || []
+          const idx = existing.findIndex((x) => x.id === tc.id)
+          if (idx >= 0) {
+            existing[idx] = { ...existing[idx], ...tc }
+            state.upsertMessage({ ...m, tool_calls: [...existing] })
+            return
+          }
+        }
+        // 没有找到对应助手消息，直接造一条临时
+        const tempMsg = {
+          id: `tmp-${tc.id}`,
+          role: 'assistant' as const,
+          content: '',
+          tool_calls: [tc],
+        }
+        state.appendMessage(tempMsg)
+      },
+      onToolResult: (data: any) => {
+        const tc = data?.tool_call
+        if (!tc) return
+        const state = useAIAssistantStore.getState()
+        const msgs = state.messages
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          const m = msgs[i]
+          if (m.role !== 'assistant' || !m.tool_calls) continue
+          const idx = m.tool_calls.findIndex((x) => x.id === tc.id)
+          if (idx >= 0) {
+            const newCalls = [...m.tool_calls]
+            newCalls[idx] = { ...newCalls[idx], ...tc }
+            state.upsertMessage({ ...m, tool_calls: newCalls })
+            return
+          }
+        }
+      },
+      onAssistantPartial: () => {
+        // 中间助手回合（带 tool_calls 但没文本），后端 chat 完成后会用完整列表覆盖
+      },
     })
   }, [])
 
@@ -145,6 +192,12 @@ export function AIAssistantPanel() {
       setError('请先在「全局配置 → 小助手」中填写 API 地址和模型')
       return
     }
+
+    // 用户在 AI 工作期间发新消息：先打断之前的任务
+    if (isSending) {
+      await stopCurrent()
+    }
+
     setError(null)
     const userMsg: ChatMessage = {
       id: `local-${Date.now()}`,
@@ -155,19 +208,24 @@ export function AIAssistantPanel() {
     setInput('')
     setSending(true)
 
+    const ac = new AbortController()
+    abortControllerRef.current = ac
+
     try {
       const res = await aiAssistantApi.chat({
         session_id: currentSessionId,
         message: messageText,
         config: resolvedConfig,
         workflow_context: buildWorkflowContext(),
-      })
+      } as any, ac.signal)
       if (!res.success || !res.data) {
+        if (ac.signal.aborted) return
         setError(res.error || '请求失败')
         return
       }
       const sid = res.data.session_id
       setCurrentSessionId(sid)
+      inflightSessionIdRef.current = sid
       const full = await aiAssistantApi.getSession(sid)
       if (full.success && full.data) {
         setMessages(full.data.messages || [])
@@ -175,10 +233,16 @@ export function AIAssistantPanel() {
         appendMessage(res.data.message)
       }
       await dispatchClientActions(full.success ? full.data?.messages || [] : [], sid)
-    } catch (e) {
+    } catch (e: any) {
+      if (ac.signal.aborted || (e && (e.name === 'AbortError' || /aborted/i.test(String(e.message))))) {
+        // 用户主动中断，不报错
+        return
+      }
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSending(false)
+      abortControllerRef.current = null
+      inflightSessionIdRef.current = null
       aiAssistantApi.listSessions().then((res) => {
         if (res.success && Array.isArray(res.data)) {
           setSessions(res.data)
@@ -187,31 +251,64 @@ export function AIAssistantPanel() {
     }
   }
 
+  async function stopCurrent() {
+    const sid = inflightSessionIdRef.current || currentSessionId
+    // 1) 通知后端取消（让正在跑的工具/LLM 调用尽快退出）
+    if (sid) {
+      try {
+        await aiAssistantApi.cancel(sid)
+      } catch {}
+    }
+    // 2) 中断前端的 fetch
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    // 3) UI 立即恢复成"可输入"状态
+    setSending(false)
+  }
+
   async function dispatchClientActions(allMessages: ChatMessage[], _sid: string) {
     if (!allMessages || allMessages.length === 0) return
-    const last = [...allMessages].reverse().find((m) => m.role === 'assistant' && m.tool_calls && m.tool_calls.length)
-    if (!last || !last.tool_calls) return
-    for (const tc of last.tool_calls) {
-      if (tc.name !== 'client_action') continue
-      const args: any = tc.arguments || {}
-      const action = args.action
-      const payload = args.payload || {}
-      if (!action) continue
-      const flagKey = `__client_executed_${tc.id}`
-      if ((last as any)[flagKey]) continue
-      ;(last as any)[flagKey] = true
+    // 遍历最近一批助手消息（可能多轮），处理所有还没派发的工具调用
+    const recent = allMessages.slice(-12)
+    for (const msg of recent) {
+      if (msg.role !== 'assistant' || !msg.tool_calls || !msg.tool_calls.length) continue
+      for (const tc of msg.tool_calls) {
+        const flagKey = `__client_executed_${tc.id}`
+        if ((msg as any)[flagKey]) continue
 
-      const result = await executeClientAction(action, payload)
-      const updatedTc = {
-        ...tc,
-        status: result.success ? ('success' as const) : ('failed' as const),
-        result,
+        // 1) AI 调 client_action：直接派发
+        if (tc.name === 'client_action') {
+          ;(msg as any)[flagKey] = true
+          const args: any = tc.arguments || {}
+          const action = args.action
+          const payload = args.payload || {}
+          if (!action) continue
+          const result = await executeClientAction(action, payload)
+          const updatedTc = {
+            ...tc,
+            status: result.success ? ('success' as const) : ('failed' as const),
+            result,
+          }
+          upsertMessage({
+            ...msg,
+            tool_calls: msg.tool_calls.map((x) => (x.id === tc.id ? updatedTc : x)),
+          })
+        }
+
+        // 2) AI 调用 build_workflow：自动把结果装入画布
+        if (tc.name === 'build_workflow' && tc.status === 'success' && tc.result) {
+          ;(msg as any)[flagKey] = true
+          const built: any = tc.result
+          if (Array.isArray(built?.nodes) && Array.isArray(built?.edges)) {
+            await executeClientAction('load_workflow_from_data', {
+              name: built.name || '小助手生成的工作流',
+              nodes: built.nodes,
+              edges: built.edges,
+            })
+            await executeClientAction('fit_view', {})
+          }
+        }
       }
-      const newMsg = {
-        ...last,
-        tool_calls: last.tool_calls.map((x) => (x.id === tc.id ? updatedTc : x)),
-      }
-      upsertMessage(newMsg)
     }
   }
 
@@ -386,7 +483,9 @@ export function AIAssistantPanel() {
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '300ms' }} />
             </div>
-            <span className="text-[12px] text-[hsl(var(--muted-foreground))] italic">小助手思考中</span>
+            <span className="text-[12px] text-[hsl(var(--muted-foreground))] italic">
+              小助手工作中…可在下方再次发送来打断
+            </span>
           </div>
         )}
         {error && (
@@ -406,21 +505,21 @@ export function AIAssistantPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={configReady ? '告诉我你想做什么…（Enter 发送，Shift+Enter 换行）' : '请先在全局配置中配置模型'}
+            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
             rows={2}
-            disabled={!configReady || isSending}
+            disabled={!configReady}
             className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-3 py-2.5 leading-relaxed"
           />
           <Button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isSending || !configReady}
+            onClick={() => (isSending ? stopCurrent() : handleSend())}
+            disabled={!isSending && (!input.trim() || !configReady)}
             size="icon-sm"
-            variant="default"
+            variant={isSending ? 'destructive' : 'default'}
             className="!h-8 !w-8 flex-shrink-0 m-1"
-            title="发送 (Enter)"
+            title={isSending ? '停止 (再次发送也会自动停止)' : '发送 (Enter)'}
           >
             {isSending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Square className="w-3.5 h-3.5 fill-current" />
             ) : (
               <Send className="w-3.5 h-3.5" />
             )}
