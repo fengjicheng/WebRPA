@@ -1319,7 +1319,11 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                <Select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="!w-36 flex-shrink-0"
+                >
                   {categories.length === 0 ? (
                     <>
                       <option value="全部">全部</option>
@@ -1338,7 +1342,11 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
                     ))
                   )}
                 </Select>
-                <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="!w-32 flex-shrink-0"
+                >
                   <option value="newest">最新发布</option>
                   <option value="popular">最受欢迎</option>
                   <option value="downloads">下载最多</option>
