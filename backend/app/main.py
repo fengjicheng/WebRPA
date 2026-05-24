@@ -573,6 +573,20 @@ async def set_verbose_log(sid, data):
 
 
 @sio.event
+async def ai_client_action_ack(sid, data):
+    """AI 助手 client_action 真实执行结果回执（前端 → 后端）"""
+    try:
+        from app.services.ai_assistant_service import resolve_client_action
+        tool_call_id = data.get('tool_call_id')
+        result = data.get('result') or {}
+        if tool_call_id:
+            ok = resolve_client_action(tool_call_id, result)
+            print(f"[Socket] ai_client_action_ack: tool_call_id={tool_call_id}, success={result.get('success')}, resolved={ok}")
+    except Exception as e:
+        print(f"[Socket] ai_client_action_ack 处理失败: {e}")
+
+
+@sio.event
 async def set_current_workflow(sid, data):
     """设置当前活动的工作流ID（用于热键控制）"""
     workflow_id = data.get('workflowId')

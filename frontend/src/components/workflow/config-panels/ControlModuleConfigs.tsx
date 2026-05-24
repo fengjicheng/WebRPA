@@ -191,9 +191,9 @@ export function LoopConfig({ data, onChange }: ConfigProps) {
           <div className="space-y-2">
             <Label htmlFor="indexVariable">索引变量名</Label>
             <VariableInput
-              value={(data.indexVariable as string) || 'i'}
+              value={(data.indexVariable as string) || 'index'}
               onChange={(v) => onChange('indexVariable', v)}
-              placeholder="索引变量名（默认：i）"
+              placeholder="索引变量名（默认：index）"
             />
           </div>
           <div className="space-y-2">
@@ -236,9 +236,9 @@ export function LoopConfig({ data, onChange }: ConfigProps) {
           <div className="space-y-2">
             <Label htmlFor="indexVariable">循环变量名</Label>
             <VariableInput
-              value={(data.indexVariable as string) || 'i'}
+              value={(data.indexVariable as string) || 'index'}
               onChange={(v) => onChange('indexVariable', v)}
-              placeholder="循环变量名（默认：i）"
+              placeholder="循环变量名（默认：index）"
             />
           </div>
         </>

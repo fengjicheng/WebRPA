@@ -795,4 +795,22 @@ export function bindAssistantSocketEvents(handlers: {
   socketService.on('ai_assistant:tool_call', (data) => handlers.onToolCall?.(data))
   socketService.on('ai_assistant:tool_result', (data) => handlers.onToolResult?.(data))
   socketService.on('ai_assistant:assistant_partial', (data) => handlers.onAssistantPartial?.(data))
+
+  // 关键：后端发出 client_action 工具调用后会通过 socket 发请求让前端立即执行，
+  // 前端必须把真实执行结果通过 ack 事件回传，否则后端会等 30s 超时
+  socketService.on('ai_assistant:client_action_request', async (data: any) => {
+    const toolCallId = data?.tool_call_id
+    const action = data?.action
+    const payload = data?.payload || {}
+    if (!toolCallId || !action) return
+    try {
+      const result = await executeClientAction(action, payload)
+      socketService.emit('ai_client_action_ack', { tool_call_id: toolCallId, result })
+    } catch (err: any) {
+      socketService.emit('ai_client_action_ack', {
+        tool_call_id: toolCallId,
+        result: { success: false, error: err?.message || String(err) || '前端执行 client_action 异常' },
+      })
+    }
+  })
 }

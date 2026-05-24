@@ -268,7 +268,8 @@ export function AIAssistantPanel() {
 
   async function dispatchClientActions(allMessages: ChatMessage[], _sid: string) {
     if (!allMessages || allMessages.length === 0) return
-    // 遍历最近一批助手消息（可能多轮），处理所有还没派发的工具调用
+    // 注意：client_action 工具调用现在由后端 socket 通知前端 **即时执行**（见 aiAssistantSkills.ts
+    // 中 ai_assistant:client_action_request 监听），此处不再重复派发，仅处理 build_workflow 自动落地。
     const recent = allMessages.slice(-12)
     for (const msg of recent) {
       if (msg.role !== 'assistant' || !msg.tool_calls || !msg.tool_calls.length) continue
@@ -276,26 +277,7 @@ export function AIAssistantPanel() {
         const flagKey = `__client_executed_${tc.id}`
         if ((msg as any)[flagKey]) continue
 
-        // 1) AI 调 client_action：直接派发
-        if (tc.name === 'client_action') {
-          ;(msg as any)[flagKey] = true
-          const args: any = tc.arguments || {}
-          const action = args.action
-          const payload = args.payload || {}
-          if (!action) continue
-          const result = await executeClientAction(action, payload)
-          const updatedTc = {
-            ...tc,
-            status: result.success ? ('success' as const) : ('failed' as const),
-            result,
-          }
-          upsertMessage({
-            ...msg,
-            tool_calls: msg.tool_calls.map((x) => (x.id === tc.id ? updatedTc : x)),
-          })
-        }
-
-        // 2) AI 调用 build_workflow：自动把结果装入画布
+        // AI 调用 build_workflow：自动把结果装入画布
         if (tc.name === 'build_workflow' && tc.status === 'success' && tc.result) {
           ;(msg as any)[flagKey] = true
           const built: any = tc.result

@@ -95,6 +95,13 @@ class SocketService {
     }
   }
 
+  /** 通用事件发射（供 AI 助手 client_action ack 等场景使用） */
+  emit(event: string, data?: unknown) {
+    if (this.socket?.connected) {
+      this.socket.emit(event, data)
+    }
+  }
+
   // 播放音乐 - 显示播放器弹窗
   private playMusic(data: {
     requestId: string

@@ -300,6 +300,22 @@ CONTEXT_KEEP_RECENT = 20  # 压缩时保留最近多少条消息
 # 会话级"取消令牌"——用户在 AI 工作期间发新消息时，旧任务会读到这个 token 然后立刻退出
 _cancel_tokens: dict[str, asyncio.Event] = {}
 
+# client_action 等待前端回执：tool_call_id -> Future
+# 后端发出 client_action 工具调用 → 等前端通过 socket 把真实执行结果回传 → 后端继续
+_client_action_waiters: dict[str, asyncio.Future] = {}
+
+
+def resolve_client_action(tool_call_id: str, result: dict) -> bool:
+    """前端通过 socket 回传 client_action 真实执行结果时调用"""
+    fut = _client_action_waiters.get(tool_call_id)
+    if fut is None or fut.done():
+        return False
+    try:
+        fut.set_result(result)
+        return True
+    except Exception:
+        return False
+
 
 def cancel_session(session_id: str) -> bool:
     """中断指定会话当前正在跑的对话/工具任务"""
@@ -680,7 +696,48 @@ async def chat_once(
                         except Exception:
                             pass
                     try:
-                        exec_result = await execute_skill(tc.name, tc.arguments)
+                        # client_action 是一个特殊工具：本身在后端只产生意图，
+                        # 真正执行在前端。这里同步等前端通过 socket 回传执行结果，
+                        # 让 LLM 看到的是真实结果，避免「AI 说做了实际没做」。
+                        if tc.name == "client_action":
+                            fut: asyncio.Future = asyncio.get_running_loop().create_future()
+                            _client_action_waiters[tc.id] = fut
+                            try:
+                                # 通知前端立即执行（给 socket 派发更明确的事件）
+                                if on_event:
+                                    try:
+                                        await _maybe_await(on_event(
+                                            "client_action_request",
+                                            {
+                                                "tool_call_id": tc.id,
+                                                "action": (tc.arguments or {}).get("action"),
+                                                "payload": (tc.arguments or {}).get("payload") or {},
+                                            },
+                                        ))
+                                    except Exception:
+                                        pass
+                                # 最多等 30 秒
+                                front_result = await asyncio.wait_for(fut, timeout=30)
+                                # front_result 是 {success, message?, error?, data?}
+                                if front_result.get("success"):
+                                    exec_result = {"success": True, "result": {
+                                        "applied": True,
+                                        "action": (tc.arguments or {}).get("action"),
+                                        "message": front_result.get("message", ""),
+                                        "data": front_result.get("data"),
+                                    }}
+                                else:
+                                    exec_result = {
+                                        "error": front_result.get("error") or "前端执行失败",
+                                    }
+                            except asyncio.TimeoutError:
+                                exec_result = {"error": "前端执行超时（30 秒），请检查 WebRPA 浏览器编辑器是否打开"}
+                            except Exception as ex:
+                                exec_result = {"error": f"前端通信异常：{ex}"}
+                            finally:
+                                _client_action_waiters.pop(tc.id, None)
+                        else:
+                            exec_result = await execute_skill(tc.name, tc.arguments)
                     except Exception as ex:
                         exec_result = {"error": f"工具异常：{ex}"}
                     tc.completed_at = datetime.now()

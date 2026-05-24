@@ -71,20 +71,100 @@ PICKER_SCRIPT = """(function() {
         return path.join(' > ');
     }
     
-    // 查找相似元素
+    // 查找相似元素（多策略：先按 className 匹配，再按 tag + 父级结构，最后按 tag 同辈）
     function findSimilar(el) {
+        if (!el || el === document.documentElement || el === document.body) return [el];
+
         var tag = el.tagName;
-        var parent = el.parentElement;
-        if (!parent) return [el];
-        
-        // 同父元素下相同标签
-        var siblings = Array.from(parent.children).filter(function(c) {
-            return c.tagName === tag;
-        });
-        if (siblings.length > 1 && siblings.length <= 50) {
-            return siblings;
+        var classList = (el.className && typeof el.className === 'string')
+            ? el.className.trim().split(/\s+/).filter(function(c) { return c && !/^(active|hover|selected|focus|current)/i.test(c); })
+            : [];
+
+        // 策略 1：相同主要 className 的全局元素（最准确）
+        if (classList.length > 0) {
+            for (var i = 0; i < classList.length; i++) {
+                var cls = classList[i];
+                if (cls.length < 2) continue;
+                try {
+                    var nodes = document.querySelectorAll(tag.toLowerCase() + '.' + CSS.escape(cls));
+                    if (nodes.length >= 2 && nodes.length <= 200) {
+                        return Array.from(nodes);
+                    }
+                } catch (err) {}
+            }
         }
+
+        // 策略 2：父元素下相同 tag（原始逻辑）
+        var parent = el.parentElement;
+        if (parent) {
+            var siblings = Array.from(parent.children).filter(function(c) {
+                return c.tagName === tag;
+            });
+            if (siblings.length >= 2 && siblings.length <= 200) {
+                return siblings;
+            }
+        }
+
+        // 策略 3：祖父元素下，同 tag + 类似嵌套深度（处理 <div><a/></div><div><a/></div>）
+        var grand = parent && parent.parentElement;
+        if (grand) {
+            var pTag = parent.tagName;
+            var cousinParents = Array.from(grand.children).filter(function(c) {
+                return c.tagName === pTag;
+            });
+            var cousins = [];
+            for (var k = 0; k < cousinParents.length; k++) {
+                var matched = cousinParents[k].querySelector(tag.toLowerCase());
+                if (matched) cousins.push(matched);
+            }
+            if (cousins.length >= 2 && cousins.length <= 200) {
+                return cousins;
+            }
+        }
+
+        // 策略 4：相同 role 属性
+        if (el.getAttribute('role')) {
+            try {
+                var byRole = document.querySelectorAll(tag.toLowerCase() + '[role="' + el.getAttribute('role') + '"]');
+                if (byRole.length >= 2 && byRole.length <= 200) {
+                    return Array.from(byRole);
+                }
+            } catch (err) {}
+        }
+
         return [el];
+    }
+
+    // 给定一组相似元素，生成最佳 CSS selector 模式
+    function buildSimilarSelector(el, similar) {
+        if (similar.length <= 1) return getSelector(el);
+
+        var classList = (el.className && typeof el.className === 'string')
+            ? el.className.trim().split(/\s+/).filter(function(c) { return c && !/^(active|hover|selected|focus|current)/i.test(c); })
+            : [];
+
+        // 优先用 className（短而精）
+        for (var i = 0; i < classList.length; i++) {
+            var cls = classList[i];
+            if (cls.length < 2) continue;
+            try {
+                var sel = el.tagName.toLowerCase() + '.' + CSS.escape(cls);
+                var hits = document.querySelectorAll(sel);
+                if (hits.length === similar.length) {
+                    // 用 :nth-of-type 兼容，大多数 RPA 引擎更熟
+                    return sel;
+                }
+            } catch (err) {}
+        }
+
+        // 退而求其次：parent + nth-of-type
+        var parent = el.parentElement;
+        if (parent) {
+            var parentSel = getSelector(parent);
+            var tag = el.tagName.toLowerCase();
+            return parentSel + ' > ' + tag + ':nth-of-type({index})';
+        }
+        return getSelector(el);
     }
     
     // 鼠标移动高亮
@@ -122,16 +202,8 @@ PICKER_SCRIPT = """(function() {
         if (e.altKey) {
             // Alt+点击：选择相似元素
             var similar = findSimilar(el);
-            var selector = getSelector(el);
-            
-            // 生成带 {index} 的模式
-            var parent = el.parentElement;
-            if (parent && similar.length > 1) {
-                var parentSel = getSelector(parent);
-                var tag = el.tagName.toLowerCase();
-                selector = parentSel + ' > ' + tag + ':nth-of-type({index})';
-            }
-            
+            var selector = buildSimilarSelector(el, similar);
+
             window.__elementPickerSimilar = {
                 pattern: selector,
                 count: similar.length,
@@ -139,7 +211,7 @@ PICKER_SCRIPT = """(function() {
                 minIndex: 1,
                 maxIndex: similar.length
             };
-            
+
             tip.textContent = '已选择 ' + similar.length + ' 个相似元素';
             tip.style.background = '#059669';
             console.log('[ElementPicker] Similar selected:', selector, 'count:', similar.length);
