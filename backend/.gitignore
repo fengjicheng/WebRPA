@@ -9,12 +9,12 @@ __pycache__/
 *.so
 .Python
 
-# 虚拟环境（如果有）
+# 虚拟环境
 venv/
 env/
 ENV/
 
-# 上传文件（用户数据）
+# 上传文件（用户数据，可能含敏感内容）
 uploads/
 browser_data/
 
@@ -24,10 +24,25 @@ poppler/
 # AI 模型文件（体积巨大）
 data/easyocr_models/
 data/whisper_models/
+models/
 
-# 数据文件（用户数据）
+# ============ 用户数据/敏感数据（防泄露） ============
+# 计划任务及其日志
 data/scheduled_tasks.json
 data/scheduled_task_logs.json
+
+# 后端持久化全局变量（用户可能存放 Token 等）
+data/global_vars.json
+
+# 自定义模块（可能含用户业务逻辑）
+data/custom_modules/
+
+# AI 助手会话历史 + 长期记忆（含用户对话内容）
+data/ai_assistant/
+
+# 自动化日志
+@AutomationLog.txt
+allure_reports/
 
 # 日志
 *.log
