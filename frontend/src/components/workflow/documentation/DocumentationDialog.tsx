@@ -366,7 +366,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
               )}
             </div>
             <div className="px-4 py-2.5 border-t border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))] text-center shrink-0 bg-[hsl(var(--card)/0.5)]">
-              © 2026 青云制作_彭明航 版权所有
+              © {new Date().getFullYear()} 青云制作_彭明航 版权所有
             </div>
           </div>
 
