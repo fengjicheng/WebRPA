@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { imageAssetApi } from '@/services/api'
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -875,8 +876,8 @@ export function ImageAssetsPanel() {
       )}
 
       {/* 图片预览对话框 */}
-      {previewAsset && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setPreviewAsset(null)}>
+      {previewAsset && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center" style={{ zIndex: 2147483646 }} onClick={() => setPreviewAsset(null)}>
           <div className="relative max-w-[90vw] max-h-[90vh] animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
             <button
               className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
@@ -892,7 +893,8 @@ export function ImageAssetsPanel() {
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <ConfirmDialog />

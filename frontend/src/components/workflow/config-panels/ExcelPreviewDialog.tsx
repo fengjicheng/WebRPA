@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { dataAssetApi } from '@/services/api'
@@ -222,9 +223,10 @@ export function ExcelPreviewDialog({
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in"
+      className="fixed inset-0 flex items-center justify-center bg-black/40 animate-fade-in"
+      style={{ zIndex: 2147483646 }}
       onMouseUp={handleMouseUp}
     >
       <div className="bg-white rounded-xl shadow-2xl w-[90vw] max-w-5xl h-[80vh] flex flex-col overflow-hidden animate-scale-in">
@@ -324,6 +326,7 @@ export function ExcelPreviewDialog({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
