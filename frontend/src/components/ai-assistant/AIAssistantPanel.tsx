@@ -26,6 +26,8 @@ import {
   onAssistantUiEvent,
 } from '@/services/aiAssistantSkills'
 import { MessageBubble } from './MessageBubble'
+import { PanelResizer } from '@/components/workflow/PanelResizer'
+import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 const QUICK_PROMPTS = [
   { text: '帮我新建一个打开网页的工作流', icon: Zap, color: 'icon-chip-success' },
@@ -300,221 +302,39 @@ export function AIAssistantPanel() {
     }
   }
 
+  // 受 layoutStore 控制的宽度（用户可拖拽左边缘）
+  const aiAssistantWidth = useLayoutStore((s) => s.aiAssistantWidth)
+  const setAiAssistantWidth = useLayoutStore((s) => s.setAiAssistantWidth)
+  const [draftWidth, setDraftWidth] = useState<number | null>(null)
+  const effectiveWidth = draftWidth ?? aiAssistantWidth
+
   if (!isOpen) return null
 
   return (
     <div
       className={
         'fixed top-0 right-0 h-screen z-50 ' +
-        'w-[440px] max-w-full responsive-drawer-right ' +
+        'max-w-full responsive-drawer-right ' +
         'bg-[hsl(var(--card))] border-l border-[hsl(var(--border))] shadow-pop-2xl ' +
         'flex flex-col animate-slide-in-right'
       }
+      style={{
+        width: effectiveWidth,
+        transition: draftWidth === null ? 'width 200ms ease-out' : 'none',
+      }}
     >
-      {/* 顶部装饰条 */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[hsl(var(--brand-500))] via-[hsl(var(--brand-400))] to-[hsl(var(--info-500))]" />
+      {/* 左边缘拖拽手柄 */}
+      <PanelResizer
+        direction="horizontal"
+        side="left"
+        size={effectiveWidth}
+        minSize={LAYOUT_LIMITS.aiAssistant.min}
+        maxSize={LAYOUT_LIMITS.aiAssistant.max}
+        factor={-1}
+        onLive={(w) => setDraftWidth(w)}
+        onCommit={(w) => {
+          setAiAssistantWidth(w)
+          setDraftWidth(null)
+        }}
+      />
 
-      {/* 头部 */}
-      <div
-        className="flex items-center justify-between px-4 h-14 border-b border-[hsl(var(--border))] flex-shrink-0"
-        style={{ background: 'linear-gradient(180deg, hsl(var(--brand-50) / 0.6), hsl(var(--card)))' }}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          {/* 渐变 LOGO 圆环 */}
-          <div className="relative flex-shrink-0">
-            <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-1 ring-[hsl(var(--brand-500)/0.3)]">
-              <Sparkles className="w-4 h-4 text-white" strokeWidth={2.4} />
-            </div>
-            {configReady && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[hsl(var(--success-500))] border-2 border-[hsl(var(--card))] shadow-success-glow animate-pulse-ring" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="text-[14px] font-bold leading-tight tracking-tight text-gradient">
-              WebRPA 小助手
-            </div>
-            <div className="text-[11px] text-[hsl(var(--muted-foreground))] leading-tight truncate mt-0.5 flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${configReady ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--warning-500))]'}`} />
-              {configReady ? resolvedConfig.model : '尚未配置模型'}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Button variant="ghost" size="icon-sm" title="新对话" onClick={handleNewSession}>
-            <Plus className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant={showSessions ? 'tonal' : 'ghost'}
-            size="icon-sm"
-            title="历史对话"
-            onClick={() => setShowSessions((v) => !v)}
-          >
-            <History className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="关闭" onClick={() => setOpen(false)}>
-            <X className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* 会话列表抽屉 */}
-      {showSessions && (
-        <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] max-h-72 overflow-y-auto animate-fade-in-down flex-shrink-0">
-          {sessions.length === 0 ? (
-            <div className="empty-state py-8">
-              <div className="empty-state-icon w-12 h-12 mb-2">
-                <History className="w-5 h-5" />
-              </div>
-              <div className="empty-state-title text-[13px]">暂无历史对话</div>
-            </div>
-          ) : (
-            <div className="py-1.5 space-y-0.5 px-2">
-              {sessions.map((s) => (
-                <div
-                  key={s.id}
-                  onClick={() => handleSelectSession(s.id)}
-                  className={
-                    'group flex items-start gap-2 px-2.5 py-2 cursor-pointer rounded-[8px] transition-all duration-150 ' +
-                    (s.id === currentSessionId
-                      ? 'bg-[hsl(var(--brand-100))] border border-[hsl(var(--brand-500)/0.3)] shadow-xs'
-                      : 'border border-transparent hover:bg-[hsl(var(--card))] hover:border-[hsl(var(--border))] hover:shadow-xs')
-                  }
-                >
-                  <div className="icon-chip icon-chip-brand w-7 h-7 flex-shrink-0">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] truncate">
-                      {s.title}
-                    </div>
-                    <div className="text-[11px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">
-                      {s.last_message_preview || `${s.message_count} 条消息`}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => handleDeleteSession(s.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-[5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-all"
-                    title="删除"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.length === 0 && !isSending && (
-          <div className="h-full flex flex-col items-center justify-center text-center px-2 animate-fade-in-up">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[hsl(var(--brand-500)/0.4)] to-[hsl(var(--info-500)/0.4)] blur-xl" />
-              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[hsl(var(--brand-500))] to-[hsl(var(--brand-700))] flex items-center justify-center shadow-brand-glow ring-2 ring-[hsl(var(--brand-500)/0.25)]">
-                <Sparkles className="w-7 h-7 text-white" strokeWidth={2.2} />
-              </div>
-            </div>
-            <div className="text-[16px] font-bold text-gradient mb-1.5 tracking-tight">
-              你好，我是 WebRPA 小助手
-            </div>
-            <div className="text-[12.5px] text-[hsl(var(--slate-600))] leading-relaxed max-w-[340px] mb-5">
-              我了解 WebRPA 的方方面面，能帮你搭建工作流、运行任务、答疑解惑
-            </div>
-
-            <div className="w-full max-w-[360px] space-y-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))] mb-2 flex items-center gap-1.5">
-                <Zap className="w-3 h-3" />
-                快速开始
-              </div>
-              {QUICK_PROMPTS.map((q, idx) => {
-                const Icon = q.icon
-                return (
-                  <button
-                    key={q.text}
-                    onClick={() => handleSend(q.text)}
-                    disabled={!configReady || isSending}
-                    className="w-full row-card text-left disabled:opacity-50 disabled:cursor-not-allowed text-[12.5px]"
-                    style={{ animation: `fadeInUp ${220 + idx * 60}ms cubic-bezier(0.25, 1, 0.5, 1) both` }}
-                  >
-                    <span className={`icon-chip ${q.color} w-7 h-7`}>
-                      <Icon className="w-3.5 h-3.5" />
-                    </span>
-                    <span className="flex-1 text-[hsl(var(--slate-700))]">{q.text}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {!configReady && (
-              <div className="status-row status-row-warning mt-5 max-w-[340px]">
-                <Settings className="w-3.5 h-3.5 shrink-0" />
-                <span className="text-[12px]">请先在全局配置中填写小助手的模型</span>
-              </div>
-            )}
-          </div>
-        )}
-        {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} />
-        ))}
-        {isSending && (
-          <div className="flex items-center gap-2 pl-11">
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-500))] animate-pulse" style={{ animationDelay: '300ms' }} />
-            </div>
-            <span className="text-[12px] text-[hsl(var(--muted-foreground))] italic">
-              小助手工作中…可在下方再次发送来打断
-            </span>
-          </div>
-        )}
-        {error && (
-          <div className="status-row status-row-danger animate-fade-in-up">
-            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 break-words text-[12px]">{error}</div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* 输入区 */}
-      <div className="border-t border-[hsl(var(--border))] p-3 bg-[hsl(var(--slate-50))] flex-shrink-0">
-        <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
-            rows={2}
-            disabled={!configReady}
-            className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-3 py-2.5 leading-relaxed"
-          />
-          <Button
-            onClick={() => (isSending ? stopCurrent() : handleSend())}
-            disabled={!isSending && (!input.trim() || !configReady)}
-            size="icon-sm"
-            variant={isSending ? 'destructive' : 'default'}
-            className="!h-8 !w-8 flex-shrink-0 m-1"
-            title={isSending ? '停止 (再次发送也会自动停止)' : '发送 (Enter)'}
-          >
-            {isSending ? (
-              <Square className="w-3.5 h-3.5 fill-current" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
-          </Button>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-[10.5px] text-[hsl(var(--muted-foreground))] px-1">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${resolvedConfig.enable_tools ? 'bg-[hsl(var(--success-500))]' : 'bg-[hsl(var(--slate-400))]'}`} />
-            <Wrench className="w-2.5 h-2.5" />
-            <span className="font-medium">{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
-          </div>
-          <span className="font-mono">WebRPA AI · v2</span>
-        </div>
-      </div>
-    </div>
-  )
-}

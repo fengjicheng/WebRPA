@@ -221,7 +221,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
         {/* 头部 */}
         <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b border-gray-200 to-white">
           <div className="flex items-center gap-3">
-            <div className="bg-[hsl(var(--card))] w-10 h-10 rounded-lg flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
