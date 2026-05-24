@@ -67,7 +67,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     currentExecutionWorkflowId,
   } = useWorkflowStore()
 
-  const { alert, ConfirmDialog } = useConfirm()
+  const { alert, confirm, ConfirmDialog } = useConfirm()
   const logEndRef = useRef<HTMLDivElement>(null)
 
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -238,14 +238,14 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
   const handleDownloadData = useCallback(async () => {
     setDownloading(true)
     try {
-      // 优先：从后端取完整数据（包含未在预览中展示的）
+      // 优先：从后端取完整数据（包含所有写入的行，不受前端预览数量影响）
+      let backendError = ''
       if (currentExecutionWorkflowId) {
         try {
           const result = await workflowApi.getFullData(currentExecutionWorkflowId)
           if (result.success && result.data) {
             const { rows, columns: serverColumns, total } = result.data
             if (total && rows.length > 0) {
-              // 列顺序：优先后端列顺序，缺失的列再从行数据中补齐
               const finalCols: string[] = [...serverColumns]
               const seen = new Set<string>(finalCols)
               rows.forEach(r => {
@@ -259,22 +259,38 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               downloadCsv(rows as DataRow[], finalCols)
               return
             }
+            // total === 0：后端确实没有数据，改用本地兜底
+            backendError = 'empty'
+          } else {
+            backendError = result.error || ''
           }
-        } catch {
-          // 后端失败时回落到本地数据
+        } catch (e) {
+          backendError = e instanceof Error ? e.message : String(e)
         }
       }
 
       // 回退：使用本地预览数据（用户手动添加的或没有执行记录的场景）
       if (collectedData.length === 0) {
-        await alert('暂无数据可下载')
+        await alert(
+          backendError && backendError !== 'empty'
+            ? `从后端获取完整数据失败：${backendError}\n并且本地没有任何收集数据可下载`
+            : '暂无数据可下载',
+        )
         return
+      }
+      // 如果是"后端有 ID 但拿不到完整数据"，告诉用户可能存在不一致，再让 ta 决定
+      if (backendError && backendError !== 'empty') {
+        const ok = await confirm(
+          `无法从后端获取完整数据（${backendError}）。\n是否使用本地预览的 ${collectedData.length} 条数据继续下载？`,
+          { title: '后端取数失败', type: 'warning', confirmText: '继续下载本地' },
+        )
+        if (!ok) return
       }
       downloadCsv(collectedData, columns)
     } finally {
       setDownloading(false)
     }
-  }, [currentExecutionWorkflowId, collectedData, columns, downloadCsv, alert])
+  }, [currentExecutionWorkflowId, collectedData, columns, downloadCsv, alert, confirm])
 
   // 监听 AI 小助手发起的 UI 事件
   useEffect(() => {

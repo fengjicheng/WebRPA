@@ -427,10 +427,14 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
                 print(f"[run_execution] 保持浏览器打开（配置已禁用或未配置）")
             
             print(f"[run_execution] 发送 execution:completed 事件")
-            # 限制发送的数据量，避免消息过大导致传输失败
+            # 推送给前端用于"下载/预览"。把上限提到 5000，让前端能直接展示
+            # 实际写入的全部数据（绝大多数工作流都不超过这个量级）。
+            # 超出时仍然截断，避免单条 socket 消息过大被传输层丢弃；
+            # 用户依旧可通过 /workflows/{id}/data/full 接口拿到完整数据。
             collected_data_to_send = execution_data.get(workflow_id, [])
-            if len(collected_data_to_send) > 20:
-                collected_data_to_send = collected_data_to_send[:20]  # 只发送前20条
+            full_total = len(collected_data_to_send)
+            if full_total > 5000:
+                collected_data_to_send = collected_data_to_send[:5000]
             
             await sio.emit('execution:completed', {
                 'workflowId': workflow_id,
@@ -441,6 +445,7 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
                     'dataFile': result.data_file,
                 },
                 'collectedData': collected_data_to_send,
+                'collectedDataTotal': full_total,
             })
             print(f"[run_execution] execution:completed 事件已发送")
             
