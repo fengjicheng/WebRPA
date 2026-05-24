@@ -16,6 +16,7 @@ import { LocalWorkflowDialog } from './LocalWorkflowDialog'
 import { ScheduledTasksDialog } from '../scheduled-tasks/ScheduledTasksDialog'
 import { PhoneMirrorDialog } from './PhoneMirrorDialog'
 import { VariableTrackingPanel } from './VariableTrackingPanel'
+import { ScreensaverDialog } from './ScreensaverDialog'
 import { ScreenshotNameDialog, ScreenshotErrorDialog } from './ScreenshotNameDialog'
 import { useClipboardImageMonitor } from '@/hooks/useClipboardImageMonitor'
 import { customModulesApi } from '@/services/api'
@@ -34,6 +35,7 @@ import {
   EyeOff,
   Smartphone,
   Activity,
+  Sparkles,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -68,6 +70,7 @@ export function Toolbar() {
   const [showScheduledTasks, setShowScheduledTasks] = useState(false)
   const [showPhoneMirror, setShowPhoneMirror] = useState(false)
   const [showVariableTracking, setShowVariableTracking] = useState(false)
+  const [showScreensaver, setShowScreensaver] = useState(false)
   const [defaultFolder, setDefaultFolder] = useState('')
   const [showScreenshotNameDialog, setShowScreenshotNameDialog] = useState(false)
   const [screenshotAsset, setScreenshotAsset] = useState<any>(null)
@@ -1404,6 +1407,10 @@ export function Toolbar() {
               <Clock className="w-4 h-4 mr-2 text-[hsl(var(--warning-500))]" />
               计划任务
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowScreensaver(true)}>
+              <Sparkles className="w-4 h-4 mr-2 text-[hsl(var(--brand-500))]" />
+              屏保弹幕
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowDocumentation(true)}>
               <BookOpen className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
@@ -1459,6 +1466,12 @@ export function Toolbar() {
         workflowId={workflowId || ''}
         isOpen={showVariableTracking}
         onClose={() => setShowVariableTracking(false)}
+      />
+
+      {/* 屏保弹幕对话框 */}
+      <ScreensaverDialog
+        open={showScreensaver}
+        onClose={() => setShowScreensaver(false)}
       />
       
       {/* 确认对话框 */}

@@ -401,3 +401,15 @@ export const customModulesApi = {
   incrementUsage: (id: string) =>
     apiRequest(`/custom-modules/${id}/increment-usage`, { method: 'POST' }),
 }
+
+
+// ==================== 屏保弹幕 API ====================
+export const screensaverApi = {
+  start: (config: Record<string, unknown>) =>
+    apiRequest('/screensaver/start', {
+      method: 'POST',
+      body: JSON.stringify({ config }),
+    }),
+  stop: () => apiRequest('/screensaver/stop', { method: 'POST' }),
+  status: () => apiRequest<{ running: boolean; pid?: number }>('/screensaver/status'),
+}
