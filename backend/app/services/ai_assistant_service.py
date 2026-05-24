@@ -165,7 +165,11 @@ async def _call_llm(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
-    """调用 LLM 接口（OpenAI 兼容协议）"""
+    """调用 LLM 接口（OpenAI 兼容协议）
+
+    NVIDIA NIM 免费层 / 部分公网模型经常出现连接被对端中断（Server disconnected）、
+    瞬时 5xx、429 限流，所以这里做指数退避重试。
+    """
     if not config.model:
         raise LLMError("模型名称不能为空")
 
@@ -185,30 +189,80 @@ async def _call_llm(
     if config.api_key:
         headers["Authorization"] = f"Bearer {config.api_key}"
 
-    async with httpx.AsyncClient(timeout=180) as client:
-        try:
-            resp = await client.post(url, json=body, headers=headers)
-        except httpx.TimeoutException:
-            raise LLMError("LLM 请求超时（超过 180 秒）")
-        except httpx.ConnectError as e:
-            raise LLMError(f"无法连接到 LLM 服务: {e}")
-        except Exception as e:
-            raise LLMError(f"LLM 请求异常: {e}")
+    # 退避重试参数：最多 3 次（即首次 + 2 次重试），每次延迟翻倍
+    MAX_ATTEMPTS = 3
+    BASE_DELAY = 1.5  # 秒
+    last_err: Exception | None = None
 
-    if resp.status_code != 200:
-        # 解析错误信息
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(connect=15.0, read=180.0, write=30.0, pool=15.0),
+                http2=False,
+            ) as client:
+                resp = await client.post(url, json=body, headers=headers)
+        except httpx.TimeoutException as e:
+            last_err = e
+            # 超时通常重试也没用，但 connect timeout 值得再试一次
+            if attempt < MAX_ATTEMPTS and isinstance(e, (httpx.ConnectTimeout, httpx.PoolTimeout)):
+                await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
+                continue
+            raise LLMError(f"LLM 请求超时（{type(e).__name__}）。建议：检查网络/降低 max_tokens/精简上下文")
+        except httpx.ConnectError as e:
+            last_err = e
+            if attempt < MAX_ATTEMPTS:
+                await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
+                continue
+            raise LLMError(f"无法连接到 LLM 服务：{e}。建议：检查代理/API 地址是否正确")
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.NetworkError) as e:
+            # 这些错误典型是 NVIDIA NIM 免费层的「Server disconnected without sending a response」
+            last_err = e
+            if attempt < MAX_ATTEMPTS:
+                wait = BASE_DELAY * (2 ** (attempt - 1))
+                print(f"[AIAssistant] LLM 连接被对端中断，{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试：{e}")
+                await asyncio.sleep(wait)
+                continue
+            raise LLMError(
+                f"LLM 服务连接被中断（{type(e).__name__}）。"
+                f"NVIDIA NIM 免费层经常这样，已自动重试 {MAX_ATTEMPTS} 次仍失败。"
+                f"建议：①重新发送 ②换稳定的模型（DeepSeek / 智谱 GLM / 通义千问） ③开启代理"
+            )
+        except Exception as e:
+            last_err = e
+            raise LLMError(f"LLM 请求异常：{e}")
+
+        # 状态码判断
+        if resp.status_code == 200:
+            try:
+                return resp.json()
+            except Exception as e:
+                raise LLMError(f"无法解析 LLM 响应：{e}")
+
+        # 429 限流 / 5xx 服务端错误：可重试
+        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            try:
+                err = resp.json()
+                msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else err.get("message") or resp.text
+            except Exception:
+                msg = resp.text
+            if attempt < MAX_ATTEMPTS:
+                wait = BASE_DELAY * (2 ** (attempt - 1))
+                print(f"[AIAssistant] LLM 返回 {resp.status_code}（{msg[:80]}），{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试")
+                await asyncio.sleep(wait)
+                continue
+            raise LLMError(f"LLM 返回 {resp.status_code}：{msg}（已重试 {MAX_ATTEMPTS} 次）")
+
+        # 4xx 客户端错误（401/403/400 等）：直接抛出不重试
         try:
             err = resp.json()
             msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else None
             msg = msg or err.get("message") or resp.text
         except Exception:
             msg = resp.text
-        raise LLMError(f"LLM 返回 {resp.status_code}: {msg}")
+        raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
 
-    try:
-        return resp.json()
-    except Exception as e:
-        raise LLMError(f"无法解析 LLM 响应: {e}")
+    # 兜底（理论上不会走到）
+    raise LLMError(f"LLM 请求失败：{last_err}")
 
 
 def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]]:
