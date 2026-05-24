@@ -12,6 +12,71 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { localWorkflowApi, workflowApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 
+/**
+ * 把 AI 助手生成的节点（type 是 module_type 例如 'open_page'/'note'/'group'）
+ * 转换为 React Flow 内部需要的节点结构（type 是 'moduleNode'/'noteNode'/'groupNode'）
+ */
+function convertAiNodeToReactFlow(n: any): any {
+  const businessType = (n.type ?? n.data?.moduleType) as string
+  let frontendType: string
+
+  // 已经是前端格式直接保留
+  if (
+    businessType === 'moduleNode' ||
+    businessType === 'noteNode' ||
+    businessType === 'groupNode' ||
+    businessType === 'subflowHeaderNode'
+  ) {
+    frontendType = businessType
+  } else if (businessType === 'note') {
+    frontendType = 'noteNode'
+  } else if (businessType === 'group') {
+    frontendType = 'groupNode'
+  } else if (businessType === 'subflow_header') {
+    frontendType = 'subflowHeaderNode'
+  } else {
+    frontendType = 'moduleNode'
+  }
+
+  // 基础数据：label / moduleType / 其他配置字段都展开到 data
+  const baseData: Record<string, any> = {
+    label: n.data?.label ?? '',
+    moduleType: n.data?.moduleType ?? businessType,
+  }
+  // 把 data 里其它字段（remark/comment/content/config 等）合并展开
+  if (n.data && typeof n.data === 'object') {
+    for (const [k, v] of Object.entries(n.data)) {
+      if (k === 'config' && v && typeof v === 'object') {
+        // 兼容旧风格：把 config 内字段展平到 data 顶层
+        Object.assign(baseData, v)
+      } else if (k !== 'label' && k !== 'moduleType') {
+        baseData[k] = v
+      }
+    }
+  }
+
+  // 便签 / 分组节点的样式（默认尺寸，AI 没传时给个合理默认）
+  let style: Record<string, any> | undefined = n.style
+  if (frontendType === 'noteNode') {
+    style = { width: 220, height: 100, ...(n.style || {}) }
+    // 便签默认黄色
+    if (!baseData.color) baseData.color = '#fef08a'
+  } else if (frontendType === 'groupNode') {
+    style = { width: 360, height: 240, ...(n.style || {}) }
+    if (!baseData.color) baseData.color = '#3b82f6'
+  }
+
+  return {
+    id: n.id,
+    type: frontendType,
+    position: n.position || { x: 200, y: 200 },
+    data: baseData,
+    ...(style ? { style } : {}),
+    // 便签 / 分组放在底层
+    ...(frontendType === 'noteNode' || frontendType === 'groupNode' ? { zIndex: -1 } : {}),
+  }
+}
+
 export interface ClientActionPayload {
   action: string
   payload?: Record<string, any>
@@ -77,16 +142,7 @@ export async function executeClientAction(
           return { success: false, error: '没有可添加的节点' }
         }
         const store = useWorkflowStore.getState()
-        const xyNodes = nodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          position: n.position || { x: 200, y: 200 },
-          data: {
-            label: n.data?.label || n.type,
-            moduleType: n.type,
-            ...(n.data?.config || {}),
-          },
-        }))
+        const xyNodes = nodes.map(convertAiNodeToReactFlow)
         const xyEdges = edges.map((e: any) => ({
           id: e.id,
           source: e.source,
@@ -106,16 +162,7 @@ export async function executeClientAction(
         const nodes = (payload.nodes as any[]) || []
         const edges = (payload.edges as any[]) || []
         const name = (payload.name as string) || '未命名工作流'
-        const xyNodes = nodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          position: n.position || { x: 200, y: 200 },
-          data: {
-            label: n.data?.label || n.type,
-            moduleType: n.type,
-            ...(n.data?.config || {}),
-          },
-        }))
+        const xyNodes = nodes.map(convertAiNodeToReactFlow)
         useWorkflowStore.getState().loadWorkflow({
           nodes: xyNodes as any,
           edges: edges as any,

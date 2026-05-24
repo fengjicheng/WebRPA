@@ -465,12 +465,19 @@ def build_system_prompt(
 2. 当用户描述要做的事但没有明说节点时，先用 `search_modules` 搜出可能的模块
 3. **关键：用户让你"搭建/创建/做一个工作流"时，必须调用 `build_workflow` 一次性产出节点+边**。
    后台会自动把 build_workflow 的结果装入画布（你不需要再手动调 load_workflow_from_data）。
-4. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
-5. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测
-6. 长期偏好（"我习惯用 Edge"、"项目目录在 D:\\Tools"）请用 `remember` 写入；下次会话开始时自动有 `recall` 摘要
-7. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
-8. **效率优先：可以同时调用多个无依赖的工具**（例如同时 search_modules('键盘') 和 search_modules('循环')），后端会并行执行
-9. 关键节点完成后，可以调用 `client_action(action="show_toast", payload={message:"...", type:"success"})` 给用户一个明显的提示
+4. **生成工作流时务必兼顾"功能正确"和"排版美观、可读性高"**：
+   - 总是为整个工作流写 `title_note`，简述用途+前置条件，会变成顶部蓝色置顶便签
+   - 关键步骤为 step 写 `comment`，会自动生成黄色便签贴在节点上方，让用户一眼看懂在做什么
+   - 流程过长（>8 步）时把步骤分到不同 `section`（例如「准备阶段」「数据采集」「数据处理」「输出」），避免一长串
+   - 一行最多 8 个节点，超过会自动折回；优先靠 section 分行而不是堆在一起
+   - 节点 `label` 务必用中文动词短语（例如「打开登录页」、「输入账号」），而不是英文 type
+   - 在重要分支/循环/容易出错的地方追加 `notes` 提示
+5. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
+6. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测
+7. 长期偏好（"我习惯用 Edge"、"项目目录在 D:\\Tools"）请用 `remember` 写入；下次会话开始时自动有 `recall` 摘要
+8. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
+9. **效率优先：可以同时调用多个无依赖的工具**（例如同时 search_modules('键盘') 和 search_modules('循环')），后端会并行执行
+10. 关键节点完成后，可以调用 `client_action(action="show_toast", payload={message:"...", type:"success"})` 给用户一个明显的提示
 """)
 
     if user_extra_prompt:

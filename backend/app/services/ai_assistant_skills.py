@@ -280,44 +280,304 @@ async def skill_build_node(
 async def skill_build_workflow(
     name: str,
     steps: list[dict],
+    notes: list[dict] | None = None,
+    layout: str = "auto",
+    title_note: str | None = None,
     **_: Any,
 ) -> dict[str, Any]:
-    """根据顺序步骤生成完整工作流（节点 + 边）
+    """根据有序步骤生成完整工作流（节点 + 边 + 便签 + 智能排版）
 
-    steps: 形如 [{"type": "open_page", "label": "打开网页", "config": {"url": "..."}}, ...]
-    会按顺序依次连接相邻节点。
+    Args:
+        name: 工作流名称
+        steps: 有序步骤数组，每个元素：
+            {
+                "type": "open_page",                     # 必填：模块 type
+                "label": "打开网页",                      # 可选：节点显示名（推荐写）
+                "config": {"url": "..."},                # 可选：节点配置
+                "id": "step_open"                        # 可选：自定义 id（用于跳跃连接）
+                "next": "step_click",                    # 可选：指定连到哪个 id（默认下一条）
+                "section": "登录流程",                    # 可选：分段标题（同 section 在一行/一列）
+                "comment": "首先打开登录页面"             # 可选：在该节点旁边自动生成黄色便签
+            }
+        notes: 显式追加便签（任意位置）
+            [{"content": "...", "color": "yellow|blue|green|...",
+              "anchor_to": "step_open", "side": "right|top|bottom"}]
+            或 [{"content": "...", "x": 100, "y": 200}]
+        layout: 'auto' / 'horizontal' / 'grid'。auto 默认按 8 个一行折回
+        title_note: 顶部置顶的整体说明便签内容（不传则不生成）
+
+    返回 nodes/edges 数组可被前端 load_workflow_from_data 直接消费。
     """
     if not isinstance(steps, list) or not steps:
         return {"error": "steps 不能为空"}
 
+    # 节点尺寸常量（与前端默认一致）
+    NODE_W = 220
+    NODE_H = 100
+    GAP_X = 80          # 同一行节点之间水平间距
+    GAP_Y = 160         # 行间距（足够放置 between-node 的边/标签）
+    SECTION_GAP = 60    # 不同 section 之间额外间距
+    NOTE_W = 220
+    NOTE_H = 100
+    NOTE_GAP = 30       # 节点与便签之间的间距
+
+    # 起点（y 留出空间给 title_note + 步骤上方便签）
+    START_X = 120.0
+    START_Y = 280.0
+
+    # 1) 给每一步分配 id
+    step_ids: list[str] = []
+    user_ids: dict[str, str] = {}  # 用户给的 id → 实际 id
+    for idx, step in enumerate(steps):
+        sid = step.get("id") or _make_node_id()
+        # 防 id 冲突
+        if sid in user_ids.values():
+            sid = _make_node_id()
+        step_ids.append(sid)
+        if step.get("id"):
+            user_ids[step["id"]] = sid
+
+    # 2) 决定排版方式：auto = 按 section 分组 + 8 个一行折回
+    layout = (layout or "auto").lower()
+
+    # 收集 section 顺序
+    section_order: list[str] = []
+    section_for_idx: list[str] = []
+    for step in steps:
+        sec = step.get("section") or ""
+        if sec and sec not in section_order:
+            section_order.append(sec)
+        section_for_idx.append(sec)
+
+    # 计算每个步骤的位置
+    positions: list[tuple[float, float]] = []
+
+    if layout == "horizontal":
+        # 单行铺开（适合短工作流）
+        for idx in range(len(steps)):
+            x = START_X + idx * (NODE_W + GAP_X)
+            positions.append((x, START_Y))
+
+    elif layout == "grid":
+        # 强制网格 4 列
+        cols = 4
+        for idx in range(len(steps)):
+            row = idx // cols
+            col = idx % cols
+            x = START_X + col * (NODE_W + GAP_X)
+            y = START_Y + row * (NODE_H + GAP_Y)
+            positions.append((x, y))
+
+    else:
+        # auto：按 section 分行；同一 section 横向铺开，超 8 个换行
+        # 没有 section 时整体按 8 个一行折回（蛇形）
+        if section_order:
+            # 不同 section 各占一行（或多行）
+            current_y = START_Y
+            section_to_pos: dict[int, tuple[float, float]] = {}
+            for sec in section_order or [""]:
+                sec_indices = [i for i in range(len(steps)) if section_for_idx[i] == sec]
+                # 该 section 节点超 8 个则换行
+                row_size = 8
+                for j, sec_idx in enumerate(sec_indices):
+                    row = j // row_size
+                    col = j % row_size
+                    x = START_X + col * (NODE_W + GAP_X)
+                    y = current_y + row * (NODE_H + GAP_Y)
+                    section_to_pos[sec_idx] = (x, y)
+                # 更新下一段起始 y
+                used_rows = (len(sec_indices) - 1) // row_size + 1
+                current_y += used_rows * (NODE_H + GAP_Y) + SECTION_GAP
+            for i in range(len(steps)):
+                # 没标 section 的也归类到""
+                positions.append(section_to_pos.get(i, (START_X, START_Y)))
+        else:
+            # 没有 section：8 个一行蛇形折回
+            row_size = 8
+            for idx in range(len(steps)):
+                row = idx // row_size
+                col = idx % row_size
+                # 偶数行从左到右，奇数行从右到左 → 蛇形（连线最短）
+                if row % 2 == 1:
+                    col = row_size - 1 - col
+                x = START_X + col * (NODE_W + GAP_X)
+                y = START_Y + row * (NODE_H + GAP_Y)
+                positions.append((x, y))
+
+    # 3) 生成节点
     nodes: list[dict[str, Any]] = []
-    edges: list[dict[str, Any]] = []
     for idx, step in enumerate(steps):
         mtype = step.get("type")
         if not mtype:
             return {"error": f"第 {idx} 步缺少 type 字段"}
+        sid = step_ids[idx]
+        x, y = positions[idx]
+        # 业务配置全部直接展开到 data（NodeData 是扁平结构）
+        cfg = step.get("config") or {}
+        node_data: dict[str, Any] = {
+            "label": step.get("label") or mtype,
+            "moduleType": mtype,
+        }
+        # 备注（remark）会显示在节点底部
+        if step.get("comment"):
+            # comment 既是 remark，也会单独生成一个便签节点
+            node_data["remark"] = step["comment"][:80]
+        node_data.update(cfg)
+
         node = {
-            "id": _make_node_id(),
+            "id": sid,
             "type": mtype,
-            "position": {"x": 200.0 + (idx % 4) * 280.0, "y": 200.0 + (idx // 4) * 200.0},
-            "data": {
-                "label": step.get("label") or mtype,
-                "config": step.get("config") or {},
-            },
+            "position": {"x": float(x), "y": float(y)},
+            "data": node_data,
         }
         nodes.append(node)
-        if idx > 0:
+
+    # 4) 生成边（按 next/默认相邻）
+    edges: list[dict[str, Any]] = []
+
+    def _resolve_id(ref: str) -> str | None:
+        """先在 user_ids 里找，再在 step_ids 里精确找"""
+        if not ref:
+            return None
+        if ref in user_ids:
+            return user_ids[ref]
+        if ref in step_ids:
+            return ref
+        return None
+
+    for idx, step in enumerate(steps):
+        sid = step_ids[idx]
+        next_ref = step.get("next")
+        target_id: str | None = None
+        if next_ref:
+            target_id = _resolve_id(next_ref)
+        elif idx < len(steps) - 1:
+            target_id = step_ids[idx + 1]
+
+        if target_id and target_id != sid:
             edges.append({
-                "id": f"e-{nodes[idx - 1]['id']}-{node['id']}",
-                "source": nodes[idx - 1]["id"],
-                "target": node["id"],
+                "id": f"e-{sid}-{target_id}",
+                "source": sid,
+                "target": target_id,
             })
+
+    # 5) 生成便签（智能排版）
+    note_nodes: list[dict[str, Any]] = []
+
+    # 5a) 顶部"工作流说明"便签（如果有）
+    if title_note:
+        note_nodes.append({
+            "id": _make_node_id(),
+            "type": "note",
+            "position": {"x": float(START_X), "y": 60.0},
+            "data": {
+                "label": "",
+                "moduleType": "note",
+                "content": title_note[:600],
+                "color": "#bfdbfe",  # 蓝色：整体说明
+                "fontSize": 14,
+                "fontBold": True,
+            },
+            "style": {"width": max(NOTE_W * 2, 380), "height": 80},
+            "zIndex": -1,
+        })
+
+    # 5b) 每个 step 的 comment（如果有）→ 在该节点上方生成小便签
+    for idx, step in enumerate(steps):
+        if not step.get("comment"):
+            continue
+        sx, sy = positions[idx]
+        # 第一行的 step 上方可能与 title_note 重叠 → 这种情况放到节点右侧
+        title_overlap_zone = title_note is not None and sy < 200
+        if title_overlap_zone or sy - NOTE_H - NOTE_GAP < 50:
+            nx = sx + NODE_W + NOTE_GAP
+            ny = sy
+        else:
+            nx = sx
+            ny = sy - NOTE_H - NOTE_GAP
+        note_nodes.append({
+            "id": _make_node_id(),
+            "type": "note",
+            "position": {"x": float(nx), "y": float(ny)},
+            "data": {
+                "label": "",
+                "moduleType": "note",
+                "content": str(step["comment"])[:300],
+                "color": "#fef08a",  # 黄色：步骤注释
+                "fontSize": 12,
+            },
+            "style": {"width": NOTE_W, "height": NOTE_H},
+            "zIndex": -1,
+        })
+
+    # 5c) 显式追加的 notes
+    if notes:
+        color_map = {
+            "yellow": "#fef08a", "green": "#bbf7d0", "blue": "#bfdbfe",
+            "purple": "#ddd6fe", "pink": "#fbcfe8", "orange": "#fed7aa",
+            "white": "#ffffff", "gray": "#e5e7eb",
+        }
+        for n in notes:
+            content = (n.get("content") or "").strip()
+            if not content:
+                continue
+            color = color_map.get((n.get("color") or "yellow").lower(), "#fef08a")
+            anchor = n.get("anchor_to")
+            side = (n.get("side") or "right").lower()
+            nx: float
+            ny: float
+            if anchor:
+                anchor_id = _resolve_id(str(anchor))
+                if anchor_id and anchor_id in step_ids:
+                    aidx = step_ids.index(anchor_id)
+                    ax, ay = positions[aidx]
+                    if side == "top":
+                        nx = ax
+                        ny = ay - NOTE_H - NOTE_GAP
+                    elif side == "bottom":
+                        nx = ax
+                        ny = ay + NODE_H + NOTE_GAP
+                    elif side == "left":
+                        nx = ax - NOTE_W - NOTE_GAP
+                        ny = ay
+                    else:  # right
+                        nx = ax + NODE_W + NOTE_GAP
+                        ny = ay
+                else:
+                    nx = float(n.get("x", START_X))
+                    ny = float(n.get("y", START_Y))
+            else:
+                nx = float(n.get("x", START_X))
+                ny = float(n.get("y", START_Y))
+            note_nodes.append({
+                "id": _make_node_id(),
+                "type": "note",
+                "position": {"x": nx, "y": ny},
+                "data": {
+                    "label": "",
+                    "moduleType": "note",
+                    "content": content[:600],
+                    "color": color,
+                    "fontSize": int(n.get("font_size", 13)),
+                    "fontBold": bool(n.get("bold", False)),
+                    "fontItalic": bool(n.get("italic", False)),
+                },
+                "style": {
+                    "width": int(n.get("width", NOTE_W)),
+                    "height": int(n.get("height", NOTE_H)),
+                },
+                "zIndex": -1,
+            })
+
+    # 把便签放在节点之前（让 react-flow 渲染顺序合理；前端 zIndex 也设为 -1）
+    all_nodes = note_nodes + nodes
 
     return {
         "name": name,
-        "nodes": nodes,
+        "nodes": all_nodes,
         "edges": edges,
         "node_count": len(nodes),
+        "note_count": len(note_nodes),
         "edge_count": len(edges),
     }
 
@@ -1218,21 +1478,84 @@ def _register_all() -> None:
     ))
     registry.register(Skill(
         name="build_workflow",
-        description="根据有序的步骤数组生成完整的工作流（节点+边按顺序串联），前端可直接载入到画布",
+        description=(
+            "根据有序步骤生成一个完整工作流（节点 + 边 + 智能排版 + 自动便签注释）。"
+            "后端会做以下事情：①自动按 8 个一行折回排版避免拥挤 ②为带 comment 的步骤自动生成黄色便签贴在节点旁 "
+            "③可选 title_note 在画布顶部生成蓝色「工作流说明」便签 ④可选 notes 数组追加任意位置便签 "
+            "⑤同 section 字段会被分到一行，使工作流逻辑清晰可读。"
+            "前端调用此工具后会**自动把结果装入画布**，无需再调 load_workflow_from_data。"
+            "强烈建议为每一步写 label（节点显示名）和 comment（注释，会变成便签）。"
+        ),
         parameters={
             "type": "object",
             "properties": {
                 "name": {"type": "string", "description": "工作流名称"},
+                "title_note": {
+                    "type": "string",
+                    "description": "顶部置顶的整体说明便签（蓝色，加粗），简述这个工作流是干什么的、需要什么前置条件",
+                },
+                "layout": {
+                    "type": "string",
+                    "description": "排版方式：auto(默认)/horizontal(单行)/grid(4列网格)",
+                    "enum": ["auto", "horizontal", "grid"],
+                },
                 "steps": {
                     "type": "array",
+                    "description": "有序步骤。前后步骤会自动连线；可用 next 跳跃，可用 section 分组",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "type": {"type": "string", "description": "节点 module_type"},
-                            "label": {"type": "string"},
-                            "config": {"type": "object"},
+                            "type": {"type": "string", "description": "节点 module_type，例如 open_page/click_element"},
+                            "label": {"type": "string", "description": "节点显示名（推荐写中文，例如「打开登录页」）"},
+                            "config": {"type": "object", "description": "节点配置字段"},
+                            "id": {
+                                "type": "string",
+                                "description": "可选自定义 id（仅当本步骤会被其他步骤跳跃连接时才需要）",
+                            },
+                            "next": {
+                                "type": "string",
+                                "description": "可选指定下一节点 id（不写则连到下一个步骤）",
+                            },
+                            "section": {
+                                "type": "string",
+                                "description": "可选分段标题。同 section 的步骤会被排在一行/同一区域",
+                            },
+                            "comment": {
+                                "type": "string",
+                                "description": "可选注释。会自动生成黄色便签贴在节点上方，方便用户快速理解",
+                            },
                         },
                         "required": ["type"],
+                    },
+                },
+                "notes": {
+                    "type": "array",
+                    "description": "显式追加便签。任意位置 / 锚定到某个步骤旁",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "content": {"type": "string"},
+                            "color": {
+                                "type": "string",
+                                "enum": ["yellow", "green", "blue", "purple", "pink", "orange", "white", "gray"],
+                            },
+                            "anchor_to": {
+                                "type": "string",
+                                "description": "锚定到某个步骤的 id（写自定义 id 或步骤索引 id）",
+                            },
+                            "side": {
+                                "type": "string",
+                                "enum": ["top", "right", "bottom", "left"],
+                            },
+                            "x": {"type": "number", "description": "未锚定时的绝对 x 坐标"},
+                            "y": {"type": "number", "description": "未锚定时的绝对 y 坐标"},
+                            "width": {"type": "number"},
+                            "height": {"type": "number"},
+                            "font_size": {"type": "integer"},
+                            "bold": {"type": "boolean"},
+                            "italic": {"type": "boolean"},
+                        },
+                        "required": ["content"],
                     },
                 },
             },
