@@ -126,7 +126,11 @@ class ScheduledTaskManager:
                 
                 # 从队列中获取任务
                 task_id, trigger_type = await self.task_queue.get()
-                
+
+                # 出队时立刻从去重集合中移除（允许下一次入队）
+                if hasattr(self, '_pending_queued_ids'):
+                    self._pending_queued_ids.discard(task_id)
+
                 # 标记队列正在处理
                 self.queue_processing = True
                 
@@ -170,7 +174,19 @@ class ScheduledTaskManager:
         if self.task_queue is None:
             print(f"[ScheduledTaskManager] 错误: 任务队列未初始化")
             return
-        
+
+        # 防重复：当前任务正在执行 或 已在队列中（同一 task_id），直接丢弃避免堆积
+        if task.is_running:
+            print(f"[ScheduledTaskManager] 任务正在执行，跳过本次入队: {task.name} (来源: {trigger_type})")
+            return
+        # 用 _pending_queued_ids 跟踪「已入队但未执行」的任务
+        if not hasattr(self, '_pending_queued_ids'):
+            self._pending_queued_ids = set()
+        if task_id in self._pending_queued_ids:
+            print(f"[ScheduledTaskManager] 任务已在队列中等待，跳过重复入队: {task.name} (来源: {trigger_type})")
+            return
+        self._pending_queued_ids.add(task_id)
+
         # 检查任务是否已在队列中
         print(f"[ScheduledTaskManager] 将任务加入队列: {task.name} (触发方式: {trigger_type})")
         await self.task_queue.put((task_id, trigger_type))
@@ -371,6 +387,9 @@ class ScheduledTaskManager:
                 
             elif schedule_type == 'weekly':
                 # 每周执行
+                if not trigger.weekly_days:
+                    print(f"[ScheduledTaskManager] 周触发器缺少 weekly_days: {task.name}")
+                    return
                 hour, minute, second = map(int, trigger.weekly_time.split(':'))
                 # APScheduler的day_of_week: 0=周一, 6=周日
                 # 我们的weekly_days: 0=周日, 1=周一, ...
@@ -789,23 +808,45 @@ class ScheduledTaskManager:
                 print(f"[ScheduledTaskManager] 加载日志失败: {e}")
     
     def _save_logs(self):
-        """保存执行日志（带节流，避免高频写盘）"""
+        """保存执行日志（带节流，避免高频写盘）
+
+        节流策略：100ms 内的多次调用合并到一次延迟写入，确保最后一次状态一定落盘
+        """
         try:
             import time as _time
-            # 节流：100ms 内的多次调用合并
+            now = _time.time()
+
             if not hasattr(self, '_last_save_logs_at'):
                 self._last_save_logs_at = 0.0
-            if not hasattr(self, '_pending_save_logs'):
-                self._pending_save_logs = False
-            
-            now = _time.time()
-            # 距上次保存不足 100ms 时，标记 pending 后续合并
+            if not hasattr(self, '_pending_save_handle'):
+                self._pending_save_handle = None
+
+            # 距上次保存不足 100ms 时，调度一个延迟写入任务（如果还没有的话）
             if now - self._last_save_logs_at < 0.1:
-                self._pending_save_logs = True
-                return
-            self._last_save_logs_at = now
-            self._pending_save_logs = False
-            
+                if self._pending_save_handle is None:
+                    try:
+                        loop = self.event_loop or asyncio.get_event_loop()
+                        if loop and not loop.is_closed():
+                            def _flush():
+                                self._pending_save_handle = None
+                                self._do_save_logs()
+                            self._pending_save_handle = loop.call_later(0.12, _flush)
+                            return
+                    except Exception:
+                        pass
+                else:
+                    # 已有 pending flush，本次合并即可
+                    return
+
+            self._do_save_logs()
+        except Exception as e:
+            print(f"[ScheduledTaskManager] 保存日志失败: {e}")
+
+    def _do_save_logs(self):
+        """实际执行日志写入"""
+        try:
+            import time as _time
+            self._last_save_logs_at = _time.time()
             # 只保存最近1000条日志
             logs_to_save = sorted(self.logs, key=lambda x: x.start_time, reverse=True)[:1000]
             # 兼容 Pydantic v1/v2
@@ -818,7 +859,7 @@ class ScheduledTaskManager:
             with open(self.logs_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         except Exception as e:
-            print(f"[ScheduledTaskManager] 保存日志失败: {e}")
+            print(f"[ScheduledTaskManager] _do_save_logs 失败: {e}")
 
 
 # 全局计划任务管理器实例
