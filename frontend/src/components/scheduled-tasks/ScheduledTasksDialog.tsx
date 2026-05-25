@@ -1,4 +1,5 @@
 import { ScheduledTasksPage } from './ScheduledTasksPage'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface ScheduledTasksDialogProps {
   open: boolean
@@ -9,16 +10,19 @@ export function ScheduledTasksDialog({ open, onClose }: ScheduledTasksDialogProp
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
-      onClick={onClose}
-    >
+    <DialogPortal>
       <div
-        className="modern-dialog w-full max-w-[1400px] max-h-[92vh] flex flex-col animate-scale-in-bounce"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+        style={{ zIndex: 2147483646 }}
+        onClick={onClose}
       >
-        <ScheduledTasksPage onClose={onClose} />
+        <div
+          className="modern-dialog w-full max-w-[1400px] max-h-[92vh] flex flex-col animate-scale-in-bounce"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ScheduledTasksPage onClose={onClose} />
+        </div>
       </div>
-    </div>
+    </DialogPortal>
   )
 }

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { X, Code2, FileJson, FileText, Download, CheckCircle2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface ExportDialogProps {
   isOpen: boolean
@@ -88,6 +89,7 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
   if (!isOpen) return null
 
   return (
+    <DialogPortal>
     <AnimatePresence>
       <motion.div
         key="export-overlay"
@@ -95,7 +97,8 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+        style={{ zIndex: 2147483646 }}
         onClick={onClose}
       >
         <motion.div
@@ -196,5 +199,6 @@ export function ExportDialog({ isOpen, onClose, onExport }: ExportDialogProps) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    </DialogPortal>
   )
 }

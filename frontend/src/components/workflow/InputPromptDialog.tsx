@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { socketService } from '@/services/socket'
 import { X, List, Hash, Type, Lock, AlignLeft, File, Folder, CheckSquare, SlidersHorizontal, ListChecks } from 'lucide-react'
 import { getBackendUrl } from '@/services/api'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface PromptData {
   requestId: string
@@ -297,7 +298,8 @@ export function InputPromptDialog() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+    <DialogPortal>
+    <div className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }}>
       <div className="modern-dialog w-full max-w-md p-0 animate-scale-in-bounce">
         <div className="modern-dialog-header">
           <div className="modern-dialog-header-icon">
@@ -631,5 +633,6 @@ export function InputPromptDialog() {
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

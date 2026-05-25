@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useScheduledTaskStore, type ScheduledTaskTrigger } from '@/store/scheduledTaskStore'
 import { localWorkflowApi } from '@/services/api'
 import { Clock, Zap, Power, Repeat, X, Webhook } from 'lucide-react'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface TaskCreateDialogProps {
   open: boolean
@@ -328,7 +329,8 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
   if (!open) return null
   
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in" onClick={handleClose}>
+    <DialogPortal>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }} onClick={handleClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in" onClick={(e) => e.stopPropagation()}>
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -760,5 +762,6 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { X, FileJson, Trash2, RefreshCw, Search, FolderOpen, Clock, HardDrive } from 'lucide-react'
@@ -140,7 +141,8 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+    <DialogPortal>
+    <div className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }}>
       <div className="modern-dialog w-full max-w-2xl animate-scale-in-bounce flex flex-col" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {/* 标题栏 */}
         <div className="modern-dialog-header">
@@ -251,6 +253,7 @@ export function LocalWorkflowDialog({ isOpen, onClose, onLog }: LocalWorkflowDia
 
       <ConfirmDialog />
     </div>
+    </DialogPortal>
   )
 }
 

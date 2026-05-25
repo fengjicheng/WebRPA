@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useScheduledTaskStore, type ScheduledTask } from '@/store/scheduledTaskStore'
 import { CheckCircle2, XCircle, Clock, Trash2, RefreshCw, X } from 'lucide-react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface TaskLogsDialogProps {
   task: ScheduledTask
@@ -107,7 +108,8 @@ export function TaskLogsDialog({ task, open, onClose }: TaskLogsDialogProps) {
   if (!open) return null
   
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+    <DialogPortal>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }} onClick={onClose}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in" onClick={(e) => e.stopPropagation()}>
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -254,5 +256,6 @@ export function TaskLogsDialog({ task, open, onClose }: TaskLogsDialogProps) {
       </div>
       <ConfirmDialog />
     </div>
+    </DialogPortal>
   )
 }

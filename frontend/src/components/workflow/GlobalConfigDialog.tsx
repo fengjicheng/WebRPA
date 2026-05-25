@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
 import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check } from 'lucide-react'
 import { systemApi } from '@/services/api'
@@ -109,8 +110,10 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
   ]
 
   return (
+    <DialogPortal>
     <div
-      className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      style={{ zIndex: 2147483646 }}
       onClick={onClose}
     >
       <div
@@ -1517,5 +1520,6 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
       {/* 确认对话框 */}
       <ConfirmDialog />
     </div>
+    </DialogPortal>
   )
 }

@@ -27,7 +27,6 @@ import { ConfigPanel } from './ConfigPanel'
 import { LogPanel } from './LogPanel'
 import { Toolbar } from './Toolbar'
 import { RemoteCursor } from './RemoteCursor'
-import { EditorDockShell } from './EditorDockShell'
 import { socketService } from '@/services/socket'
 import { remoteService } from '@/services/remote'
 import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
@@ -1525,134 +1524,135 @@ export function WorkflowEditor() {
     <div className="h-full w-full flex flex-col">
       {/* 顶部工具栏 */}
       <Toolbar />
-
-      {/* 主内容区 - 三个核心面板可拖动停靠 */}
-      <div className="flex-1 overflow-hidden min-h-0 min-w-0">
-        <EditorDockShell
-          panels={{
-            modules: <ModuleSidebar />,
-            config: <ConfigPanel selectedNodeId={selectedNodeId} />,
-            log: <LogPanel onLogClick={handleLogClick} />,
-            center: (
-              <main
-                className="flex-1 relative gradient-mesh min-h-0 min-w-0 w-full h-full"
-                ref={reactFlowWrapper}
-              >
-                <ModuleCount />
-                <ModuleSearch reactFlowInstance={reactFlowInstance.current} />
-                <ControlsHelp />
-
-                {/* 远程光标 */}
-                {remoteConnected && reactFlowInstance.current && (
-                  <RemoteCursor
-                    flowToScreenPosition={(pos) => reactFlowInstance.current!.flowToScreenPosition(pos)}
-                  />
-                )}
-
-                {/* 拖拽文件提示遮罩 */}
-                {isDraggingFile && (
-                  <div className="absolute inset-0 z-50 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none animate-fade-in">
-                    <div className="glass-strong rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-scale-in">
-                      <div className="bg-[hsl(var(--card))] p-4 rounded-full shadow-lg">
-                        <FileJson className="w-10 h-10 text-white" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-semibold text-gradient">释放以导入工作流</p>
-                        <p className="text-sm text-muted-foreground mt-1">支持导入 .json 格式的工作流文件</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <ReactFlow
-                  nodes={nodes.map(n => ({
-                    ...n,
-                    data: {
-                      ...n.data
-                    }
-                  })) as Node<NodeData>[]}
-                  edges={edges.map(e => ({
-                    ...e,
-                    selected: selectedEdgeIds.includes(e.id),
-                    style: selectedEdgeIds.includes(e.id) ? { stroke: '#ef4444', strokeWidth: 3 } : e.style
-                  })) as typeof edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  isValidConnection={isValidConnection}
-                  onInit={onInit}
-                  onDrop={onDrop}
-                  onDragOver={onDragOver}
-                  onNodeClick={onNodeClick}
-                  onEdgeClick={onEdgeClick}
-                  onPaneClick={onPaneClick}
-                  onPaneContextMenu={handlePaneContextMenu}
-                  onMouseMove={onMouseMove}
-                  onSelectionChange={onSelectionChange}
-                  nodeTypes={nodeTypes}
-                  fitView
-                  snapToGrid
-                  snapGrid={[15, 15]}
-                  selectionOnDrag
-                  selectionMode={SelectionMode.Partial}
-                  selectNodesOnDrag={false}
-                  panOnDrag={[1]}
-                  panOnScroll={false}
-                  zoomOnScroll={false}
-                  zoomOnPinch={false}
-                  zoomOnDoubleClick={false}
-                  elevateNodesOnSelect={false}
-                  defaultEdgeOptions={{
-                    type: 'smoothstep',
-                    animated: true,
-                    selectable: true,
-                  }}
-                  proOptions={{ hideAttribution: true }}
-                >
-                  <Background gap={20} size={1.2} color="hsl(var(--slate-300))" />
-                  <Controls />
-                  <MiniMap
-                    nodeColor={(node) => {
-                      const data = node.data as NodeData
-                      if (data.moduleType?.startsWith('condition') || data.moduleType?.startsWith('loop') || data.moduleType?.startsWith('foreach')) {
-                        return '#22c55e'
-                      }
-                      if (data.moduleType?.includes('captcha')) {
-                        return '#f97316'
-                      }
-                      if (['select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'upload_file', 'download_file', 'save_image'].includes(data.moduleType)) {
-                        return '#a855f7'
-                      }
-                      return '#3b82f6'
-                    }}
-                    zoomable
-                    pannable
-                    onClick={handleMiniMapClick}
-                    maskColor="rgba(0, 0, 0, 0.1)"
-                    style={{
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                    }}
-                  />
-                </ReactFlow>
-
-                {/* 快速模块选择器 */}
-                <QuickModulePicker
-                  isOpen={showQuickPicker}
-                  position={quickPickerPosition}
-                  onClose={() => setShowQuickPicker(false)}
-                  onSelectModule={handleQuickModuleSelect}
-                  availableModules={getAllAvailableModules()}
-                  favoritesOnly={quickPickerFavoritesOnly}
-                />
-              </main>
-            ),
-          }}
+      
+      {/* 主内容区 */}
+      <div className="flex-1 flex overflow-hidden min-h-0 min-w-0">
+        {/* 左侧模块面板 */}
+        <ModuleSidebar />
+        
+        {/* 中间画布区域 */}
+        <main 
+          className="flex-1 relative gradient-mesh min-h-0 min-w-0"
+          ref={reactFlowWrapper}
+        >
+          <ModuleCount />
+          <ModuleSearch reactFlowInstance={reactFlowInstance.current} />
+          <ControlsHelp />
+          
+          {/* 远程光标 */}
+          {remoteConnected && reactFlowInstance.current && (
+            <RemoteCursor 
+              flowToScreenPosition={(pos) => reactFlowInstance.current!.flowToScreenPosition(pos)} 
+            />
+          )}
+          
+          {/* 拖拽文件提示遮罩 */}
+          {isDraggingFile && (
+            <div className="absolute inset-0 z-50 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none animate-fade-in">
+              <div className="glass-strong rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-scale-in">
+                <div className="bg-[hsl(var(--card))] p-4 rounded-full shadow-lg">
+                  <FileJson className="w-10 h-10 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-semibold text-gradient">释放以导入工作流</p>
+                  <p className="text-sm text-muted-foreground mt-1">支持导入 .json 格式的工作流文件</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <ReactFlow
+            nodes={nodes.map(n => ({
+              ...n,
+              data: {
+                ...n.data
+              }
+            })) as Node<NodeData>[]}
+            edges={edges.map(e => ({
+              ...e,
+              selected: selectedEdgeIds.includes(e.id),
+              style: selectedEdgeIds.includes(e.id) ? { stroke: '#ef4444', strokeWidth: 3 } : e.style
+            })) as typeof edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            isValidConnection={isValidConnection}
+            onInit={onInit}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onPaneClick={onPaneClick}
+            onPaneContextMenu={handlePaneContextMenu}
+            onMouseMove={onMouseMove}
+            onSelectionChange={onSelectionChange}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid
+            snapGrid={[15, 15]}
+            selectionOnDrag
+            selectionMode={SelectionMode.Partial}
+            selectNodesOnDrag={false}
+            panOnDrag={[1]}
+            panOnScroll={false}
+            zoomOnScroll={false}
+            zoomOnPinch={false}
+            zoomOnDoubleClick={false}
+            elevateNodesOnSelect={false}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: true,
+              selectable: true,
+            }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background gap={20} size={1.2} color="hsl(var(--slate-300))" />
+            <Controls />
+            <MiniMap 
+              nodeColor={(node) => {
+                const data = node.data as NodeData
+                if (data.moduleType?.startsWith('condition') || data.moduleType?.startsWith('loop') || data.moduleType?.startsWith('foreach')) {
+                  return '#22c55e'
+                }
+                if (data.moduleType?.includes('captcha')) {
+                  return '#f97316'
+                }
+                if (['select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'upload_file', 'download_file', 'save_image'].includes(data.moduleType)) {
+                  return '#a855f7'
+                }
+                return '#3b82f6'
+              }}
+              zoomable
+              pannable
+              onClick={handleMiniMapClick}
+              maskColor="rgba(0, 0, 0, 0.1)"
+              style={{
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                overflow: 'hidden',
+              }}
+            />
+          </ReactFlow>
+        </main>
+        
+        {/* 右侧配置面板 */}
+        <ConfigPanel selectedNodeId={selectedNodeId} />
+        
+        {/* 快速模块选择器 */}
+        <QuickModulePicker
+          isOpen={showQuickPicker}
+          position={quickPickerPosition}
+          onClose={() => setShowQuickPicker(false)}
+          onSelectModule={handleQuickModuleSelect}
+          availableModules={getAllAvailableModules()}
+          favoritesOnly={quickPickerFavoritesOnly}
         />
       </div>
+      
+      {/* 底部日志面板 */}
+      <LogPanel onLogClick={handleLogClick} />
       
       {/* 浏览器被占用提示弹窗 */}
       {showBrowserBusyDialog && (

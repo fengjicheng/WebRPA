@@ -8,6 +8,7 @@ import { documentContents } from './contents'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import type { DocumentationDialogProps } from './types'
 import { pinyinMatch } from '@/lib/pinyin'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProps) {
   const [selectedDoc, setSelectedDoc] = useState('getting-started')
@@ -203,6 +204,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   const currentDoc = documents.find(d => d.id === selectedDoc)
   
   return (
+    <DialogPortal>
     <AnimatePresence>
       <motion.div
         key="doc-overlay"
@@ -210,7 +212,8 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+        style={{ zIndex: 2147483646 }}
         onClick={onClose}
       >
         <motion.div
@@ -396,5 +399,6 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    </DialogPortal>
   )
 }

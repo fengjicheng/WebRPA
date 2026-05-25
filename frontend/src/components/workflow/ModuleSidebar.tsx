@@ -183,7 +183,6 @@ import {
 } from 'lucide-react'
 import { TestReportIcon } from './icons/TestReportIcon'
 import { PanelResizer } from './PanelResizer'
-import { DockHandle } from './DockHandle'
 import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
 // 收藏模块现在统一由 moduleStatsStore 管理，不再使用单独的 localStorage
@@ -2008,47 +2007,17 @@ function ModuleSidebarRaw() {
     return expandedCategories.has(categoryName)
   }
 
-  // 受 layoutStore 控制的尺寸（用户可拖拽 + 可在 zone 间切换）
-  const myZone = useLayoutStore((s) => s.panelDocks.modules)
+  // 受 layoutStore 控制的宽度（用户可拖拽）
   const leftWidth = useLayoutStore((s) => s.leftWidth)
-  const rightWidth = useLayoutStore((s) => s.rightWidth)
-  const topHeight = useLayoutStore((s) => s.topHeight)
-  const bottomHeight = useLayoutStore((s) => s.bottomHeight)
   const setLeftWidth = useLayoutStore((s) => s.setLeftWidth)
-  const setRightWidth = useLayoutStore((s) => s.setRightWidth)
-  const setTopHeight = useLayoutStore((s) => s.setTopHeight)
-  const setBottomHeight = useLayoutStore((s) => s.setBottomHeight)
-  const [draft, setDraft] = useState<number | null>(null)
-
-  const isHorizontalZone = myZone === 'left' || myZone === 'right'
-  const sizeFromStore = myZone === 'left' ? leftWidth : myZone === 'right' ? rightWidth : myZone === 'top' ? topHeight : bottomHeight
-  const limits = LAYOUT_LIMITS[myZone]
-  const effectiveSize = draft ?? sizeFromStore
-  const commitSize = (s: number) => {
-    if (myZone === 'left') setLeftWidth(s)
-    else if (myZone === 'right') setRightWidth(s)
-    else if (myZone === 'top') setTopHeight(s)
-    else setBottomHeight(s)
-  }
-  // factor 控制拖拽方向：左栏右拖变大、右栏右拖变小、上栏下拖变大、下栏上拖变大
-  const factor: 1 | -1 = myZone === 'left' || myZone === 'top' ? 1 : -1
-  const resizerSide: 'right' | 'left' | 'bottom' | 'top' =
-    myZone === 'left' ? 'right' : myZone === 'right' ? 'left' : myZone === 'top' ? 'bottom' : 'top'
-  const borderClass =
-    myZone === 'left' ? 'border-r' :
-    myZone === 'right' ? 'border-l' :
-    myZone === 'top' ? 'border-b' : 'border-t'
+  // 拖拽过程使用本地 state 避免 store 在每帧写入触发其他订阅者
+  const [draftWidth, setDraftWidth] = useState<number | null>(null)
+  const effectiveWidth = draftWidth ?? leftWidth
 
   return (
     <aside
-      className={`relative ${borderClass} border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col group/sidebar`}
-      style={{
-        ...(isHorizontalZone
-          ? { width: isCollapsed ? 48 : effectiveSize, height: '100%' }
-          : { height: isCollapsed ? 40 : effectiveSize, width: '100%' }),
-        transition: draft === null ? (isHorizontalZone ? 'width 200ms ease-out' : 'height 200ms ease-out') : 'none',
-        flex: '0 0 auto',
-      }}
+      className="relative border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] flex flex-col group/sidebar"
+      style={{ width: isCollapsed ? 48 : effectiveWidth, transition: draftWidth === null ? 'width 200ms ease-out' : 'none' }}
     >
       {/* 收起状态下的图标列表 */}
       {isCollapsed ? (
@@ -2080,7 +2049,6 @@ function ModuleSidebarRaw() {
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
-                <DockHandle panelId="modules" />
                 <div className="icon-block icon-block-brand !w-8 !h-8 !rounded-[8px]">
                   <Puzzle className="w-4 h-4" strokeWidth={2.4} />
                 </div>
@@ -2327,19 +2295,19 @@ function ModuleSidebarRaw() {
       {/* 确认对话框 */}
       <ConfirmDialog />
 
-      {/* 边缘拖拽手柄（仅未折叠时显示，会跟随 dock zone 自动选边）*/}
+      {/* 右边缘拖拽手柄（仅未折叠时显示）*/}
       {!isCollapsed && (
         <PanelResizer
-          direction={isHorizontalZone ? 'horizontal' : 'vertical'}
-          side={resizerSide}
-          size={effectiveSize}
-          minSize={limits.min}
-          maxSize={limits.max}
-          factor={factor}
-          onLive={(s) => setDraft(s)}
-          onCommit={(s) => {
-            commitSize(s)
-            setDraft(null)
+          direction="horizontal"
+          side="right"
+          size={effectiveWidth}
+          minSize={LAYOUT_LIMITS.left.min}
+          maxSize={LAYOUT_LIMITS.left.max}
+          factor={1}
+          onLive={(w) => setDraftWidth(w)}
+          onCommit={(w) => {
+            setLeftWidth(w)
+            setDraftWidth(null)
           }}
         />
       )}

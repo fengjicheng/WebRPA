@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { UrlInput } from '@/components/ui/url-input'
 import { browserApi, elementPickerApi } from '@/services/api'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface AutoBrowserDialogProps {
   isOpen: boolean
@@ -189,8 +190,10 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
   if (!isOpen) return null
 
   return (
+    <DialogPortal>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] animate-fade-in p-4"
+      className="fixed inset-0 flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] animate-fade-in p-4"
+      style={{ zIndex: 2147483646 }}
       onClick={onClose}
     >
       <div
@@ -396,5 +399,6 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
