@@ -11,6 +11,9 @@
 - 嵌入后的图像几乎无肉眼差异，但能抵抗常见编辑（缩放/裁剪/截屏/JPEG 重压缩等）
 - 双密码：password_img（图像置乱密码）+ password_wm（水印置乱密码）。提取时必须一致
 - 文字水印需要把"水印 bit 长度"传给提取端，本模块嵌入时会把它写进结果（resultVariable）
+
+注意：内部用 cv2.imdecode/imencode 替代 cv2.imread/imwrite，
+彻底支持 Windows 下含中文/特殊字符的文件路径（OpenCV 自身不支持非 ASCII 路径）。
 """
 from __future__ import annotations
 
@@ -35,6 +38,53 @@ def _ensure_parent(fp: Path) -> None:
         pass
 
 
+def _resolve_output_path(out_path: str, src_fp: Path, default_suffix: str = "_wm") -> Path | None:
+    """处理输出路径：支持目录（自动拼文件名）、相对路径、纯文件名"""
+    if not out_path:
+        return None
+    fp = Path(out_path).expanduser()
+    # 如果用户给的是已存在的目录，或者结尾是 / \\，自动按 "源文件名_wm.png" 拼
+    if (fp.exists() and fp.is_dir()) or out_path.endswith(("/", "\\")):
+        return (fp / f"{src_fp.stem}{default_suffix}.png").resolve()
+    # 没扩展名 → 默认 .png
+    if not fp.suffix:
+        return fp.with_suffix(".png").resolve()
+    return fp.resolve()
+
+
+def _imread_unicode(path: str, flags: int = -1):
+    """支持中文路径的 imread（用 numpy + cv2.imdecode 实现）"""
+    import numpy as np
+    import cv2
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+        arr = np.frombuffer(data, dtype=np.uint8)
+        img = cv2.imdecode(arr, flags)
+        return img
+    except Exception:
+        return None
+
+
+def _imwrite_unicode(path: str, img, ext: str | None = None) -> bool:
+    """支持中文路径的 imwrite（用 cv2.imencode + 二进制写文件）"""
+    import cv2
+    p = Path(path)
+    if ext is None:
+        ext = (p.suffix or ".png").lower()
+    if not ext.startswith("."):
+        ext = "." + ext
+    try:
+        ok, buf = cv2.imencode(ext, img)
+        if not ok:
+            return False
+        with open(path, "wb") as f:
+            f.write(buf.tobytes())
+        return True
+    except Exception:
+        return False
+
+
 def _import_bwm():
     """延迟导入 blind_watermark，并屏蔽它"first run"打印（每次新进程都会输出一次提示）"""
     from blind_watermark import WaterMark
@@ -44,6 +94,36 @@ def _import_bwm():
     except Exception:
         pass
     return WaterMark
+
+
+def _bwm_read_img_unicode(bwm, path: str) -> tuple[bool, str]:
+    """绕开 cv2.imread 的中文路径限制：自己读字节解码后塞给 bwm"""
+    import cv2
+    img = _imread_unicode(path, flags=cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return False, f"无法读取图像（可能格式不支持或路径含特殊字符）：{path}"
+    try:
+        bwm.read_img(img=img)
+        return True, ""
+    except Exception as e:
+        return False, f"图像读取失败：{e}"
+
+
+def _bwm_read_wm_image_unicode(bwm, path: str) -> tuple[bool, str, tuple[int, int] | None]:
+    """读水印图（绕过 cv2.imread 中文路径限制）。返回 (ok, err, (h, w))"""
+    import cv2
+    img = _imread_unicode(path, flags=cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return False, f"无法读取水印图：{path}", None
+    try:
+        h, w = int(img.shape[0]), int(img.shape[1])
+        # blind_watermark 0.4.4 的 read_wm(mode='bit') 接受 1D bool 数组 → 走完整内部流程
+        # （shuffle + bwm_core.read_wm），与 mode='img' 路径完全等价，但跳过 cv2.imread
+        wm_bits = (img.flatten() > 128)
+        bwm.read_wm(wm_bits, mode='bit')
+        return True, "", (h, w)
+    except Exception as e:
+        return False, f"水印图处理失败：{e}", None
 
 
 @register_executor
@@ -68,11 +148,9 @@ class BwmEmbedTextExecutor(ModuleExecutor):
         if not src_fp:
             return ModuleResult(success=False, error=f"原图不存在: {src_path}")
 
-        if not out_path:
-            return ModuleResult(success=False, error="输出路径不能为空")
-        out_fp = _resolve_path(out_path)
+        out_fp = _resolve_output_path(out_path, src_fp)
         if out_fp is None:
-            return ModuleResult(success=False, error="输出路径无效")
+            return ModuleResult(success=False, error="输出路径不能为空")
         _ensure_parent(out_fp)
 
         if not isinstance(text, str) or text == "":
@@ -81,11 +159,21 @@ class BwmEmbedTextExecutor(ModuleExecutor):
         try:
             WaterMark = _import_bwm()
             bwm = WaterMark(password_wm=password_wm, password_img=password_img)
-            bwm.read_img(str(src_fp))
+
+            ok, err = _bwm_read_img_unicode(bwm, str(src_fp))
+            if not ok:
+                return ModuleResult(success=False, error=err)
+
             bwm.read_wm(text, mode='str')
-            bwm.embed(str(out_fp))
             wm_bit_len = int(len(bwm.wm_bit))
+
+            # embed 不传 filename，让它返回 ndarray，自己写文件（支持中文路径）
+            embed_img = bwm.embed(filename=None)
+            if not _imwrite_unicode(str(out_fp), embed_img):
+                return ModuleResult(success=False, error=f"写入输出图像失败：{out_fp}")
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return ModuleResult(success=False, error=f"嵌入文本水印失败: {e}")
 
         if result_var:
@@ -100,7 +188,7 @@ class BwmEmbedTextExecutor(ModuleExecutor):
 
 @register_executor
 class BwmExtractTextExecutor(ModuleExecutor):
-    """盲水印 - 提取文本水印（必须知道嵌入时返回的 wm_bit_len + 两个密码）"""
+    """盲水印 - 提取文本水印"""
 
     @property
     def module_type(self) -> str:
@@ -123,16 +211,25 @@ class BwmExtractTextExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="wm_bit_len 必须大于 0（来自嵌入时的返回值）")
 
         try:
+            import cv2
             WaterMark = _import_bwm()
             bwm = WaterMark(password_wm=password_wm, password_img=password_img)
-            extracted = bwm.extract(str(src_fp), wm_shape=wm_bit_len, mode='str')
+
+            # 自己读图绕开中文路径限制
+            embed_img = _imread_unicode(str(src_fp), flags=cv2.IMREAD_COLOR)
+            if embed_img is None:
+                return ModuleResult(success=False, error=f"无法读取图像：{src_fp}")
+
+            # 调 extract(filename=None, embed_img=embed_img, ...) 让它用我们提供的 ndarray
+            extracted = bwm.extract(filename=None, embed_img=embed_img, wm_shape=wm_bit_len, mode='str')
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return ModuleResult(success=False, error=f"提取文本水印失败: {e}")
 
         if result_var:
             context.set_variable(str(result_var), extracted)
 
-        # 不在 message 中暴露完整文本（避免日志泄露），只显示长度
         return ModuleResult(
             success=True,
             message=f"已提取文本水印，长度 {len(extracted)} 字符",
@@ -142,7 +239,7 @@ class BwmExtractTextExecutor(ModuleExecutor):
 
 @register_executor
 class BwmEmbedImageExecutor(ModuleExecutor):
-    """盲水印 - 嵌入图片水印（水印是一张小图，建议用纯黑白二值图）"""
+    """盲水印 - 嵌入图片水印"""
 
     @property
     def module_type(self) -> str:
@@ -164,33 +261,33 @@ class BwmEmbedImageExecutor(ModuleExecutor):
         if not wm_fp:
             return ModuleResult(success=False, error=f"水印图不存在: {wm_path}")
 
-        if not out_path:
-            return ModuleResult(success=False, error="输出路径不能为空")
-        out_fp = _resolve_path(out_path)
+        out_fp = _resolve_output_path(out_path, src_fp)
         if out_fp is None:
-            return ModuleResult(success=False, error="输出路径无效")
+            return ModuleResult(success=False, error="输出路径不能为空")
         _ensure_parent(out_fp)
 
         try:
             WaterMark = _import_bwm()
             bwm = WaterMark(password_wm=password_wm, password_img=password_img)
-            bwm.read_img(str(src_fp))
-            bwm.read_wm(str(wm_fp))
-            bwm.embed(str(out_fp))
-            # 提取时需要知道水印图原尺寸（h, w），这里返回它
-            shape_arr = bwm.wm_bit  # 1D 比特序列
-            # blind_watermark 在 read_wm（图片）时把 wm_bit 拉平了，shape 信息保存在 bwm
-            try:
-                # 0.4.4: 暴露在 self.wm_bit_shape 不是公共字段，
-                # 这里通过 PIL 原图直接获取 h/w
-                from PIL import Image as _Img
-                with _Img.open(str(wm_fp)) as im:
-                    wm_w, wm_h = im.size
-            except Exception:
-                wm_w, wm_h = 0, 0
+
+            ok, err = _bwm_read_img_unicode(bwm, str(src_fp))
+            if not ok:
+                return ModuleResult(success=False, error=err)
+
+            ok, err, shape = _bwm_read_wm_image_unicode(bwm, str(wm_fp))
+            if not ok or shape is None:
+                return ModuleResult(success=False, error=err or "水印图读取失败")
+            wm_h, wm_w = shape
+
+            embed_img = bwm.embed(filename=None)
+            if not _imwrite_unicode(str(out_fp), embed_img):
+                return ModuleResult(success=False, error=f"写入输出图像失败：{out_fp}")
+
             wm_shape = [int(wm_h), int(wm_w)]
-            wm_bit_len = int(len(shape_arr))
+            wm_bit_len = int(len(bwm.wm_bit))
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return ModuleResult(success=False, error=f"嵌入图片水印失败: {e}")
 
         if result_var:
@@ -209,7 +306,7 @@ class BwmEmbedImageExecutor(ModuleExecutor):
 
 @register_executor
 class BwmExtractImageExecutor(ModuleExecutor):
-    """盲水印 - 提取图片水印（必须知道嵌入时的水印图尺寸 [h,w]）"""
+    """盲水印 - 提取图片水印"""
 
     @property
     def module_type(self) -> str:
@@ -231,18 +328,32 @@ class BwmExtractImageExecutor(ModuleExecutor):
         if wm_h <= 0 or wm_w <= 0:
             return ModuleResult(success=False, error="水印高/宽必须大于 0（来自嵌入时返回的 wm_shape）")
 
-        if not out_path:
-            return ModuleResult(success=False, error="提取结果输出路径不能为空")
-        out_fp = _resolve_path(out_path)
+        # 输出是水印图本身，没有源文件参考；不允许传目录但留扩展名兜底
+        out_fp = _resolve_output_path(out_path, src_fp, default_suffix="_extracted")
         if out_fp is None:
-            return ModuleResult(success=False, error="输出路径无效")
+            return ModuleResult(success=False, error="提取结果输出路径不能为空")
         _ensure_parent(out_fp)
 
         try:
+            import cv2
             WaterMark = _import_bwm()
             bwm = WaterMark(password_wm=password_wm, password_img=password_img)
-            bwm.extract(str(src_fp), wm_shape=(int(wm_h), int(wm_w)), out_wm_name=str(out_fp))
+
+            embed_img = _imread_unicode(str(src_fp), flags=cv2.IMREAD_COLOR)
+            if embed_img is None:
+                return ModuleResult(success=False, error=f"无法读取图像：{src_fp}")
+
+            # 用 mode='bit' 拿原始 0/1 序列（避免 mode='img' 内部触发 cv2.imwrite 不支持中文路径）
+            wm_bit = bwm.extract(filename=None, embed_img=embed_img, wm_shape=(int(wm_h), int(wm_w)), mode='bit')
+            import numpy as np
+            wm = np.asarray(wm_bit).reshape(int(wm_h), int(wm_w))
+            # 把 0/1 bit 还原成 0/255 灰度
+            wm_img = (wm * 255).astype("uint8")
+            if not _imwrite_unicode(str(out_fp), wm_img):
+                return ModuleResult(success=False, error=f"写入输出图像失败：{out_fp}")
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return ModuleResult(success=False, error=f"提取图片水印失败: {e}")
 
         if result_var:
