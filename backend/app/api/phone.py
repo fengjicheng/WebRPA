@@ -55,6 +55,7 @@ class StartCoordinatePickerRequest(BaseModel):
     max_size: int = 1920
     bit_rate: str = '8M'
     enable_pointer_location: bool = True  # 是否自动开启指针位置
+    allow_control: bool = True  # 是否允许用户在镜像窗口中正常操作手机（按 Ctrl 时拾取坐标，否则正常点击）
 
 
 @router.get("/devices")
@@ -282,7 +283,7 @@ async def start_coordinate_picker(request: StartCoordinatePickerRequest):
             bit_rate=request.bit_rate,
             window_title="手机坐标选择器",
             always_on_top=True,
-            no_control=True,  # 禁用控制
+            no_control=not request.allow_control,  # 默认允许控制：按 Ctrl 才拾取，否则正常操作
             stay_awake=False
         )
         

@@ -278,6 +278,21 @@ export const phoneApi = {
       `/phone/coordinate-picker/test?x=${x}&y=${y}&device_id=${encodeURIComponent(deviceId)}`,
       { method: 'POST' }
     ),
+  // 坐标拾取：启动 picker（默认允许在镜像窗口正常操作；按 Ctrl 才拾取）
+  startCoordinatePicker: (deviceId: string, allowControl: boolean = true) =>
+    apiRequest('/phone/coordinate-picker/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        device_id: deviceId,
+        allow_control: allowControl,
+      }),
+    }),
+  // 停止 picker（会同时停掉镜像窗口）
+  stopCoordinatePicker: () =>
+    apiRequest('/phone/coordinate-picker/stop', { method: 'POST' }),
+  // 轮询当前已拾取的坐标
+  getPickedCoordinate: () =>
+    apiRequest<{ picked: boolean; x?: number; y?: number }>('/phone/coordinate-picker/coordinate'),
   startMirror: (deviceId: string, maxSize?: number, bitRate?: string, enablePointerLocation?: boolean) =>
     apiRequest('/phone/mirror/start', {
       method: 'POST',

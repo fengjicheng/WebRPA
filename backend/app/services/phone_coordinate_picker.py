@@ -144,12 +144,13 @@ class PhoneCoordinatePicker:
             pass
     
     def start(self, callback: Optional[Callable[[int, int], None]] = None):
-        if self.is_active:
-            return
-        
-        self.is_active = True
+        # 即便已在运行，也清空上次拾取的坐标，让下次"开始拾取"是干净的状态
         self.picked_coordinate = None
         self.callback = callback
+        if self.is_active:
+            return
+
+        self.is_active = True
         self.scrcpy_hwnd = self.find_scrcpy_window()
         
         self.mouse_listener = mouse.Listener(on_click=self.on_click)
