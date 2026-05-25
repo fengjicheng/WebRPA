@@ -662,8 +662,8 @@ export function ImageAssetsPanel() {
       />
 
       {/* 新建文件夹对话框 */}
-      {isCreatingFolder && (
-        <div className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center z-50 animate-fade-in" onClick={() => setIsCreatingFolder(false)}>
+      {isCreatingFolder && createPortal(
+        <div className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center animate-fade-in" style={{ zIndex: 2147483646 }} onClick={() => setIsCreatingFolder(false)}>
           <div className="modern-dialog w-96 animate-scale-in-bounce" onClick={(e) => e.stopPropagation()}>
             <div className="modern-dialog-header">
               <div className="modern-dialog-header-icon modern-dialog-header-icon-warning">
@@ -709,7 +709,8 @@ export function ImageAssetsPanel() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* 右键菜单 */}

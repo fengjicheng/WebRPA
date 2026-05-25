@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, Filter, RefreshCw, Download, Trash2, Clock, Tag, TrendingUp, Eye, EyeOff } from 'lucide-react'
 
 interface VariableTrackingRecord {
@@ -214,8 +215,8 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm" style={{ zIndex: 2147483646 }}>
       <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
         
         {/* 头部 */}
@@ -511,6 +512,7 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

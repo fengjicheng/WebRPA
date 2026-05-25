@@ -1,4 +1,5 @@
 import { Button } from './button'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 
 export type ConfirmDialogType = 'confirm' | 'alert' | 'warning' | 'success'
@@ -84,9 +85,10 @@ export function ConfirmDialog({
     confirm: '确认',
   }[type]
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      style={{ zIndex: 2147483646 }}
       onClick={() => {
         if (!isAlertOnly && onCancel) onCancel()
       }}
@@ -132,7 +134,8 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

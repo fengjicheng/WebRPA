@@ -2,6 +2,7 @@
  * 自定义模块管理对话框
  */
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Edit, Trash2, Copy, Download, Upload, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -94,10 +95,10 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <>
-      <div className="fixed inset-0 bg-black/50 z-50 animate-fade-in" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 bg-black/50 animate-fade-in" style={{ zIndex: 2147483645 }} onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none" style={{ zIndex: 2147483646 }}>
         <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col pointer-events-auto animate-scale-in">
           {/* 头部 */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -229,6 +230,7 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
         </div>
       </div>
       <ConfirmDialog />
-    </>
+    </>,
+    document.body,
   )
 }

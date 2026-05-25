@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { dataAssetApi } from '@/services/api'
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -566,8 +567,8 @@ export function ExcelAssetsPanel() {
       )}
 
       {/* 新建文件夹对话框 */}
-      {isCreatingFolder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setIsCreatingFolder(false)}>
+      {isCreatingFolder && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center" style={{ zIndex: 2147483646 }} onClick={() => setIsCreatingFolder(false)}>
           <div className="bg-white rounded-xl shadow-2xl p-6 w-96 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold mb-4 text-gray-800">新建文件夹</h3>
             <Input
@@ -602,7 +603,8 @@ export function ExcelAssetsPanel() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* 右键菜单 */}
