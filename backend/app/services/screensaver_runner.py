@@ -494,9 +494,8 @@ class Screensaver:
 
     # ===== 主循环 =====
 
-    def tick(self):
-        """每帧更新滚动/弹幕位置"""
-        dt = 1 / 60
+    def tick(self, dt: float = 1 / 60):
+        """每帧更新滚动/弹幕位置；dt 为真实经过秒数（不再硬编码）"""
         if self.content_type == "scroll":
             if not self._inited_pos:
                 return  # 等首次绘制后再启动滚动
@@ -559,7 +558,7 @@ class Screensaver:
             elapsed = now - last_tick
             if elapsed >= 1 / 60:
                 last_tick = now
-                self.tick()
+                self.tick(elapsed)
                 # clock/date/countdown 只需 100ms 更新一次
                 if self.content_type in ("clock", "date", "countdown"):
                     if self.content_type == "clock":

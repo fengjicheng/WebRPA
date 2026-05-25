@@ -137,6 +137,13 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
   // 预览容器：用 useRef 持有节点，不要每次渲染都创建新的回调 ref（会触发 setState 死循环）
   const previewBoxRef = useRef<HTMLDivElement | null>(null)
+  // 实时桌面背景（getDisplayMedia 屏幕共享流，用户需授权一次）
+  const [desktopStream, setDesktopStream] = useState<MediaStream | null>(null)
+  const [desktopLoading, setDesktopLoading] = useState(false)
+  const [desktopError, setDesktopError] = useState('')
+  const desktopVideoRef = useRef<HTMLVideoElement | null>(null)
+  // 用于实时刷新时钟/日期/倒计时显示
+  const [, setNowTick] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -193,6 +200,65 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     ro.observe(node)
     return () => ro.disconnect()
   }, [open])
+
+  // 实时桌面背景流：写到 video 元素
+  useEffect(() => {
+    const v = desktopVideoRef.current
+    if (!v) return
+    if (desktopStream && v.srcObject !== desktopStream) {
+      v.srcObject = desktopStream
+      v.play().catch(() => {})
+    }
+    if (!desktopStream && v.srcObject) {
+      v.srcObject = null
+    }
+  }, [desktopStream])
+
+  // 关闭弹窗时停掉桌面流
+  useEffect(() => {
+    if (!open && desktopStream) {
+      desktopStream.getTracks().forEach((t) => t.stop())
+      setDesktopStream(null)
+    }
+    return () => {
+      if (desktopStream && !open) {
+        desktopStream.getTracks().forEach((t) => t.stop())
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  // 实时刷新（clock / date / countdown 1 秒一次）
+  useEffect(() => {
+    if (!open) return
+    if (config.content_type !== 'clock' && config.content_type !== 'date' && config.content_type !== 'countdown') return
+    const tid = window.setInterval(() => setNowTick((n) => (n + 1) % 1000000), 1000)
+    return () => window.clearInterval(tid)
+  }, [open, config.content_type])
+
+  const enableDesktopBg = async () => {
+    setDesktopError('')
+    setDesktopLoading(true)
+    try {
+      const stream = await (navigator.mediaDevices as any).getDisplayMedia({
+        video: { frameRate: 30 },
+        audio: false,
+      })
+      // 当用户在浏览器自带的"停止共享"栏点击停止时，stream 会发 ended
+      stream.getVideoTracks().forEach((t: MediaStreamTrack) => {
+        t.addEventListener('ended', () => setDesktopStream(null))
+      })
+      setDesktopStream(stream)
+    } catch (e: any) {
+      setDesktopError(e?.message || '获取桌面画面失败')
+    } finally {
+      setDesktopLoading(false)
+    }
+  }
+  const disableDesktopBg = () => {
+    if (desktopStream) desktopStream.getTracks().forEach((t) => t.stop())
+    setDesktopStream(null)
+  }
 
   if (!open) return null
 
@@ -253,8 +319,11 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }
 
 
-  // 缩放系数：预览高度 / 真实屏幕高度
-  const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
+  // 缩放系数（每个轴独立）：预览像素 / 真实屏幕像素
+  const previewScaleX = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
+  const previewScaleY = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
+  // 字号 / 描边等"等比缩放"用 Y 轴（与高度对齐）
+  const previewScale = previewScaleY
 
   // 滚动模式：真实滚动动画（按用户配置的方向和速度）
   const scrollTextRef = useRef<HTMLSpanElement | null>(null)
@@ -271,10 +340,11 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     const tick = (now: number) => {
       const dt = (now - last) / 1000
       last = now
-      // 速度按预览缩放（让预览速度感与真实窗口里的相似）
-      const v = Math.max(20, config.scroll_speed) * previewScale
+      // 速度按对应轴缩放（左右用 X 轴比例，上下用 Y 轴比例）
+      const dir = config.scroll_direction
+      const axisScale = (dir === 'left' || dir === 'right') ? previewScaleX : previewScaleY
+      const v = Math.max(20, config.scroll_speed) * axisScale
       setScrollOffset((prev) => {
-        const dir = config.scroll_direction
         // 文本宽高估值（近似）：水平方向用预览宽度+文字宽度，垂直方向用预览高度+文字高度
         const textW = scrollTextRef.current?.offsetWidth ?? 200
         const textH = scrollTextRef.current?.offsetHeight ?? 40
@@ -313,21 +383,84 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, previewScale, config.text])
+  }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, previewScaleX, previewScaleY, config.text])
+
+  // 与后端 runner 完全一致的中文 strftime + 默认格式
+  const zhStrftime = (fmt: string, dt: Date) => {
+    const zhWeek = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+    const zhWeekShort = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const zhMonth = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月']
+    const ampm = dt.getHours() < 12 ? '上午' : '下午'
+    const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+    const map: Record<string, string> = {
+      '%Y': String(dt.getFullYear()),
+      '%y': String(dt.getFullYear()).slice(-2),
+      '%m': pad(dt.getMonth() + 1),
+      '%d': pad(dt.getDate()),
+      '%H': pad(dt.getHours()),
+      '%I': pad(((dt.getHours() % 12) || 12)),
+      '%M': pad(dt.getMinutes()),
+      '%S': pad(dt.getSeconds()),
+      '%A': zhWeek[dt.getDay()],
+      '%a': zhWeekShort[dt.getDay()],
+      '%B': zhMonth[dt.getMonth()],
+      '%b': zhMonth[dt.getMonth()],
+      '%p': ampm,
+      '%%': '%',
+    }
+    return fmt.replace(/%[YymdHIMSAaBbp%]/g, (s) => map[s] ?? s)
+  }
+  const renderClock = () => {
+    const now = new Date()
+    if (config.datetime_format) return zhStrftime(config.datetime_format, now)
+    return zhStrftime('%H:%M:%S', now)
+  }
+  const renderDate = () => {
+    const now = new Date()
+    if (config.datetime_format) return zhStrftime(config.datetime_format, now)
+    return zhStrftime('%Y-%m-%d %A', now)
+  }
+  const renderCountdown = () => {
+    if (!config.countdown_target) return '未设置目标时间'
+    const target = new Date(config.countdown_target)
+    if (isNaN(target.getTime())) return '目标时间格式错误'
+    const sec = Math.max(0, Math.floor((target.getTime() - Date.now()) / 1000))
+    if (sec <= 0) return '时间到！'
+    const days = Math.floor(sec / 86400)
+    const h = Math.floor((sec % 86400) / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    const s = sec % 60
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return days > 0 ? `${days} 天 ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`
+  }
+
+  // 把 hex + alpha 合成 rgba 字符串
+  const hexToRgba = (hex: string, alpha: number) => {
+    let h = (hex || '#000000').trim()
+    if (h.startsWith('#')) h = h.slice(1)
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('')
+    if (h.length !== 6) return `rgba(0,0,0,${alpha})`
+    const r = parseInt(h.slice(0, 2), 16)
+    const g = parseInt(h.slice(2, 4), 16)
+    const b = parseInt(h.slice(4, 6), 16)
+    return `rgba(${r},${g},${b},${alpha})`
+  }
 
   const previewStyle: React.CSSProperties = {
-    backgroundColor: config.background,
     color: config.color,
     fontFamily: config.font_family,
     fontSize: Math.max(6, config.font_size * previewScale),
     fontWeight: config.font_weight,
     fontStyle: config.font_italic ? 'italic' : 'normal',
-    opacity: Math.max(0.2, config.background_alpha),
     transform: config.rotation ? `rotate(${config.rotation}deg)` : undefined,
     transformOrigin: 'center',
     WebkitTextStroke: config.outline_color && config.outline_width > 0
       ? `${Math.max(0.5, config.outline_width * previewScale)}px ${config.outline_color}`
       : undefined,
+  }
+  // 背景层（独立于文本，受 alpha 控制）
+  const bgLayerStyle: React.CSSProperties = {
+    backgroundColor: hexToRgba(config.background, config.background_alpha),
   }
 
   // 按真实屏幕宽高比构建预览框（保持高度自适应、宽度按比例）
@@ -672,8 +805,20 @@ export function ScreensaverDialog({ open, onClose }: Props) {
             <div
               ref={previewBoxRef}
               className="rounded-lg shadow-inner relative overflow-hidden mx-auto w-full"
-              style={{ ...previewStyle, aspectRatio: previewAspect }}
+              style={{ aspectRatio: previewAspect, transform: previewStyle.transform, transformOrigin: previewStyle.transformOrigin }}
             >
+              {/* 底层：桌面实时画面（如启用） */}
+              <video
+                ref={desktopVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ display: desktopStream ? 'block' : 'none' }}
+              />
+              {/* 背景层：纯色 + alpha；放在视频上面、文字下面 */}
+              <div className="absolute inset-0" style={bgLayerStyle} />
+              {/* 文本层 */}
               {config.content_type === 'scroll' ? (
                 <span
                   ref={scrollTextRef}
@@ -686,7 +831,14 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                       (config.scroll_direction === 'left' || config.scroll_direction === 'right')
                         ? 'translateY(-50%)'
                         : 'translateX(-50%)',
-                  }}
+                    color: previewStyle.color,
+                    fontFamily: previewStyle.fontFamily,
+                    fontSize: previewStyle.fontSize,
+                    fontWeight: previewStyle.fontWeight,
+                    fontStyle: previewStyle.fontStyle,
+                    WebkitTextStroke: previewStyle.WebkitTextStroke,
+                    writingMode: config.vertical_text ? 'vertical-rl' : undefined,
+                  } as React.CSSProperties}
                 >
                   {config.text || 'WebRPA →'}
                 </span>
@@ -695,9 +847,17 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                   className="absolute inset-0 flex items-center"
                   style={{ animation: `screensaverBulletFlow ${Math.max(4, 30 - Math.min(20, (config.scroll_speed || 200) / 30))}s linear infinite` }}
                 >
-                  <span className="whitespace-nowrap pl-[100%]">
+                  <span className="whitespace-nowrap pl-[100%]" style={{ fontFamily: previewStyle.fontFamily }}>
                     {config.bullets.map((b, i) => (
-                      <span key={i} style={{ marginRight: 32, color: b.color || config.color, fontWeight: b.bold ? 700 : undefined }}>
+                      <span
+                        key={i}
+                        style={{
+                          marginRight: 32,
+                          color: b.color || (previewStyle.color as string),
+                          fontWeight: b.bold ? 700 : (previewStyle.fontWeight as any),
+                          fontSize: Math.max(6, (b.font_size ?? config.font_size) * previewScale),
+                        }}
+                      >
                         {b.text}
                       </span>
                     ))}
@@ -705,15 +865,46 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                 </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center px-3 text-center">
-                  <span className="break-words leading-tight" style={{ maxWidth: '90%' }}>
+                  <span
+                    className="break-words leading-tight"
+                    style={{
+                      maxWidth: '90%',
+                      color: previewStyle.color,
+                      fontFamily: previewStyle.fontFamily,
+                      fontSize: previewStyle.fontSize,
+                      fontWeight: previewStyle.fontWeight,
+                      fontStyle: previewStyle.fontStyle,
+                      WebkitTextStroke: previewStyle.WebkitTextStroke,
+                      writingMode: config.vertical_text ? 'vertical-rl' : undefined,
+                    } as React.CSSProperties}
+                  >
                     {config.content_type === 'text' && (config.text || 'WebRPA')}
-                    {config.content_type === 'clock' && (new Date().toLocaleTimeString())}
-                    {config.content_type === 'date' && (new Date().toLocaleDateString())}
-                    {config.content_type === 'countdown' && '倒计时…'}
+                    {config.content_type === 'clock' && renderClock()}
+                    {config.content_type === 'date' && renderDate()}
+                    {config.content_type === 'countdown' && renderCountdown()}
                   </span>
                 </div>
               )}
             </div>
+
+            {/* 桌面实时背景控制 */}
+            <div className="flex items-center gap-2 -mt-1">
+              {!desktopStream ? (
+                <Button size="sm" variant="outline" onClick={enableDesktopBg} disabled={desktopLoading} className="text-xs">
+                  {desktopLoading ? '请求中…' : '使用桌面实时背景'}
+                </Button>
+              ) : (
+                <Button size="sm" variant="tonal-danger" onClick={disableDesktopBg} className="text-xs">
+                  关闭桌面背景
+                </Button>
+              )}
+              <span className="text-[10px] text-[hsl(var(--muted-foreground))]">
+                浏览器会弹出"选择共享窗口"，选"整个屏幕"
+              </span>
+            </div>
+            {desktopError && (
+              <div className="text-[11px] text-[hsl(var(--danger-600))]">{desktopError}</div>
+            )}
 
             {statusMsg && (
               <div className="text-xs px-3 py-2 rounded-md bg-[hsl(var(--card))] border border-[hsl(var(--border))]">
