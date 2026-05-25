@@ -216,15 +216,9 @@ class Screensaver:
         if ct == "countdown":
             return self._format_countdown()
         if ct == "scroll":
-            t = self.text or ""
-            if self.vertical_text:
-                t = "\n".join(list(t))
-            return t
+            return self.text or ""
         # text / 其他
-        t = self.text or "WebRPA"
-        if self.vertical_text:
-            t = "\n".join(list(t))
-        return t
+        return self.text or "WebRPA"
 
 
     def _make_font(self, size: int = None, bold: bool = None, italic: bool = None):
@@ -391,6 +385,11 @@ class Screensaver:
             win32gui.DeleteDC(mem_dc)
 
     def _draw_main_text(self, hdc, text: str, ct: str):
+        # 竖排：每个字符占一行，逐字符向下绘制
+        if self.vertical_text and ct != "scroll":
+            self._draw_vertical_text(hdc, text)
+            return
+
         # 测算文本尺寸
         try:
             sz = win32gui.GetTextExtentPoint32(hdc, text)
@@ -427,6 +426,51 @@ class Screensaver:
                 pass
 
         win32gui.ExtTextOut(hdc, x, y, 0, None, text)
+
+    def _draw_vertical_text(self, hdc, text: str):
+        """竖排：每行一个字符，整体居中"""
+        if not text:
+            return
+        chars = list(text)
+        # 测算单字符高度（用首字符）
+        try:
+            sample = win32gui.GetTextExtentPoint32(hdc, chars[0])
+            ch_w, ch_h = sample
+        except Exception:
+            ch_w, ch_h = self.font_size, self.font_size
+        # 行间距：略微紧凑
+        line_h = int(ch_h * 1.05)
+        total_h = line_h * len(chars)
+        x_center = self.sw // 2
+        y_start = (self.sh - total_h) // 2
+
+        ow = 0
+        outline_rgb = None
+        if self.outline_color and self.outline_width > 0:
+            try:
+                outline_rgb = hex_to_rgb(self.outline_color)
+                ow = max(1, min(6, self.outline_width))
+            except Exception:
+                ow = 0
+
+        text_color = rgb_to_colorref(self.color)
+        for i, ch in enumerate(chars):
+            try:
+                w, _ = win32gui.GetTextExtentPoint32(hdc, ch)
+            except Exception:
+                w = ch_w
+            x = x_center - w // 2
+            y = y_start + i * line_h
+            if ow and outline_rgb is not None:
+                old_c = win32gui.SetTextColor(hdc, rgb_to_colorref(outline_rgb))
+                for dx in range(-ow, ow + 1):
+                    for dy in range(-ow, ow + 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        win32gui.ExtTextOut(hdc, x + dx, y + dy, 0, None, ch)
+                win32gui.SetTextColor(hdc, old_c)
+            win32gui.SetTextColor(hdc, text_color)
+            win32gui.ExtTextOut(hdc, x, y, 0, None, ch)
 
     def _draw_bullets(self, hdc):
         if not self._bullet_states:

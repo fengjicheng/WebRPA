@@ -385,7 +385,9 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, previewScaleX, previewScaleY, config.text])
 
-  // 与后端 runner 完全一致的中文 strftime + 默认格式
+  // 竖排：与 runner 一致——逐字符换行（不要用 CSS writing-mode，那会把英文/数字一起转向）
+  const toVertical = (s: string) => Array.from(s || '').join('\n')
+  const renderText = (s: string) => (config.vertical_text ? toVertical(s) : s)
   const zhStrftime = (fmt: string, dt: Date) => {
     const zhWeek = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
     const zhWeekShort = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -452,16 +454,19 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     fontSize: Math.max(6, config.font_size * previewScale),
     fontWeight: config.font_weight,
     fontStyle: config.font_italic ? 'italic' : 'normal',
-    transform: config.rotation ? `rotate(${config.rotation}deg)` : undefined,
-    transformOrigin: 'center',
     WebkitTextStroke: config.outline_color && config.outline_width > 0
       ? `${Math.max(0.5, config.outline_width * previewScale)}px ${config.outline_color}`
       : undefined,
   }
-  // 背景层（独立于文本，受 alpha 控制）
-  const bgLayerStyle: React.CSSProperties = {
-    backgroundColor: hexToRgba(config.background, config.background_alpha),
-  }
+  // 旋转：只作用于文本（与 runner 行为一致：runner 用 GDI lfEscapement 旋转字体）
+  const textRotation = config.rotation ? `rotate(${config.rotation}deg)` : ''
+  // 背景透明度："整窗透明" 模式（与 runner 行为一致：文字+背景一起半透明）
+  // 当用户开了"实时桌面背景"时，单独让背景层带 alpha（这样调透明度才能透出真实桌面）
+  const bgLayerStyle: React.CSSProperties = desktopStream
+    ? { backgroundColor: hexToRgba(config.background, config.background_alpha) }
+    : { backgroundColor: config.background }
+  // 整窗 opacity（仅在没启用桌面背景时生效；与 runner LWA_ALPHA 行为一致）
+  const wholeWindowOpacity = desktopStream ? 1 : Math.max(0.13, config.background_alpha)
 
   // 按真实屏幕宽高比构建预览框（保持高度自适应、宽度按比例）
   const previewAspect = `${screenSize.w} / ${screenSize.h}`
@@ -805,7 +810,7 @@ export function ScreensaverDialog({ open, onClose }: Props) {
             <div
               ref={previewBoxRef}
               className="rounded-lg shadow-inner relative overflow-hidden mx-auto w-full"
-              style={{ aspectRatio: previewAspect, transform: previewStyle.transform, transformOrigin: previewStyle.transformOrigin }}
+              style={{ aspectRatio: previewAspect, opacity: wholeWindowOpacity }}
             >
               {/* 底层：桌面实时画面（如启用） */}
               <video
@@ -822,25 +827,27 @@ export function ScreensaverDialog({ open, onClose }: Props) {
               {config.content_type === 'scroll' ? (
                 <span
                   ref={scrollTextRef}
-                  className="whitespace-nowrap"
+                  className={config.vertical_text ? '' : 'whitespace-nowrap'}
                   style={{
                     position: 'absolute',
                     left: (config.scroll_direction === 'left' || config.scroll_direction === 'right') ? scrollOffset : '50%',
                     top: (config.scroll_direction === 'up' || config.scroll_direction === 'down') ? scrollOffset : '50%',
                     transform:
-                      (config.scroll_direction === 'left' || config.scroll_direction === 'right')
+                      ((config.scroll_direction === 'left' || config.scroll_direction === 'right')
                         ? 'translateY(-50%)'
-                        : 'translateX(-50%)',
+                        : 'translateX(-50%)') + (textRotation ? ' ' + textRotation : ''),
                     color: previewStyle.color,
                     fontFamily: previewStyle.fontFamily,
                     fontSize: previewStyle.fontSize,
                     fontWeight: previewStyle.fontWeight,
                     fontStyle: previewStyle.fontStyle,
                     WebkitTextStroke: previewStyle.WebkitTextStroke,
-                    writingMode: config.vertical_text ? 'vertical-rl' : undefined,
+                    whiteSpace: config.vertical_text ? 'pre-line' : 'nowrap',
+                    textAlign: 'center',
+                    lineHeight: 1.05,
                   } as React.CSSProperties}
                 >
-                  {config.text || 'WebRPA →'}
+                  {renderText(config.text || 'WebRPA →')}
                 </span>
               ) : config.content_type === 'bullet' ? (
                 <div
@@ -875,13 +882,17 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                       fontWeight: previewStyle.fontWeight,
                       fontStyle: previewStyle.fontStyle,
                       WebkitTextStroke: previewStyle.WebkitTextStroke,
-                      writingMode: config.vertical_text ? 'vertical-rl' : undefined,
+                      whiteSpace: config.vertical_text ? 'pre-line' : undefined,
+                      lineHeight: 1.05,
+                      transform: textRotation || undefined,
+                      transformOrigin: 'center',
+                      display: 'inline-block',
                     } as React.CSSProperties}
                   >
-                    {config.content_type === 'text' && (config.text || 'WebRPA')}
-                    {config.content_type === 'clock' && renderClock()}
-                    {config.content_type === 'date' && renderDate()}
-                    {config.content_type === 'countdown' && renderCountdown()}
+                    {config.content_type === 'text' && renderText(config.text || 'WebRPA')}
+                    {config.content_type === 'clock' && renderText(renderClock())}
+                    {config.content_type === 'date' && renderText(renderDate())}
+                    {config.content_type === 'countdown' && renderText(renderCountdown())}
                   </span>
                 </div>
               )}
