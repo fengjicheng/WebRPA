@@ -5,6 +5,7 @@ import { phoneApi, imageAssetApi } from '@/services/api'
 import { getBackendBaseUrl } from '@/services/config'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { Camera, Crop, Save, X, Loader2, AlertCircle } from 'lucide-react'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface PhoneScreenshotCropperProps {
   open: boolean
@@ -244,9 +245,15 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
 
   if (!open) return null
 
+  // z-index 规范：
+  //   下拉/Popover (select-native) = 2147483647 (最高，盖住一切)
+  //   嵌套子对话框 (本组件)         = 2147483646
+  //   普通对话框 (PhoneMirror 等)   = 2147483640
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-fade-in"
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 animate-fade-in"
+      style={{ zIndex: 2147483646 }}
       onClick={onClose}
     >
       <div 
@@ -409,5 +416,6 @@ export function PhoneScreenshotCropper({ open, onClose, deviceId }: PhoneScreens
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

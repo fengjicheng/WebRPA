@@ -239,13 +239,14 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }, [open, config.content_type])
 
   // 滚动模式：用 transform 直接改 ref.style，绕过 React 重渲染做到 60fps 丝滑
+  // 元素 CSS 锚点：top:0; left:0（左上角）。
+  // effect 里直接用绝对位置（pos 是预览空间的像素值），不用百分比 -50%，避免父子尺寸误匹配
   useEffect(() => {
     if (!open) return
     const el = scrollTextRef.current
     if (!el) return
     if (config.content_type !== 'scroll') {
-      // 非滚动模式：把 transform 复位到中心（CSS top/left 会负责定位）
-      el.style.transform = 'translate3d(-50%, -50%, 0)'
+      // 非滚动模式：本元素在 JSX 里只在 scroll 分支挂载，这个分支不会用到这个 ref
       return
     }
     if (previewBox.w <= 0 || previewBox.h <= 0) return
@@ -254,29 +255,34 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     const sx = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
     const sy = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
     const axisScale = (dir === 'left' || dir === 'right') ? sx : sy
-    const v = Math.max(20, config.scroll_speed) * axisScale  // 像素/秒（预览空间）
+    const v = Math.max(20, config.scroll_speed) * axisScale
 
     const W = previewBox.w
     const H = previewBox.h
     const textW = el.offsetWidth || 200
     const textH = el.offsetHeight || 40
 
-    // 初始位置（亚像素精度）
+    // 居中线：水平滚动时文字垂直居中（Y 居中）；垂直滚动时文字水平居中（X 居中）
+    const centerX = (W - textW) / 2
+    const centerY = (H - textH) / 2
+
+    // pos 含义：水平滚动时是 X 像素，垂直滚动时是 Y 像素
     let pos: number
     switch (dir) {
-      case 'left':  pos = W; break
-      case 'right': pos = -textW; break
-      case 'up':    pos = H; break
-      case 'down':  pos = -textH; break
+      case 'left':  pos = W; break             // 从右进入
+      case 'right': pos = -textW; break        // 从左进入
+      case 'up':    pos = H; break             // 从下进入
+      case 'down':  pos = -textH; break        // 从上进入
       default:      pos = 0
     }
 
-    // 按方向决定 transform：水平时 X 是 pos、Y 居中；垂直时 X 居中、Y 是 pos
     const applyTransform = () => {
       if (dir === 'left' || dir === 'right') {
-        el.style.transform = `translate3d(${pos.toFixed(2)}px, -50%, 0)`
+        // 水平滚动：X = pos，Y = 居中
+        el.style.transform = `translate3d(${pos.toFixed(2)}px, ${centerY.toFixed(2)}px, 0)`
       } else {
-        el.style.transform = `translate3d(-50%, ${pos.toFixed(2)}px, 0)`
+        // 垂直滚动：X = 居中，Y = pos
+        el.style.transform = `translate3d(${centerX.toFixed(2)}px, ${pos.toFixed(2)}px, 0)`
       }
     }
     applyTransform()
@@ -284,7 +290,6 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
-      // dt clamp 防止后台标签页切回时大跳变
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
       const delta = v * dt
@@ -846,8 +851,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                     position: 'absolute',
                     left: 0,
                     top: 0,
-                    // transform 由 effect 通过 ref 直接修改（60fps 丝滑）；这里只设个初值占位
-                    transform: 'translate3d(0, -50%, 0)',
+                    // transform 由 effect 通过 ref 直接修改（60fps 丝滑）；初值放到容器外避免首帧闪烁
+                    transform: 'translate3d(-99999px, 0, 0)',
                     willChange: 'transform',
                     color: previewStyle.color,
                     fontFamily: previewStyle.fontFamily,

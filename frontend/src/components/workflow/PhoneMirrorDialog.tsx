@@ -224,12 +224,15 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
     return mirrorStatus.devices?.[deviceId]?.running || false
   }
 
-  // 对话框打开时加载数据
+  // 对话框打开时加载数据 + 周期性轮询镜像状态（用户在外部手动关闭 scrcpy 窗口时也能感知）
   useEffect(() => {
-    if (open) {
-      loadDevices()
+    if (!open) return
+    loadDevices()
+    loadMirrorStatus()
+    const tid = window.setInterval(() => {
       loadMirrorStatus()
-    }
+    }, 1000)
+    return () => window.clearInterval(tid)
   }, [open])
 
   if (!open) return null
@@ -239,7 +242,7 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
     <>
       <div 
         className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
-        style={{ zIndex: 2147483646 }}
+        style={{ zIndex: 2147483640 }}
         onClick={onClose}
       >
       <div 
