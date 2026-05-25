@@ -1848,3 +1848,10 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+
+/* ----- 屏保弹幕预览：bullet 模式横向流动 ----- */
+@keyframes screensaverBulletFlow {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}

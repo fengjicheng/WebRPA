@@ -127,9 +127,12 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
   // 屏幕真实分辨率（用于预览比例）
-  const [screenSize, setScreenSize] = useState<{ w: number; h: number }>(() => ({
+  // 说明：window.screen.width/height 在 Windows DPI 缩放下报告的是 CSS 逻辑像素（与浏览器、与
+  // 后端 GetSystemMetrics 的取值保持一致）。配合 devicePixelRatio 可以反算物理像素。
+  const [screenSize, setScreenSize] = useState<{ w: number; h: number; dpr: number }>(() => ({
     w: typeof window !== 'undefined' ? window.screen.width : 1920,
     h: typeof window !== 'undefined' ? window.screen.height : 1080,
+    dpr: typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1,
   }))
   const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
   // 预览容器：用 useRef 持有节点，不要每次渲染都创建新的回调 ref（会触发 setState 死循环）
@@ -151,7 +154,11 @@ export function ScreensaverDialog({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') return
-    const onResize = () => setScreenSize({ w: window.screen.width, h: window.screen.height })
+    const onResize = () => setScreenSize({
+      w: window.screen.width,
+      h: window.screen.height,
+      dpr: window.devicePixelRatio || 1,
+    })
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [open])
@@ -249,6 +256,65 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   // 缩放系数：预览高度 / 真实屏幕高度
   const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
 
+  // 滚动模式：真实滚动动画（按用户配置的方向和速度）
+  const scrollTextRef = useRef<HTMLSpanElement | null>(null)
+  const [scrollOffset, setScrollOffset] = useState(0)
+  useEffect(() => {
+    if (!open) return
+    if (config.content_type !== 'scroll') {
+      setScrollOffset(0)
+      return
+    }
+    if (previewBox.w <= 0 || previewBox.h <= 0) return
+    let raf = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000
+      last = now
+      // 速度按预览缩放（让预览速度感与真实窗口里的相似）
+      const v = Math.max(20, config.scroll_speed) * previewScale
+      setScrollOffset((prev) => {
+        const dir = config.scroll_direction
+        // 文本宽高估值（近似）：水平方向用预览宽度+文字宽度，垂直方向用预览高度+文字高度
+        const textW = scrollTextRef.current?.offsetWidth ?? 200
+        const textH = scrollTextRef.current?.offsetHeight ?? 40
+        const W = previewBox.w
+        const H = previewBox.h
+        let next = prev
+        if (dir === 'left') {
+          next = prev - v * dt
+          if (next + textW < 0) next = config.scroll_loop ? W : next
+        } else if (dir === 'right') {
+          next = prev + v * dt
+          if (next > W) next = config.scroll_loop ? -textW : next
+        } else if (dir === 'up') {
+          next = prev - v * dt
+          if (next + textH < 0) next = config.scroll_loop ? H : next
+        } else {
+          next = prev + v * dt
+          if (next > H) next = config.scroll_loop ? -textH : next
+        }
+        return next
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    // 初始位置
+    setScrollOffset(() => {
+      const textW = scrollTextRef.current?.offsetWidth ?? 200
+      const textH = scrollTextRef.current?.offsetHeight ?? 40
+      switch (config.scroll_direction) {
+        case 'left': return previewBox.w
+        case 'right': return -textW
+        case 'up': return previewBox.h
+        case 'down': return -textH
+        default: return 0
+      }
+    })
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, previewScale, config.text])
+
   const previewStyle: React.CSSProperties = {
     backgroundColor: config.background,
     color: config.color,
@@ -286,7 +352,7 @@ export function ScreensaverDialog({ open, onClose }: Props) {
             <div>
               <h2 className="text-lg font-bold text-[hsl(var(--foreground))]">屏保弹幕</h2>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                Python 独立窗口全屏覆盖桌面，不受浏览器限制
+                独立窗口全屏覆盖桌面，不受浏览器限制
               </p>
             </div>
           </div>
@@ -574,7 +640,7 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={config.click_through} onChange={(e) => update('click_through', e.target.checked)} className="accent-[hsl(var(--brand-600))]" />
-                  点击穿透到底层（仅 Windows，会让背景色变透明）
+                  点击穿透到底层（背景会变透明）
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={config.show_close_hint} onChange={(e) => update('show_close_hint', e.target.checked)} className="accent-[hsl(var(--brand-600))]" />
@@ -594,20 +660,59 @@ export function ScreensaverDialog({ open, onClose }: Props) {
 
           {/* 右侧实时预览 */}
           <div className="border-l border-[hsl(var(--border))] bg-[hsl(var(--muted))] p-4 flex flex-col gap-3 overflow-y-auto">
-            <Label className="text-sm font-semibold">预览（按屏幕真实比例 · {screenSize.w}×{screenSize.h}）</Label>
+            <div className="space-y-0.5">
+              <Label className="text-sm font-semibold block">预览（按屏幕真实比例）</Label>
+              <div className="text-[11px] text-[hsl(var(--muted-foreground))]">
+                逻辑像素 {screenSize.w}×{screenSize.h}
+                {screenSize.dpr !== 1 && (
+                  <> · 物理像素 {Math.round(screenSize.w * screenSize.dpr)}×{Math.round(screenSize.h * screenSize.dpr)}（DPI 缩放 {Math.round(screenSize.dpr * 100)}%）</>
+                )}
+              </div>
+            </div>
             <div
               ref={previewBoxRef}
-              className="rounded-lg shadow-inner flex items-center justify-center text-center px-3 overflow-hidden mx-auto w-full"
+              className="rounded-lg shadow-inner relative overflow-hidden mx-auto w-full"
               style={{ ...previewStyle, aspectRatio: previewAspect }}
             >
-              <span className="break-words leading-tight" style={{ maxWidth: '90%' }}>
-                {config.content_type === 'text' && (config.text || 'WebRPA')}
-                {config.content_type === 'scroll' && (config.text || 'WebRPA →')}
-                {config.content_type === 'clock' && (new Date().toLocaleTimeString())}
-                {config.content_type === 'date' && (new Date().toLocaleDateString())}
-                {config.content_type === 'countdown' && '倒计时…'}
-                {config.content_type === 'bullet' && config.bullets.map((b) => b.text).join(' · ')}
-              </span>
+              {config.content_type === 'scroll' ? (
+                <span
+                  ref={scrollTextRef}
+                  className="whitespace-nowrap"
+                  style={{
+                    position: 'absolute',
+                    left: (config.scroll_direction === 'left' || config.scroll_direction === 'right') ? scrollOffset : '50%',
+                    top: (config.scroll_direction === 'up' || config.scroll_direction === 'down') ? scrollOffset : '50%',
+                    transform:
+                      (config.scroll_direction === 'left' || config.scroll_direction === 'right')
+                        ? 'translateY(-50%)'
+                        : 'translateX(-50%)',
+                  }}
+                >
+                  {config.text || 'WebRPA →'}
+                </span>
+              ) : config.content_type === 'bullet' ? (
+                <div
+                  className="absolute inset-0 flex items-center"
+                  style={{ animation: `screensaverBulletFlow ${Math.max(4, 30 - Math.min(20, (config.scroll_speed || 200) / 30))}s linear infinite` }}
+                >
+                  <span className="whitespace-nowrap pl-[100%]">
+                    {config.bullets.map((b, i) => (
+                      <span key={i} style={{ marginRight: 32, color: b.color || config.color, fontWeight: b.bold ? 700 : undefined }}>
+                        {b.text}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center px-3 text-center">
+                  <span className="break-words leading-tight" style={{ maxWidth: '90%' }}>
+                    {config.content_type === 'text' && (config.text || 'WebRPA')}
+                    {config.content_type === 'clock' && (new Date().toLocaleTimeString())}
+                    {config.content_type === 'date' && (new Date().toLocaleDateString())}
+                    {config.content_type === 'countdown' && '倒计时…'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {statusMsg && (
