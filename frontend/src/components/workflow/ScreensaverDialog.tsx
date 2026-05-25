@@ -126,6 +126,12 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const [running, setRunning] = useState(false)
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
+  // 屏幕真实分辨率（用于预览比例）
+  const [screenSize, setScreenSize] = useState<{ w: number; h: number }>(() => ({
+    w: typeof window !== 'undefined' ? window.screen.width : 1920,
+    h: typeof window !== 'undefined' ? window.screen.height : 1080,
+  }))
+  const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
 
   useEffect(() => {
     if (!open) return
@@ -140,6 +146,13 @@ export function ScreensaverDialog({ open, onClose }: Props) {
       localStorage.setItem(SCREENSAVER_CONFIG_KEY, JSON.stringify(config))
     } catch {}
   }, [config])
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+    const onResize = () => setScreenSize({ w: window.screen.width, h: window.screen.height })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open])
 
   if (!open) return null
 
@@ -213,18 +226,6 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }
 
 
-  // 屏幕真实分辨率（用于预览比例）
-  const [screenSize, setScreenSize] = useState<{ w: number; h: number }>(() => ({
-    w: typeof window !== 'undefined' ? window.screen.width : 1920,
-    h: typeof window !== 'undefined' ? window.screen.height : 1080,
-  }))
-  useEffect(() => {
-    if (!open || typeof window === 'undefined') return
-    const onResize = () => setScreenSize({ w: window.screen.width, h: window.screen.height })
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [open])
-
   // 预览容器渲染后量一下宽度，按"屏幕高度 : 预览高度"等比缩放字号
   const previewBoxRef = (node: HTMLDivElement | null) => {
     if (!node) return
@@ -238,7 +239,6 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     ro.observe(node)
     ;(node as any).__ro = ro
   }
-  const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
 
   // 缩放系数：预览高度 / 真实屏幕高度
   const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
