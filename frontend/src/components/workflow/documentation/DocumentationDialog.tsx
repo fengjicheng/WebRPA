@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { X, ChevronRight, BookOpen, ArrowUp, Search, Download, FileDown, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -67,112 +66,83 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   }
 
   // 搜索功能 - 支持三级标题搜索（懒加载触发：第一次进入搜索时才加载全部 markdown）
-  const handleSearch = async (query: string) => {
+  // 计算逻辑被 debounce 隔离，输入时立即响应，200ms 后才扫描全部 markdown
+  const searchSeq = useRef(0)
+  const searchTimerRef = useRef<number | null>(null)
+  const handleSearch = (query: string) => {
     setSearchQuery(query)
-
     if (!query.trim()) {
       setSearchResults([])
       setIsSearching(false)
       setHighlightKeyword('')
       return
     }
-
     setIsSearching(true)
     setHighlightKeyword(query.trim())
-
-    // 懒加载所有文档（仅第一次搜索时触发）
-    if (!searchReady) {
-      setSearchPreparing(true)
-      await loadAllContents(documents.map((d) => d.id))
-      setSearchReady(true)
-      setSearchPreparing(false)
-    }
-
-    const results: Array<{docId: string, title: string, heading: string, level: number, matches: string[]}> = []
-    const queryLower = query.toLowerCase()
-
-    for (const doc of documents) {
-      const content = getCachedContent(doc.id) || ''
-      const lines = content.split('\n')
-      
-      // 提取所有标题（一级、二级、三级）
-      const headings: Array<{text: string, level: number, lineIndex: number}> = []
-      lines.forEach((line, index) => {
-        const h1Match = line.match(/^# (.+)/)
-        const h2Match = line.match(/^## (.+)/)
-        const h3Match = line.match(/^### (.+)/)
-        
-        if (h1Match) headings.push({text: h1Match[1], level: 1, lineIndex: index})
-        else if (h2Match) headings.push({text: h2Match[1], level: 2, lineIndex: index})
-        else if (h3Match) headings.push({text: h3Match[1], level: 3, lineIndex: index})
-      })
-      
-      // 搜索每个标题及其内容
-      headings.forEach((heading, idx) => {
-        const nextHeadingIndex = idx < headings.length - 1 ? headings[idx + 1].lineIndex : lines.length
-        const sectionContent = lines.slice(heading.lineIndex, nextHeadingIndex).join('\n')
-        const sectionLower = sectionContent.toLowerCase()
-        const headingLower = heading.text.toLowerCase()
-        
-        // 检查标题或内容是否匹配
-        const headingMatch = headingLower.includes(queryLower) || pinyinMatch(heading.text, query)
-        const contentMatch = sectionLower.includes(queryLower)
-        
-        if (headingMatch || contentMatch) {
-          const matches: string[] = []
-          
-          if (contentMatch) {
-            // 提取匹配的上下文（最多3个）
-            let searchIndex = 0
-            let matchCount = 0
-            while (searchIndex < sectionLower.length && matchCount < 3) {
-              const index = sectionLower.indexOf(queryLower, searchIndex)
-              if (index === -1) break
-              
-              // 提取前后50个字符作为上下文
-              const start = Math.max(0, index - 30)
-              const end = Math.min(sectionContent.length, index + query.length + 50)
-              let context = sectionContent.slice(start, end)
-              
-              // 清理markdown标记
-              context = context.replace(/[#*`\[\]()]/g, '').replace(/\n/g, ' ').trim()
-              if (start > 0) context = '...' + context
-              if (end < sectionContent.length) context = context + '...'
-              
-              matches.push(context)
-              searchIndex = index + query.length
-              matchCount++
-            }
-          }
-          
-          results.push({
-            docId: doc.id,
-            title: doc.title,
-            heading: heading.text,
-            level: heading.level,
-            matches
-          })
-        }
-      })
-      
-      // 如果文档标题或描述匹配，但没有具体标题匹配，添加文档级别的结果
-      const titleLower = doc.title.toLowerCase()
-      const descLower = doc.description.toLowerCase()
-      const titleMatch = titleLower.includes(queryLower) || pinyinMatch(doc.title, query)
-      const descMatch = descLower.includes(queryLower) || pinyinMatch(doc.description, query)
-      
-      if ((titleMatch || descMatch) && !results.some(r => r.docId === doc.id)) {
-        results.push({
-          docId: doc.id,
-          title: doc.title,
-          heading: doc.title,
-          level: 0,
-          matches: [doc.description]
-        })
+    if (searchTimerRef.current !== null) window.clearTimeout(searchTimerRef.current)
+    const seq = ++searchSeq.current
+    searchTimerRef.current = window.setTimeout(async () => {
+      // 懒加载所有文档（仅第一次搜索时触发）
+      if (!searchReady) {
+        setSearchPreparing(true)
+        await loadAllContents(documents.map((d) => d.id))
+        if (seq !== searchSeq.current) return
+        setSearchReady(true)
+        setSearchPreparing(false)
       }
-    }
-    
-    setSearchResults(results)
+      const results: Array<{docId: string, title: string, heading: string, level: number, matches: string[]}> = []
+      const queryLower = query.toLowerCase()
+      for (const doc of documents) {
+        const content = getCachedContent(doc.id) || ''
+        const lines = content.split('\n')
+        const headings: Array<{text: string, level: number, lineIndex: number}> = []
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i]
+          if (line.startsWith('# ')) headings.push({text: line.slice(2), level: 1, lineIndex: i})
+          else if (line.startsWith('## ')) headings.push({text: line.slice(3), level: 2, lineIndex: i})
+          else if (line.startsWith('### ')) headings.push({text: line.slice(4), level: 3, lineIndex: i})
+        }
+        for (let idx = 0; idx < headings.length; idx++) {
+          const heading = headings[idx]
+          const nextHeadingIndex = idx < headings.length - 1 ? headings[idx + 1].lineIndex : lines.length
+          const sectionContent = lines.slice(heading.lineIndex, nextHeadingIndex).join('\n')
+          const sectionLower = sectionContent.toLowerCase()
+          const headingLower = heading.text.toLowerCase()
+          const headingMatch = headingLower.includes(queryLower) || pinyinMatch(heading.text, query)
+          const contentMatch = sectionLower.includes(queryLower)
+          if (headingMatch || contentMatch) {
+            const matches: string[] = []
+            if (contentMatch) {
+              let searchIndex = 0
+              let matchCount = 0
+              while (searchIndex < sectionLower.length && matchCount < 3) {
+                const index = sectionLower.indexOf(queryLower, searchIndex)
+                if (index === -1) break
+                const start = Math.max(0, index - 30)
+                const end = Math.min(sectionContent.length, index + query.length + 50)
+                let context = sectionContent.slice(start, end)
+                context = context.replace(/[#*`\[\]()]/g, '').replace(/\n/g, ' ').trim()
+                if (start > 0) context = '...' + context
+                if (end < sectionContent.length) context = context + '...'
+                matches.push(context)
+                searchIndex = index + query.length
+                matchCount++
+              }
+            }
+            results.push({ docId: doc.id, title: doc.title, heading: heading.text, level: heading.level, matches })
+          }
+        }
+        const titleLower = doc.title.toLowerCase()
+        const descLower = doc.description.toLowerCase()
+        const titleMatch = titleLower.includes(queryLower) || pinyinMatch(doc.title, query)
+        const descMatch = descLower.includes(queryLower) || pinyinMatch(doc.description, query)
+        if ((titleMatch || descMatch) && !results.some(r => r.docId === doc.id)) {
+          results.push({ docId: doc.id, title: doc.title, heading: doc.title, level: 0, matches: [doc.description] })
+        }
+      }
+      if (seq !== searchSeq.current) return
+      setSearchResults(results)
+    }, 200)
   }
 
   // 清除搜索
@@ -240,23 +210,14 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   
   return (
     <DialogPortal>
-    <AnimatePresence>
-      <motion.div
+      <div
         key="doc-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 doc-dialog-overlay"
         style={{ zIndex: 2147483646 }}
         onClick={onClose}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 8 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-          className="modern-dialog w-full max-w-5xl h-[88vh] flex flex-col"
+        <div
+          className="modern-dialog w-full max-w-5xl h-[88vh] flex flex-col doc-dialog-panel"
           onClick={(e) => e.stopPropagation()}
         >
         <div className="modern-dialog-header">
@@ -419,7 +380,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
               onScroll={handleScroll}
               className="h-full overflow-y-auto"
             >
-              <div className="px-8 py-7 max-w-3xl">
+              <div className="px-8 py-7 max-w-3xl doc-md-container">
                 {contentLoading && !currentContent ? (
                   <div className="flex flex-col items-center justify-center py-20 text-[hsl(var(--muted-foreground))] gap-3">
                     <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--brand-500))]" />
@@ -443,9 +404,8 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
             )}
           </div>
         </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        </div>
+      </div>
     </DialogPortal>
   )
 }
