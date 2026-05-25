@@ -21,7 +21,7 @@ export function UrlInputDialog({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
       <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-md p-4 overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">选择元素</h3>

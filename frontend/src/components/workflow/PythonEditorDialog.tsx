@@ -239,7 +239,8 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in"
+      className="fixed inset-0 flex items-center justify-center bg-black/40 animate-fade-in"
+      style={{ zIndex: 2147483640 }}
       onKeyDown={handleKeyDown}
     >
       <div 

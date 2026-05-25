@@ -121,7 +121,7 @@ export function DataPreviewPanel({ isOpen, onClose }: DataPreviewPanelProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[80vh] flex flex-col overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">

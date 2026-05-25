@@ -30,7 +30,7 @@ export function SimilarSelectorDialog({
   const displayPattern = pattern.replace('{index}', `{${variableName}}`)
   
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
       <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-lg p-4 overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">相似元素选择</h3>

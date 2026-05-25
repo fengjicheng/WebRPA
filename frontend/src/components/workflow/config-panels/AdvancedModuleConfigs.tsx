@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Button } from '@/components/ui/button'
 import { Loader2, Crosshair, Mouse, MousePointerClick, Keyboard, Type, HelpCircle, RotateCw, Pencil, X as XIcon, Plus, Trash2, Clock, Copy as CopyIcon, ArrowUp, ArrowDown } from 'lucide-react'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 import { getBackendUrl, desktopPickerApi } from '@/services/api'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
@@ -2133,7 +2134,11 @@ function MacroRecordDialog({
   }, [actions])
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center"
+      style={{ zIndex: 2147483646 }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-[500px] max-h-[80vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -2281,6 +2286,7 @@ function MacroRecordDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 
@@ -2453,12 +2459,18 @@ function MacroEditDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center"
+      style={{ zIndex: 2147483646 }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-[700px] max-h-[85vh] overflow-hidden flex flex-col">
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h3 className="font-semibold text-gray-900">编辑宏操作</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700"></button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <XIcon className="w-4 h-4" />
+          </button>
         </div>
 
         {/* 工具栏 */}
@@ -2599,6 +2611,7 @@ function MacroEditDialog({
         />
       )}
     </div>
+    </DialogPortal>
   )
 }
 
@@ -2652,7 +2665,11 @@ function MacroActionEditDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/30 flex items-center justify-center">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-black/30 flex items-center justify-center"
+      style={{ zIndex: 2147483647 }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-[400px] p-4">
         <h4 className="font-semibold mb-4">编辑操作</h4>
         
@@ -2804,6 +2821,7 @@ function MacroActionEditDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 
@@ -2883,7 +2901,11 @@ function MacroAddActionDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/30 flex items-center justify-center">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-black/30 flex items-center justify-center"
+      style={{ zIndex: 2147483647 }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-[400px] p-4">
         <h4 className="font-semibold mb-4">添加新操作</h4>
         
@@ -3043,6 +3065,7 @@ function MacroAddActionDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 

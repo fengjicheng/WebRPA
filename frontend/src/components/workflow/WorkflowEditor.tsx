@@ -1656,7 +1656,7 @@ export function WorkflowEditor() {
       
       {/* 浏览器被占用提示弹窗 */}
       {showBrowserBusyDialog && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -1689,7 +1689,7 @@ export function WorkflowEditor() {
       
       {/* 浏览器意外关闭提示弹窗 */}
       {showBrowserClosedDialog && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
