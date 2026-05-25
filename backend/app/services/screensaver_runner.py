@@ -590,35 +590,61 @@ class Screensaver:
     def run(self):
         self.create_window()
         last_clock_text = ""
-        last_tick = time.time()
-        while self.running:
-            # 处理一批消息
+        # 高精度计时器：稳定 60fps 帧调度（perf_counter 比 time() 精确）
+        target_dt = 1.0 / 60.0
+        last_tick = time.perf_counter()
+        next_frame = last_tick + target_dt
+
+        # 提升 Windows 时钟分辨率到 1ms（默认 ~15ms），让 sleep 更精准
+        try:
+            import ctypes
+            ctypes.windll.winmm.timeBeginPeriod(1)
+        except Exception:
+            pass
+
+        try:
+            while self.running:
+                # 处理消息（不阻塞）
+                try:
+                    win32gui.PumpWaitingMessages()
+                except Exception:
+                    pass
+
+                now = time.perf_counter()
+                if now >= next_frame:
+                    elapsed = now - last_tick
+                    last_tick = now
+                    # 推进目标帧时间；若已落后多帧则直接对齐当前时间，避免疯狂追赶
+                    next_frame += target_dt
+                    if next_frame < now:
+                        next_frame = now + target_dt
+
+                    self.tick(elapsed)
+                    # clock/date/countdown 只需 100ms 更新一次
+                    if self.content_type in ("clock", "date", "countdown"):
+                        if self.content_type == "clock":
+                            cur = self._format_clock()
+                        elif self.content_type == "date":
+                            cur = self._format_date()
+                        else:
+                            cur = self._format_countdown()
+                        if cur != last_clock_text:
+                            last_clock_text = cur
+                            self._request_redraw()
+                    else:
+                        self._request_redraw()
+
+                # 自适应 sleep：精确等到下一帧，避免空转跑满 CPU
+                remaining = next_frame - time.perf_counter()
+                if remaining > 0.002:
+                    # 大于 2ms 才睡，留出最后一点时间给消息泵
+                    time.sleep(min(remaining - 0.001, 0.015))
+        finally:
             try:
-                win32gui.PumpWaitingMessages()
+                import ctypes
+                ctypes.windll.winmm.timeEndPeriod(1)
             except Exception:
                 pass
-
-            now = time.time()
-            elapsed = now - last_tick
-            if elapsed >= 1 / 60:
-                last_tick = now
-                self.tick(elapsed)
-                # clock/date/countdown 只需 100ms 更新一次
-                if self.content_type in ("clock", "date", "countdown"):
-                    if self.content_type == "clock":
-                        cur = self._format_clock()
-                    elif self.content_type == "date":
-                        cur = self._format_date()
-                    else:
-                        cur = self._format_countdown()
-                    if cur != last_clock_text:
-                        last_clock_text = cur
-                        self._request_redraw()
-                else:
-                    self._request_redraw()
-
-            # 防 CPU 跑满
-            time.sleep(0.005)
 
     def exit(self):
         self.running = False

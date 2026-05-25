@@ -273,11 +273,22 @@ class ADBManager:
             info['sdk_version'] = stdout.strip()
         
         # 获取屏幕分辨率
+        # wm size 可能返回两行：
+        #   Physical size: 1080x2400
+        #   Override size: 1080x1920    <- 用户在显示设置里改过显示尺寸时存在
+        # scrcpy 投屏 + 触摸坐标实际使用的是 Override（用户当前生效的尺寸）
+        # 旧逻辑只取 Physical，导致换电脑/换手机后偏移。
         success, stdout, _ = self._run_command(device_args + ['shell', 'wm', 'size'])
         if success:
-            match = re.search(r'Physical size: (\d+x\d+)', stdout)
-            if match:
-                info['resolution'] = match.group(1)
+            override_match = re.search(r'Override size:\s*(\d+x\d+)', stdout)
+            physical_match = re.search(r'Physical size:\s*(\d+x\d+)', stdout)
+            if override_match:
+                info['resolution'] = override_match.group(1)
+                info['physical_resolution'] = physical_match.group(1) if physical_match else override_match.group(1)
+                print(f"[ADBManager] 检测到 Override 尺寸 {info['resolution']}（物理 {info['physical_resolution']}）")
+            elif physical_match:
+                info['resolution'] = physical_match.group(1)
+                info['physical_resolution'] = physical_match.group(1)
         
         # 获取屏幕方向（0=竖屏, 1=横屏左, 2=倒置竖屏, 3=横屏右）
         success, stdout, _ = self._run_command(device_args + ['shell', 'dumpsys', 'input'])

@@ -144,9 +144,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const desktopVideoRef = useRef<HTMLVideoElement | null>(null)
   // 用于实时刷新时钟/日期/倒计时显示
   const [, setNowTick] = useState(0)
-  // 滚动模式：真实滚动动画（hooks 必须在 if (!open) return null 之前声明）
+  // 滚动模式：用 ref 持有元素，直接改 transform（绕开 React 渲染，60fps 丝滑）
   const scrollTextRef = useRef<HTMLSpanElement | null>(null)
-  const [scrollOffset, setScrollOffset] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -239,62 +238,79 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     return () => window.clearInterval(tid)
   }, [open, config.content_type])
 
-  // 滚动模式：真实滚动动画（按用户配置的方向和速度）
+  // 滚动模式：用 transform 直接改 ref.style，绕过 React 重渲染做到 60fps 丝滑
   useEffect(() => {
     if (!open) return
+    const el = scrollTextRef.current
+    if (!el) return
     if (config.content_type !== 'scroll') {
-      setScrollOffset(0)
+      // 非滚动模式：把 transform 复位到中心（CSS top/left 会负责定位）
+      el.style.transform = 'translate3d(-50%, -50%, 0)'
       return
     }
     if (previewBox.w <= 0 || previewBox.h <= 0) return
+
+    const dir = config.scroll_direction
+    const sx = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
+    const sy = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
+    const axisScale = (dir === 'left' || dir === 'right') ? sx : sy
+    const v = Math.max(20, config.scroll_speed) * axisScale  // 像素/秒（预览空间）
+
+    const W = previewBox.w
+    const H = previewBox.h
+    const textW = el.offsetWidth || 200
+    const textH = el.offsetHeight || 40
+
+    // 初始位置（亚像素精度）
+    let pos: number
+    switch (dir) {
+      case 'left':  pos = W; break
+      case 'right': pos = -textW; break
+      case 'up':    pos = H; break
+      case 'down':  pos = -textH; break
+      default:      pos = 0
+    }
+
+    // 按方向决定 transform：水平时 X 是 pos、Y 居中；垂直时 X 居中、Y 是 pos
+    const applyTransform = () => {
+      if (dir === 'left' || dir === 'right') {
+        el.style.transform = `translate3d(${pos.toFixed(2)}px, -50%, 0)`
+      } else {
+        el.style.transform = `translate3d(-50%, ${pos.toFixed(2)}px, 0)`
+      }
+    }
+    applyTransform()
+
     let raf = 0
     let last = performance.now()
     const tick = (now: number) => {
-      const dt = (now - last) / 1000
+      // dt clamp 防止后台标签页切回时大跳变
+      const dt = Math.min(0.1, (now - last) / 1000)
       last = now
-      // 速度按对应轴缩放（左右用 X 轴比例，上下用 Y 轴比例）
-      const dir = config.scroll_direction
-      const sx = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
-      const sy = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
-      const axisScale = (dir === 'left' || dir === 'right') ? sx : sy
-      const v = Math.max(20, config.scroll_speed) * axisScale
-      setScrollOffset((prev) => {
-        const textW = scrollTextRef.current?.offsetWidth ?? 200
-        const textH = scrollTextRef.current?.offsetHeight ?? 40
-        const W = previewBox.w
-        const H = previewBox.h
-        let next = prev
-        if (dir === 'left') {
-          next = prev - v * dt
-          if (next + textW < 0) next = config.scroll_loop ? W : next
-        } else if (dir === 'right') {
-          next = prev + v * dt
-          if (next > W) next = config.scroll_loop ? -textW : next
-        } else if (dir === 'up') {
-          next = prev - v * dt
-          if (next + textH < 0) next = config.scroll_loop ? H : next
-        } else {
-          next = prev + v * dt
-          if (next > H) next = config.scroll_loop ? -textH : next
-        }
-        return next
-      })
+      const delta = v * dt
+      switch (dir) {
+        case 'left':
+          pos -= delta
+          if (pos + textW < 0) pos = config.scroll_loop ? W : pos
+          break
+        case 'right':
+          pos += delta
+          if (pos > W) pos = config.scroll_loop ? -textW : pos
+          break
+        case 'up':
+          pos -= delta
+          if (pos + textH < 0) pos = config.scroll_loop ? H : pos
+          break
+        case 'down':
+          pos += delta
+          if (pos > H) pos = config.scroll_loop ? -textH : pos
+          break
+      }
+      applyTransform()
       raf = requestAnimationFrame(tick)
     }
-    setScrollOffset(() => {
-      const textW = scrollTextRef.current?.offsetWidth ?? 200
-      const textH = scrollTextRef.current?.offsetHeight ?? 40
-      switch (config.scroll_direction) {
-        case 'left': return previewBox.w
-        case 'right': return -textW
-        case 'up': return previewBox.h
-        case 'down': return -textH
-        default: return 0
-      }
-    })
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, screenSize.w, screenSize.h, config.text])
 
   const enableDesktopBg = async () => {
@@ -828,12 +844,11 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                   className={config.vertical_text ? '' : 'whitespace-nowrap'}
                   style={{
                     position: 'absolute',
-                    left: (config.scroll_direction === 'left' || config.scroll_direction === 'right') ? scrollOffset : '50%',
-                    top: (config.scroll_direction === 'up' || config.scroll_direction === 'down') ? scrollOffset : '50%',
-                    transform:
-                      ((config.scroll_direction === 'left' || config.scroll_direction === 'right')
-                        ? 'translateY(-50%)'
-                        : 'translateX(-50%)') + (textRotation ? ' ' + textRotation : ''),
+                    left: 0,
+                    top: 0,
+                    // transform 由 effect 通过 ref 直接修改（60fps 丝滑）；这里只设个初值占位
+                    transform: 'translate3d(0, -50%, 0)',
+                    willChange: 'transform',
                     color: previewStyle.color,
                     fontFamily: previewStyle.fontFamily,
                     fontSize: previewStyle.fontSize,
