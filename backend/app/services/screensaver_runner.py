@@ -1,11 +1,18 @@
-"""屏保弹幕子进程入口（独立运行）
+"""屏保弹幕子进程入口（基于 Win32 API + GDI）
 
-由 screensaver.py 通过 subprocess.Popen 启动，参数 --config <json路径>。
-不依赖 FastAPI / app 包，纯 stdlib + tkinter。
+WebRPA 内置的 Python313 是嵌入式精简版，不带 tkinter。
+所以这里改用 pywin32 直接画 Win32 全屏窗口，实测可用。
+
+支持的内容类型：
+- text       静态文本
+- scroll     滚动文本（左/右/上/下，速度可调）
+- clock      实时时钟（自定义 strftime）
+- date       实时日期
+- countdown  倒计时
+- bullet     多条弹幕随机轨迹
 """
 import argparse
 import json
-import math
 import random
 import sys
 import time
@@ -13,16 +20,18 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    import tkinter as tk
-    from tkinter import font as tkfont
-except Exception as _e:
-    print(f"[Screensaver] tkinter 不可用：{_e}", file=sys.stderr)
+    import win32api
+    import win32con
+    import win32gui
+    import win32ui
+except Exception as e:
+    print(f"[Screensaver] pywin32 不可用：{e}", file=sys.stderr)
     sys.exit(1)
 
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--config", required=True, help="配置文件路径(JSON)")
+    p.add_argument("--config", required=True)
     return p.parse_args()
 
 
@@ -51,29 +60,36 @@ def hex_to_rgb(h: str):
         return (255, 255, 255)
 
 
-class Screensaver:
-    """tkinter 全屏屏保
+def rgb_to_colorref(rgb):
+    """Win32 COLORREF: 0x00BBGGRR"""
+    r, g, b = rgb
+    return r | (g << 8) | (b << 16)
 
-    实现策略：
-    - 用 toplevel 窗口 + Canvas
-    - overrideredirect(True) 去掉标题栏
-    - attributes('-topmost', True) 置顶
-    - attributes('-fullscreen', True) 全屏
-    - attributes('-alpha', a) 整体透明度（Win/macOS 支持）
-    - attributes('-transparentcolor', color) Win 单色透明（点击穿透实现关键）
-    - 按 Esc 或自定义快捷键退出
-    """
+
+# 退出快捷键 → VK
+EXIT_HOTKEY_VK = {
+    "Escape": 0x1B,
+    "Esc": 0x1B,
+    "F12": 0x7B,
+    "space": 0x20,
+    "Space": 0x20,
+}
+
+
+class Screensaver:
+    """纯 Win32 全屏屏保窗口"""
 
     def __init__(self, config: dict):
         self.config = config
-        self.root = tk.Tk()
-        self.canvas: tk.Canvas | None = None
-        self._items: list[int] = []   # 主显示文本的 canvas item id 列表
-        self._bullets: list[dict] = []  # bullet 模式的元素状态
-        self._tick_after_id: str | None = None
+        self.hwnd = None
+        self.running = True
         self._start_time = time.time()
 
-        # 字段读取（带默认值）
+        # 窗口尺寸（全屏）
+        self.sw = win32api.GetSystemMetrics(0)  # SM_CXSCREEN
+        self.sh = win32api.GetSystemMetrics(1)  # SM_CYSCREEN
+
+        # 字段读取
         c = self.config
         self.content_type: str = c.get("content_type", "scroll")
         self.text: str = c.get("text", "WebRPA")
@@ -85,134 +101,36 @@ class Screensaver:
         self.font_size: int = int(c.get("font_size", 64) or 64)
         self.font_weight: str = c.get("font_weight", "normal")
         self.font_italic: bool = bool(c.get("font_italic", False))
-        self.color: str = c.get("color", "#ffffff")
-        self.background: str = c.get("background", "#000000")
+        self.color: tuple = hex_to_rgb(c.get("color", "#ffffff"))
+        self.background: tuple = hex_to_rgb(c.get("background", "#000000"))
         self.background_alpha: float = float(c.get("background_alpha", 1.0) or 1.0)
+        self.outline_color: str = c.get("outline_color", "") or ""
+        self.outline_width: int = int(c.get("outline_width", 0) or 0)
 
-        self.fullscreen: bool = bool(c.get("fullscreen", True))
         self.scroll_direction: str = c.get("scroll_direction", "left")
         self.scroll_speed: int = int(c.get("scroll_speed", 200) or 200)
         self.scroll_loop: bool = bool(c.get("scroll_loop", True))
 
         self.click_through: bool = bool(c.get("click_through", False))
         self.show_close_hint: bool = bool(c.get("show_close_hint", True))
-        self.exit_hotkey: str = (c.get("exit_hotkey") or "Escape").replace("Esc", "Escape")
-
-        self.outline_color: str = c.get("outline_color", "") or ""
-        self.outline_width: int = int(c.get("outline_width", 0) or 0)
-        self.rotation: int = int(c.get("rotation", 0) or 0)
+        self.exit_hotkey: str = c.get("exit_hotkey") or "Escape"
+        self.exit_vk: int = EXIT_HOTKEY_VK.get(self.exit_hotkey, 0x1B)
         self.vertical_text: bool = bool(c.get("vertical_text", False))
 
-    def setup_window(self):
-        root = self.root
-        root.title("WebRPA Screensaver")
-        try:
-            root.attributes("-topmost", True)
-        except Exception:
-            pass
-        if self.fullscreen:
-            try:
-                root.attributes("-fullscreen", True)
-            except Exception:
-                w = root.winfo_screenwidth()
-                h = root.winfo_screenheight()
-                root.geometry(f"{w}x{h}+0+0")
-        try:
-            root.overrideredirect(True)
-        except Exception:
-            pass
+        # 滚动状态
+        self._scroll_x = 0.0
+        self._scroll_y = 0.0
+        self._text_width = 0
+        self._text_height = 0
+        self._inited_pos = False
 
-        # 整体透明度（仅 Windows / macOS）
-        try:
-            root.attributes("-alpha", max(0.05, min(1.0, self.background_alpha)))
-        except Exception:
-            pass
+        # bullet 状态：[{"text", "x", "y", "speed", "color", "size", "bold"}]
+        self._bullet_states: list[dict] = []
 
-        # 点击穿透：Windows 用 transparentcolor + 把背景设成该颜色
-        if self.click_through and sys.platform == "win32":
-            try:
-                root.attributes("-transparentcolor", self.background)
-            except Exception:
-                pass
+        # 双击退出检测
+        self._last_click_time = 0.0
 
-        root.configure(bg=self.background)
-        # 隐藏鼠标可选
-        # root.config(cursor="none")
-
-        # 退出快捷键
-        try:
-            root.bind(f"<{self.exit_hotkey}>", lambda e: self.exit())
-        except Exception:
-            root.bind("<Escape>", lambda e: self.exit())
-        # 双击也退出
-        root.bind("<Double-Button-1>", lambda e: self.exit())
-
-        sw = root.winfo_screenwidth()
-        sh = root.winfo_screenheight()
-        self.canvas = tk.Canvas(
-            root, width=sw, height=sh, bg=self.background,
-            highlightthickness=0, bd=0,
-        )
-        self.canvas.pack(fill="both", expand=True)
-
-        if self.show_close_hint:
-            hint_font = tkfont.Font(family=self.font_family, size=12)
-            self.canvas.create_text(
-                sw - 20, sh - 20, anchor="se",
-                text=f"按 {self.exit_hotkey if self.exit_hotkey != 'Escape' else 'Esc'} 退出",
-                fill=self._dim_color(self.color),
-                font=hint_font,
-            )
-
-    def _dim_color(self, hex_c: str) -> str:
-        r, g, b = hex_to_rgb(hex_c)
-        # 低对比度提示文本
-        return "#%02x%02x%02x" % (max(0, min(255, r * 6 // 10)), max(0, min(255, g * 6 // 10)), max(0, min(255, b * 6 // 10)))
-
-    def _make_font(self) -> tkfont.Font:
-        weight = "bold" if self.font_weight == "bold" else "normal"
-        slant = "italic" if self.font_italic else "roman"
-        return tkfont.Font(family=self.font_family, size=self.font_size, weight=weight, slant=slant)
-
-
-    # ===== 不同 content_type 的实现 =====
-
-    def render_static_text(self, text_value: str):
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        font = self._make_font()
-        cx, cy = sw // 2, sh // 2
-
-        # 描边
-        if self.outline_color and self.outline_width > 0:
-            for dx in range(-self.outline_width, self.outline_width + 1):
-                for dy in range(-self.outline_width, self.outline_width + 1):
-                    if dx == 0 and dy == 0:
-                        continue
-                    self.canvas.create_text(
-                        cx + dx, cy + dy, text=text_value, fill=self.outline_color,
-                        font=font, anchor="center",
-                    )
-
-        # 旋转：tkinter Canvas text 原生不支持 rotate，简单用 90/270 时把文字按字符竖排
-        if self.rotation in (90, 270) or self.vertical_text:
-            text_value = "\n".join(list(text_value))
-
-        item_id = self.canvas.create_text(
-            cx, cy, text=text_value, fill=self.color, font=font, anchor="center",
-            justify="center",
-        )
-        self._items.append(item_id)
-
-    def render_clock(self):
-        # 由 tick 函数动态更新
-        self.render_static_text(self._format_clock())
-
-    def render_date(self):
-        self.render_static_text(self._format_date())
-
-    def render_countdown(self):
-        self.render_static_text(self._format_countdown())
+    # ===== 文本生成 =====
 
     def _format_clock(self) -> str:
         if self.datetime_format:
@@ -247,163 +165,365 @@ class Screensaver:
             return f"{days} 天 {h:02d}:{m:02d}:{s:02d}"
         return f"{h:02d}:{m:02d}:{s:02d}"
 
-    def render_scroll(self):
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        font = self._make_font()
-        text_value = self.text or ""
-        if self.vertical_text:
-            text_value = "\n".join(list(text_value))
-        # 起始位置：根据方向决定
-        if self.scroll_direction == "left":
-            x, y = sw + 20, sh // 2
-            anchor = "w"
-        elif self.scroll_direction == "right":
-            x, y = -20, sh // 2
-            anchor = "e"
-        elif self.scroll_direction == "up":
-            x, y = sw // 2, sh + 20
-            anchor = "n"
-        else:  # down
-            x, y = sw // 2, -20
-            anchor = "s"
-        item_id = self.canvas.create_text(
-            x, y, text=text_value, fill=self.color, font=font, anchor=anchor,
-        )
-        self._items.append(item_id)
-
-    def render_bullets(self):
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        # bullets 每条独立轨迹：随机起始 y、随机速度
-        for i, b in enumerate(self.bullets):
-            text_value = b.get("text", "")
-            if not text_value:
-                continue
-            font_family = b.get("font_family", self.font_family)
-            font_size = int(b.get("font_size", self.font_size) or self.font_size)
-            color = b.get("color", self.color)
-            speed = int(b.get("speed", 200) or 200)
-            font_obj = tkfont.Font(family=font_family, size=font_size, weight=("bold" if b.get("bold") else "normal"))
-            y = b.get("y") if isinstance(b.get("y"), (int, float)) else random.randint(int(font_size * 1.5), max(int(font_size * 1.5) + 1, sh - int(font_size * 1.5)))
-            x = sw + random.randint(0, sw // 2) + i * 40
-            item_id = self.canvas.create_text(x, y, text=text_value, fill=color, font=font_obj, anchor="w")
-            self._bullets.append({"id": item_id, "speed": speed, "y": y, "text": text_value})
-
-    # ===== 动画循环 =====
-    def tick(self):
-        try:
-            sw = self.root.winfo_screenwidth()
-            sh = self.root.winfo_screenheight()
-            now = time.time()
-            dt = 1 / 60  # 目标 60fps
-
-            if self.content_type == "scroll":
-                if self._items and self.canvas:
-                    delta = self.scroll_speed * dt
-                    for iid in self._items:
-                        if self.scroll_direction == "left":
-                            self.canvas.move(iid, -delta, 0)
-                            x1, _, x2, _ = self.canvas.bbox(iid) or (0, 0, 0, 0)
-                            if x2 < 0:
-                                if self.scroll_loop:
-                                    self.canvas.coords(iid, sw + 20, sh // 2)
-                                else:
-                                    self.exit()
-                                    return
-                        elif self.scroll_direction == "right":
-                            self.canvas.move(iid, delta, 0)
-                            x1, _, x2, _ = self.canvas.bbox(iid) or (0, 0, 0, 0)
-                            if x1 > sw:
-                                if self.scroll_loop:
-                                    self.canvas.coords(iid, -20, sh // 2)
-                                else:
-                                    self.exit(); return
-                        elif self.scroll_direction == "up":
-                            self.canvas.move(iid, 0, -delta)
-                            _, y1, _, y2 = self.canvas.bbox(iid) or (0, 0, 0, 0)
-                            if y2 < 0:
-                                if self.scroll_loop:
-                                    self.canvas.coords(iid, sw // 2, sh + 20)
-                                else:
-                                    self.exit(); return
-                        else:  # down
-                            self.canvas.move(iid, 0, delta)
-                            _, y1, _, y2 = self.canvas.bbox(iid) or (0, 0, 0, 0)
-                            if y1 > sh:
-                                if self.scroll_loop:
-                                    self.canvas.coords(iid, sw // 2, -20)
-                                else:
-                                    self.exit(); return
-
-            elif self.content_type == "bullet":
-                for b in list(self._bullets):
-                    iid = b["id"]
-                    if not self.canvas:
-                        break
-                    self.canvas.move(iid, -b["speed"] * dt, 0)
-                    bbox = self.canvas.bbox(iid)
-                    if bbox is None:
-                        continue
-                    x1, _, x2, _ = bbox
-                    if x2 < 0:
-                        # 重新出现在右侧
-                        new_y = random.randint(40, max(41, sh - 40))
-                        self.canvas.coords(iid, sw + 50, new_y)
-
-            elif self.content_type in ("clock", "date", "countdown") and self._items and self.canvas:
-                if self.content_type == "clock":
-                    new_text = self._format_clock()
-                elif self.content_type == "date":
-                    new_text = self._format_date()
-                else:
-                    new_text = self._format_countdown()
-                # 仅每 100ms 刷一次（内部已是 16ms 帧），降低 GUI 刷新负担
-                if int(now * 10) != int(getattr(self, "_last_clock_tick", 0)):
-                    self._last_clock_tick = now * 10
-                    for iid in self._items:
-                        self.canvas.itemconfigure(iid, text=new_text)
-
-            # 16ms 后再调用
-            self._tick_after_id = self.root.after(16, self.tick)
-        except tk.TclError:
-            return  # 窗口已关闭
-        except Exception as e:
-            print(f"[Screensaver] tick 异常：{e}", file=sys.stderr)
-            self._tick_after_id = self.root.after(33, self.tick)
-
-    def run(self):
-        self.setup_window()
-
-        # 根据 content_type 渲染初始内容
+    def _current_text(self) -> str:
         ct = self.content_type
-        if ct == "text":
-            self.render_static_text(self.text or "")
-        elif ct == "scroll":
-            self.render_scroll()
-        elif ct == "clock":
-            self.render_clock()
-        elif ct == "date":
-            self.render_date()
-        elif ct == "countdown":
-            self.render_countdown()
-        elif ct == "bullet":
-            self.render_bullets()
-        else:
-            self.render_static_text(self.text or "WebRPA Screensaver")
+        if ct == "clock":
+            return self._format_clock()
+        if ct == "date":
+            return self._format_date()
+        if ct == "countdown":
+            return self._format_countdown()
+        if ct == "scroll":
+            t = self.text or ""
+            if self.vertical_text:
+                t = "\n".join(list(t))
+            return t
+        # text / 其他
+        t = self.text or "WebRPA"
+        if self.vertical_text:
+            t = "\n".join(list(t))
+        return t
 
-        # 启动动画循环
-        self.tick()
-        self.root.mainloop()
 
-    def exit(self):
+    def _make_font(self, size: int = None, bold: bool = None, italic: bool = None):
+        """创建 GDI 字体"""
+        lf = win32gui.LOGFONT()
+        lf.lfHeight = -(size if size is not None else self.font_size)
+        if bold is None:
+            bold = self.font_weight == "bold"
+        lf.lfWeight = win32con.FW_BOLD if bold else win32con.FW_NORMAL
+        lf.lfItalic = 1 if (italic if italic is not None else self.font_italic) else 0
+        lf.lfFaceName = self.font_family
+        lf.lfCharSet = win32con.DEFAULT_CHARSET
+        lf.lfQuality = win32con.CLEARTYPE_QUALITY
+        return win32gui.CreateFontIndirect(lf)
+
+    # ===== Win32 窗口生命周期 =====
+
+    def create_window(self):
+        message_map = {
+            win32con.WM_PAINT: self._on_paint_msg,
+            win32con.WM_KEYDOWN: self._on_keydown_msg,
+            win32con.WM_LBUTTONDBLCLK: self._on_dblclick_msg,
+            win32con.WM_DESTROY: self._on_destroy_msg,
+            win32con.WM_ERASEBKGND: self._on_erase_msg,
+        }
+
+        wc = win32gui.WNDCLASS()
+        wc.lpszClassName = "WebRPAScreensaverCls"
+        wc.lpfnWndProc = message_map
+        wc.hInstance = win32api.GetModuleHandle(None)
+        wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        wc.style = 0x0008 | 0x0001 | 0x0002  # CS_DBLCLKS | CS_VREDRAW | CS_HREDRAW
+        wc.hbrBackground = win32con.COLOR_WINDOW + 1  # 系统标准
         try:
-            if self._tick_after_id:
-                self.root.after_cancel(self._tick_after_id)
+            self.cls_atom = win32gui.RegisterClass(wc)
+        except Exception as e:
+            print(f"[Screensaver] RegisterClass: {e}", file=sys.stderr)
+            self.cls_atom = "WebRPAScreensaverCls"
+
+        # 整体风格：弹出式无边框 + 置顶层
+        ex_style = win32con.WS_EX_TOPMOST | win32con.WS_EX_TOOLWINDOW
+        # 整体透明度（底色和文字一起变透明）
+        if self.background_alpha < 1.0:
+            ex_style |= win32con.WS_EX_LAYERED
+        # 点击穿透
+        if self.click_through:
+            ex_style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+
+        self.hwnd = win32gui.CreateWindowEx(
+            ex_style,
+            self.cls_atom,
+            "WebRPA Screensaver",
+            win32con.WS_POPUP | win32con.WS_VISIBLE,
+            0, 0, self.sw, self.sh,
+            0, 0, 0, None,
+        )
+
+        if (ex_style & win32con.WS_EX_LAYERED) and not self.click_through:
+            # 仅整体透明
+            alpha = max(13, min(255, int(255 * self.background_alpha)))
+            win32gui.SetLayeredWindowAttributes(
+                self.hwnd, 0, alpha, win32con.LWA_ALPHA
+            )
+        elif self.click_through:
+            # 点击穿透 + 用 colorkey（背景色透明）
+            win32gui.SetLayeredWindowAttributes(
+                self.hwnd, rgb_to_colorref(self.background), 0, win32con.LWA_COLORKEY
+            )
+
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
+        win32gui.UpdateWindow(self.hwnd)
+        # 强制置顶到最前
+        try:
+            win32gui.SetForegroundWindow(self.hwnd)
         except Exception:
             pass
+
+    def _on_paint_msg(self, hwnd, msg, wparam, lparam):
+        self.on_paint(hwnd)
+        return 0
+
+    def _on_keydown_msg(self, hwnd, msg, wparam, lparam):
+        if wparam == self.exit_vk:
+            self.exit()
+        return 0
+
+    def _on_dblclick_msg(self, hwnd, msg, wparam, lparam):
+        self.exit()
+        return 0
+
+    def _on_destroy_msg(self, hwnd, msg, wparam, lparam):
+        win32gui.PostQuitMessage(0)
+        self.running = False
+        return 0
+
+    def _on_erase_msg(self, hwnd, msg, wparam, lparam):
+        # 让 OnPaint 自己处理背景，避免闪烁
+        return 1
+
+
+    # ===== 绘制（双缓冲，无闪烁） =====
+
+    def on_paint(self, hwnd):
+        # pywin32 的 BeginPaint 返回 (hdc, PAINTSTRUCT 元组)
+        hdc, ps = win32gui.BeginPaint(hwnd)
         try:
-            self.root.destroy()
+            self._draw_to_hdc(hdc)
+        except Exception as e:
+            print(f"[Screensaver] paint 异常：{e}", file=sys.stderr)
+        finally:
+            win32gui.EndPaint(hwnd, ps)
+
+    def _draw_to_hdc(self, hdc):
+        # 双缓冲：在内存 DC 上画，再 BitBlt 到屏幕
+        mem_dc = win32gui.CreateCompatibleDC(hdc)
+        bmp = win32gui.CreateCompatibleBitmap(hdc, self.sw, self.sh)
+        old_bmp = win32gui.SelectObject(mem_dc, bmp)
+
+        try:
+            # 填背景
+            brush = win32gui.CreateSolidBrush(rgb_to_colorref(self.background))
+            win32gui.FillRect(mem_dc, (0, 0, self.sw, self.sh), brush)
+            win32gui.DeleteObject(brush)
+
+            # 设置文字颜色（普通文本）
+            win32gui.SetTextColor(mem_dc, rgb_to_colorref(self.color))
+            win32gui.SetBkMode(mem_dc, win32con.TRANSPARENT)
+
+            ct = self.content_type
+            if ct == "bullet":
+                self._draw_bullets(mem_dc)
+            else:
+                text = self._current_text()
+                font = self._make_font()
+                old_font = win32gui.SelectObject(mem_dc, font)
+                self._draw_main_text(mem_dc, text, ct)
+                win32gui.SelectObject(mem_dc, old_font)
+                win32gui.DeleteObject(font)
+
+            if self.show_close_hint:
+                self._draw_close_hint(mem_dc)
+
+            # BitBlt 到屏幕
+            win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, mem_dc, 0, 0, win32con.SRCCOPY)
+        finally:
+            win32gui.SelectObject(mem_dc, old_bmp)
+            win32gui.DeleteObject(bmp)
+            win32gui.DeleteDC(mem_dc)
+
+    def _draw_main_text(self, hdc, text: str, ct: str):
+        # 测算文本尺寸
+        try:
+            sz = win32gui.GetTextExtentPoint32(hdc, text)
+            tw, th = sz
+        except Exception:
+            tw, th = self.font_size * len(text), self.font_size
+        self._text_width = tw
+        self._text_height = th
+
+        if ct == "scroll":
+            if not self._inited_pos:
+                self._init_scroll_pos()
+                self._inited_pos = True
+            x = int(self._scroll_x)
+            y = int(self._scroll_y)
+        else:
+            # 居中
+            x = (self.sw - tw) // 2
+            y = (self.sh - th) // 2
+
+        # 描边
+        if self.outline_color and self.outline_width > 0:
+            try:
+                outline_rgb = hex_to_rgb(self.outline_color)
+                ow = max(1, min(6, self.outline_width))
+                old_color = win32gui.SetTextColor(hdc, rgb_to_colorref(outline_rgb))
+                for dx in range(-ow, ow + 1):
+                    for dy in range(-ow, ow + 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        win32gui.ExtTextOut(hdc, x + dx, y + dy, 0, None, text)
+                win32gui.SetTextColor(hdc, old_color)
+            except Exception:
+                pass
+
+        win32gui.ExtTextOut(hdc, x, y, 0, None, text)
+
+    def _draw_bullets(self, hdc):
+        if not self._bullet_states:
+            self._init_bullets()
+        for b in self._bullet_states:
+            font = self._make_font(size=b.get("size", self.font_size), bold=b.get("bold", False))
+            old_font = win32gui.SelectObject(hdc, font)
+            old_color = win32gui.SetTextColor(hdc, rgb_to_colorref(b["color"]))
+            try:
+                win32gui.ExtTextOut(hdc, int(b["x"]), int(b["y"]), 0, None, b["text"])
+            except Exception:
+                pass
+            win32gui.SetTextColor(hdc, old_color)
+            win32gui.SelectObject(hdc, old_font)
+            win32gui.DeleteObject(font)
+
+    def _draw_close_hint(self, hdc):
+        font = self._make_font(size=14, bold=False, italic=False)
+        old_font = win32gui.SelectObject(hdc, font)
+        # 半暗色提示
+        r, g, b = self.color
+        dim = (r * 6 // 10, g * 6 // 10, b * 6 // 10)
+        old_color = win32gui.SetTextColor(hdc, rgb_to_colorref(dim))
+        text = f"按 {self.exit_hotkey} 或双击屏幕退出"
+        try:
+            sz = win32gui.GetTextExtentPoint32(hdc, text)
+            tw, th = sz
+        except Exception:
+            tw, th = 200, 18
+        win32gui.ExtTextOut(hdc, self.sw - tw - 20, self.sh - th - 20, 0, None, text)
+        win32gui.SetTextColor(hdc, old_color)
+        win32gui.SelectObject(hdc, old_font)
+        win32gui.DeleteObject(font)
+
+    def _init_scroll_pos(self):
+        if self.scroll_direction == "left":
+            self._scroll_x = float(self.sw + 20)
+            self._scroll_y = float((self.sh - self._text_height) // 2)
+        elif self.scroll_direction == "right":
+            self._scroll_x = float(-self._text_width - 20)
+            self._scroll_y = float((self.sh - self._text_height) // 2)
+        elif self.scroll_direction == "up":
+            self._scroll_x = float((self.sw - self._text_width) // 2)
+            self._scroll_y = float(self.sh + 20)
+        else:  # down
+            self._scroll_x = float((self.sw - self._text_width) // 2)
+            self._scroll_y = float(-self._text_height - 20)
+
+    def _init_bullets(self):
+        for i, b in enumerate(self.bullets):
+            text = b.get("text", "")
+            if not text:
+                continue
+            size = int(b.get("font_size", self.font_size) or self.font_size)
+            speed = int(b.get("speed", 200) or 200)
+            color = hex_to_rgb(b.get("color", "#ffffff"))
+            bold = bool(b.get("bold", False))
+            y = random.randint(int(size * 1.5), max(int(size * 1.5) + 1, self.sh - int(size * 1.5)))
+            x = self.sw + random.randint(0, self.sw // 2) + i * 40
+            self._bullet_states.append({
+                "text": text, "x": float(x), "y": float(y),
+                "speed": speed, "color": color, "size": size, "bold": bold,
+            })
+
+
+    # ===== 主循环 =====
+
+    def tick(self):
+        """每帧更新滚动/弹幕位置"""
+        dt = 1 / 60
+        if self.content_type == "scroll":
+            if not self._inited_pos:
+                return  # 等首次绘制后再启动滚动
+            delta = self.scroll_speed * dt
+            if self.scroll_direction == "left":
+                self._scroll_x -= delta
+                if self._scroll_x + self._text_width < 0:
+                    if self.scroll_loop:
+                        self._scroll_x = float(self.sw + 20)
+                    else:
+                        self.exit()
+                        return
+            elif self.scroll_direction == "right":
+                self._scroll_x += delta
+                if self._scroll_x > self.sw:
+                    if self.scroll_loop:
+                        self._scroll_x = float(-self._text_width - 20)
+                    else:
+                        self.exit(); return
+            elif self.scroll_direction == "up":
+                self._scroll_y -= delta
+                if self._scroll_y + self._text_height < 0:
+                    if self.scroll_loop:
+                        self._scroll_y = float(self.sh + 20)
+                    else:
+                        self.exit(); return
+            else:  # down
+                self._scroll_y += delta
+                if self._scroll_y > self.sh:
+                    if self.scroll_loop:
+                        self._scroll_y = float(-self._text_height - 20)
+                    else:
+                        self.exit(); return
+        elif self.content_type == "bullet":
+            for b in self._bullet_states:
+                b["x"] -= b["speed"] * dt
+                if b["x"] + 200 < 0:
+                    b["x"] = float(self.sw + random.randint(0, self.sw // 2))
+                    b["y"] = float(random.randint(40, max(41, self.sh - 40)))
+
+    def _request_redraw(self):
+        if self.hwnd:
+            try:
+                win32gui.InvalidateRect(self.hwnd, None, False)
+            except Exception:
+                pass
+
+    def run(self):
+        self.create_window()
+        last_clock_text = ""
+        last_tick = time.time()
+        while self.running:
+            # 处理一批消息
+            try:
+                win32gui.PumpWaitingMessages()
+            except Exception:
+                pass
+
+            now = time.time()
+            elapsed = now - last_tick
+            if elapsed >= 1 / 60:
+                last_tick = now
+                self.tick()
+                # clock/date/countdown 只需 100ms 更新一次
+                if self.content_type in ("clock", "date", "countdown"):
+                    if self.content_type == "clock":
+                        cur = self._format_clock()
+                    elif self.content_type == "date":
+                        cur = self._format_date()
+                    else:
+                        cur = self._format_countdown()
+                    if cur != last_clock_text:
+                        last_clock_text = cur
+                        self._request_redraw()
+                else:
+                    self._request_redraw()
+
+            # 防 CPU 跑满
+            time.sleep(0.005)
+
+    def exit(self):
+        self.running = False
+        try:
+            if self.hwnd:
+                win32gui.DestroyWindow(self.hwnd)
         except Exception:
             pass
 
@@ -412,7 +532,10 @@ def main():
     args = parse_args()
     config = load_config(args.config)
     saver = Screensaver(config)
-    saver.run()
+    try:
+        saver.run()
+    except KeyboardInterrupt:
+        saver.exit()
 
 
 if __name__ == "__main__":
