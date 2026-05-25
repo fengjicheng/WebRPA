@@ -1,5 +1,6 @@
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { lazy, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -50,7 +51,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
