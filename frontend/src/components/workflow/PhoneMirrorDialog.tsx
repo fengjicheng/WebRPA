@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { phoneApi } from '@/services/api'
-import { Smartphone, RefreshCw, Monitor, AlertCircle, CheckCircle, Loader2, X, Crop } from 'lucide-react'
+import { Smartphone, RefreshCw, Monitor, AlertCircle, CheckCircle, Loader2, X, Crop, Wifi, ChevronDown, ChevronRight as ChevRight } from 'lucide-react'
 import { PhoneScreenshotCropper } from './PhoneScreenshotCropper'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 
@@ -27,6 +28,16 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
   const [refreshing, setRefreshing] = useState(false)
   const [showCropper, setShowCropper] = useState(false)
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
+
+  // ===== 无线连接相关状态 =====
+  const [wifiPanelExpanded, setWifiPanelExpanded] = useState(false)
+  const [wifiMode, setWifiMode] = useState<'pair' | 'connect' | 'usb'>('pair')
+  const [wifiIp, setWifiIp] = useState('')
+  const [wifiPort, setWifiPort] = useState('5555')
+  const [pairPort, setPairPort] = useState('')
+  const [pairingCode, setPairingCode] = useState('')
+  const [wifiBusy, setWifiBusy] = useState(false)
+  const [wifiMsg, setWifiMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   
   // 每个设备独立的加载状态
   const [deviceLoadingStates, setDeviceLoadingStates] = useState<Record<string, boolean>>({})
@@ -72,6 +83,92 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
       }
     } catch (err) {
       console.error('获取镜像状态失败:', err)
+    }
+  }
+
+  // ===== 无线连接 =====
+  const handleConnectWifi = async () => {
+    if (!wifiIp.trim()) {
+      setWifiMsg({ type: 'error', text: '请填写设备 IP' })
+      return
+    }
+    setWifiBusy(true)
+    setWifiMsg(null)
+    try {
+      const port = Number(wifiPort) || 5555
+      const res = await phoneApi.connectWifi(wifiIp.trim(), port)
+      if (res.success && res.data?.success !== false) {
+        setWifiMsg({ type: 'success', text: `已连接 ${wifiIp}:${port}，刷新设备列表中…` })
+        setTimeout(() => loadDevices(), 500)
+      } else {
+        setWifiMsg({ type: 'error', text: res.data?.error || res.error || '连接失败' })
+      }
+    } catch (e: any) {
+      setWifiMsg({ type: 'error', text: e?.message || String(e) })
+    } finally {
+      setWifiBusy(false)
+    }
+  }
+
+  const handlePairWireless = async () => {
+    if (!wifiIp.trim() || !pairPort.trim() || !pairingCode.trim()) {
+      setWifiMsg({ type: 'error', text: '请填写 IP、配对端口、配对码' })
+      return
+    }
+    if (!/^\d{6}$/.test(pairingCode.trim())) {
+      setWifiMsg({ type: 'error', text: '配对码必须是 6 位数字' })
+      return
+    }
+    setWifiBusy(true)
+    setWifiMsg(null)
+    try {
+      const res = await phoneApi.pairWireless(wifiIp.trim(), Number(pairPort), pairingCode.trim())
+      if (res.success && res.data?.success !== false) {
+        setWifiMsg({
+          type: 'success',
+          text: '配对成功！现在切换到「日常重连」填入连接端口（手机无线调试主页面会显示，通常不是配对端口）',
+        })
+        setPairingCode('')
+        setWifiMode('connect')
+      } else {
+        setWifiMsg({ type: 'error', text: res.data?.error || res.error || '配对失败' })
+      }
+    } catch (e: any) {
+      setWifiMsg({ type: 'error', text: e?.message || String(e) })
+    } finally {
+      setWifiBusy(false)
+    }
+  }
+
+  const handleEnableTcpip = async () => {
+    setWifiBusy(true)
+    setWifiMsg(null)
+    try {
+      const port = Number(wifiPort) || 5555
+      const deviceId = devices[0]?.id  // 用 USB 已连接的第一个设备
+      const res = await phoneApi.enableTcpip(port, deviceId)
+      if (res.success && res.data?.success !== false) {
+        const ip = res.data?.device_ip
+        if (ip) {
+          setWifiIp(ip)
+          setWifiMsg({
+            type: 'success',
+            text: `已启用 TCP/IP 模式（端口 ${port}），自动检测到 IP：${ip}。现在可拔掉数据线，点「连接」即可`,
+          })
+        } else {
+          setWifiMsg({
+            type: 'success',
+            text: `已启用 TCP/IP 模式（端口 ${port}），请手填手机 IP 后点「连接」`,
+          })
+        }
+        setWifiMode('connect')
+      } else {
+        setWifiMsg({ type: 'error', text: res.data?.error || res.error || 'TCP/IP 启用失败，请确认 USB 已连接且开启了 USB 调试' })
+      }
+    } catch (e: any) {
+      setWifiMsg({ type: 'error', text: e?.message || String(e) })
+    } finally {
+      setWifiBusy(false)
     }
   }
 
@@ -236,6 +333,185 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
               </div>
             </div>
           )}
+
+          {/* 无线连接（无需数据线） */}
+          <div className="border border-blue-200 bg-blue-50/40 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setWifiPanelExpanded(!wifiPanelExpanded)}
+              className="w-full flex items-center gap-2 px-4 py-3 hover:bg-blue-50 transition-colors"
+            >
+              <Wifi className="w-4 h-4 text-blue-600" />
+              <span className="font-semibold text-gray-900">无线连接（无需数据线）</span>
+              <span className="text-xs text-gray-500 ml-2">
+                {wifiPanelExpanded ? '点击收起' : '点击展开'}
+              </span>
+              <span className="ml-auto">
+                {wifiPanelExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevRight className="w-4 h-4" />}
+              </span>
+            </button>
+
+            {wifiPanelExpanded && (
+              <div className="px-4 pb-4 space-y-3 border-t border-blue-200/60">
+                {/* 模式切换 */}
+                <div className="flex flex-wrap gap-2 pt-3">
+                  {[
+                    { v: 'pair', label: 'Android 11+ 配对（推荐）', desc: '完全无需数据线' },
+                    { v: 'connect', label: '日常重连', desc: '已配对设备直接连' },
+                    { v: 'usb', label: 'USB 启用 TCP/IP', desc: 'Android 10- 首次需数据线' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      onClick={() => { setWifiMode(opt.v as any); setWifiMsg(null) }}
+                      className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+                        wifiMode === opt.v
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-white border-gray-200 hover:border-blue-300'
+                      }`}
+                      title={opt.desc}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 模式：Android 11+ 配对 */}
+                {wifiMode === 'pair' && (
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600 leading-relaxed bg-white border border-gray-200 rounded p-2">
+                      <strong>步骤：</strong>
+                      <br />1. 手机：开发者选项 → 无线调试 → 打开
+                      <br />2. 点「使用配对码配对设备」，记下显示的 IP、配对端口、6 位配对码
+                      <br />3. 手机和电脑必须在同一 WiFi
+                      <br />4. 在下方填入信息后点「配对」，配对成功后切换到「日常重连」即可
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-600 mb-1 block">设备 IP</label>
+                        <Input
+                          placeholder="如 192.168.1.42"
+                          value={wifiIp}
+                          onChange={(e) => setWifiIp(e.target.value)}
+                          disabled={wifiBusy}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 mb-1 block">配对端口</label>
+                        <Input
+                          placeholder="如 39521（每次配对会变）"
+                          value={pairPort}
+                          onChange={(e) => setPairPort(e.target.value)}
+                          disabled={wifiBusy}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-xs text-gray-600 mb-1 block">6 位配对码</label>
+                        <Input
+                          placeholder="如 123456"
+                          value={pairingCode}
+                          onChange={(e) => setPairingCode(e.target.value)}
+                          maxLength={6}
+                          disabled={wifiBusy}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="tonal-success"
+                      onClick={handlePairWireless}
+                      disabled={wifiBusy}
+                      className="w-full"
+                    >
+                      {wifiBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wifi className="w-4 h-4 mr-1" />}
+                      配对
+                    </Button>
+                  </div>
+                )}
+
+                {/* 模式：日常重连 */}
+                {wifiMode === 'connect' && (
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600 leading-relaxed bg-white border border-gray-200 rounded p-2">
+                      已经配对过的设备，每次重连只需填 IP 和连接端口（手机无线调试主页面会显示）
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-600 mb-1 block">设备 IP</label>
+                        <Input
+                          placeholder="如 192.168.1.42"
+                          value={wifiIp}
+                          onChange={(e) => setWifiIp(e.target.value)}
+                          disabled={wifiBusy}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 mb-1 block">连接端口</label>
+                        <Input
+                          placeholder="5555 / 配对页显示的端口"
+                          value={wifiPort}
+                          onChange={(e) => setWifiPort(e.target.value)}
+                          disabled={wifiBusy}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="tonal-success"
+                      onClick={handleConnectWifi}
+                      disabled={wifiBusy}
+                      className="w-full"
+                    >
+                      {wifiBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wifi className="w-4 h-4 mr-1" />}
+                      连接
+                    </Button>
+                  </div>
+                )}
+
+                {/* 模式：USB 启用 TCP/IP */}
+                {wifiMode === 'usb' && (
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600 leading-relaxed bg-white border border-gray-200 rounded p-2">
+                      <strong>步骤：</strong>
+                      <br />1. 用数据线连接手机一次（开 USB 调试）
+                      <br />2. 设置端口（默认 5555），点「启用 TCP/IP」
+                      <br />3. 启用成功后会自动检测到 IP，拔掉数据线
+                      <br />4. 切到「日常重连」点「连接」即可，之后所有重连都不再需要数据线
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">监听端口（默认 5555）</label>
+                      <Input
+                        placeholder="5555"
+                        value={wifiPort}
+                        onChange={(e) => setWifiPort(e.target.value)}
+                        disabled={wifiBusy}
+                      />
+                    </div>
+                    <Button
+                      variant="tonal-success"
+                      onClick={handleEnableTcpip}
+                      disabled={wifiBusy || devices.length === 0}
+                      className="w-full"
+                    >
+                      {wifiBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wifi className="w-4 h-4 mr-1" />}
+                      启用 TCP/IP（需先用 USB 连接）
+                    </Button>
+                    {devices.length === 0 && (
+                      <p className="text-xs text-amber-600">请先用数据线连接手机，让上方设备列表出现一台设备</p>
+                    )}
+                  </div>
+                )}
+
+                {/* 状态消息 */}
+                {wifiMsg && (
+                  <div className={`text-xs px-3 py-2 rounded border ${
+                    wifiMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+                    wifiMsg.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                    'bg-blue-50 border-blue-200 text-blue-800'
+                  }`}>
+                    {wifiMsg.text}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 设备列表 */}
           <div>

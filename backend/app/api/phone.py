@@ -32,6 +32,24 @@ class ConnectWifiRequest(BaseModel):
     port: int = 5555
 
 
+class PairWirelessRequest(BaseModel):
+    """Android 11+ 无线调试配对（首次连接，无需数据线）"""
+    ip_address: str
+    pair_port: int
+    pairing_code: str
+
+
+class EnableTcpipRequest(BaseModel):
+    """通过 USB 启用设备 TCP/IP 模式（仅首次需要数据线，之后全无线）"""
+    port: int = 5555
+    device_id: Optional[str] = None
+
+
+class DisconnectWifiRequest(BaseModel):
+    ip_address: str
+    port: int = 5555
+
+
 class StartCoordinatePickerRequest(BaseModel):
     device_id: str
     max_size: int = 1920
@@ -65,13 +83,85 @@ async def get_device_info(device_id: Optional[str] = None):
 
 @router.post("/connect/wifi")
 async def connect_wifi(request: ConnectWifiRequest):
-    """通过WiFi连接设备"""
+    """通过 WiFi 连接已配对/已开启 tcpip 模式的设备（日常重连场景）"""
     try:
         adb = get_adb_manager()
         success, error = adb.connect_wifi(request.ip_address, request.port)
         if not success:
             return {"success": False, "error": error}
-        return {"success": True, "message": "WiFi连接成功"}
+        return {"success": True, "message": "WiFi 连接成功"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/connect/disconnect-wifi")
+async def disconnect_wifi(request: DisconnectWifiRequest):
+    """断开 WiFi 连接"""
+    try:
+        adb = get_adb_manager()
+        success, error = adb.disconnect_wifi(request.ip_address, request.port)
+        if not success:
+            return {"success": False, "error": error}
+        return {"success": True, "message": "已断开"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/connect/pair-wireless")
+async def pair_wireless(request: PairWirelessRequest):
+    """Android 11+ 无线调试配对（完全无需数据线）
+
+    用户操作：手机开发者选项 → 无线调试 → "使用配对码配对设备"
+    填入：手机显示的 IP、配对端口、6 位配对码
+    配对成功后会自动建立持久信任，下次重连只需调 /connect/wifi
+    """
+    try:
+        adb = get_adb_manager()
+        success, error = adb.pair_wireless(
+            request.ip_address, request.pair_port, request.pairing_code
+        )
+        if not success:
+            return {"success": False, "error": error}
+        return {"success": True, "message": "配对成功，现在可以通过 IP+端口连接"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/connect/enable-tcpip")
+async def enable_tcpip(request: EnableTcpipRequest):
+    """通过 USB 启用设备的 TCP/IP 模式（适用于 Android 10 及以下）
+
+    使用流程：
+      1. 数据线插上手机一次
+      2. 调本接口启用 tcpip
+      3. 拔掉数据线，调 /connect/wifi 用 IP+端口连接
+      4. 之后所有重连都不再需要数据线（直到设备重启或手动 adb usb）
+    """
+    try:
+        adb = get_adb_manager()
+        # 顺便取设备 IP（用户拔线前用 USB 连接拿一次 IP，省得手填）
+        success_ip, ip, _err_ip = adb.get_device_wifi_ip(request.device_id)
+        success, error = adb.enable_tcpip_via_usb(request.port, request.device_id)
+        if not success:
+            return {"success": False, "error": error}
+        return {
+            "success": True,
+            "message": f"TCP/IP 已启用，端口 {request.port}",
+            "device_ip": ip if success_ip else None,
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/connect/device-ip")
+async def get_device_ip(device_id: Optional[str] = None):
+    """获取已连接设备的 WiFi IP（前端预填用）"""
+    try:
+        adb = get_adb_manager()
+        success, ip, error = adb.get_device_wifi_ip(device_id)
+        if not success:
+            return {"success": False, "error": error}
+        return {"success": True, "ip": ip}
     except Exception as e:
         return {"success": False, "error": str(e)}
 

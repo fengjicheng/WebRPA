@@ -302,6 +302,44 @@ export const phoneApi = {
     }),
   // 注：tap/swipe/inputText 等模块级操作通过 workflow executor 实现，
   // 不需要直接的 HTTP API。
+
+  // ===== 无线连接（WiFi 调试，无需数据线） =====
+  /** 连接已配对/已开启 tcpip 的设备 */
+  connectWifi: (ipAddress: string, port: number = 5555) =>
+    apiRequest<{ success: boolean; message?: string; error?: string }>(
+      '/phone/connect/wifi',
+      { method: 'POST', body: JSON.stringify({ ip_address: ipAddress, port }) }
+    ),
+  /** 断开 WiFi 连接 */
+  disconnectWifi: (ipAddress: string, port: number = 5555) =>
+    apiRequest('/phone/connect/disconnect-wifi', {
+      method: 'POST',
+      body: JSON.stringify({ ip_address: ipAddress, port }),
+    }),
+  /** Android 11+ 无线调试配对（完全无需数据线） */
+  pairWireless: (ipAddress: string, pairPort: number, pairingCode: string) =>
+    apiRequest<{ success: boolean; message?: string; error?: string }>(
+      '/phone/connect/pair-wireless',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ip_address: ipAddress,
+          pair_port: pairPort,
+          pairing_code: pairingCode,
+        }),
+      }
+    ),
+  /** 通过 USB 启用 TCP/IP 模式（仅首次需要数据线，适用 Android 10-） */
+  enableTcpip: (port: number = 5555, deviceId?: string) =>
+    apiRequest<{ success: boolean; message?: string; error?: string; device_ip?: string | null }>(
+      '/phone/connect/enable-tcpip',
+      { method: 'POST', body: JSON.stringify({ port, device_id: deviceId }) }
+    ),
+  /** 获取设备 WiFi IP */
+  getDeviceIp: (deviceId?: string) =>
+    apiRequest<{ success: boolean; ip?: string; error?: string }>(
+      `/phone/connect/device-ip${deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : ''}`
+    ),
 }
 
 // ==================== 定时任务 API ====================

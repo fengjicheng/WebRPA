@@ -826,32 +826,129 @@ class ADBManager:
         return files
     
     def connect_wifi(self, ip_address: str, port: int = 5555) -> Tuple[bool, str]:
-        """通过 WiFi 连接设备
-        
+        """通过 WiFi 连接设备（已配对的设备直接重连）
+
         Args:
             ip_address: 设备 IP 地址
-            port: 端口号（默认 5555）
-            
+            port: 端口号（Android 10- 默认 5555；Android 11+ 配对后由系统给的端口）
+
         Returns:
             (成功与否, 错误信息)
         """
-        # 先通过 USB 启用 TCP/IP 模式
-        success, stdout, stderr = self._run_command(['tcpip', str(port)])
-        if not success:
-            return False, f"启用 TCP/IP 模式失败: {stderr}"
-        
-        # 等待设备重启 ADB
-        time.sleep(2)
-        
-        # 连接设备
+        # 直接连接（要求设备已经处于 tcpip 模式或已经配对过）
         success, stdout, stderr = self._run_command(['connect', f"{ip_address}:{port}"])
         if not success:
             return False, f"连接失败: {stderr}"
-        
-        if 'connected' not in stdout.lower():
-            return False, f"连接失败: {stdout}"
-        
+
+        out = (stdout or '').lower()
+        if 'connected' not in out and 'already' not in out:
+            return False, f"连接失败: {stdout.strip() or stderr.strip()}"
+
         return True, ""
+
+    def enable_tcpip_via_usb(self, port: int = 5555, device_id: Optional[str] = None) -> Tuple[bool, str]:
+        """通过 USB 启用设备的 TCP/IP 模式（仅首次需要数据线，之后全无线）
+
+        Args:
+            port: TCP/IP 监听端口（默认 5555）
+            device_id: 通过 USB 连接的设备 ID
+
+        Returns:
+            (成功与否, 错误信息)
+        """
+        args = []
+        if device_id:
+            args = ['-s', device_id]
+        args.extend(['tcpip', str(port)])
+        success, stdout, stderr = self._run_command(args)
+        if not success:
+            return False, f"启用 TCP/IP 模式失败: {stderr or stdout}"
+        # 设备会重启 ADB 守护进程
+        time.sleep(2)
+        return True, ""
+
+    def get_device_wifi_ip(self, device_id: Optional[str] = None) -> Tuple[bool, str, str]:
+        """通过 ADB 获取设备的 WiFi IP（用于 USB 启用 tcpip 后自动填 IP）
+
+        Args:
+            device_id: 设备 ID
+
+        Returns:
+            (成功与否, IP 地址, 错误信息)
+        """
+        args = []
+        if device_id:
+            args = ['-s', device_id]
+        # 优先 wlan0，其次任意非 lo 接口
+        args.extend(['shell', 'ip', '-f', 'inet', 'addr', 'show', 'wlan0'])
+        success, stdout, stderr = self._run_command(args, check=False)
+        if success and stdout:
+            for line in stdout.splitlines():
+                line = line.strip()
+                if line.startswith('inet '):
+                    # 形如 "inet 192.168.1.42/24 brd ..."
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ip = parts[1].split('/')[0]
+                        if ip and ip != '127.0.0.1':
+                            return True, ip, ""
+        # 回退：用 getprop
+        args2 = []
+        if device_id:
+            args2 = ['-s', device_id]
+        args2.extend(['shell', 'ifconfig', 'wlan0'])
+        success, stdout, stderr = self._run_command(args2, check=False)
+        if success and stdout:
+            import re as _re
+            m = _re.search(r'inet\s+addr:?\s*(\d+\.\d+\.\d+\.\d+)', stdout)
+            if m:
+                return True, m.group(1), ""
+        return False, "", "未获取到设备 WiFi IP，请确保设备已连入 WiFi"
+
+    def pair_wireless(self, ip_address: str, pair_port: int, pairing_code: str) -> Tuple[bool, str]:
+        """Android 11+ 无线调试配对（首次连接，无需数据线）
+
+        手机端操作（用户先做）：
+          开发者选项 → 无线调试 → 使用配对码配对设备
+          会显示一个 IP 和 6 位数字的配对码 + 配对端口
+
+        Args:
+            ip_address: 手机显示的 IP
+            pair_port: 手机显示的配对端口（不是 5555，每次配对会变）
+            pairing_code: 6 位数字配对码
+
+        Returns:
+            (成功与否, 错误信息)
+        """
+        if not pairing_code or not pairing_code.strip():
+            return False, "配对码不能为空"
+        # 用 echo + 管道把配对码喂给 adb pair
+        try:
+            import subprocess
+            startupinfo = None
+            if hasattr(subprocess, 'STARTUPINFO'):
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            cmd = [self.adb_path, 'pair', f"{ip_address}:{pair_port}", pairing_code.strip()]
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=30,
+                startupinfo=startupinfo,
+            )
+            stdout = (proc.stdout or '').strip()
+            stderr = (proc.stderr or '').strip()
+            combined = (stdout + ' ' + stderr).lower()
+            if proc.returncode == 0 and ('successfully paired' in combined or 'paired' in combined):
+                return True, ""
+            return False, f"配对失败: {stdout or stderr or '未知错误'}"
+        except subprocess.TimeoutExpired:
+            return False, '配对超时（30 秒），请确认手机的「使用配对码配对设备」页面仍在显示'
+        except Exception as e:
+            return False, f"配对异常: {e}"
     
     def disconnect_wifi(self, ip_address: str, port: int = 5555) -> Tuple[bool, str]:
         """断开 WiFi 连接
