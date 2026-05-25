@@ -1414,7 +1414,13 @@ export function Toolbar() {
               屏保弹幕
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowDocumentation(true)}>
+            <DropdownMenuItem
+              onClick={() => setShowDocumentation(true)}
+              onMouseEnter={() => {
+                // 鼠标 hover 时预热教学文档 chunk，点击瞬间无白屏感
+                import('./documentation').catch(() => {})
+              }}
+            >
               <BookOpen className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
               教学文档
             </DropdownMenuItem>
@@ -1425,9 +1431,21 @@ export function Toolbar() {
       {/* 全局配置对话框 */}
       <GlobalConfigDialog isOpen={showGlobalConfig} onClose={() => setShowGlobalConfig(false)} />
       
-      {/* 教学文档对话框（懒加载，仅在打开时才挂载/拉取代码） */}
+      {/* 教学文档对话框（懒加载，仅在打开时才挂载/拉取代码；fallback 用骨架，不留白屏） */}
       {showDocumentation && (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={(
+            <div
+              className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4"
+              style={{ zIndex: 2147483646 }}
+              onClick={() => setShowDocumentation(false)}
+            >
+              <div className="modern-dialog w-full max-w-5xl h-[88vh] flex items-center justify-center text-[hsl(var(--muted-foreground))] text-sm">
+                正在加载教学文档…
+              </div>
+            </div>
+          )}
+        >
           <DocumentationDialog isOpen={showDocumentation} onClose={() => setShowDocumentation(false)} />
         </Suspense>
       )}

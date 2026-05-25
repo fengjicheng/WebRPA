@@ -11,6 +11,9 @@
 // Vite glob: 懒加载（不带 eager，每个匹配项都返回一个 () => Promise<Module>）
 const loaders = import.meta.glob<{ [k: string]: string }>('./content-*.ts')
 
+// 首页文档预先 eager import（小文件，进 bundle 后打开教学文档可立即显示首页内容，不等待 chunk 加载）
+import { gettingStartedContent } from './content-getting-started'
+
 // 文件名 → 文档 id 映射（与 documents.ts 中的 id 保持一致）
 const FILE_TO_DOC_ID: Record<string, string> = {
   'content-getting-started': 'getting-started',
@@ -64,6 +67,9 @@ for (const [path, loader] of Object.entries(loaders)) {
 const contentCache = new Map<string, string>()
 // 进行中的加载 promise 缓存，避免并发重复加载
 const inflight = new Map<string, Promise<string>>()
+
+// 预填首页文档（让弹窗第一次打开时无延迟显示）
+contentCache.set('getting-started', gettingStartedContent)
 
 /** 异步获取某文档的 markdown 内容；命中缓存则同步返回。 */
 export async function loadDocContent(docId: string): Promise<string> {
