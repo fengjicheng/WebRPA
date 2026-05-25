@@ -37,6 +37,7 @@ import { Label } from '@/components/ui/label'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 import { remoteService, type RemoteSession } from '@/services/remote'
 
 // 默认仓库地址
@@ -1264,8 +1265,10 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
   if (!open) return null
 
   return (
+    <DialogPortal>
     <div
-      className="fixed inset-0 z-50 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      style={{ zIndex: 2147483646 }}
       onClick={onClose}
     >
       <div
@@ -2814,5 +2817,6 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
         <ConfirmDialog />
       </div>
     </div>
+    </DialogPortal>
   )
 }

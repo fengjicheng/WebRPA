@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { phoneApi } from '@/services/api'
 import { Smartphone, RefreshCw, Monitor, AlertCircle, CheckCircle, Loader2, X, Crop } from 'lucide-react'
 import { PhoneScreenshotCropper } from './PhoneScreenshotCropper'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface PhoneMirrorDialogProps {
   open: boolean
@@ -137,9 +138,11 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
   if (!open) return null
 
   return (
+    <DialogPortal>
     <>
       <div 
-        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
+        className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
+        style={{ zIndex: 2147483646 }}
         onClick={onClose}
       >
       <div 
@@ -367,5 +370,6 @@ export function PhoneMirrorDialog({ open, onClose }: PhoneMirrorDialogProps) {
         deviceId={selectedDeviceId}
       />
     </>
+    </DialogPortal>
   )
 }
