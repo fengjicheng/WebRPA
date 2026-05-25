@@ -161,8 +161,9 @@ const SelectNative = React.forwardRef<HTMLButtonElement, SelectProps>(
           <SelectPrimitive.Content
             position="popper"
             sideOffset={6}
+            style={{ zIndex: 2147483647 }}
             className={cn(
-              'z-[100] min-w-[var(--radix-select-trigger-width)] max-h-[min(360px,var(--radix-select-content-available-height))]',
+              'min-w-[var(--radix-select-trigger-width)] max-h-[min(360px,var(--radix-select-content-available-height))]',
               'overflow-hidden rounded-[10px] border border-[hsl(var(--border))] bg-[hsl(var(--card))]',
               'shadow-pop-xl ring-1 ring-[hsl(var(--brand-500)/0.06)]',
               'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
