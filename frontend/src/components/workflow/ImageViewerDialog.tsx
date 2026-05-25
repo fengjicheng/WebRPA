@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X, ZoomIn, ZoomOut, RotateCw, Download, Maximize, Minimize } from 'lucide-react'
+import { X, ZoomIn, ZoomOut, RotateCw, Download, Maximize, Minimize, ImageIcon, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getBackendUrl } from '@/services/api'
 
@@ -187,7 +187,7 @@ export function ImageViewerDialog({ imageUrl, autoClose, displayTime, onClose }:
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🖼️</span>
+            <ImageIcon className="w-5 h-5 text-blue-500" />
             <span className="font-semibold text-gray-900 truncate max-w-[400px]">{getFileName()}</span>
             {autoClose && displayTime > 0 && !isLoading && !error && (
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
@@ -212,7 +212,7 @@ export function ImageViewerDialog({ imageUrl, autoClose, displayTime, onClose }:
         >
           {error ? (
             <div className="text-center text-red-500 py-8">
-              <span className="text-4xl mb-2 block">😢</span>
+              <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-red-500" />
               {error}
             </div>
           ) : isLoading ? (

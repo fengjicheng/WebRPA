@@ -118,7 +118,7 @@ export function ImageAssetsPanel() {
             font-weight: 500;
             animation: slideInRight 0.3s ease-out;
           `
-          toast.textContent = `✓ 截图已保存: ${result.asset.originalName}`
+          toast.textContent = `截图已保存: ${result.asset.originalName}`
           document.body.appendChild(toast)
           
           setTimeout(() => {

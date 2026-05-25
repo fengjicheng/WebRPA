@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
-import { X } from 'lucide-react'
+import { X, CheckCircle2 } from 'lucide-react'
 
 interface SimilarSelectorDialogProps {
   isOpen: boolean
@@ -42,8 +42,9 @@ export function SimilarSelectorDialog({
         </div>
         <div className="space-y-4">
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-800">
-              ✓ 找到 <strong>{count}</strong> 个相似元素 (索引 {minIndex} - {maxIndex})
+            <p className="text-sm text-green-800 inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              找到 <strong>{count}</strong> 个相似元素 (索引 {minIndex} - {maxIndex})
             </p>
           </div>
           

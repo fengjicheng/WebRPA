@@ -14,7 +14,7 @@ import { PathInput } from '@/components/ui/path-input'
 import { DualCoordinateInput } from '@/components/ui/dual-coordinate-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ImagePathInput } from '@/components/ui/image-path-input'
-import { Code } from 'lucide-react'
+import { Code, Upload } from 'lucide-react'
 import { JsEditorDialog } from '../JsEditorDialog'
 import { InjectJsEditorDialog } from '../InjectJsEditorDialog'
 import { PythonEditorDialog } from '../PythonEditorDialog'
@@ -1343,7 +1343,10 @@ export function PythonScriptConfig({ data, onChange }: { data: NodeData; onChang
       </div>
 
       <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-        <p className="text-xs font-medium text-amber-800 mb-2">📤 输出结果配置</p>
+        <p className="text-xs font-medium text-amber-800 mb-2 inline-flex items-center gap-1.5">
+          <Upload className="w-3.5 h-3.5" />
+          输出结果配置
+        </p>
         <div className="space-y-2">
           <div className="space-y-2">
             <Label htmlFor="resultVariable">返回值变量</Label>

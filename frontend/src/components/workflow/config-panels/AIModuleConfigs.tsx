@@ -6,6 +6,7 @@ import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableInput } from '@/components/ui/variable-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { VariableRefInput } from '@/components/ui/variable-ref-input'
+import { Bot } from 'lucide-react'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
 
@@ -484,7 +485,10 @@ export function AISmartScraperConfig({ data, onChange }: { data: NodeData; onCha
       
       <div className="bg-[hsl(var(--card))] p-3 border border-purple-200 rounded-lg">
         <p className="text-xs text-purple-900">
-          <strong>🤖 AI智能爬虫</strong><br/>
+          <strong className="inline-flex items-center gap-1.5">
+            <Bot className="w-3.5 h-3.5" />
+            AI智能爬虫
+          </strong><br/>
           • 优点：用自然语言描述即可提取数据，适应网页结构变化<br/>
           • 缺点：速度比传统爬虫慢，需要LLM支持<br/>
           • 推荐：使用Ollama本地运行，完全免费

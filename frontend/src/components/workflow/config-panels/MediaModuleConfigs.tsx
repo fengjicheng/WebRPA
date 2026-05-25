@@ -728,8 +728,8 @@ export function FaceRecognitionConfig({ data, onChange }: { data: NodeData; onCh
       <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
         <p className="text-xs text-blue-700 dark:text-blue-300">
           <strong>分支说明：</strong><br/>
-          • ✓ 匹配成功：检测到目标人脸<br/>
-          • ✗ 匹配失败：未检测到目标人脸
+          • 匹配成功：检测到目标人脸<br/>
+          • 匹配失败：未检测到目标人脸
         </p>
       </div>
       

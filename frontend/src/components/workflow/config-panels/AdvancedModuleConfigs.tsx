@@ -12,7 +12,7 @@ import { DualCoordinateInput } from '@/components/ui/dual-coordinate-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Button } from '@/components/ui/button'
-import { Loader2, Crosshair } from 'lucide-react'
+import { Loader2, Crosshair, Mouse, MousePointerClick, Keyboard, Type, HelpCircle, RotateCw, Pencil, X as XIcon, Plus, Trash2, Clock, Copy as CopyIcon, ArrowUp, ArrowDown } from 'lucide-react'
 import { getBackendUrl, desktopPickerApi } from '@/services/api'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
@@ -1794,10 +1794,11 @@ export function MacroRecorderConfig({ data, onChange }: { data: NodeData; onChan
           </button>
           <button
             type="button"
-            className="flex-1 px-3 py-2 text-sm bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors"
+            className="flex-1 px-3 py-2 text-sm bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors inline-flex items-center justify-center gap-1.5"
             onClick={() => setShowEditDialog(true)}
           >
-            ✏️ 编辑
+            <Pencil className="w-3.5 h-3.5" />
+            编辑
           </button>
           {recordedActions.length > 0 && (
             <button
@@ -2138,7 +2139,7 @@ function MacroRecordDialog({
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h3 className="font-semibold text-gray-900">宏录制器</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+            <XIcon className="w-4 h-4" />
           </button>
         </div>
 
@@ -2323,15 +2324,16 @@ function getActionDescription(action: MacroAction): string {
   }
 }
 
-// 获取操作图标
-function getActionIcon(type: string): string {
+// 获取操作图标（用 lucide 图标，不用 Emoji）
+function ActionIcon({ type }: { type: string }) {
+  const cls = 'w-4 h-4 text-gray-600'
   switch (type) {
-    case 'mouse_move': return '🖱️'
-    case 'mouse_click': return '👆'
-    case 'mouse_scroll': return '🔄'
-    case 'key_press': return '⌨️'
-    case 'key_char': return ''
-    default: return '❓'
+    case 'mouse_move': return <Mouse className={cls} />
+    case 'mouse_click': return <MousePointerClick className={cls} />
+    case 'mouse_scroll': return <RotateCw className={cls} />
+    case 'key_press': return <Keyboard className={cls} />
+    case 'key_char': return <Type className={cls} />
+    default: return <HelpCircle className={cls} />
   }
 }
 
@@ -2474,22 +2476,25 @@ function MacroEditDialog({
             <option value="mouse_scroll">仅滚轮</option>
           </select>
           <button
-            className="text-sm px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+            className="text-sm px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 inline-flex items-center gap-1"
             onClick={() => setShowAddDialog(true)}
           >
-            ➕ 添加
+            <Plus className="w-3.5 h-3.5" />
+            添加
           </button>
           <button
-            className="text-sm px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
+            className="text-sm px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 inline-flex items-center gap-1"
             onClick={deleteAllMouseMoves}
           >
-            🗑️ 删除所有移动
+            <Trash2 className="w-3.5 h-3.5" />
+            删除所有移动
           </button>
           <button
-            className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 inline-flex items-center gap-1"
             onClick={redistributeTime}
           >
-            ⏱️ 重排时间
+            <Clock className="w-3.5 h-3.5" />
+            重排时间
           </button>
           <span className="text-xs text-gray-500 ml-auto">
             显示 {filteredActions.length} / {actions.length} 个操作
@@ -2511,7 +2516,9 @@ function MacroEditDialog({
                     selectedIndex === actions.indexOf(action) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  <span className="text-lg">{getActionIcon(action.type)}</span>
+                  <span className="inline-flex items-center justify-center">
+                    <ActionIcon type={action.type} />
+                  </span>
                   <span className="text-xs text-gray-400 w-16">{action.time}ms</span>
                   <span className="flex-1 text-sm">{getActionDescription(action)}</span>
                   <div className="flex gap-1">
@@ -2520,34 +2527,35 @@ function MacroEditDialog({
                       onClick={() => startEdit(index)}
                       title="编辑"
                     >
-                      ✏️
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       className="p-1 text-gray-500 hover:text-green-500 hover:bg-green-100 rounded has-hover-only"
                       onClick={() => duplicateAction(index)}
                       title="复制"
                     >
-                                          </button>
+                      <CopyIcon className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded has-hover-only"
                       onClick={() => moveUp(index)}
                       title="上移"
                     >
-                      ⬆️
+                      <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded has-hover-only"
                       onClick={() => moveDown(index)}
                       title="下移"
                     >
-                      ⬇️
+                      <ArrowDown className="w-3.5 h-3.5" />
                     </button>
                     <button
                       className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-100 rounded has-hover-only"
                       onClick={() => deleteAction(index)}
                       title="删除"
                     >
-                      🗑️
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
