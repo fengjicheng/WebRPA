@@ -144,6 +144,9 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const desktopVideoRef = useRef<HTMLVideoElement | null>(null)
   // 用于实时刷新时钟/日期/倒计时显示
   const [, setNowTick] = useState(0)
+  // 滚动模式：真实滚动动画（hooks 必须在 if (!open) return null 之前声明）
+  const scrollTextRef = useRef<HTMLSpanElement | null>(null)
+  const [scrollOffset, setScrollOffset] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -236,6 +239,64 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     return () => window.clearInterval(tid)
   }, [open, config.content_type])
 
+  // 滚动模式：真实滚动动画（按用户配置的方向和速度）
+  useEffect(() => {
+    if (!open) return
+    if (config.content_type !== 'scroll') {
+      setScrollOffset(0)
+      return
+    }
+    if (previewBox.w <= 0 || previewBox.h <= 0) return
+    let raf = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000
+      last = now
+      // 速度按对应轴缩放（左右用 X 轴比例，上下用 Y 轴比例）
+      const dir = config.scroll_direction
+      const sx = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
+      const sy = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
+      const axisScale = (dir === 'left' || dir === 'right') ? sx : sy
+      const v = Math.max(20, config.scroll_speed) * axisScale
+      setScrollOffset((prev) => {
+        const textW = scrollTextRef.current?.offsetWidth ?? 200
+        const textH = scrollTextRef.current?.offsetHeight ?? 40
+        const W = previewBox.w
+        const H = previewBox.h
+        let next = prev
+        if (dir === 'left') {
+          next = prev - v * dt
+          if (next + textW < 0) next = config.scroll_loop ? W : next
+        } else if (dir === 'right') {
+          next = prev + v * dt
+          if (next > W) next = config.scroll_loop ? -textW : next
+        } else if (dir === 'up') {
+          next = prev - v * dt
+          if (next + textH < 0) next = config.scroll_loop ? H : next
+        } else {
+          next = prev + v * dt
+          if (next > H) next = config.scroll_loop ? -textH : next
+        }
+        return next
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    setScrollOffset(() => {
+      const textW = scrollTextRef.current?.offsetWidth ?? 200
+      const textH = scrollTextRef.current?.offsetHeight ?? 40
+      switch (config.scroll_direction) {
+        case 'left': return previewBox.w
+        case 'right': return -textW
+        case 'up': return previewBox.h
+        case 'down': return -textH
+        default: return 0
+      }
+    })
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, screenSize.w, screenSize.h, config.text])
+
   const enableDesktopBg = async () => {
     setDesktopError('')
     setDesktopLoading(true)
@@ -319,71 +380,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }
 
 
-  // 缩放系数（每个轴独立）：预览像素 / 真实屏幕像素
-  const previewScaleX = previewBox.w > 0 ? previewBox.w / screenSize.w : 1
-  const previewScaleY = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
-  // 字号 / 描边等"等比缩放"用 Y 轴（与高度对齐）
-  const previewScale = previewScaleY
-
-  // 滚动模式：真实滚动动画（按用户配置的方向和速度）
-  const scrollTextRef = useRef<HTMLSpanElement | null>(null)
-  const [scrollOffset, setScrollOffset] = useState(0)
-  useEffect(() => {
-    if (!open) return
-    if (config.content_type !== 'scroll') {
-      setScrollOffset(0)
-      return
-    }
-    if (previewBox.w <= 0 || previewBox.h <= 0) return
-    let raf = 0
-    let last = performance.now()
-    const tick = (now: number) => {
-      const dt = (now - last) / 1000
-      last = now
-      // 速度按对应轴缩放（左右用 X 轴比例，上下用 Y 轴比例）
-      const dir = config.scroll_direction
-      const axisScale = (dir === 'left' || dir === 'right') ? previewScaleX : previewScaleY
-      const v = Math.max(20, config.scroll_speed) * axisScale
-      setScrollOffset((prev) => {
-        // 文本宽高估值（近似）：水平方向用预览宽度+文字宽度，垂直方向用预览高度+文字高度
-        const textW = scrollTextRef.current?.offsetWidth ?? 200
-        const textH = scrollTextRef.current?.offsetHeight ?? 40
-        const W = previewBox.w
-        const H = previewBox.h
-        let next = prev
-        if (dir === 'left') {
-          next = prev - v * dt
-          if (next + textW < 0) next = config.scroll_loop ? W : next
-        } else if (dir === 'right') {
-          next = prev + v * dt
-          if (next > W) next = config.scroll_loop ? -textW : next
-        } else if (dir === 'up') {
-          next = prev - v * dt
-          if (next + textH < 0) next = config.scroll_loop ? H : next
-        } else {
-          next = prev + v * dt
-          if (next > H) next = config.scroll_loop ? -textH : next
-        }
-        return next
-      })
-      raf = requestAnimationFrame(tick)
-    }
-    // 初始位置
-    setScrollOffset(() => {
-      const textW = scrollTextRef.current?.offsetWidth ?? 200
-      const textH = scrollTextRef.current?.offsetHeight ?? 40
-      switch (config.scroll_direction) {
-        case 'left': return previewBox.w
-        case 'right': return -textW
-        case 'up': return previewBox.h
-        case 'down': return -textH
-        default: return 0
-      }
-    })
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, config.content_type, config.scroll_direction, config.scroll_speed, config.scroll_loop, previewBox.w, previewBox.h, previewScaleX, previewScaleY, config.text])
+  // 缩放系数：字号 / 描边等"等比缩放"用 Y 轴（与高度对齐）
+  const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
 
   // 竖排：与 runner 一致——逐字符换行（不要用 CSS writing-mode，那会把英文/数字一起转向）
   const toVertical = (s: string) => Array.from(s || '').join('\n')
