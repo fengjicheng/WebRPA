@@ -9,7 +9,7 @@
  */
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
-import { localWorkflowApi, workflowApi } from '@/services/api'
+import { localWorkflowApi, workflowApi, screensaverApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 
 /**
@@ -721,6 +721,41 @@ export async function executeClientAction(
       case 'close_variable_tracking':
         emitAssistantUiEvent('close_variable_tracking', payload)
         return { success: true, message: '已关闭变量追踪面板' }
+
+      // ============================================================
+      // 屏保弹幕：UI 控制 + 真生效启动/停止
+      // ============================================================
+      case 'open_screensaver':
+        emitAssistantUiEvent('open_screensaver', payload)
+        return { success: true, message: '已打开屏保弹幕配置面板' }
+
+      case 'close_screensaver':
+        emitAssistantUiEvent('close_screensaver', payload)
+        return { success: true, message: '已关闭屏保弹幕配置面板' }
+
+      case 'start_screensaver': {
+        // 直接调后端 API 真启动子进程（无需打开 UI）；payload 即为完整 config
+        const cfg = (payload && typeof payload === 'object') ? payload as Record<string, unknown> : {}
+        const res = await screensaverApi.start(cfg)
+        if (res.success) {
+          return { success: true, message: '屏保已启动', data: res.data }
+        }
+        return { success: false, error: res.error || '启动屏保失败' }
+      }
+
+      case 'stop_screensaver': {
+        const res = await screensaverApi.stop()
+        if (res.success) {
+          return { success: true, message: '屏保已停止', data: res.data }
+        }
+        return { success: false, error: res.error || '停止屏保失败' }
+      }
+
+      case 'get_screensaver_status': {
+        const res = await screensaverApi.status()
+        if (res.success) return { success: true, data: res.data }
+        return { success: false, error: res.error || '获取屏保状态失败' }
+      }
 
       case 'open_export_dialog':
         emitAssistantUiEvent('open_export_dialog', payload)

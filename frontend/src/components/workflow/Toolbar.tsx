@@ -677,6 +677,8 @@ export function Toolbar() {
     offs.push(onAssistantUiEvent('close_phone_mirror', () => setShowPhoneMirror(false)))
     offs.push(onAssistantUiEvent('open_variable_tracking', () => setShowVariableTracking(true)))
     offs.push(onAssistantUiEvent('close_variable_tracking', () => setShowVariableTracking(false)))
+    offs.push(onAssistantUiEvent('open_screensaver', () => setShowScreensaver(true)))
+    offs.push(onAssistantUiEvent('close_screensaver', () => setShowScreensaver(false)))
 
     // 截图
     offs.push(onAssistantUiEvent('take_screenshot', () => {
