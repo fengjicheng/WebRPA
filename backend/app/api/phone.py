@@ -225,7 +225,12 @@ async def start_mirror(request: StartCoordinatePickerRequest):
         print(f"[API] start_mirror 结果: success={success}, error={error}")
         if not success:
             return {"success": False, "error": error}
-        
+
+        # 等待 scrcpy 窗口创建后强制置顶 + 聚焦（避免被其它窗口盖住）
+        import asyncio
+        await asyncio.sleep(1.2)
+        _focus_scrcpy_window("手机屏幕镜像")
+
         return {"success": True, "message": "镜像已启动"}
     except Exception as e:
         print(f"[API] 启动镜像异常: {e}")
@@ -270,10 +275,10 @@ async def start_coordinate_picker(request: StartCoordinatePickerRequest):
             picker = get_coordinate_picker()
             picker.set_phone_resolution(phone_width, phone_height)
             picker.start()
-            
-            # 查找并置顶窗口
+
+            # 查找并置顶窗口（已存在的 scrcpy 窗口可能就是手机镜像或坐标选择器）
             _focus_scrcpy_window()
-            
+
             return {"success": True, "message": "坐标选择器已启动"}
         
         # 启动镜像窗口（max_size=0 使用原始分辨率）
@@ -294,9 +299,9 @@ async def start_coordinate_picker(request: StartCoordinatePickerRequest):
         # 等待窗口创建
         import asyncio
         await asyncio.sleep(1.5)
-        
-        # 查找并置顶窗口
-        _focus_scrcpy_window()
+
+        # 查找并置顶窗口（坐标拾取启动的窗口标题是"手机坐标选择器"）
+        _focus_scrcpy_window("手机坐标选择器")
         
         # 启动监听
         picker = get_coordinate_picker()
@@ -308,71 +313,79 @@ async def start_coordinate_picker(request: StartCoordinatePickerRequest):
         return {"success": False, "error": str(e)}
 
 
-def _focus_scrcpy_window():
-    """查找并置顶 Scrcpy 窗口"""
+def _focus_scrcpy_window(window_title: Optional[str] = None, attempts: int = 8):
+    """查找并置顶 Scrcpy 窗口
+
+    window_title: 期望的精确窗口标题（含或等于均可），不传则按"手机/坐标选择器"模糊匹配。
+    """
     try:
         import win32gui
         import win32con
         import time
-        
-        # 重试最多 5 次，每次等待 0.5 秒
-        for attempt in range(5):
-            def enum_windows_callback(hwnd, windows):
-                if win32gui.IsWindowVisible(hwnd):
-                    title = win32gui.GetWindowText(hwnd)
+
+        for attempt in range(attempts):
+            def enum_windows_callback(hwnd, acc):
+                if not win32gui.IsWindowVisible(hwnd):
+                    return
+                title = win32gui.GetWindowText(hwnd)
+                if not title:
+                    return
+                if window_title:
+                    # 精确包含匹配
+                    if window_title in title:
+                        acc.append(hwnd)
+                else:
                     if "手机" in title or "坐标选择器" in title:
-                        windows.append(hwnd)
-            
+                        acc.append(hwnd)
+
             windows = []
             win32gui.EnumWindows(enum_windows_callback, windows)
-            
+
             if windows:
                 hwnd = windows[0]
                 try:
-                    # 置顶窗口
+                    # 置顶
                     win32gui.SetWindowPos(
                         hwnd,
                         win32con.HWND_TOPMOST,
                         0, 0, 0, 0,
-                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
                     )
-                    
-                    # 激活窗口（聚焦）
-                    # 使用 ShowWindow 先显示窗口
+                    # 显示+恢复
                     win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                    
-                    # 然后尝试设置为前台窗口
+                    # 取前台焦点（Windows 限制：要触发输入事件才能可靠拿到前台权）
                     try:
                         win32gui.SetForegroundWindow(hwnd)
-                        print(f"[API] ✅ 已置顶并聚焦 Scrcpy 窗口")
                     except Exception:
-                        # 如果 SetForegroundWindow 失败，使用备用方法
-                        # 通过模拟 Alt 键来绕过 Windows 的前台窗口限制
-                        import win32api
-                        import win32con as wcon
-                        
-                        # 按下 Alt 键
-                        win32api.keybd_event(wcon.VK_MENU, 0, 0, 0)
-                        # 设置前台窗口
-                        win32gui.SetForegroundWindow(hwnd)
-                        # 释放 Alt 键
-                        win32api.keybd_event(wcon.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
-                        print(f"[API] ✅ 已置顶并聚焦 Scrcpy 窗口（使用备用方法）")
-                    
-                    return  # 成功，退出函数
+                        try:
+                            import win32api
+                            # 通过模拟一次 Alt 按键释放绕开 Windows 前台限制
+                            win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+                            win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+                            win32gui.SetForegroundWindow(hwnd)
+                        except Exception as e2:
+                            print(f"[API] SetForegroundWindow 备用方法仍失败: {e2}")
+                    # 闪烁一下提示用户（可选）
+                    try:
+                        win32gui.FlashWindow(hwnd, True)
+                    except Exception:
+                        pass
+                    print(f"[API] ✅ 已置顶并聚焦 Scrcpy 窗口（标题={win32gui.GetWindowText(hwnd)}）")
+                    return True
                 except Exception as e:
-                    print(f"[API] ⚠️ 第 {attempt + 1} 次尝试置顶窗口失败: {e}")
-                    if attempt < 4:  # 如果不是最后一次尝试
-                        time.sleep(0.5)  # 等待 0.5 秒后重试
+                    print(f"[API] ⚠️ 第 {attempt + 1} 次尝试置顶失败: {e}")
+                    if attempt < attempts - 1:
+                        time.sleep(0.4)
                     continue
             else:
-                # 没找到窗口，等待后重试
-                if attempt < 4:
-                    time.sleep(0.5)
-        
-        print(f"[API] ⚠️ 未找到 Scrcpy 窗口或置顶失败")
+                if attempt < attempts - 1:
+                    time.sleep(0.4)
+
+        print(f"[API] ⚠️ 未找到 Scrcpy 窗口（title={window_title}），可能尚未渲染")
+        return False
     except Exception as e:
         print(f"[API] ⚠️ 置顶窗口异常: {e}")
+        return False
 
 
 @router.post("/coordinate-picker/test")
