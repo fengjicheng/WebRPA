@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { Switch } from '@/components/ui/switch'
 import { VariableInput } from '@/components/ui/variable-input'
+import { PathInput } from '@/components/ui/path-input'
 import type { NodeData } from '@/store/workflowStore'
 import { Info } from 'lucide-react'
 
@@ -269,8 +270,14 @@ export function SapExportGridViewExcelConfig({ data, onChange }: ConfigProps) {
       <ElementIdField data={data} onChange={onChange} label="GridView ID" placeholder="wnd[0]/usr/cntlGRID1/shellcont/shell" />
       <div className="space-y-2">
         <Label>保存路径</Label>
-        <VariableInput value={(data.savePath as string) || 'sap_export.xlsx'} onChange={(v) => onChange('savePath', v)} placeholder="C:/output/sap_data.xlsx" />
-        <p className="text-xs text-muted-foreground">支持 .xlsx 格式，列标题自动使用 SAP 显示名称</p>
+        <PathInput
+          type="folder"
+          value={(data.savePath as string) || 'sap_export.xlsx'}
+          onChange={(v) => onChange('savePath', v)}
+          placeholder="C:/output/sap_data.xlsx 或选个文件夹"
+          title="选择保存目录"
+        />
+        <p className="text-xs text-muted-foreground">支持 .xlsx 格式，列标题自动使用 SAP 显示名称；选文件夹时会自动追加 sap_export.xlsx 文件名</p>
       </div>
     </div>
   )

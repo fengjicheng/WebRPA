@@ -5,7 +5,7 @@ import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getBackendUrl } from '@/services/api'
+import { systemApi } from '@/services/api'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 
 interface ConfigProps {
@@ -13,7 +13,7 @@ interface ConfigProps {
   updateConfig: (key: string, value: unknown) => void
 }
 
-// 选择文件的辅助函数
+// 选择文件的辅助函数（统一走 systemApi.selectFile）
 const selectFile = async (updateConfig: (key: string, value: unknown) => void, key: string, filter?: string) => {
   try {
     let fileTypes: [string, string][] | undefined
@@ -23,15 +23,10 @@ const selectFile = async (updateConfig: (key: string, value: unknown) => void, k
         fileTypes = [[parts[0], parts[1]]]
       }
     }
-    
-    const response = await fetch(`${getBackendUrl()}/api/system/select-file`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: '选择文件', fileTypes })
-    })
-    const data = await response.json()
-    if (data.success && data.path) {
-      updateConfig(key, data.path)
+    const result = await systemApi.selectFile('选择文件', undefined, fileTypes)
+    const inner = result.data as any
+    if (inner?.success && inner?.path) {
+      updateConfig(key, inner.path)
     }
   } catch (error) {
     console.error('选择文件失败:', error)

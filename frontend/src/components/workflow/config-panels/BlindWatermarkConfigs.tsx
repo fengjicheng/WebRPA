@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { VariableInput } from '@/components/ui/variable-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { ImagePathInput } from '@/components/ui/image-path-input'
+import { PathInput } from '@/components/ui/path-input'
 
 interface ConfigProps {
   config: Record<string, unknown>
@@ -78,10 +79,12 @@ export function BwmEmbedTextConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出图像路径</Label>
-        <VariableInput
+        <PathInput
+          type="folder"
           value={String(config.outputPath || '')}
           onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="例如 D:/photo_wm.png"
+          placeholder="选文件夹（自动用『原图名_wm.png』）或填完整路径如 D:/photo_wm.png"
+          title="选择嵌入水印后图像的保存目录"
         />
       </div>
       <PasswordFields config={config} updateConfig={updateConfig} />
@@ -155,10 +158,12 @@ export function BwmEmbedImageConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出图像路径</Label>
-        <VariableInput
+        <PathInput
+          type="folder"
           value={String(config.outputPath || '')}
           onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="例如 D:/photo_wm.png"
+          placeholder="选文件夹（自动用『原图名_wm.png』）或填完整路径"
+          title="选择嵌入水印后图像的保存目录"
         />
       </div>
       <PasswordFields config={config} updateConfig={updateConfig} />
@@ -190,10 +195,12 @@ export function BwmExtractImageConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>提取结果输出路径</Label>
-        <VariableInput
+        <PathInput
+          type="folder"
           value={String(config.outputPath || '')}
           onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="例如 D:/extracted_wm.png"
+          placeholder="选文件夹（自动用『原图名_extracted.png』）或填完整路径"
+          title="选择提取出的水印图保存目录"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
