@@ -139,7 +139,7 @@ class Screensaver:
     def _format_clock(self) -> str:
         if self.datetime_format:
             try:
-                return datetime.now().strftime(self.datetime_format)
+                return self._zh_strftime(self.datetime_format, datetime.now())
             except Exception:
                 pass
         return datetime.now().strftime("%H:%M:%S")
@@ -147,10 +147,48 @@ class Screensaver:
     def _format_date(self) -> str:
         if self.datetime_format:
             try:
-                return datetime.now().strftime(self.datetime_format)
+                return self._zh_strftime(self.datetime_format, datetime.now())
             except Exception:
                 pass
-        return datetime.now().strftime("%Y-%m-%d %A")
+        return self._zh_strftime("%Y-%m-%d %A", datetime.now())
+
+    @staticmethod
+    def _zh_strftime(fmt: str, dt: datetime) -> str:
+        """中文版 strftime：把 %A/%a/%B/%b/%p 显式映射成中文，其余交给 datetime.strftime。
+
+        系统 locale 在嵌入式 Python 上不可靠（很多打包环境是英文 locale），所以这里直接做替换。
+        """
+        zh_weekday = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+        zh_weekday_short = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        zh_month = ["一月", "二月", "三月", "四月", "五月", "六月",
+                    "七月", "八月", "九月", "十月", "十一月", "十二月"]
+        zh_ampm = "上午" if dt.hour < 12 else "下午"
+
+        # 用占位符把要中文化的字段先替换出来，避免和 strftime 冲突
+        # 然后再 strftime 余下部分
+        marker_a = "\u0001A\u0001"
+        marker_a2 = "\u0001a\u0001"
+        marker_B = "\u0001B\u0001"
+        marker_b = "\u0001b\u0001"
+        marker_p = "\u0001p\u0001"
+
+        replaced = (fmt
+                    .replace("%A", marker_a)
+                    .replace("%a", marker_a2)
+                    .replace("%B", marker_B)
+                    .replace("%b", marker_b)
+                    .replace("%p", marker_p))
+        try:
+            out = dt.strftime(replaced)
+        except Exception:
+            out = replaced
+
+        return (out
+                .replace(marker_a, zh_weekday[dt.weekday()])
+                .replace(marker_a2, zh_weekday_short[dt.weekday()])
+                .replace(marker_B, zh_month[dt.month - 1])
+                .replace(marker_b, zh_month[dt.month - 1])
+                .replace(marker_p, zh_ampm))
 
     def _format_countdown(self) -> str:
         if not self.countdown_target:

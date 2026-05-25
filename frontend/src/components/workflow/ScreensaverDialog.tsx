@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Play, Square, Sparkles } from 'lucide-react'
+import { X, Play, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -140,10 +140,23 @@ export function ScreensaverDialog({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return
-    // 打开时拉一次状态
-    screensaverApi.status().then((res) => {
-      if (res.success && res.data) setRunning(!!res.data.running)
-    })
+    // 打开时拉一次状态，并每 1 秒轮询一次（屏保在外部被 Esc/双击退出时前端能感知）
+    let cancelled = false
+    const fetchStatus = async () => {
+      try {
+        const res = await screensaverApi.status()
+        if (!cancelled && res.success && res.data) {
+          const r = !!res.data.running
+          setRunning((prev) => (prev !== r ? r : prev))
+        }
+      } catch {}
+    }
+    fetchStatus()
+    const tid = window.setInterval(fetchStatus, 1000)
+    return () => {
+      cancelled = true
+      window.clearInterval(tid)
+    }
   }, [open])
 
   useEffect(() => {
@@ -231,19 +244,6 @@ export function ScreensaverDialog({ open, onClose }: Props) {
       setStatusMsg(`已启动 (PID: ${(res.data as any)?.pid ?? '-'}). 按 ${config.exit_hotkey} 或双击屏幕退出。`)
     } else {
       setStatusMsg(`启动失败：${res.error || '未知错误'}`)
-    }
-  }
-
-  const handleStop = async () => {
-    setBusy(true)
-    setStatusMsg('')
-    const res = await screensaverApi.stop()
-    setBusy(false)
-    if (res.success) {
-      setRunning(false)
-      setStatusMsg('已停止')
-    } else {
-      setStatusMsg(`停止失败：${res.error || '未知错误'}`)
     }
   }
 
@@ -724,14 +724,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
             <div className="flex flex-col gap-2 mt-auto">
               <Button onClick={handleStart} disabled={busy} className="bg-[hsl(var(--brand-500))] text-white hover:bg-[hsl(var(--brand-600))]">
                 <Play className="w-4 h-4 mr-2" />
-                启动屏保
+                {running ? '应用并重启屏保' : '启动屏保'}
               </Button>
-              {running && (
-                <Button onClick={handleStop} disabled={busy} variant="tonal-danger" size="sm">
-                  <Square className="w-4 h-4 mr-2" />
-                  停止当前屏保
-                </Button>
-              )}
               <Button variant="outline" onClick={handleReset} disabled={busy}>重置默认</Button>
             </div>
 
