@@ -4,7 +4,7 @@
  * 用户在前端配置后发请求到 /api/screensaver/start，由后端独立 Python 进程
  * 启动 tkinter 全屏窗口覆盖整个桌面（不受浏览器限制）。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Play, Square, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -132,6 +132,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     h: typeof window !== 'undefined' ? window.screen.height : 1080,
   }))
   const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  // 预览容器：用 useRef 持有节点，不要每次渲染都创建新的回调 ref（会触发 setState 死循环）
+  const previewBoxRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -152,6 +154,24 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     const onResize = () => setScreenSize({ w: window.screen.width, h: window.screen.height })
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
+  }, [open])
+
+  // 监听预览框实际尺寸（基于 ResizeObserver；只在 open 时挂载）
+  useEffect(() => {
+    if (!open) return
+    const node = previewBoxRef.current
+    if (!node) return
+    const update = () => {
+      const w = node.clientWidth
+      const h = node.clientHeight
+      if (w && h) {
+        setPreviewBox((prev) => (prev.w === w && prev.h === h ? prev : { w, h }))
+      }
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(node)
+    return () => ro.disconnect()
   }, [open])
 
   if (!open) return null
@@ -225,20 +245,6 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     setStatusMsg('已重置为默认配置')
   }
 
-
-  // 预览容器渲染后量一下宽度，按"屏幕高度 : 预览高度"等比缩放字号
-  const previewBoxRef = (node: HTMLDivElement | null) => {
-    if (!node) return
-    const update = () => {
-      const w = node.clientWidth
-      const h = node.clientHeight
-      if (w && h) setPreviewBox({ w, h })
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(node)
-    ;(node as any).__ro = ro
-  }
 
   // 缩放系数：预览高度 / 真实屏幕高度
   const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
