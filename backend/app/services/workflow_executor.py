@@ -654,42 +654,49 @@ class WorkflowExecutor:
         await self._notify_node_start(node.id)
         
         # 特殊处理：自定义模块
+        # 自定义模块没有"执行器"，需要在这里直接加载定义并递归执行子工作流；
+        # 处理完成后把 result 交给后续通用流程（统计/日志/_notify_node_complete/数据行同步）。
+        custom_module_result: Optional[ModuleResult] = None
         if node.type == 'custom_module':
             print(f"[DEBUG] 检测到自定义模块节点")
-            custom_module_id = node.data.get('customModuleId')
-            if not custom_module_id:
-                await self._log(LogLevel.ERROR, "自定义模块缺少customModuleId", node_id=node.id)
-                return ModuleResult(success=False, message="自定义模块配置错误：缺少customModuleId")
-            
-            # 加载自定义模块定义
-            from pathlib import Path
-            import json
-            
-            module_file = Path(f"backend/data/custom_modules/{custom_module_id}.json")
-            if not module_file.exists():
-                await self._log(LogLevel.ERROR, f"自定义模块不存在: {custom_module_id}", node_id=node.id)
-                return ModuleResult(success=False, message=f"自定义模块不存在: {custom_module_id}")
-            
-            try:
-                with open(module_file, 'r', encoding='utf-8') as f:
-                    module_def = json.load(f)
-                
-                print(f"[DEBUG] 加载自定义模块定义: {module_def.get('display_name')}")
-                
-                # 执行自定义模块的子工作流
-                result = await self._execute_custom_module(module_def, node.data)
-                return result
-                
-            except Exception as e:
-                await self._log(LogLevel.ERROR, f"加载自定义模块失败: {str(e)}", node_id=node.id)
-                return ModuleResult(success=False, message=f"加载自定义模块失败: {str(e)}")
-        
+            cm_start_time = time.time()
+            custom_module_result = await self._handle_custom_module_node(node)
+            duration = (time.time() - cm_start_time) * 1000
+            custom_module_result.duration = duration
+            # 通用后处理：成功则统计、失败则计错
+            if custom_module_result.success:
+                self.executed_nodes += 1
+                await self._log(
+                    LogLevel.INFO,
+                    f"[{label}] {custom_module_result.message or '自定义模块执行完成'}",
+                    node_id=node.id,
+                    duration=duration,
+                )
+            else:
+                self.failed_nodes += 1
+                await self._log(
+                    LogLevel.ERROR,
+                    f"[{label}] {custom_module_result.error or custom_module_result.message or '自定义模块执行失败'}",
+                    node_id=node.id,
+                    duration=duration,
+                    is_user_log=True,
+                )
+            # 同步可能新产生的数据行
+            current_rows_count = len(self.context.data_rows)
+            if current_rows_count > self._last_data_rows_count:
+                for i in range(self._last_data_rows_count, current_rows_count):
+                    await self._send_data_row(self.context.data_rows[i])
+                self._last_data_rows_count = current_rows_count
+            # 通知节点完成
+            await self._notify_node_complete(node.id, custom_module_result)
+            return custom_module_result
+
         executor = registry.get(node.type)
         if not executor:
             print(f"[DEBUG] 未找到执行器: {node.type}")
             await self._log(LogLevel.WARNING, f"未知的模块类型: {node.type}", node_id=node.id)
             return ModuleResult(success=True, message=f"跳过未知模块: {node.type}")
-        
+
         config = node.data.get('config', None)
         if config is None:
             # 配置直接在 node.data 中，而不是在 config 子字段
@@ -868,15 +875,8 @@ class WorkflowExecutor:
                 if not subflow_result.success:
                     result = subflow_result
         
-        # 处理自定义模块调用
-        if node.type == 'custom_module' and result.success and result.data and result.data.get('is_custom_module'):
-            print(f"[DEBUG] 检测到自定义模块，开始执行子工作流")
-            custom_module_result = await self._execute_custom_module(result.data, config)
-            if not custom_module_result.success:
-                result = custom_module_result
-            else:
-                # 合并自定义模块的结果到当前结果
-                result = custom_module_result
+        # 注：自定义模块（custom_module）已在前面 654~ 行的特殊处理分支直接 return，
+        # 不会走到这里，因此原来此处再次 _execute_custom_module 的代码是死代码，已移除。
         
         duration = (time.time() - start_time) * 1000
         result.duration = duration
@@ -1094,6 +1094,43 @@ class WorkflowExecutor:
         print(f"[DEBUG] ========================================")
         return subflow_node_ids
 
+    async def _handle_custom_module_node(self, node: WorkflowNode) -> ModuleResult:
+        """加载并执行 custom_module 节点（统一入口，含路径穿越防护）。
+
+        返回 ModuleResult；不在内部改动节点统计/日志/通知，由调用方处理。
+        """
+        custom_module_id = node.data.get('customModuleId')
+        if not custom_module_id:
+            await self._log(LogLevel.ERROR, "自定义模块缺少customModuleId", node_id=node.id)
+            return ModuleResult(success=False, message="自定义模块配置错误：缺少customModuleId")
+
+        from pathlib import Path
+        import json
+        import re
+        _ID_RE = re.compile(r'^[A-Za-z0-9_\-\u4e00-\u9fa5]+$')
+        if not isinstance(custom_module_id, str) or len(custom_module_id) > 200 or not _ID_RE.match(custom_module_id):
+            await self._log(LogLevel.ERROR, f"自定义模块ID不合法: {custom_module_id}", node_id=node.id)
+            return ModuleResult(success=False, message="自定义模块ID不合法")
+
+        base_dir = Path("backend/data/custom_modules").resolve()
+        module_file = (base_dir / f"{custom_module_id}.json").resolve()
+        try:
+            module_file.relative_to(base_dir)
+        except ValueError:
+            await self._log(LogLevel.ERROR, f"自定义模块路径不安全: {custom_module_id}", node_id=node.id)
+            return ModuleResult(success=False, message="自定义模块路径不安全")
+        if not module_file.exists():
+            await self._log(LogLevel.ERROR, f"自定义模块不存在: {custom_module_id}", node_id=node.id)
+            return ModuleResult(success=False, message=f"自定义模块不存在: {custom_module_id}")
+
+        try:
+            with open(module_file, 'r', encoding='utf-8') as f:
+                module_def = json.load(f)
+            return await self._execute_custom_module(module_def, node.data)
+        except Exception as e:
+            await self._log(LogLevel.ERROR, f"加载自定义模块失败: {str(e)}", node_id=node.id)
+            return ModuleResult(success=False, message=f"加载自定义模块失败: {str(e)}")
+
     async def _execute_custom_module(self, module_def: dict, node_data: dict) -> ModuleResult:
         """执行自定义模块的子工作流
         
@@ -1132,8 +1169,12 @@ class WorkflowExecutor:
         
         await self._log(LogLevel.INFO, f"开始执行自定义模块 [{module_name}]", is_system_log=True)
         
-        # 在 try 之前先保存以保证 except 也能恢复
-        original_variables = self.context.variables.copy()
+        # 在 try 之前先保存以保证 except 也能恢复（深拷贝防止子工作流就地修改 list/dict 污染外层）
+        import copy as _copy
+        try:
+            original_variables = _copy.deepcopy(self.context.variables)
+        except Exception:
+            original_variables = self.context.variables.copy()
         original_graph = getattr(self, 'graph', None)
         original_executed_ids = self._executed_node_ids.copy() if hasattr(self, '_executed_node_ids') else set()
         original_executing_ids = self._executing_node_ids.copy() if hasattr(self, '_executing_node_ids') else set()

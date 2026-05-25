@@ -78,6 +78,7 @@ class CustomModuleCreate(BaseModel):
 
 class CustomModuleUpdate(BaseModel):
     """更新自定义模块请求"""
+    name: Optional[str] = None
     display_name: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[str] = None

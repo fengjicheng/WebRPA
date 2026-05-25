@@ -283,29 +283,47 @@ async def delete_custom_module(module_id: str):
 
 
 @router.post("/{module_id}/duplicate", response_model=CustomModule)
-async def duplicate_custom_module(module_id: str, new_name: str):
-    """复制自定义模块"""
+async def duplicate_custom_module(module_id: str, payload: dict | None = None, new_name: Optional[str] = None):
+    """复制自定义模块
+
+    支持两种参数传递方式（向后兼容）：
+    - 推荐：在 JSON body 中传 {"new_name": "..."} 或 {"newName": "..."}
+    - 兼容：通过 query string 传 ?new_name=...
+    """
     try:
         # 加载原模块
         original = _load_module(module_id)
         if not original:
             raise HTTPException(status_code=404, detail="模块不存在")
 
-        # 校验/清洗新名称
-        new_name = (new_name or '').strip()
-        if not new_name:
-            raise HTTPException(status_code=400, detail="新名称不能为空")
-        if len(new_name) > 50:
+        # 提取新名称（body 优先，query string 兜底）
+        body_name: Optional[str] = None
+        if isinstance(payload, dict):
+            body_name = payload.get('new_name') or payload.get('newName')
+        candidate = (body_name or new_name or '').strip()
+
+        # 如果调用方没指定，自动生成不重名
+        if not candidate:
+            existing_names = {m.name for m in _load_all_modules()}
+            base = original.name
+            i = 1
+            while True:
+                candidate = f"{base}_copy{i}" if i > 1 else f"{base}_copy"
+                if candidate not in existing_names:
+                    break
+                i += 1
+        new_name_value = candidate
+        if len(new_name_value) > 50:
             raise HTTPException(status_code=400, detail="新名称过长（最多 50 字符）")
 
         # 检查名称是否已存在
         existing_modules = _load_all_modules()
-        if any(m.name == new_name for m in existing_modules):
-            raise HTTPException(status_code=400, detail=f"模块名称 '{new_name}' 已存在")
+        if any(m.name == new_name_value for m in existing_modules):
+            raise HTTPException(status_code=400, detail=f"模块名称 '{new_name_value}' 已存在")
 
         # 生成新ID（清洗非法字符防止路径穿越）
         import uuid
-        sanitized_name = re.sub(r'[^A-Za-z0-9_\-\u4e00-\u9fa5]', '_', new_name)[:50]
+        sanitized_name = re.sub(r'[^A-Za-z0-9_\-\u4e00-\u9fa5]', '_', new_name_value)[:50]
         if not sanitized_name:
             sanitized_name = 'module'
         new_id = f"custom_{sanitized_name}_{uuid.uuid4().hex[:8]}"
@@ -313,7 +331,7 @@ async def duplicate_custom_module(module_id: str, new_name: str):
         # 创建副本（保留所有字段）
         duplicate = CustomModule(
             id=new_id,
-            name=new_name,
+            name=new_name_value,
             display_name=f"{original.display_name} (副本)",
             description=original.description,
             icon=original.icon,
@@ -356,3 +374,68 @@ async def increment_module_usage(module_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新使用次数失败: {str(e)}")
+
+
+@router.post("/import", response_model=CustomModule)
+async def import_custom_module(payload: dict):
+    """导入自定义模块（从 JSON）
+
+    payload: 一个完整的 CustomModule JSON 对象（支持 export 出来的格式）。
+    - 如果 name 已存在，会自动加 _imported 后缀避免冲突。
+    - id 会重新生成，避免和现有模块碰撞。
+    """
+    try:
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=400, detail="导入数据必须是 JSON 对象")
+
+        # 必要字段检查
+        for required in ('name', 'display_name', 'workflow'):
+            if required not in payload:
+                raise HTTPException(status_code=400, detail=f"导入数据缺少字段: {required}")
+
+        wf = payload.get('workflow') or {}
+        if not isinstance(wf, dict) or not wf.get('nodes'):
+            raise HTTPException(status_code=400, detail="工作流数据无效或为空")
+
+        # 处理 name 冲突
+        name = (payload.get('name') or '').strip() or 'imported_module'
+        existing_names = {m.name for m in _load_all_modules()}
+        if name in existing_names:
+            base = name
+            i = 1
+            while f"{base}_imported{i}" in existing_names:
+                i += 1
+            name = f"{base}_imported{i}"
+
+        # 生成新 ID
+        import uuid
+        sanitized_name = re.sub(r'[^A-Za-z0-9_\-\u4e00-\u9fa5]', '_', name)[:50] or 'module'
+        new_id = f"custom_{sanitized_name}_{uuid.uuid4().hex[:8]}"
+
+        # 构建模块对象（重置统计/时间）
+        module = CustomModule(
+            id=new_id,
+            name=name,
+            display_name=payload.get('display_name') or name,
+            description=payload.get('description') or '',
+            icon=payload.get('icon') or '📦',
+            color=payload.get('color') or '#8B5CF6',
+            category=payload.get('category') or 'custom',
+            parameters=payload.get('parameters') or [],
+            outputs=payload.get('outputs') or [],
+            workflow=wf,
+            tags=payload.get('tags') or [],
+            author=payload.get('author') or '',
+            version=payload.get('version') or '1.0.0',
+            usage_count=0,
+            download_count=0,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        _save_module(module)
+        return module
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导入模块失败: {str(e)}")

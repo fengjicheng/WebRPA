@@ -1,7 +1,7 @@
 /**
- * 创建自定义模块对话框
+ * 创建/编辑自定义模块对话框
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,16 +12,24 @@ import { ColorPicker } from '@/components/ui/color-picker'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useCustomModuleStore } from '@/store/customModuleStore'
 import { Plus, Trash2, AlertCircle } from 'lucide-react'
-import type { CustomModuleParameter, CustomModuleOutput } from '@/types/customModule'
+import type { CustomModule, CustomModuleParameter, CustomModuleOutput } from '@/types/customModule'
 
 interface CreateCustomModuleDialogProps {
   open: boolean
   onClose: () => void
+  /**
+   * 编辑模式：传入要编辑的模块。
+   * - 不传 = 创建模式（使用当前画布工作流作为内部实现）
+   * - 传入 = 编辑模式（仅修改元信息/参数/输出，不改 workflow 内部节点；使用画布则需用户先在画布上重做后再次保存）
+   */
+  editingModule?: CustomModule | null
 }
 
-export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDialogProps) {
+export function CreateCustomModuleDialog({ open, onClose, editingModule }: CreateCustomModuleDialogProps) {
   const { nodes, edges } = useWorkflowStore()
-  const { createModule } = useCustomModuleStore()
+  const { createModule, updateModule } = useCustomModuleStore()
+  
+  const isEdit = Boolean(editingModule)
   
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -34,20 +42,38 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
   const [outputs, setOutputs] = useState<CustomModuleOutput[]>([])
   const [error, setError] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [reuseCanvas, setReuseCanvas] = useState(false)
   
-  // 重置表单
-  const resetForm = () => {
-    setName('')
-    setDisplayName('')
-    setDescription('')
-    setIcon('')
-    setColor('#8B5CF6')
-    setCategory('自定义')
-    setTags('')
-    setParameters([])
-    setOutputs([])
-    setError('')
-  }
+  // 初始化（编辑模式 / 打开时）
+  useEffect(() => {
+    if (!open) return
+    if (editingModule) {
+      setName(editingModule.name || '')
+      setDisplayName(editingModule.display_name || '')
+      setDescription(editingModule.description || '')
+      setIcon(editingModule.icon || '')
+      setColor(editingModule.color || '#8B5CF6')
+      setCategory(editingModule.category || '自定义')
+      setTags((editingModule.tags || []).join(', '))
+      setParameters(editingModule.parameters || [])
+      setOutputs(editingModule.outputs || [])
+      setError('')
+      setReuseCanvas(false)
+    } else {
+      // 创建模式：清空
+      setName('')
+      setDisplayName('')
+      setDescription('')
+      setIcon('')
+      setColor('#8B5CF6')
+      setCategory('自定义')
+      setTags('')
+      setParameters([])
+      setOutputs([])
+      setError('')
+      setReuseCanvas(false)
+    }
+  }, [open, editingModule])
   
   // 添加参数
   const addParameter = () => {
@@ -96,7 +122,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
     setOutputs(newOutputs)
   }
   
-  // 创建模块
+  // 创建/更新模块
   const handleCreate = async () => {
     // 验证
     if (!name.trim()) {
@@ -109,8 +135,13 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
       return
     }
     
-    if (nodes.length === 0) {
+    // 创建模式必须有画布；编辑模式仅在勾选「使用当前画布工作流替换内部实现」时才校验
+    if (!isEdit && nodes.length === 0) {
       setError('当前工作流为空，无法创建模块')
+      return
+    }
+    if (isEdit && reuseCanvas && nodes.length === 0) {
+      setError('当前工作流为空，无法用画布替换该模块的内部实现')
       return
     }
     
@@ -124,28 +155,30 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
     setError('')
     
     try {
-      // 确保 nodes 数据完整
-      const validatedNodes = nodes.map(n => {
-        // 如果type是moduleNode，使用data.moduleType作为真正的类型
-        const actualType = n.type === 'moduleNode' ? (n.data?.moduleType || 'unknown') : n.type
-        return {
-          id: n.id,
-          type: actualType,
-          position: n.position || { x: 0, y: 0 },
-          data: n.data || {}
-        }
-      })
+      // 准备 workflow（仅在创建或编辑时勾选 reuseCanvas 才用画布数据）
+      let workflowField: { nodes: any[]; edges: any[] } | undefined
+      if (!isEdit || reuseCanvas) {
+        const validatedNodes = nodes.map(n => {
+          // 如果type是moduleNode，使用data.moduleType作为真正的类型
+          const actualType = n.type === 'moduleNode' ? (n.data?.moduleType || 'unknown') : n.type
+          return {
+            id: n.id,
+            type: actualType,
+            position: n.position || { x: 0, y: 0 },
+            data: n.data || {}
+          }
+        })
+        const validatedEdges = edges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle || null,
+          targetHandle: e.targetHandle || null
+        }))
+        workflowField = { nodes: validatedNodes, edges: validatedEdges }
+      }
       
-      // 确保 edges 数据完整
-      const validatedEdges = edges.map(e => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle || null,
-        targetHandle: e.targetHandle || null
-      }))
-      
-      const moduleData = {
+      const baseData: any = {
         name: name.trim(),
         display_name: displayName.trim(),
         description: description.trim(),
@@ -167,27 +200,25 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
           label: o.label,
           description: o.description || ''
         })),
-        workflow: {
-          nodes: validatedNodes,
-          edges: validatedEdges
-        },
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean)
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       }
+      if (workflowField) baseData.workflow = workflowField
       
-      console.log('[CreateCustomModuleDialog] 准备创建模块，数据:', JSON.stringify(moduleData, null, 2))
+      console.log(`[CustomModuleDialog] ${isEdit ? '更新' : '创建'}模块:`, baseData)
       
-      const result = await createModule(moduleData)
+      const result = isEdit
+        ? await updateModule(editingModule!.id, baseData)
+        : await createModule({ ...baseData, workflow: workflowField })
       
       if (result) {
-        console.log('[CreateCustomModuleDialog] 模块创建成功:', result)
-        resetForm()
+        console.log('[CustomModuleDialog] 操作成功:', result)
         onClose()
       } else {
-        console.error('[CreateCustomModuleDialog] 模块创建失败，无返回结果')
-        setError('创建失败，请重试')
+        console.error('[CustomModuleDialog] 操作失败，无返回结果')
+        setError(isEdit ? '更新失败，请重试' : '创建失败，请重试')
       }
     } catch (err) {
-      console.error('[CreateCustomModuleDialog] 模块创建异常:', err)
+      console.error('[CustomModuleDialog] 异常:', err)
       setError(String(err))
     } finally {
       setIsCreating(false)
@@ -198,7 +229,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>创建自定义模块</DialogTitle>
+          <DialogTitle>{isEdit ? `编辑模块：${editingModule?.display_name || editingModule?.name}` : '创建自定义模块'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
@@ -496,10 +527,35 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
           <div className="space-y-2">
             <h3 className="text-sm font-medium">工作流信息</h3>
             <div className="bg-muted p-3 rounded-lg text-sm space-y-2">
-              <p>当前工作流包含 <span className="font-medium">{nodes.length}</span> 个节点</p>
-              <p className="text-xs text-muted-foreground">
-                这些节点将作为自定义模块的内部实现
-              </p>
+              {isEdit ? (
+                <>
+                  <p>
+                    当前模块内部包含 <span className="font-medium">{editingModule?.workflow?.nodes?.length ?? 0}</span> 个节点
+                  </p>
+                  <p>当前画布包含 <span className="font-medium">{nodes.length}</span> 个节点</p>
+                  <label className="flex items-start gap-2 text-xs cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={reuseCanvas}
+                      onChange={(e) => setReuseCanvas(e.target.checked)}
+                      className="mt-0.5 rounded"
+                    />
+                    <span>
+                      <span className="font-medium">用当前画布工作流替换该模块的内部实现</span>
+                      <span className="block text-muted-foreground mt-0.5">
+                        勾选后保存时会用画布上的节点重写模块的内部工作流；不勾选则只更新元信息/参数/输出。
+                      </span>
+                    </span>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <p>当前工作流包含 <span className="font-medium">{nodes.length}</span> 个节点</p>
+                  <p className="text-xs text-muted-foreground">
+                    这些节点将作为自定义模块的内部实现
+                  </p>
+                </>
+              )}
             </div>
             
             {/* 参数使用说明 */}
@@ -545,7 +601,7 @@ export function CreateCustomModuleDialog({ open, onClose }: CreateCustomModuleDi
             onClick={handleCreate}
             disabled={isCreating}
           >
-            {isCreating ? '创建中...' : '创建模块'}
+            {isCreating ? (isEdit ? '保存中...' : '创建中...') : (isEdit ? '保存修改' : '创建模块')}
           </Button>
         </DialogFooter>
       </DialogContent>

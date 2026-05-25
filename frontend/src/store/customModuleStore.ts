@@ -17,7 +17,8 @@ interface CustomModuleState {
   createModule: (data: any) => Promise<CustomModule | null>
   updateModule: (id: string, data: any) => Promise<CustomModule | null>
   deleteModule: (id: string) => Promise<boolean>
-  duplicateModule: (id: string, newName: string) => Promise<CustomModule | null>
+  duplicateModule: (id: string, newName?: string) => Promise<CustomModule | null>
+  importModule: (data: any) => Promise<CustomModule | null>
   setSelectedModule: (module: CustomModule | null) => void
 }
 
@@ -126,6 +127,26 @@ export const useCustomModuleStore = create<CustomModuleState>((set) => ({
         return result.data
       } else {
         set({ error: result.error || '复制失败', isLoading: false })
+        return null
+      }
+    } catch (error) {
+      set({ error: String(error), isLoading: false })
+      return null
+    }
+  },
+
+  importModule: async (data) => {
+    set({ isLoading: true, error: null })
+    try {
+      const result = await customModulesApi.importModule(data)
+      if (result.data) {
+        set(state => ({
+          modules: [result.data, ...state.modules],
+          isLoading: false,
+        }))
+        return result.data
+      } else {
+        set({ error: result.error || '导入失败', isLoading: false })
         return null
       }
     } catch (error) {

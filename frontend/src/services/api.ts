@@ -434,8 +434,16 @@ export const customModulesApi = {
     apiRequest(`/custom-modules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id: string) =>
     apiRequest(`/custom-modules/${id}`, { method: 'DELETE' }),
-  duplicate: (id: string, newName: string) =>
-    apiRequest(`/custom-modules/${id}/duplicate?new_name=${newName}`, { method: 'POST' }),
+  duplicate: (id: string, newName?: string) =>
+    apiRequest(`/custom-modules/${id}/duplicate`, {
+      method: 'POST',
+      body: JSON.stringify(newName ? { new_name: newName } : {}),
+    }),
+  importModule: (data: any) =>
+    apiRequest(`/custom-modules/import`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   incrementUsage: (id: string) =>
     apiRequest(`/custom-modules/${id}/increment-usage`, { method: 'POST' }),
 }

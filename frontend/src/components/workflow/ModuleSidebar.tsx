@@ -1870,6 +1870,7 @@ function ModuleSidebarRaw() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showManageDialog, setShowManageDialog] = useState(false)
+  const [editingModule, setEditingModule] = useState<import('@/types/customModule').CustomModule | null>(null)
   
   // 使用确认对话框hook
   const { confirm: confirmDialog, ConfirmDialog } = useConfirm()
@@ -2276,19 +2277,24 @@ function ModuleSidebarRaw() {
         </>
       )}
 
-      {/* 创建自定义模块对话框 */}
+      {/* 创建/编辑自定义模块对话框 */}
       <CreateCustomModuleDialog
         open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
+        onClose={() => {
+          setShowCreateDialog(false)
+          setEditingModule(null)
+        }}
+        editingModule={editingModule}
       />
 
       {/* 管理自定义模块对话框 */}
       <CustomModuleManageDialog
         open={showManageDialog}
         onClose={() => setShowManageDialog(false)}
-        onEdit={() => {
+        onEdit={(mod) => {
           setShowManageDialog(false)
-          // TODO: 打开编辑对话框
+          setEditingModule(mod)
+          setShowCreateDialog(true)
         }}
       />
       

@@ -8,7 +8,8 @@ import { workflowApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 import { getBackendBaseUrl } from '@/services/config'
 import { GlobalConfigDialog } from './GlobalConfigDialog'
-import { DocumentationDialog } from './documentation'
+// 教学文档体积较大（含 mermaid 等依赖），改为 lazy 引入，只有点开"教学文档"才加载
+const DocumentationDialog = lazy(() => import('./documentation').then(m => ({ default: m.DocumentationDialog })))
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { AutoBrowserDialog } from './AutoBrowserDialog'
 import { WorkflowHubDialog } from './WorkflowHubDialog'
@@ -49,7 +50,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1423,8 +1424,12 @@ export function Toolbar() {
       {/* 全局配置对话框 */}
       <GlobalConfigDialog isOpen={showGlobalConfig} onClose={() => setShowGlobalConfig(false)} />
       
-      {/* 教学文档对话框 */}
-      <DocumentationDialog isOpen={showDocumentation} onClose={() => setShowDocumentation(false)} />
+      {/* 教学文档对话框（懒加载，仅在打开时才挂载/拉取代码） */}
+      {showDocumentation && (
+        <Suspense fallback={null}>
+          <DocumentationDialog isOpen={showDocumentation} onClose={() => setShowDocumentation(false)} />
+        </Suspense>
+      )}
       
       {/* 导出对话框 */}
       <ExportDialog isOpen={showExportDialog} onClose={() => setShowExportDialog(false)} onExport={handleExport} />

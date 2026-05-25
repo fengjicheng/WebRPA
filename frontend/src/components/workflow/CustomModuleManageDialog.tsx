@@ -18,15 +18,21 @@ interface Props {
 }
 
 export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
-  const { modules, deleteModule, duplicateModule } = useCustomModuleStore()
+  const { modules, deleteModule, duplicateModule, importModule } = useCustomModuleStore()
   const { confirm, alert, ConfirmDialog } = useConfirm()
   const [searchQuery, setSearchQuery] = useState('')
   const [importing, setImporting] = useState(false)
 
-  const filteredModules = modules.filter(m =>
-    m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredModules = modules.filter(m => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return true
+    return (
+      m.name.toLowerCase().includes(q) ||
+      m.display_name?.toLowerCase().includes(q) ||
+      m.description?.toLowerCase().includes(q) ||
+      (m.tags || []).some(t => t.toLowerCase().includes(q))
+    )
+  })
 
   const handleDelete = async (module: CustomModule) => {
     const confirmed = await confirm(
@@ -45,9 +51,13 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
 
   const handleDuplicate = async (module: CustomModule) => {
     try {
-      const newName = `${module.name} (副本)`
-      await duplicateModule(module.id, newName)
-      await alert(`已创建「${module.name}」的副本`, { title: '复制成功' })
+      // 不传 newName，让后端自动生成不冲突的名称（前端不知道当前所有名字，给 "(副本)" 这种含空格英文括号的会被路径校验拒绝）
+      const created = await duplicateModule(module.id)
+      if (created) {
+        await alert(`已创建「${module.display_name || module.name}」的副本`, { title: '复制成功' })
+      } else {
+        await alert('复制失败', { title: '复制失败' })
+      }
     } catch (error) {
       await alert(error instanceof Error ? error.message : '复制失败', { title: '复制失败' })
     }
@@ -81,10 +91,24 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
     setImporting(true)
     try {
       const text = await file.text()
-      // 解析 JSON 验证文件格式有效（导入 API 待实现）
-      JSON.parse(text)
-      // TODO: 调用导入API
-      await alert('模块已导入', { title: '导入成功' })
+      let data: any
+      try {
+        data = JSON.parse(text)
+      } catch {
+        await alert('JSON 格式无效', { title: '导入失败' })
+        return
+      }
+      // 基础字段校验
+      if (!data || typeof data !== 'object' || !data.name || !data.workflow) {
+        await alert('JSON 中缺少必要字段（name、workflow）', { title: '导入失败' })
+        return
+      }
+      const created = await importModule(data)
+      if (created) {
+        await alert(`已导入模块「${created.display_name || created.name}」`, { title: '导入成功' })
+      } else {
+        await alert('导入失败', { title: '导入失败' })
+      }
     } catch (error) {
       await alert(error instanceof Error ? error.message : '导入失败', { title: '导入失败' })
     } finally {
@@ -162,22 +186,29 @@ export function CustomModuleManageDialog({ open, onClose, onEdit }: Props) {
                     className="p-4 rounded-lg border border-border bg-white hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="bg-[hsl(var(--brand-600))] flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-sm">
-                        <Package className="w-6 h-6" />
+                      <div
+                        className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-sm text-lg"
+                        style={{ backgroundColor: module.color || 'hsl(var(--brand-600))' }}
+                      >
+                        {module.icon ? <span>{module.icon}</span> : <Package className="w-6 h-6" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">{module.name}</h3>
+                          <h3 className="font-medium truncate">{module.display_name || module.name}</h3>
+                          <code className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 truncate max-w-[140px]">
+                            {module.name}
+                          </code>
                         </div>
                         {module.description && (
-                          <p className="text-sm text-muted-foreground mb-2">
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                             {module.description}
                           </p>
                         )}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                           <span>{module.parameters?.length || 0} 个参数</span>
                           <span>{module.outputs?.length || 0} 个输出</span>
                           <span>使用 {module.usage_count} 次</span>
+                          <span>{(module.workflow?.nodes?.length || 0)} 个节点</span>
                           <span>创建于 {new Date(module.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
