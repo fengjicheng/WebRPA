@@ -678,6 +678,11 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   // 二维码
   qr_generate: '二维码生成',
   qr_decode: '二维码解码',
+  // 盲水印
+  bwm_embed_text: '盲水印·嵌入文字',
+  bwm_extract_text: '盲水印·提取文字',
+  bwm_embed_image: '盲水印·嵌入图片',
+  bwm_extract_image: '盲水印·提取图片',
   // 录屏
   screen_record: '桌面录屏',
   camera_capture: '摄像头拍照',
@@ -927,6 +932,11 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   // 二维码
   qr_generate: 10,        // 10秒
   qr_decode: 10,          // 10秒
+  // 盲水印
+  bwm_embed_text: 60,     // 60秒（DCT 计算）
+  bwm_extract_text: 60,
+  bwm_embed_image: 60,
+  bwm_extract_image: 60,
   // 录屏
   screen_record: 5,       // 5秒（非阻塞，只是启动）
   camera_capture: 10,     // 10秒

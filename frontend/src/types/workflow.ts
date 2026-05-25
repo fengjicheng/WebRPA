@@ -328,6 +328,11 @@ export type ModuleType =
   // 二维码
   | 'qr_generate'
   | 'qr_decode'
+  // 盲水印
+  | 'bwm_embed_text'
+  | 'bwm_extract_text'
+  | 'bwm_embed_image'
+  | 'bwm_extract_image'
   // 录屏
   | 'screen_record'
   | 'camera_capture'

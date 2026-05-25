@@ -100,6 +100,8 @@ from . import media_qrcode
 from . import media_recognition
 from . import media_video_edit
 from . import media_watermark
+# 盲水印（blind_watermark）模块
+from . import blind_watermark
 
 # 调试：打印已注册的执行器
 print(f"[DEBUG] 已注册的执行器类型: {registry.get_all_types()}")

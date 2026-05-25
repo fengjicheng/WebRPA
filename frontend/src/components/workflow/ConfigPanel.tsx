@@ -495,6 +495,12 @@ import {
   ImageRemoveBgConfig,
 } from './config-panels/PillowImageConfigs'
 import {
+  BwmEmbedTextConfig,
+  BwmExtractTextConfig,
+  BwmEmbedImageConfig,
+  BwmExtractImageConfig,
+} from './config-panels/BlindWatermarkConfigs'
+import {
   ExportLogConfig,
   ClickTextConfig,
   HoverImageConfig,
@@ -1685,6 +1691,15 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <ImageGetInfoConfig config={nodeData} updateConfig={handleChange} />
       case 'image_remove_bg':
         return <ImageRemoveBgConfig config={nodeData} updateConfig={handleChange} />
+      // 盲水印（blind_watermark）
+      case 'bwm_embed_text':
+        return <BwmEmbedTextConfig config={nodeData} updateConfig={handleChange} />
+      case 'bwm_extract_text':
+        return <BwmExtractTextConfig config={nodeData} updateConfig={handleChange} />
+      case 'bwm_embed_image':
+        return <BwmEmbedImageConfig config={nodeData} updateConfig={handleChange} />
+      case 'bwm_extract_image':
+        return <BwmExtractImageConfig config={nodeData} updateConfig={handleChange} />
       // 高级模块
       case 'export_log':
         return <ExportLogConfig data={nodeData} onChange={handleChange} />

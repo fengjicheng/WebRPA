@@ -461,6 +461,11 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   // 二维码
   qr_generate: Grid3X3,
   qr_decode: ScanLine,
+  // 盲水印（隐藏在图像中、肉眼不可见）
+  bwm_embed_text: Fingerprint,
+  bwm_extract_text: ScanLine,
+  bwm_embed_image: Fingerprint,
+  bwm_extract_image: ScanLine,
   // 录屏
   screen_record: Monitor,
   camera_capture: Camera,
@@ -843,6 +848,11 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   // 二维码
   qr_generate: ['二维码', '生成', 'QR', 'qrcode', '创建', '制作'],
   qr_decode: ['二维码', '解码', '识别', 'QR', 'qrcode', '扫描', '读取'],
+  // 盲水印
+  bwm_embed_text: ['盲水印', '隐藏水印', '嵌入', '文字', '版权', 'blind', 'watermark', 'invisible', '盲', '不可见'],
+  bwm_extract_text: ['盲水印', '隐藏水印', '提取', '文字', '识别', 'blind', 'watermark', 'extract', '解码'],
+  bwm_embed_image: ['盲水印', '隐藏水印', '嵌入', '图片', '版权', 'blind', 'watermark', 'image', '图像'],
+  bwm_extract_image: ['盲水印', '隐藏水印', '提取', '图片', '识别', 'blind', 'watermark', 'extract'],
   // 录屏
   screen_record: ['录屏', '屏幕', '录制', 'record', 'screen', '视频', '桌面'],
   camera_capture: ['摄像头', '拍照', '照相', 'camera', 'capture', 'photo', '相机', '摄影'],
@@ -1451,6 +1461,11 @@ const moduleCategories = [
     name: '图像工具',
     color: 'bg-fuchsia-600',
     modules: ['add_watermark', 'image_get_info', 'image_convert_format', 'qr_generate', 'qr_decode'] as ModuleType[],
+  },
+  {
+    name: '盲水印（隐式数字水印）',
+    color: 'bg-purple-700',
+    modules: ['bwm_embed_text', 'bwm_extract_text', 'bwm_embed_image', 'bwm_extract_image'] as ModuleType[],
   },
   // ===== AI能力 =====
   {

@@ -395,6 +395,10 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "image_remove_bg": "AI 自动抠图去背景",
         "image_grayscale": "图像转灰度",
         "image_round_corners": "图像加圆角",
+        "bwm_embed_text": "盲水印·把文本以肉眼不可见方式嵌入图像（频域 DWT-DCT-SVD），常用于版权追溯/防泄漏，输出 wm_bit_len 给提取端使用",
+        "bwm_extract_text": "盲水印·从图像中提取出之前嵌入的文本，需要相同的两个密码 + 嵌入时的 wm_bit_len",
+        "bwm_embed_image": "盲水印·把一张小水印图（推荐黑白二值图）以隐式方式嵌入到载体图，输出水印图尺寸 [h,w] 给提取端使用",
+        "bwm_extract_image": "盲水印·从图像中还原出之前嵌入的水印图，需要相同的两个密码 + 嵌入时返回的 [h,w]",
     },
     "视频/音频（高级）": {
         "trim_video": "视频裁剪（截取时间段）",
