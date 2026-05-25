@@ -284,7 +284,8 @@ async def start_coordinate_picker(request: StartCoordinatePickerRequest):
             window_title="手机坐标选择器",
             always_on_top=True,
             no_control=not request.allow_control,  # 默认允许控制：按 Ctrl 才拾取，否则正常操作
-            stay_awake=False
+            stay_awake=False,
+            enable_pointer_location=False,  # 拾取坐标场景不需要在手机屏幕上画指针位置（会干扰用户操作）
         )
         
         if not success:
