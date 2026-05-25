@@ -235,8 +235,8 @@ export function ScreensaverDialog({ open, onClose }: Props) {
         {/* 头部 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[hsl(var(--border))] bg-gradient-to-r from-[hsl(var(--brand-50))] to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[hsl(var(--brand-500))]/10 border border-[hsl(var(--brand-500))]/30 shadow-sm">
+              <Sparkles className="w-5 h-5 text-[hsl(var(--brand-500))]" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-[hsl(var(--foreground))]">屏保弹幕</h2>
@@ -572,7 +572,7 @@ export function ScreensaverDialog({ open, onClose }: Props) {
 
             <div className="flex flex-col gap-2 mt-auto">
               {!running ? (
-                <Button onClick={handleStart} disabled={busy} className="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white hover:opacity-90">
+                <Button onClick={handleStart} disabled={busy} className="bg-[hsl(var(--brand-500))] text-white hover:bg-[hsl(var(--brand-600))]">
                   <Play className="w-4 h-4 mr-2" />
                   启动屏保
                 </Button>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Search, Filter, RefreshCw, Download, Trash2, Clock, Tag, TrendingUp, Eye, EyeOff } from 'lucide-react'
+import { X, Search, Filter, RefreshCw, Download, Trash2, Clock, Tag, TrendingUp, Eye, EyeOff, Activity } from 'lucide-react'
 
 interface VariableTrackingRecord {
   timestamp: string
@@ -222,8 +222,8 @@ export const VariableTrackingPanel: React.FC<VariableTrackingPanelProps> = ({
         {/* 头部 */}
         <div className="bg-[hsl(var(--card))] flex items-center justify-between px-6 py-4 border-b border-gray-200 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg bg-[hsl(var(--info-500))]/10 border border-[hsl(var(--info-500))]/30">
+              <Activity className="w-5 h-5 text-[hsl(var(--info-500))]" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">变量追踪</h2>

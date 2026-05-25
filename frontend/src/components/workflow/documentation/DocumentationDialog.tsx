@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { X, ChevronRight, BookOpen, ArrowUp, Search, Download, FileDown } from 'lucide-react'
+import { X, ChevronRight, BookOpen, ArrowUp, Search, Download, FileDown, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { documents } from './documents'
-import { documentContents } from './contents'
+import { loadDocContent, loadAllContents, getCachedContent } from './contents'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import type { DocumentationDialogProps } from './types'
 import { pinyinMatch } from '@/lib/pinyin'
@@ -17,16 +17,41 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   const [searchResults, setSearchResults] = useState<Array<{docId: string, title: string, heading: string, level: number, matches: string[]}>>([])
   const [isSearching, setIsSearching] = useState(false)
   const [highlightKeyword, setHighlightKeyword] = useState('')
+  // 当前文档内容（懒加载）
+  const [currentContent, setCurrentContent] = useState<string>(() => getCachedContent('getting-started') ?? '')
+  const [contentLoading, setContentLoading] = useState(false)
+  // 全文搜索的内容是否已就绪
+  const [searchReady, setSearchReady] = useState(false)
+  const [searchPreparing, setSearchPreparing] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   
-  // 切换文档时滚动到顶部
+  // 切换文档时滚动到顶部，并按需懒加载文档内容
   useEffect(() => {
+    if (!isOpen) return
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0
       setShowScrollTop(false)
     }
-  }, [selectedDoc])
+    // 命中缓存就同步显示
+    const cached = getCachedContent(selectedDoc)
+    if (cached !== undefined) {
+      setCurrentContent(cached)
+      setContentLoading(false)
+      return
+    }
+    // 没缓存则异步加载
+    let cancelled = false
+    setContentLoading(true)
+    loadDocContent(selectedDoc).then((text) => {
+      if (cancelled) return
+      setCurrentContent(text)
+      setContentLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedDoc, isOpen])
 
   // 监听滚动显示返回顶部按钮
   const handleScroll = () => {
@@ -41,24 +66,33 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
     }
   }
 
-  // 搜索功能 - 支持三级标题搜索
-  const handleSearch = (query: string) => {
+  // 搜索功能 - 支持三级标题搜索（懒加载触发：第一次进入搜索时才加载全部 markdown）
+  const handleSearch = async (query: string) => {
     setSearchQuery(query)
-    
+
     if (!query.trim()) {
       setSearchResults([])
       setIsSearching(false)
       setHighlightKeyword('')
       return
     }
-    
+
     setIsSearching(true)
     setHighlightKeyword(query.trim())
+
+    // 懒加载所有文档（仅第一次搜索时触发）
+    if (!searchReady) {
+      setSearchPreparing(true)
+      await loadAllContents(documents.map((d) => d.id))
+      setSearchReady(true)
+      setSearchPreparing(false)
+    }
+
     const results: Array<{docId: string, title: string, heading: string, level: number, matches: string[]}> = []
     const queryLower = query.toLowerCase()
-    
+
     for (const doc of documents) {
-      const content = documentContents[doc.id] || ''
+      const content = getCachedContent(doc.id) || ''
       const lines = content.split('\n')
       
       // 提取所有标题（一级、二级、三级）
@@ -157,11 +191,11 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   }
   
   // 下载当前文档
-  const handleDownloadCurrent = () => {
+  const handleDownloadCurrent = async () => {
     const doc = documents.find(d => d.id === selectedDoc)
     if (!doc) return
-    
-    const content = documentContents[selectedDoc] || ''
+
+    const content = (await loadDocContent(selectedDoc)) || ''
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -172,21 +206,23 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
-  
+
   // 下载全部文档
-  const handleDownloadAll = () => {
+  const handleDownloadAll = async () => {
+    // 懒加载所有内容
+    const all = await loadAllContents(documents.map((d) => d.id))
     let allContent = '# WebRPA 教学文档\n\n'
     allContent += '> 本文档包含 WebRPA 的完整使用指南\n\n'
     allContent += '---\n\n'
-    
+
     documents.forEach((doc, index) => {
-      const content = documentContents[doc.id] || ''
+      const content = all[doc.id] || ''
       allContent += `\n\n# ${index + 1}. ${doc.title}\n\n`
       allContent += `> ${doc.description}\n\n`
       allContent += content
       allContent += '\n\n---\n\n'
     })
-    
+
     const blob = new Blob([allContent], { type: 'text/markdown;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -199,8 +235,7 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
   }
   
   if (!isOpen) return null
-  
-  const content = documentContents[selectedDoc] || ''
+
   const currentDoc = documents.find(d => d.id === selectedDoc)
   
   return (
@@ -288,7 +323,12 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
 
             {/* 搜索结果或文档目录 */}
             <div className="flex-1 p-2.5 overflow-y-auto">
-              {isSearching && searchResults.length > 0 ? (
+              {isSearching && searchPreparing ? (
+                <div className="flex flex-col items-center justify-center py-10 text-[hsl(var(--muted-foreground))] gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-[hsl(var(--brand-500))]" />
+                  <div className="text-[11px]">首次搜索，正在加载文档索引…</div>
+                </div>
+              ) : isSearching && searchResults.length > 0 ? (
                 <>
                   <div className="text-[10px] uppercase tracking-wider font-semibold text-[hsl(var(--muted-foreground))] mb-2 flex items-center gap-1.5">
                     <Search className="w-2.5 h-2.5" />
@@ -380,7 +420,14 @@ export function DocumentationDialog({ isOpen, onClose }: DocumentationDialogProp
               className="h-full overflow-y-auto"
             >
               <div className="px-8 py-7 max-w-3xl">
-                <MarkdownRenderer content={content} highlightKeyword={highlightKeyword} />
+                {contentLoading && !currentContent ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-[hsl(var(--muted-foreground))] gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--brand-500))]" />
+                    <div className="text-[12px]">正在加载文档…</div>
+                  </div>
+                ) : (
+                  <MarkdownRenderer content={currentContent} highlightKeyword={highlightKeyword} />
+                )}
               </div>
             </div>
 

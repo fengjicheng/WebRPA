@@ -1,5 +1,5 @@
 export { DocumentationDialog } from './DocumentationDialog'
 export { MarkdownRenderer } from './MarkdownRenderer'
 export { documents } from './documents'
-export { documentContents } from './contents'
+export { documentContents, loadDocContent, loadAllContents, getCachedContent } from './contents'
 export type { DocumentItem, DocumentationDialogProps } from './types'
