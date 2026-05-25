@@ -116,6 +116,10 @@ class Screensaver:
         self.exit_hotkey: str = c.get("exit_hotkey") or "Escape"
         self.exit_vk: int = EXIT_HOTKEY_VK.get(self.exit_hotkey, 0x1B)
         self.vertical_text: bool = bool(c.get("vertical_text", False))
+        # 旋转角度（0/90/180/270），仅文字渲染层支持
+        self.rotation: int = int(c.get("rotation", 0) or 0) % 360
+        # 是否全屏覆盖；为 False 时窗口居中、占屏幕 50%
+        self.fullscreen: bool = bool(c.get("fullscreen", True))
 
         # 滚动状态
         self._scroll_x = 0.0
@@ -196,6 +200,11 @@ class Screensaver:
         lf.lfFaceName = self.font_family
         lf.lfCharSet = win32con.DEFAULT_CHARSET
         lf.lfQuality = win32con.CLEARTYPE_QUALITY
+        # 字体旋转（GDI 单位是 1/10 度，逆时针为正；UI 上"90°顺时针"对应 lfEscapement = 2700）
+        if self.rotation:
+            angle_tenths = ((360 - int(self.rotation)) % 360) * 10
+            lf.lfEscapement = angle_tenths
+            lf.lfOrientation = angle_tenths
         return win32gui.CreateFontIndirect(lf)
 
     # ===== Win32 窗口生命周期 =====
@@ -231,12 +240,23 @@ class Screensaver:
         if self.click_through:
             ex_style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
 
+        # 计算窗口尺寸：fullscreen=True 全屏，否则居中、占屏幕 50%
+        if self.fullscreen:
+            win_x, win_y, win_w, win_h = 0, 0, self.sw, self.sh
+        else:
+            win_w = self.sw // 2
+            win_h = self.sh // 2
+            win_x = (self.sw - win_w) // 2
+            win_y = (self.sh - win_h) // 2
+        # 用窗口尺寸覆盖 sw/sh，让所有绘制都基于真实窗口尺寸
+        self.sw, self.sh = win_w, win_h
+
         self.hwnd = win32gui.CreateWindowEx(
             ex_style,
             self.cls_atom,
             "WebRPA Screensaver",
             win32con.WS_POPUP | win32con.WS_VISIBLE,
-            0, 0, self.sw, self.sh,
+            win_x, win_y, win_w, win_h,
             0, 0, 0, None,
         )
 

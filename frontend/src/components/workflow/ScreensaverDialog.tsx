@@ -180,6 +180,10 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   const handleStart = async () => {
     setBusy(true)
     setStatusMsg('')
+    // 若已在运行，先停掉旧的再启动新配置（保证按钮始终是"启动"语义、且每次都能应用最新配置）
+    if (running) {
+      try { await screensaverApi.stop() } catch {}
+    }
     const res = await screensaverApi.start(config as unknown as Record<string, unknown>)
     setBusy(false)
     if (res.success) {
@@ -209,18 +213,53 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }
 
 
+  // 屏幕真实分辨率（用于预览比例）
+  const [screenSize, setScreenSize] = useState<{ w: number; h: number }>(() => ({
+    w: typeof window !== 'undefined' ? window.screen.width : 1920,
+    h: typeof window !== 'undefined' ? window.screen.height : 1080,
+  }))
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+    const onResize = () => setScreenSize({ w: window.screen.width, h: window.screen.height })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open])
+
+  // 预览容器渲染后量一下宽度，按"屏幕高度 : 预览高度"等比缩放字号
+  const previewBoxRef = (node: HTMLDivElement | null) => {
+    if (!node) return
+    const update = () => {
+      const w = node.clientWidth
+      const h = node.clientHeight
+      if (w && h) setPreviewBox({ w, h })
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(node)
+    ;(node as any).__ro = ro
+  }
+  const [previewBox, setPreviewBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+
+  // 缩放系数：预览高度 / 真实屏幕高度
+  const previewScale = previewBox.h > 0 ? previewBox.h / screenSize.h : 1
+
   const previewStyle: React.CSSProperties = {
     backgroundColor: config.background,
     color: config.color,
     fontFamily: config.font_family,
-    fontSize: Math.max(14, Math.min(72, config.font_size / 2)),
+    fontSize: Math.max(6, config.font_size * previewScale),
     fontWeight: config.font_weight,
     fontStyle: config.font_italic ? 'italic' : 'normal',
     opacity: Math.max(0.2, config.background_alpha),
+    transform: config.rotation ? `rotate(${config.rotation}deg)` : undefined,
+    transformOrigin: 'center',
     WebkitTextStroke: config.outline_color && config.outline_width > 0
-      ? `${Math.min(2, config.outline_width)}px ${config.outline_color}`
+      ? `${Math.max(0.5, config.outline_width * previewScale)}px ${config.outline_color}`
       : undefined,
   }
+
+  // 按真实屏幕宽高比构建预览框（保持高度自适应、宽度按比例）
+  const previewAspect = `${screenSize.w} / ${screenSize.h}`
 
   return createPortal(
     <div
@@ -549,12 +588,13 @@ export function ScreensaverDialog({ open, onClose }: Props) {
 
           {/* 右侧实时预览 */}
           <div className="border-l border-[hsl(var(--border))] bg-[hsl(var(--muted))] p-4 flex flex-col gap-3 overflow-y-auto">
-            <Label className="text-sm font-semibold">预览（仅供参考）</Label>
+            <Label className="text-sm font-semibold">预览（按屏幕真实比例 · {screenSize.w}×{screenSize.h}）</Label>
             <div
-              className="aspect-video rounded-lg shadow-inner flex items-center justify-center text-center px-3 overflow-hidden"
-              style={previewStyle}
+              ref={previewBoxRef}
+              className="rounded-lg shadow-inner flex items-center justify-center text-center px-3 overflow-hidden mx-auto w-full"
+              style={{ ...previewStyle, aspectRatio: previewAspect }}
             >
-              <span className="break-words">
+              <span className="break-words leading-tight" style={{ maxWidth: '90%' }}>
                 {config.content_type === 'text' && (config.text || 'WebRPA')}
                 {config.content_type === 'scroll' && (config.text || 'WebRPA →')}
                 {config.content_type === 'clock' && (new Date().toLocaleTimeString())}
@@ -571,15 +611,14 @@ export function ScreensaverDialog({ open, onClose }: Props) {
             )}
 
             <div className="flex flex-col gap-2 mt-auto">
-              {!running ? (
-                <Button onClick={handleStart} disabled={busy} className="bg-[hsl(var(--brand-500))] text-white hover:bg-[hsl(var(--brand-600))]">
-                  <Play className="w-4 h-4 mr-2" />
-                  启动屏保
-                </Button>
-              ) : (
-                <Button onClick={handleStop} disabled={busy} variant="tonal-danger">
+              <Button onClick={handleStart} disabled={busy} className="bg-[hsl(var(--brand-500))] text-white hover:bg-[hsl(var(--brand-600))]">
+                <Play className="w-4 h-4 mr-2" />
+                启动屏保
+              </Button>
+              {running && (
+                <Button onClick={handleStop} disabled={busy} variant="tonal-danger" size="sm">
                   <Square className="w-4 h-4 mr-2" />
-                  停止屏保
+                  停止当前屏保
                 </Button>
               )}
               <Button variant="outline" onClick={handleReset} disabled={busy}>重置默认</Button>
