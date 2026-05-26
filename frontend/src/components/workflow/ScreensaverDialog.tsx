@@ -56,7 +56,12 @@ interface BulletItem {
 interface ScreensaverConfig {
   content_type: 'text' | 'scroll' | 'clock' | 'date' | 'countdown' | 'bullet'
   text: string
+  /** @deprecated 历史字段，保留以做迁移；新代码请用 clock_format / date_format */
   datetime_format: string
+  /** 时钟（content_type='clock'）独立时间格式 */
+  clock_format: string
+  /** 日期（content_type='date'）独立时间格式 */
+  date_format: string
   countdown_target: string
   bullets: BulletItem[]
   font_family: string
@@ -83,6 +88,8 @@ const DEFAULT_CONFIG: ScreensaverConfig = {
   content_type: 'scroll',
   text: 'WebRPA 正在运行中…',
   datetime_format: '',
+  clock_format: '',
+  date_format: '',
   countdown_target: '',
   bullets: [
     { text: '加油！', color: '#ff6b6b', font_size: 56, speed: 220, bold: true },
@@ -433,12 +440,12 @@ export function ScreensaverDialog({ open, onClose }: Props) {
   }
   const renderClock = () => {
     const now = new Date()
-    if (config.datetime_format) return zhStrftime(config.datetime_format, now)
+    if (config.clock_format) return zhStrftime(config.clock_format, now)
     return zhStrftime('%H:%M:%S', now)
   }
   const renderDate = () => {
     const now = new Date()
-    if (config.datetime_format) return zhStrftime(config.datetime_format, now)
+    if (config.date_format) return zhStrftime(config.date_format, now)
     return zhStrftime('%Y-%m-%d %A', now)
   }
   const renderCountdown = () => {
@@ -561,16 +568,30 @@ export function ScreensaverDialog({ open, onClose }: Props) {
               </section>
             )}
 
-            {(config.content_type === 'clock' || config.content_type === 'date') && (
+            {config.content_type === 'clock' && (
               <section className="space-y-2">
-                <Label>自定义时间格式（strftime，留空使用默认）</Label>
+                <Label>时钟时间格式（strftime，留空使用默认 %H:%M:%S）</Label>
                 <Input
-                  value={config.datetime_format}
-                  onChange={(e) => update('datetime_format', e.target.value)}
-                  placeholder={config.content_type === 'clock' ? '%H:%M:%S' : '%Y-%m-%d %A'}
+                  value={config.clock_format}
+                  onChange={(e) => update('clock_format', e.target.value)}
+                  placeholder="%H:%M:%S"
                 />
                 <p className="text-[11px] text-[hsl(var(--muted-foreground))]">
-                  常用：%Y-%m-%d %H:%M:%S（年月日时分秒）、%A（星期名）、%p（上下午）
+                  常用：%H:%M:%S（时分秒）、%I:%M %p（12 小时制带上下午）、%H点%M分
+                </p>
+              </section>
+            )}
+
+            {config.content_type === 'date' && (
+              <section className="space-y-2">
+                <Label>日期时间格式（strftime，留空使用默认 %Y-%m-%d %A）</Label>
+                <Input
+                  value={config.date_format}
+                  onChange={(e) => update('date_format', e.target.value)}
+                  placeholder="%Y-%m-%d %A"
+                />
+                <p className="text-[11px] text-[hsl(var(--muted-foreground))]">
+                  常用：%Y年%m月%d日 %A、%Y-%m-%d %H:%M:%S（年月日时分秒）、%A（星期名）
                 </p>
               </section>
             )}

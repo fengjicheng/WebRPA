@@ -93,7 +93,11 @@ class Screensaver:
         c = self.config
         self.content_type: str = c.get("content_type", "scroll")
         self.text: str = c.get("text", "WebRPA")
+        # 旧字段兼容（曾经 clock/date 共用 datetime_format）
         self.datetime_format: str = c.get("datetime_format", "")
+        # 新字段：clock 和 date 各自独立的格式
+        self.clock_format: str = c.get("clock_format", "") or self.datetime_format
+        self.date_format: str = c.get("date_format", "") or self.datetime_format
         self.countdown_target: str = c.get("countdown_target", "")
         self.bullets: list[dict] = c.get("bullets", []) or []
 
@@ -147,17 +151,17 @@ class Screensaver:
     # ===== 文本生成 =====
 
     def _format_clock(self) -> str:
-        if self.datetime_format:
+        if self.clock_format:
             try:
-                return self._zh_strftime(self.datetime_format, datetime.now())
+                return self._zh_strftime(self.clock_format, datetime.now())
             except Exception:
                 pass
         return datetime.now().strftime("%H:%M:%S")
 
     def _format_date(self) -> str:
-        if self.datetime_format:
+        if self.date_format:
             try:
-                return self._zh_strftime(self.datetime_format, datetime.now())
+                return self._zh_strftime(self.date_format, datetime.now())
             except Exception:
                 pass
         return self._zh_strftime("%Y-%m-%d %A", datetime.now())
@@ -671,8 +675,13 @@ class Screensaver:
             kernel32 = ctypes.windll.kernel32
             HIGH_PRIORITY_CLASS = 0x80
             kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), HIGH_PRIORITY_CLASS)
+            THREAD_PRIORITY_TIME_CRITICAL = 15
             THREAD_PRIORITY_ABOVE_NORMAL = 1
-            kernel32.SetThreadPriority(kernel32.GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)
+            # 优先尝试 TIME_CRITICAL，失败回退 ABOVE_NORMAL
+            try:
+                kernel32.SetThreadPriority(kernel32.GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL)
+            except Exception:
+                kernel32.SetThreadPriority(kernel32.GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)
         except Exception:
             pass
 
@@ -683,8 +692,17 @@ class Screensaver:
         except Exception:
             pass
 
-        # 3. 准备 DwmFlush（与显示器 vsync 严格同步）
-        # 这是消除卡顿/撕裂的最关键手段：每帧调用 DwmFlush 会精确等到下次屏幕刷新
+        # 3. 注册为禁止节能/禁止暗管理（避免后台被降频）
+        try:
+            import ctypes
+            ES_CONTINUOUS = 0x80000000
+            ES_SYSTEM_REQUIRED = 0x00000001
+            ES_DISPLAY_REQUIRED = 0x00000002
+            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED)
+        except Exception:
+            pass
+
+        # 4. 准备 DwmFlush（与显示器 vsync 严格同步）
         try:
             import ctypes
             dwmapi = ctypes.windll.dwmapi
@@ -695,7 +713,7 @@ class Screensaver:
             dwm_flush = None
             use_vsync = False
 
-        # 探测显示器刷新率（一般 60/75/120/144/240Hz）
+        # 探测显示器刷新率
         try:
             screen_dc = win32gui.GetDC(0)
             try:
@@ -709,9 +727,14 @@ class Screensaver:
         target_dt = 1.0 / float(hz)
 
         last_tick = time.perf_counter()
-        # 时钟/日期/倒计时这种文本只需 200ms 检查一次是否变化（不影响其它内容刷新）
+        # clock/date/countdown 这种文本只需 200ms 检查一次是否变化
         slow_check_interval = 0.2
         last_slow_check = 0.0
+
+        ct = self.content_type
+        # 滚动/弹幕走"主循环直接绘制"快速路径
+        # static / clock / date / countdown 走传统 WM_PAINT 路径（这些场景几乎无重绘需求）
+        is_animated = ct in ("scroll", "bullet")
 
         try:
             while self.running:
@@ -721,9 +744,12 @@ class Screensaver:
                 except Exception:
                     pass
 
+                if not self.running:
+                    break
+
                 now = time.perf_counter()
                 elapsed = now - last_tick
-                # 防止 elapsed 过大（如系统休眠后唤醒）造成滚动跳跃
+                # 防止 elapsed 过大（休眠唤醒）造成滚动一次跳一大截
                 if elapsed > 0.1:
                     elapsed = target_dt
                 last_tick = now
@@ -731,26 +757,35 @@ class Screensaver:
                 # 推进位置/弹幕状态
                 self.tick(elapsed)
 
-                # clock/date/countdown 的文本只在变化时才请求重绘
-                ct = self.content_type
-                if ct in ("clock", "date", "countdown"):
+                if is_animated:
+                    # 快速路径：主循环直接画，不走 WM_PAINT 消息派发，最少开销
+                    try:
+                        screen_dc = win32gui.GetDC(self.hwnd)
+                        if screen_dc:
+                            try:
+                                self._draw_to_hdc(screen_dc)
+                            finally:
+                                win32gui.ReleaseDC(self.hwnd, screen_dc)
+                    except Exception:
+                        # 兜底走 RedrawWindow
+                        self._request_redraw()
+                else:
+                    # clock/date/countdown 文本只在内容变化时才重绘
                     if now - last_slow_check >= slow_check_interval:
                         last_slow_check = now
                         if ct == "clock":
                             cur = self._format_clock()
                         elif ct == "date":
                             cur = self._format_date()
-                        else:
+                        elif ct == "countdown":
                             cur = self._format_countdown()
+                        else:
+                            cur = ""
                         if cur != last_clock_text:
                             last_clock_text = cur
                             self._request_redraw()
-                else:
-                    # 滚动/弹幕：每帧都重绘
-                    self._request_redraw()
 
-                # 关键：等待显示器 vsync 信号，让帧间间隔与屏幕刷新对齐
-                # 这一步比 time.sleep 精确得多，是消除"卡卡"感的核心
+                # 等待显示器 vsync 信号，让帧间间隔与屏幕刷新对齐
                 if use_vsync and dwm_flush is not None:
                     try:
                         dwm_flush()
@@ -762,6 +797,12 @@ class Screensaver:
             try:
                 import ctypes
                 ctypes.windll.winmm.timeEndPeriod(1)
+            except Exception:
+                pass
+            try:
+                import ctypes
+                ES_CONTINUOUS = 0x80000000
+                ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
             except Exception:
                 pass
             self._release_gdi_resources()
