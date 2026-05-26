@@ -12,7 +12,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Optional
 
 import httpx
 
@@ -170,22 +170,29 @@ async def _call_llm(
     config: AssistantConfig,
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]] | None,
+    on_event: Optional[Callable[[str, dict], Awaitable[Any] | Any]] = None,
 ) -> dict[str, Any]:
-    """调用 LLM 接口（OpenAI 兼容协议）
+    """调用 LLM 接口（OpenAI 兼容协议，流式优先）
 
-    NVIDIA NIM 免费层 / 部分公网模型经常出现连接被对端中断（Server disconnected）、
-    瞬时 5xx、429 限流，所以这里做指数退避重试。
+    NVIDIA NIM 免费层 / 部分公网模型经常出现连接被对端中断、瞬时 5xx、429 限流，
+    这里做指数退避重试。
+
+    流式开关：
+    - 如果传入 on_event，用 stream=True 实时把 reasoning_partial / content_partial 推给前端
+    - 如果未传 on_event，用 stream=False 一次性拿响应（用于内部摘要等场景）
+    返回：与非流式相同的完整 OpenAI 响应字典
     """
     if not config.model:
         raise LLMError("模型名称不能为空")
 
     url = _normalize_api_url(config.api_url)
+    use_stream = on_event is not None
     body: dict[str, Any] = {
         "model": config.model,
         "messages": messages,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
-        "stream": False,
+        "stream": use_stream,
     }
     if tools:
         body["tools"] = tools
@@ -203,13 +210,24 @@ async def _call_llm(
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=15.0, read=180.0, write=30.0, pool=15.0),
+                timeout=httpx.Timeout(connect=15.0, read=300.0, write=30.0, pool=15.0),
                 http2=False,
             ) as client:
-                resp = await client.post(url, json=body, headers=headers)
+                if use_stream:
+                    try:
+                        return await _stream_llm_request(client, url, body, headers, on_event)
+                    except LLMError:
+                        raise
+                    except Exception as stream_err:
+                        # 流式失败（如某些代理/兼容层不支持 SSE）：自动回退到非流式
+                        print(f"[AIAssistant] 流式调用失败，回退到非流式：{stream_err}")
+                        body["stream"] = False
+                        use_stream = False
+                        resp = await client.post(url, json=body, headers=headers)
+                else:
+                    resp = await client.post(url, json=body, headers=headers)
         except httpx.TimeoutException as e:
             last_err = e
-            # 超时通常重试也没用，但 connect timeout 值得再试一次
             if attempt < MAX_ATTEMPTS and isinstance(e, (httpx.ConnectTimeout, httpx.PoolTimeout)):
                 await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
                 continue
@@ -221,7 +239,6 @@ async def _call_llm(
                 continue
             raise LLMError(f"无法连接到 LLM 服务：{e}。建议：检查代理/API 地址是否正确")
         except (httpx.RemoteProtocolError, httpx.ReadError, httpx.NetworkError) as e:
-            # 这些错误典型是 NVIDIA NIM 免费层的「Server disconnected without sending a response」
             last_err = e
             if attempt < MAX_ATTEMPTS:
                 wait = BASE_DELAY * (2 ** (attempt - 1))
@@ -233,18 +250,19 @@ async def _call_llm(
                 f"NVIDIA NIM 免费层经常这样，已自动重试 {MAX_ATTEMPTS} 次仍失败。"
                 f"建议：①重新发送 ②换稳定的模型（DeepSeek / 智谱 GLM / 通义千问） ③开启代理"
             )
+        except LLMError:
+            raise
         except Exception as e:
             last_err = e
             raise LLMError(f"LLM 请求异常：{e}")
 
-        # 状态码判断
+        # 非流式 200 响应处理
         if resp.status_code == 200:
             try:
                 return resp.json()
             except Exception as e:
                 raise LLMError(f"无法解析 LLM 响应：{e}")
 
-        # 429 限流 / 5xx 服务端错误：可重试
         if resp.status_code == 429 or 500 <= resp.status_code < 600:
             try:
                 err = resp.json()
@@ -258,7 +276,6 @@ async def _call_llm(
                 continue
             raise LLMError(f"LLM 返回 {resp.status_code}：{msg}（已重试 {MAX_ATTEMPTS} 次）")
 
-        # 4xx 客户端错误（401/403/400 等）：直接抛出不重试
         try:
             err = resp.json()
             msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else None
@@ -267,8 +284,97 @@ async def _call_llm(
             msg = resp.text
         raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
 
-    # 兜底（理论上不会走到）
     raise LLMError(f"LLM 请求失败：{last_err}")
+
+
+async def _stream_llm_request(
+    client: httpx.AsyncClient,
+    url: str,
+    body: dict[str, Any],
+    headers: dict[str, str],
+    on_event: Callable[[str, dict], Awaitable[Any] | Any],
+) -> dict[str, Any]:
+    """流式 SSE 请求处理：实时把 reasoning / content 增量推送给前端，
+    解析完成后返回与非流式相同结构的完整响应。
+
+    OpenAI 兼容协议中 stream 返回 `data: {...}\\n\\n` 形式的 SSE，每段 delta：
+      {"choices": [{"delta": {"role"?, "content"?, "reasoning_content"?, "tool_calls"?}}]}
+    最后一段是 `data: [DONE]`。
+    """
+    reasoning_buf: list[str] = []
+    content_buf: list[str] = []
+    # 工具调用按 index 累积（不同段可能继续追加同一个工具的 arguments）
+    tool_calls_acc: dict[int, dict[str, Any]] = {}
+
+    async with client.stream("POST", url, json=body, headers=headers) as resp:
+        if resp.status_code != 200:
+            try:
+                err_text = (await resp.aread()).decode("utf-8", errors="ignore")
+                err = json.loads(err_text) if err_text.startswith("{") else None
+                if err:
+                    msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else err.get("message") or err_text
+                else:
+                    msg = err_text
+            except Exception:
+                msg = f"status={resp.status_code}"
+            raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
+
+        async for line in resp.aiter_lines():
+            if not line:
+                continue
+            if line.startswith(":"):
+                continue  # SSE 注释/心跳
+            if line.startswith("data:"):
+                data_str = line[5:].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                except json.JSONDecodeError:
+                    continue
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+                delta = (choices[0] or {}).get("delta") or {}
+                # reasoning 增量
+                rc = delta.get("reasoning_content")
+                if rc:
+                    reasoning_buf.append(rc)
+                    try:
+                        await _maybe_await(on_event("reasoning_partial", {"text": rc, "full": "".join(reasoning_buf)}))
+                    except Exception:
+                        pass
+                # content 增量
+                ct = delta.get("content")
+                if ct:
+                    content_buf.append(ct)
+                    try:
+                        await _maybe_await(on_event("content_partial", {"text": ct, "full": "".join(content_buf)}))
+                    except Exception:
+                        pass
+                # tool_calls 增量（按 index 合并）
+                tcs = delta.get("tool_calls") or []
+                for tc in tcs:
+                    idx = tc.get("index", 0)
+                    bucket = tool_calls_acc.setdefault(idx, {"id": "", "type": "function", "function": {"name": "", "arguments": ""}})
+                    if tc.get("id"):
+                        bucket["id"] = tc["id"]
+                    fn = tc.get("function") or {}
+                    if fn.get("name"):
+                        bucket["function"]["name"] += fn["name"]
+                    if fn.get("arguments"):
+                        bucket["function"]["arguments"] += fn["arguments"]
+
+    # 拼回非流式格式的完整响应
+    final_msg: dict[str, Any] = {
+        "role": "assistant",
+        "content": "".join(content_buf) or None,
+    }
+    if reasoning_buf:
+        final_msg["reasoning_content"] = "".join(reasoning_buf)
+    if tool_calls_acc:
+        final_msg["tool_calls"] = [tool_calls_acc[k] for k in sorted(tool_calls_acc.keys())]
+    return {"choices": [{"index": 0, "message": final_msg, "finish_reason": "stop"}]}
 
 
 def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall], str | None]:
@@ -645,9 +751,11 @@ async def chat_once(
             for m in session.messages:
                 llm_messages.append(_convert_message_for_llm(m))
 
-            # LLM 调用与取消监听同时跑
+            # LLM 调用与取消监听同时跑（流式：传 on_event 让 reasoning/content 实时下发）
             try:
-                llm_task = asyncio.create_task(_call_llm(config=config, messages=llm_messages, tools=tools))
+                llm_task = asyncio.create_task(
+                    _call_llm(config=config, messages=llm_messages, tools=tools, on_event=on_event)
+                )
                 cancel_wait = asyncio.create_task(cancel_token.wait())
                 done, pending = await asyncio.wait(
                     {llm_task, cancel_wait}, return_when=asyncio.FIRST_COMPLETED

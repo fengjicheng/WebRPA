@@ -6,8 +6,10 @@ import {
   CheckCircle2,
   Loader2,
   ChevronRight,
+  ChevronDown,
+  Brain,
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { marked } from 'marked'
 import type { ChatMessage, ToolCall } from '@/store/aiAssistantStore'
 
@@ -288,6 +290,54 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
   )
 }
 
+// 思考过程卡片：思考中默认展开实时显示，思考结束（content 出现）自动收起
+function ReasoningCard({
+  content,
+  isThinking,
+  durationSec,
+}: {
+  content: string
+  isThinking: boolean
+  durationSec?: number
+}) {
+  // 默认值：思考中 → 展开；思考完 → 收起。用户可手动覆盖
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null)
+  const expanded = userExpanded ?? isThinking
+
+  // 思考结束的瞬间：如果用户没动过手，自动收起（已经由 default 完成）
+  // 用户主动展开/收起后保留用户选择
+  useEffect(() => {
+    if (!isThinking && userExpanded === null) {
+      // 思考刚结束，保持自动收起（即 expanded=false），啥都不做
+    }
+  }, [isThinking, userExpanded])
+
+  const headerLabel = isThinking
+    ? '思考中…'
+    : durationSec != null
+      ? `已思考 ${durationSec.toFixed(1)} 秒`
+      : '已完成思考'
+
+  return (
+    <div className="rounded-[12px] border border-[hsl(var(--brand-500)/0.18)] bg-[hsl(var(--brand-50)/0.5)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setUserExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-[12.5px] font-medium text-[hsl(var(--brand-700))] hover:bg-[hsl(var(--brand-100)/0.5)] transition-colors"
+      >
+        <Brain className={`w-3.5 h-3.5 ${isThinking ? 'animate-pulse' : ''}`} />
+        <span className="flex-1 text-left">{headerLabel}</span>
+        {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+      </button>
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 text-[12.5px] leading-relaxed text-[hsl(var(--slate-600))] whitespace-pre-wrap break-words border-t border-[hsl(var(--brand-500)/0.1)] max-h-[400px] overflow-y-auto">
+          {content || '（暂无思考内容）'}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function MessageBubble({ message }: MessageBubbleProps) {
   if (message.role === 'tool') {
     return null
@@ -311,6 +361,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
       <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
         <div className={`inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
+          {/* 思考过程（仅 assistant 且模型返回了 reasoning_content 时） */}
+          {!isUser && message.reasoning_content && (
+            <ReasoningCard
+              content={message.reasoning_content}
+              isThinking={!message.content && !(message.tool_calls && message.tool_calls.length > 0)}
+            />
+          )}
           {message.content && (
             <div
               className={

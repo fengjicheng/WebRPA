@@ -61,6 +61,8 @@ export function AIAssistantPanel() {
   // 用于打断当前任务：保留正在跑的 sessionId 和 AbortController
   const inflightSessionIdRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  // 流式生成中的临时消息 id（reasoning/content 增量累加到这条消息）
+  const streamingMsgIdRef = useRef<string | null>(null)
 
   // 立即滚到底部（不带动画，用于打开面板/切换会话场景）
   const scrollToBottomImmediate = () => {
@@ -166,6 +168,50 @@ export function AIAssistantPanel() {
       },
       onAssistantPartial: () => {
         // 中间助手回合（带 tool_calls 但没文本），后端 chat 完成后会用完整列表覆盖
+        // 流式开始新一轮：清掉之前的临时流式消息引用
+        streamingMsgIdRef.current = null
+      },
+      onReasoningPartial: (data: any) => {
+        const fullText = (data?.full as string) || ''
+        const state = useAIAssistantStore.getState()
+        const id = streamingMsgIdRef.current
+        const msgs = state.messages
+        // 查或建临时流式消息
+        if (id) {
+          const exists = msgs.find((m) => m.id === id)
+          if (exists) {
+            state.upsertMessage({ ...exists, reasoning_content: fullText })
+            return
+          }
+        }
+        const newId = `streaming-${Date.now()}`
+        streamingMsgIdRef.current = newId
+        state.appendMessage({
+          id: newId,
+          role: 'assistant',
+          content: '',
+          reasoning_content: fullText,
+        })
+      },
+      onContentPartial: (data: any) => {
+        const fullText = (data?.full as string) || ''
+        const state = useAIAssistantStore.getState()
+        const id = streamingMsgIdRef.current
+        const msgs = state.messages
+        if (id) {
+          const exists = msgs.find((m) => m.id === id)
+          if (exists) {
+            state.upsertMessage({ ...exists, content: fullText })
+            return
+          }
+        }
+        const newId = `streaming-${Date.now()}`
+        streamingMsgIdRef.current = newId
+        state.appendMessage({
+          id: newId,
+          role: 'assistant',
+          content: fullText,
+        })
       },
     })
   }, [])
@@ -238,6 +284,8 @@ export function AIAssistantPanel() {
     }
 
     setError(null)
+    // 重置流式临时消息引用 - 新一轮对话开始
+    streamingMsgIdRef.current = null
     const userMsg: ChatMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
@@ -271,6 +319,8 @@ export function AIAssistantPanel() {
       } else {
         appendMessage(res.data.message)
       }
+      // 服务端真实消息已加载，临时流式消息引用清空
+      streamingMsgIdRef.current = null
       await dispatchClientActions(full.success ? full.data?.messages || [] : [], sid)
     } catch (e: any) {
       if (ac.signal.aborted || (e && (e.name === 'AbortError' || /aborted/i.test(String(e.message))))) {

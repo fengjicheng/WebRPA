@@ -830,12 +830,16 @@ export function bindAssistantSocketEvents(handlers: {
   onToolCall?: (data: any) => void
   onToolResult?: (data: any) => void
   onAssistantPartial?: (data: any) => void
+  onReasoningPartial?: (data: any) => void
+  onContentPartial?: (data: any) => void
 }) {
   if (bound) return
   bound = true
   socketService.on('ai_assistant:tool_call', (data) => handlers.onToolCall?.(data))
   socketService.on('ai_assistant:tool_result', (data) => handlers.onToolResult?.(data))
   socketService.on('ai_assistant:assistant_partial', (data) => handlers.onAssistantPartial?.(data))
+  socketService.on('ai_assistant:reasoning_partial', (data) => handlers.onReasoningPartial?.(data))
+  socketService.on('ai_assistant:content_partial', (data) => handlers.onContentPartial?.(data))
 
   // 关键：后端发出 client_action 工具调用后会通过 socket 发请求让前端立即执行，
   // 前端必须把真实执行结果通过 ack 事件回传，否则后端会等 30s 超时
