@@ -664,11 +664,9 @@ export function AIAssistantPanel() {
       <div className="border-t border-[hsl(var(--border))] p-3 bg-[hsl(var(--slate-50))] flex-shrink-0">
         {/* 常驻使用建议提示条：只在已有消息时显示，避免和欢迎页提示卡重复 */}
         {messages.length > 0 && (
-          <div className="mb-2 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-[hsl(var(--slate-500))] px-1">
+          <div className="mb-2 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-[hsl(var(--slate-700))] px-1 font-semibold">
             <Info className="w-3 h-3 mt-[2px] flex-shrink-0 text-[hsl(var(--warning-600))]" />
-            <span>
-              小助手适合先搭框架/给建议，<strong className="text-[hsl(var(--slate-700))]">细节仍需人工完善</strong>。Selector/控件路径/手机坐标 AI 难以准确预测。
-            </span>
+            <span>请理性使用，不要完全依赖AI生成的工作流，建议人工二次完善与验证！</span>
           </div>
         )}
         <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
