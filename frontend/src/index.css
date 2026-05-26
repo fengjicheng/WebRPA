@@ -1713,12 +1713,12 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   padding-right: 1.5px;
 }
 
-/* "Web" 父容器：共享流光（与 splash 加载页一致），父级倾斜不破坏子级 background-clip:text */
+/* "Web" 父容器：共享流光（与 splash 加载页一致）。
+   注意：父容器只能用 italic 自然斜体，不能用 transform: skewX —— 后者会破坏 background-clip:text 渲染 */
 .webrpa-logo-web {
   display: inline-block;
   position: relative;
   font-style: italic;
-  transform: skewX(-6deg);
   background:
     /* 第一层：流光带（动画移动） */
     linear-gradient(100deg,
@@ -1802,10 +1802,9 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   padding: 0 1px;
   position: relative;
   z-index: 1;
-  /* RPA 字母在胶囊内单独斜体（胶囊整体不倾斜，避免变形） */
+  /* RPA 字母自然斜体（不用 skewX，避免和胶囊冲突） */
   font-style: italic;
   display: inline-block;
-  transform: skewX(-6deg);
 }
 .webrpa-logo-letter-a {
   /* 最后一个字母不再加右 padding，pill 自己留了空间 */

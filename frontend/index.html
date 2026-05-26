@@ -88,7 +88,7 @@
       }
     </style>
     <style>
-      /* ====== logo 容器与圆角矩形跑道光带 ====== */
+      /* ====== logo 容器与 SVG 圆角矩形跑道光带 ====== */
       .splash-logo-wrap {
         position: relative;
         width: 132px;
@@ -116,46 +116,27 @@
         object-fit: contain;
         filter: drop-shadow(0 1px 2px hsl(var(--splash-text) / 0.08));
       }
-
-      /* 静态轨道：让用户能看到环的完整圆角矩形外形 */
-      .splash-track-base {
+      /* SVG 圆角矩形跑道：用 stroke-dasharray 滚动一段光带沿圆角矩形跑动 */
+      .splash-track-svg {
         position: absolute;
-        inset: -8px;
-        border-radius: 32px;
-        border: 1.5px solid hsl(var(--splash-brand-500) / 0.1);
+        inset: -10px;
+        width: calc(100% + 20px);
+        height: calc(100% + 20px);
+        overflow: visible;
         pointer-events: none;
+        filter: drop-shadow(0 0 6px hsl(var(--splash-brand-500) / 0.55));
       }
-      /* 沿 logo 圆角矩形外框旋转的"跑道光带"
-         实现：在 logo 卡片外侧叠一个稍大的圆角矩形容器，
-         conic-gradient 着色 + padding+mask exclude 把内部挖空只留外框，
-         整体旋转 → 看起来就是一道光沿圆角矩形边框跑动 */
-      .splash-track {
-        position: absolute;
-        inset: -8px;
-        border-radius: 32px;
-        padding: 2.5px;
-        background:
-          conic-gradient(
-            from 0deg,
-            transparent 0deg,
-            transparent 220deg,
-            hsl(var(--splash-brand-500) / 0.0) 220deg,
-            hsl(var(--splash-brand-500) / 0.5) 280deg,
-            hsl(var(--splash-brand-500)) 340deg,
-            hsl(var(--splash-info-500)) 358deg,
-            transparent 360deg
-          );
-        -webkit-mask:
-          linear-gradient(#000 0 0) content-box,
-          linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-                mask:
-          linear-gradient(#000 0 0) content-box,
-          linear-gradient(#000 0 0);
-                mask-composite: exclude;
-        animation: splash-ring-spin 1.6s linear infinite;
-        filter: drop-shadow(0 0 10px hsl(var(--splash-brand-500) / 0.5));
-        pointer-events: none;
+      .splash-track-svg .splash-track-base {
+        fill: none;
+        stroke: hsl(var(--splash-brand-500) / 0.12);
+        stroke-width: 1.5;
+      }
+      .splash-track-svg .splash-track-glow {
+        fill: none;
+        stroke: url(#splashTrackGradient);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        animation: splash-track-flow 1.8s linear infinite;
       }
     </style>
     <style>
@@ -180,12 +161,11 @@
         position: relative;
       }
       /* 把 Web 三个字母装进一个共同容器，让流光作为整体扫过整个 Web，光带连贯不"在字母间重启"
-         注意：skewX 必须放在父容器上，因为子元素 transform 会破坏 background-clip:text 的渲染上下文 */
+         注意：父容器只能用 italic 自然斜体，不能用 transform: skewX —— 后者会破坏 background-clip:text 的渲染上下文 */
       .splash-title-web {
         display: inline-block;
         position: relative;
         font-style: italic;
-        transform: skewX(-6deg);
         background:
           /* 第一层：流光带（动画移动） */
           linear-gradient(100deg,
@@ -210,7 +190,7 @@
         text-shadow: 0 1px 0 hsl(var(--splash-brand-500) / 0.04);
         animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
-      /* 子字母只占位，无 padding、无独立 transform，避免破坏 clip-text 渲染 */
+      /* 子字母只占位 */
       .splash-title-letter-w,
       .splash-title-letter-e,
       .splash-title-letter-b {
@@ -268,7 +248,6 @@
         z-index: 1;
         font-style: italic;
         display: inline-block;
-        transform: skewX(-6deg);
       }
       .splash-title-letter-a {
         padding-right: 0;
@@ -379,6 +358,13 @@
       @keyframes splash-ring-spin {
         to { transform: rotate(360deg); }
       }
+      /* SVG 路径光带流动：dashoffset 从 0 减到一个完整圆周长度 = 走完一圈
+         圆角矩形 (140×140 圆角 28) 周长 ≈ 2*(140+140) - 8*28 + 2*PI*28 ≈ 512
+         这里用 480 是经验值（视觉感觉刚好走一圈无缝衔接） */
+      @keyframes splash-track-flow {
+        from { stroke-dashoffset: 0; }
+        to   { stroke-dashoffset: -480; }
+      }
       @keyframes splash-dot {
         0%, 60%, 100% { opacity: 0.25; transform: scale(0.75); }
         30%           { opacity: 1;    transform: scale(1.15); }
@@ -411,10 +397,26 @@
   <body>
     <!-- 首屏加载动画：与 WebRPA 编辑器主题与艺术字 LOGO 完全一致 -->
     <div id="webrpa-splash" role="status" aria-label="WebRPA 加载中">
-      <!-- logo 卡片 + 圆角矩形跑道光带 -->
+      <!-- logo 卡片 + SVG 圆角矩形跑道光带 -->
       <div class="splash-logo-wrap">
-        <div class="splash-track-base"></div>
-        <div class="splash-track"></div>
+        <svg class="splash-track-svg" viewBox="0 0 152 152" aria-hidden="true">
+          <defs>
+            <linearGradient id="splashTrackGradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="hsl(217, 91%, 55%)" stop-opacity="0" />
+              <stop offset="50%" stop-color="hsl(217, 91%, 55%)" stop-opacity="1" />
+              <stop offset="100%" stop-color="hsl(199, 89%, 48%)" stop-opacity="1" />
+            </linearGradient>
+          </defs>
+          <!-- 静态轨道（淡蓝色细圆角矩形） -->
+          <rect class="splash-track-base"
+                x="6" y="6" width="140" height="140"
+                rx="28" ry="28" />
+          <!-- 流动的光带：用 dasharray 切出一段约 130 的光，剩下都是空，dashoffset 滚动让光环移动 -->
+          <rect class="splash-track-glow"
+                x="6" y="6" width="140" height="140"
+                rx="28" ry="28"
+                stroke-dasharray="130 350" />
+        </svg>
         <div class="splash-logo-card">
           <img src="/logo.png" alt="" />
         </div>
