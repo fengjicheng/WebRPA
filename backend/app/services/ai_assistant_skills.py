@@ -3583,6 +3583,8 @@ def _register_all() -> None:
             "- clear_selection: 取消所有节点选中\n"
             "- fit_view: 自动缩放画布让所有节点可见\n"
             "- run_single_node: 单独运行某节点（仅支持调试场景）（payload.node_id）\n"
+            "- replace_module_type: 替换节点的 module_type 但保留位置和连线（修复用错模块时用）（payload.node_id, payload.new_type）\n"
+            "- duplicate_node: 复制单个节点并偏移定位（payload.node_id）\n"
             "- undo / redo: 撤销 / 重做\n\n"
             "【变量】\n"
             "- add_variable: 新增变量（payload.name, payload.value, payload.type, payload.scope）\n"
