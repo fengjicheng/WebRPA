@@ -2528,7 +2528,11 @@ def _register_all() -> None:
     ))
     registry.register(Skill(
         name="get_recent_logs",
-        description="获取最近的工作流执行结果摘要",
+        description=(
+            "【仅返回执行结果汇总】返回最近一次工作流的执行汇总（状态、执行节点数、失败数、错误信息）。"
+            "**这个工具拿不到用户在底栏日志面板看到的逐条日志条目（[INFO] xxx / [ERROR] xxx 这种）**。"
+            "想拿底栏完整日志（用户实际能看到的内容、打印日志模块的输出、节点执行时间等）必须用 client_action(action='get_logs')。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -3111,7 +3115,7 @@ def _register_all() -> None:
             "- export_workflow: 导出工作流（payload.format='json'|'playwright'|'markdown'）\n"
             "- rename_workflow: 重命名当前工作流（payload.name）\n"
             "- get_workflow_detail: 拿到当前画布的完整 nodes/edges/variables（节点配置详情）\n"
-            "- get_logs: 获取最近日志（payload.limit, 默认 100）\n"
+            "- get_logs: 【强烈推荐】拿到底栏日志面板用户实际看到的所有日志条目（含 level/message/time/nodeId/duration），payload.limit 默认 100。这是查日志详情/调试问题的首选工具，比后端 get_recent_logs 信息丰富得多\n"
             "- get_collected_data: 获取当前数据表格内容\n\n"
             "【节点】\n"
             "- add_nodes: 把节点加入画布（payload.nodes, payload.edges）\n"

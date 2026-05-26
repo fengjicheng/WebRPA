@@ -710,6 +710,13 @@ def build_system_prompt(
   AI 给节点起业务名时**必须用 name 字段**，不能用 label。
 - 给 build_workflow / build_node / add_nodes 传节点数据时，请只传 module_type + name + config，
   不要主动写 label。如果非要写，前端也会自动忽略并按 module_type 还原成官方名。
+
+【关键】查日志时用对工具：
+- 当用户问"日志里写了什么 / 帮我看看刚才执行的日志 / 出错在哪一步"时，**必须用** `client_action(action='get_logs')`
+  来获取底栏日志面板用户真实看到的逐条日志（含 level/message/time/nodeId/duration），
+  这才是用户实际能看到的内容。
+- `get_recent_logs` 工具只返回执行汇总（节点数/失败数等），**拿不到用户看到的逐条日志**，
+  不要用它代替 `client_action(get_logs)`。
 """)
 
     parts.append("\n# 关于 WebRPA\n")
