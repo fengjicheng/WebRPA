@@ -408,7 +408,7 @@ def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]
 
 # ---------- 主对话循环 ----------
 
-MAX_TOOL_ROUNDS = 20  # 单次用户消息最多轮工具调用（原 8 轮太紧，复杂排错/搭建容易踩到上限就被停）
+MAX_TOOL_ROUNDS = 100  # 单次用户消息最多轮工具调用（足够复杂任务连续搭建+自检+排错）
 
 # 上下文压缩阈值：消息总条数超过此值时，自动总结早期消息
 CONTEXT_COMPRESSION_THRESHOLD = 50
