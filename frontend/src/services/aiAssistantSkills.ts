@@ -9,7 +9,7 @@
  */
 import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
-import { localWorkflowApi, workflowApi, screensaverApi } from '@/services/api'
+import { localWorkflowApi, workflowApi, screensaverApi, dataAssetApi, imageAssetApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 
 /**
@@ -564,6 +564,206 @@ export async function executeClientAction(
           success: true,
           data: s.collectedData,
         }
+      }
+
+      // ============================================================
+      // 数据表格底栏 - 行/列/单元格细粒度操作
+      // ============================================================
+      case 'add_data_row': {
+        // 添加一行：payload.row 是 {col1: val1, col2: val2, ...} 字典；不传则添加空行
+        const row = (payload.row as Record<string, unknown>) || {}
+        const s = useWorkflowStore.getState()
+        // 没传完整列时，用现有数据的列名补齐空字符串
+        if (s.collectedData.length > 0) {
+          const cols = Object.keys(s.collectedData[0])
+          for (const c of cols) if (!(c in row)) row[c] = ''
+        }
+        s.addDataRow(row as any)
+        return { success: true, message: '已添加一行', data: { rowCount: s.collectedData.length + 1 } }
+      }
+
+      case 'add_data_column': {
+        // 添加一列：payload.column='列名', payload.default=默认值（可选，默认空字符串）
+        const column = payload.column as string
+        const defaultValue = payload.default ?? ''
+        if (!column) return { success: false, error: '缺少 column' }
+        const s = useWorkflowStore.getState()
+        const newData = s.collectedData.map((r) => ({ ...r, [column]: (r as any)[column] ?? defaultValue }))
+        s.setCollectedData(newData as any)
+        return { success: true, message: `已添加列「${column}」` }
+      }
+
+      case 'delete_data_row': {
+        const index = Number(payload.index)
+        if (!Number.isFinite(index) || index < 0) return { success: false, error: 'index 必须是非负整数' }
+        useWorkflowStore.getState().deleteDataRow(index)
+        return { success: true, message: `已删除第 ${index + 1} 行` }
+      }
+
+      case 'delete_data_column': {
+        const column = payload.column as string
+        if (!column) return { success: false, error: '缺少 column' }
+        const s = useWorkflowStore.getState()
+        const newData = s.collectedData.map((r) => {
+          const copy = { ...r }
+          delete (copy as any)[column]
+          return copy
+        })
+        s.setCollectedData(newData as any)
+        return { success: true, message: `已删除列「${column}」` }
+      }
+
+      case 'set_data_cell': {
+        // payload.row_index, payload.column, payload.value
+        const rowIndex = Number(payload.row_index)
+        const column = payload.column as string
+        if (!Number.isFinite(rowIndex) || !column) return { success: false, error: '缺少 row_index 或 column' }
+        const s = useWorkflowStore.getState()
+        if (rowIndex < 0 || rowIndex >= s.collectedData.length) {
+          return { success: false, error: `row_index 越界（0..${s.collectedData.length - 1}）` }
+        }
+        const newRow = { ...s.collectedData[rowIndex], [column]: payload.value }
+        s.updateDataRow(rowIndex, newRow as any)
+        return { success: true, message: `已更新单元格 [${rowIndex}][${column}]` }
+      }
+
+      // ============================================================
+      // Excel 资源底栏（数据资产）
+      // ============================================================
+      case 'list_data_assets': {
+        try {
+          const res = await dataAssetApi.list()
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'delete_data_asset': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          await dataAssetApi.delete(id)
+          // 同步前端 store
+          useWorkflowStore.getState().deleteDataAsset(id)
+          return { success: true, message: `已删除 Excel 资源 ${id}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'rename_data_asset': {
+        const id = payload.id as string
+        const newName = payload.new_name as string
+        if (!id || !newName) return { success: false, error: '缺少 id 或 new_name' }
+        try {
+          await dataAssetApi.rename(id, newName)
+          return { success: true, message: `已重命名 Excel 资源 ${id} → ${newName}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'preview_data_asset': {
+        // payload.id, payload.sheet?, payload.max_rows?, payload.max_cols?
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          const sheet = payload.sheet as string | undefined
+          const res = await dataAssetApi.preview(
+            id,
+            sheet,
+            Number(payload.max_rows) || undefined,
+            Number(payload.max_cols) || undefined
+          )
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_data_asset_sheets': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          const res = await dataAssetApi.getSheets(id)
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      // ============================================================
+      // 图像资源底栏
+      // ============================================================
+      case 'list_image_assets': {
+        try {
+          const res = await imageAssetApi.list()
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'delete_image_asset': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          await imageAssetApi.delete(id)
+          useWorkflowStore.getState().deleteImageAsset(id)
+          return { success: true, message: `已删除图像资源 ${id}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'rename_image_asset': {
+        const id = payload.id as string
+        const newName = payload.new_name as string
+        if (!id || !newName) return { success: false, error: '缺少 id 或 new_name' }
+        try {
+          await imageAssetApi.rename(id, newName)
+          return { success: true, message: `已重命名图像资源 ${id} → ${newName}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      // ============================================================
+      // 全局变量底栏 - 批量/汇总操作
+      // ============================================================
+      case 'clear_variables': {
+        const s = useWorkflowStore.getState()
+        const names = s.variables.map((v) => v.name)
+        for (const n of names) s.deleteVariable(n)
+        return { success: true, message: `已清空 ${names.length} 个变量` }
+      }
+
+      case 'get_variable': {
+        const name = payload.name as string
+        if (!name) return { success: false, error: '缺少 name' }
+        const v = useWorkflowStore.getState().variables.find((x) => x.name === name)
+        if (!v) return { success: false, error: `变量 ${name} 不存在` }
+        return { success: true, data: v }
+      }
+
+      case 'change_variable_type': {
+        // payload.name, payload.type='string'|'number'|'boolean'|'array'|'object', payload.value?
+        const name = payload.name as string
+        const newType = payload.type as string
+        if (!name || !newType) return { success: false, error: '缺少 name 或 type' }
+        const s = useWorkflowStore.getState()
+        const v = s.variables.find((x) => x.name === name)
+        if (!v) return { success: false, error: `变量 ${name} 不存在` }
+        // 删除旧的，加入新的（同名）
+        s.deleteVariable(name)
+        s.addVariable({
+          name,
+          value: payload.value ?? v.value,
+          type: newType as any,
+          scope: v.scope,
+        })
+        return { success: true, message: `已修改变量 ${name} 的类型为 ${newType}` }
       }
 
       // ============================================================
