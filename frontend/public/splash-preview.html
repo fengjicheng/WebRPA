@@ -96,8 +96,8 @@
         justify-content: center;
       }
       .splash-logo-card img {
-        width: 78px;
-        height: 78px;
+        width: 100px;
+        height: 100px;
         object-fit: contain;
         filter: drop-shadow(0 1px 2px hsl(var(--splash-text) / 0.08));
       }
@@ -136,17 +136,19 @@
         letter-spacing: 0.01em;
         margin: 0;
         z-index: 1;
-        padding: 6px 8px 6px 4px;
+        padding: 6px 22px 6px 4px;
         animation: splash-fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms backwards;
       }
       .splash-title-letter {
         display: inline-block;
         position: relative;
-      }
-      .splash-title-web {
-        display: inline-block;
-        position: relative;
         font-style: italic;
+        transform: skewX(-6deg);
+        padding-right: 2px;
+      }
+      .splash-title-letter-w,
+      .splash-title-letter-e,
+      .splash-title-letter-b {
         background:
           linear-gradient(100deg,
             hsl(0 0% 100% / 0) 40%,
@@ -167,13 +169,12 @@
         -webkit-text-fill-color: transparent;
         color: transparent;
         text-shadow: 0 1px 0 hsl(var(--splash-brand-500) / 0.04);
-        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        padding: 0 2px;
+        animation: splash-letter-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
-      .splash-title-letter-w,
-      .splash-title-letter-e,
-      .splash-title-letter-b {
-        padding: 0;
-      }
+      .splash-title-letter-e { animation-delay: 0.06s; }
+      .splash-title-letter-b { animation-delay: 0.12s; }
+
       .splash-title-pill {
         display: inline-flex;
         align-items: center;
@@ -200,8 +201,8 @@
           0 -1px 0 hsl(var(--splash-brand-700) / 0.4) inset;
         position: relative;
         overflow: hidden;
-        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-        animation-delay: 0s;
+        animation: splash-letter-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation-delay: 0.18s;
       }
       .splash-title-pill::before {
         content: '';
@@ -216,11 +217,9 @@
       .splash-title-letter-a {
         color: #fff;
         text-shadow: 0 1px 1.5px hsl(var(--splash-brand-900) / 0.35);
-        padding: 0;
+        padding: 0 2px;
         position: relative;
         z-index: 1;
-        font-style: italic;
-        display: inline-block;
       }
       .splash-title-letter-a {
         padding-right: 0;
@@ -357,7 +356,7 @@
         0%   { transform: translateX(-100%); }
         100% { transform: translateX(350%); }
       }
-      @keyframes splash-shine {
+      @keyframes splash-letter-shine {
         0%        { background-position: 200% 0, 0 0; }
         50%, 100% { background-position: -200% 0, 0 0; }
       }
@@ -398,11 +397,9 @@
       </div>
 
       <div class="splash-title" aria-label="WebRPA">
-        <span class="splash-title-web">
-          <span class="splash-title-letter splash-title-letter-w">W</span>
-          <span class="splash-title-letter splash-title-letter-e">e</span>
-          <span class="splash-title-letter splash-title-letter-b">b</span>
-        </span>
+        <span class="splash-title-letter splash-title-letter-w">W</span>
+        <span class="splash-title-letter splash-title-letter-e">e</span>
+        <span class="splash-title-letter splash-title-letter-b">b</span>
         <span class="splash-title-pill">
           <span class="splash-title-letter splash-title-letter-r">R</span>
           <span class="splash-title-letter splash-title-letter-p">P</span>

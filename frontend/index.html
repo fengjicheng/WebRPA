@@ -111,8 +111,8 @@
         justify-content: center;
       }
       .splash-logo-card img {
-        width: 78px;
-        height: 78px;
+        width: 100px;
+        height: 100px;
         object-fit: contain;
         filter: drop-shadow(0 1px 2px hsl(var(--splash-text) / 0.08));
       }
@@ -140,7 +140,7 @@
       }
     </style>
     <style>
-      /* ====== 标题：完全复刻编辑器顶栏艺术字 LOGO ====== */
+      /* ====== 标题：与编辑器顶栏 LOGO 同款实现 —— 每个字母独立 italic+skewX，矩形流光层 ====== */
       .splash-title {
         position: relative;
         display: inline-flex;
@@ -153,27 +153,28 @@
         letter-spacing: 0.01em;
         margin: 0;
         z-index: 1;
-        padding: 6px 8px 6px 4px;
+        padding: 6px 22px 6px 4px;
         animation: splash-fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms backwards;
       }
       .splash-title-letter {
         display: inline-block;
         position: relative;
-      }
-      /* 把 Web 三个字母装进一个共同容器，让流光作为整体扫过整个 Web，光带连贯不"在字母间重启"
-         注意：父容器只能用 italic 自然斜体，不能用 transform: skewX —— 后者会破坏 background-clip:text 的渲染上下文 */
-      .splash-title-web {
-        display: inline-block;
-        position: relative;
         font-style: italic;
+        transform: skewX(-6deg);
+        padding-right: 2px;
+      }
+      /* "Web" 三个字母：渐变文字 + 流光直接做在字符 background 上（clip-text 后只在字形内显示，完全贴合） */
+      .splash-title-letter-w,
+      .splash-title-letter-e,
+      .splash-title-letter-b {
         background:
-          /* 第一层：流光带（动画移动） */
+          /* 第一层：流光带 */
           linear-gradient(100deg,
             hsl(0 0% 100% / 0) 40%,
             hsl(0 0% 100% / 0.95) 50%,
             hsl(0 0% 100% / 0) 60%
           ),
-          /* 第二层：基础蓝渐变 */
+          /* 第二层：蓝色基础渐变 */
           linear-gradient(135deg,
             hsl(var(--splash-brand-700)) 0%,
             hsl(var(--splash-brand-500)) 35%,
@@ -188,16 +189,14 @@
         -webkit-text-fill-color: transparent;
         color: transparent;
         text-shadow: 0 1px 0 hsl(var(--splash-brand-500) / 0.04);
-        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        padding: 0 2px;
+        animation: splash-letter-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
-      /* 子字母只占位 */
-      .splash-title-letter-w,
-      .splash-title-letter-e,
-      .splash-title-letter-b {
-        padding: 0;
-      }
+      /* 三字母错开延迟，光像水波依次扫过 W → e → b */
+      .splash-title-letter-e { animation-delay: 0.06s; }
+      .splash-title-letter-b { animation-delay: 0.12s; }
 
-      /* "RPA" 胶囊 - 流光做在 background 上，与 Web 容器共享 keyframes，用 animation-delay 接力 */
+      /* "RPA" 胶囊 - 流光做在自身 background 上，靠胶囊圆角 + overflow:hidden 自然裁剪 */
       .splash-title-pill {
         display: inline-flex;
         align-items: center;
@@ -205,7 +204,7 @@
         padding: 6px 18px 6px 14px;
         border-radius: 14px;
         background:
-          /* 第一层：流光带（与 Web 容器一致） */
+          /* 第一层：流光带 */
           linear-gradient(100deg,
             hsl(0 0% 100% / 0) 40%,
             hsl(0 0% 100% / 0.55) 50%,
@@ -226,9 +225,8 @@
           0 -1px 0 hsl(var(--splash-brand-700) / 0.4) inset;
         position: relative;
         overflow: hidden;
-        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-        /* 与 Web 容器完全同步：同一个延迟、同一个时长、同一个方向 */
-        animation-delay: 0s;
+        animation: splash-letter-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation-delay: 0.18s;
       }
       .splash-title-pill::before {
         content: '';
@@ -243,11 +241,9 @@
       .splash-title-letter-a {
         color: #fff;
         text-shadow: 0 1px 1.5px hsl(var(--splash-brand-900) / 0.35);
-        padding: 0;
+        padding: 0 2px;
         position: relative;
         z-index: 1;
-        font-style: italic;
-        display: inline-block;
       }
       .splash-title-letter-a {
         padding-right: 0;
@@ -380,7 +376,7 @@
          -200% → 光带在容器左外，字形里又看不到光了
          为什么是从 200%→-200% 而不是反过来？因为 100deg 的渐变本身是右上→左下方向，
          所以背景从右往左移看起来才是"从左→右扫过字形"（视觉方向） */
-      @keyframes splash-shine {
+      @keyframes splash-letter-shine {
         0%        { background-position: 200% 0, 0 0; }
         50%, 100% { background-position: -200% 0, 0 0; }
       }
@@ -424,11 +420,9 @@
 
       <!-- 标题：编辑器同款艺术字 -->
       <div class="splash-title" aria-label="WebRPA">
-        <span class="splash-title-web">
-          <span class="splash-title-letter splash-title-letter-w">W</span>
-          <span class="splash-title-letter splash-title-letter-e">e</span>
-          <span class="splash-title-letter splash-title-letter-b">b</span>
-        </span>
+        <span class="splash-title-letter splash-title-letter-w">W</span>
+        <span class="splash-title-letter splash-title-letter-e">e</span>
+        <span class="splash-title-letter splash-title-letter-b">b</span>
         <span class="splash-title-pill">
           <span class="splash-title-letter splash-title-letter-r">R</span>
           <span class="splash-title-letter splash-title-letter-p">P</span>
