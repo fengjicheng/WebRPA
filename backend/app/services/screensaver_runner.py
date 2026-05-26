@@ -148,6 +148,20 @@ class Screensaver:
         self._cached_close_font = None  # 关闭提示小字体
         self._bullet_font_cache: dict = {}  # (size, bold, italic) -> hfont
 
+        # ===== 滚动条带预渲染缓存（核心丝滑技术）=====
+        # 把整段文本预先画到一个比屏幕大很多的"条带位图"上，
+        # 每帧只做 1 次 BitBlt(取条带的一段贴屏幕)。
+        # 这是 8/16 位时代游戏平滑滚动的经典做法，CPU 几乎不消耗。
+        self._strip_dc = None        # 条带的内存 DC
+        self._strip_bmp = None       # 条带位图
+        self._strip_old_bmp = None
+        self._strip_w = 0            # 条带宽度
+        self._strip_h = 0            # 条带高度（水平滚动时 = 屏高，垂直滚动时 = 屏宽）
+        self._strip_text_w = 0       # 条带中文本本身宽度
+        self._strip_text_h = 0       # 文本高度
+        self._strip_initialized = False
+        self._strip_text_cache = ""  # 上次渲染时的文本，变了要重建
+
     # ===== 文本生成 =====
 
     def _format_clock(self) -> str:
@@ -297,6 +311,8 @@ class Screensaver:
                 except Exception:
                     pass
             self._bullet_font_cache.clear()
+            # 释放滚动条带
+            self._release_strip()
         except Exception:
             pass
         self._mem_dc = None
@@ -305,6 +321,107 @@ class Screensaver:
         self._cached_font = None
         self._cached_bg_brush = None
         self._cached_close_font = None
+
+    def _release_strip(self):
+        try:
+            if self._strip_dc and self._strip_old_bmp:
+                win32gui.SelectObject(self._strip_dc, self._strip_old_bmp)
+            if self._strip_bmp:
+                win32gui.DeleteObject(self._strip_bmp)
+            if self._strip_dc:
+                win32gui.DeleteDC(self._strip_dc)
+        except Exception:
+            pass
+        self._strip_dc = None
+        self._strip_bmp = None
+        self._strip_old_bmp = None
+        self._strip_initialized = False
+
+    def _build_scroll_strip(self):
+        """预渲染滚动条带：把一份完整文本（带描边）画到一个超长位图上，
+        水平滚动时条带宽 = 屏幕宽 + 文本宽（前后各留一个屏，循环滚出/滚入）；
+        垂直滚动时条带高 = 屏幕高 + 文本高。
+        每帧只 BitBlt 一次屏幕区域过去 → 超丝滑。"""
+        # 释放旧条带（文本变化时用）
+        self._release_strip()
+
+        text = self._current_text() or "WebRPA"
+        self._strip_text_cache = text
+
+        # 用一个临时 DC 测算文本尺寸（必须先 SelectObject 字体）
+        screen_dc = win32gui.GetDC(self.hwnd)
+        try:
+            tmp_dc = win32gui.CreateCompatibleDC(screen_dc)
+            old_font = win32gui.SelectObject(tmp_dc, self._cached_font)
+            try:
+                tw, th = win32gui.GetTextExtentPoint32(tmp_dc, text)
+            except Exception:
+                tw, th = self.font_size * len(text), self.font_size
+            win32gui.SelectObject(tmp_dc, old_font)
+            win32gui.DeleteDC(tmp_dc)
+        finally:
+            win32gui.ReleaseDC(self.hwnd, screen_dc)
+
+        self._strip_text_w = tw
+        self._strip_text_h = th
+
+        is_horizontal = self.scroll_direction in ("left", "right")
+        if is_horizontal:
+            # 文本前后各留一个屏宽 → 循环时无缝衔接
+            self._strip_w = self.sw + tw + self.sw  # 屏 + 文本 + 屏
+            self._strip_h = self.sh
+            text_x = self.sw  # 文本起点：第一个屏宽之后
+            text_y = (self.sh - th) // 2
+        else:
+            self._strip_w = self.sw
+            self._strip_h = self.sh + th + self.sh
+            text_x = (self.sw - tw) // 2
+            text_y = self.sh
+
+        # 创建条带 DC + 位图（与屏幕兼容，可走 GPU 加速）
+        screen_dc = win32gui.GetDC(self.hwnd)
+        try:
+            self._strip_dc = win32gui.CreateCompatibleDC(screen_dc)
+            self._strip_bmp = win32gui.CreateCompatibleBitmap(screen_dc, self._strip_w, self._strip_h)
+        finally:
+            win32gui.ReleaseDC(self.hwnd, screen_dc)
+        self._strip_old_bmp = win32gui.SelectObject(self._strip_dc, self._strip_bmp)
+
+        # 填背景
+        win32gui.FillRect(self._strip_dc, (0, 0, self._strip_w, self._strip_h), self._cached_bg_brush)
+
+        # 绘制文本（带描边）
+        win32gui.SetBkMode(self._strip_dc, win32con.TRANSPARENT)
+        old_font = win32gui.SelectObject(self._strip_dc, self._cached_font)
+
+        if self.outline_color and self.outline_width > 0:
+            try:
+                outline_rgb = hex_to_rgb(self.outline_color)
+                ow = max(1, min(6, self.outline_width))
+                win32gui.SetTextColor(self._strip_dc, rgb_to_colorref(outline_rgb))
+                for dx in range(-ow, ow + 1):
+                    for dy in range(-ow, ow + 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        win32gui.ExtTextOut(self._strip_dc, text_x + dx, text_y + dy, 0, None, text)
+            except Exception:
+                pass
+
+        win32gui.SetTextColor(self._strip_dc, rgb_to_colorref(self.color))
+        win32gui.ExtTextOut(self._strip_dc, text_x, text_y, 0, None, text)
+        win32gui.SelectObject(self._strip_dc, old_font)
+
+        self._strip_initialized = True
+        # 滚动起始位置：文本完整出现在屏幕上还差一个屏宽 / 高
+        if self.scroll_direction == "left":
+            self._scroll_x = float(self.sw)  # 从第二屏（文本起点）开始往左
+        elif self.scroll_direction == "right":
+            self._scroll_x = float(-tw)  # 从屏左外开始
+        elif self.scroll_direction == "up":
+            self._scroll_y = float(self.sh)
+        else:  # down
+            self._scroll_y = float(-th)
+        self._inited_pos = True
 
     def _get_bullet_font(self, size: int, bold: bool, italic: bool):
         key = (size, bold, italic)
@@ -451,6 +568,48 @@ class Screensaver:
 
         # 3. 一次 BitBlt 到屏幕（GPU 友好的整帧拷贝）
         win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, mem_dc, 0, 0, win32con.SRCCOPY)
+
+    def _draw_scroll_strip(self, hdc):
+        """超快速滚动路径：直接从预渲染条带 BitBlt 一段到屏幕。
+        每帧只 1~2 次 BitBlt，无填背景、无字体绘制、无 mem_dc 中转。
+        这是丝滑的核心 - CPU 几乎闲置，全靠 GPU/DMA 拷贝。"""
+        if not self._strip_initialized or self._strip_text_cache != self._current_text():
+            # 文本变了或首次：重建条带
+            self._build_scroll_strip()
+        if not self._strip_initialized:
+            return  # 创建失败，兜底跳过
+
+        sd = self.scroll_direction
+        if sd in ("left", "right"):
+            # _scroll_x 是文本块在屏幕坐标系中的 X 位置（屏内可见时 0~sw）
+            # 条带中文本起点固定在 strip 的 sw 位置，所以从条带的 (sw - scroll_x) 处开始截取屏宽
+            # 但因为 _scroll_x 在 [-text_w, sw] 区间循环，需要处理边界
+            sx = int(round(self.sw - self._scroll_x))
+            # 处理负值或超出条带宽度
+            sx = sx % (self.sw + self._strip_text_w)
+            # 屏幕需要 sw 像素宽，从条带 sx 开始
+            # 如果末端不够 sw，需要拼接一段从 0 开始
+            if sx + self.sw <= self._strip_w:
+                win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, self._strip_dc, sx, 0, win32con.SRCCOPY)
+            else:
+                # 跨越边界（理论上 strip 宽度已足够，这种情况罕见）
+                first = self._strip_w - sx
+                win32gui.BitBlt(hdc, 0, 0, first, self.sh, self._strip_dc, sx, 0, win32con.SRCCOPY)
+                win32gui.BitBlt(hdc, first, 0, self.sw - first, self.sh, self._strip_dc, 0, 0, win32con.SRCCOPY)
+        else:
+            # 垂直滚动
+            sy = int(round(self.sh - self._scroll_y))
+            sy = sy % (self.sh + self._strip_text_h)
+            if sy + self.sh <= self._strip_h:
+                win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, self._strip_dc, 0, sy, win32con.SRCCOPY)
+            else:
+                first = self._strip_h - sy
+                win32gui.BitBlt(hdc, 0, 0, self.sw, first, self._strip_dc, 0, sy, win32con.SRCCOPY)
+                win32gui.BitBlt(hdc, 0, first, self.sw, self.sh - first, self._strip_dc, 0, 0, win32con.SRCCOPY)
+
+        # 关闭提示叠加（频次低，不影响性能）
+        if self.show_close_hint:
+            self._draw_close_hint(hdc)
 
     def _draw_main_text(self, hdc, text: str, ct: str):
         # 竖排：每个字符占一行，逐字符向下绘制
@@ -611,34 +770,42 @@ class Screensaver:
             if not self._inited_pos:
                 return  # 等首次绘制后再启动滚动
             delta = self.scroll_speed * dt
+            # 条带循环周期 = 屏幕宽 + 文本宽（水平）/ 屏幕高 + 文本高（垂直）
             if self.scroll_direction == "left":
                 self._scroll_x -= delta
-                if self._scroll_x + self._text_width < 0:
-                    if self.scroll_loop:
-                        self._scroll_x = float(self.sw + 20)
-                    else:
-                        self.exit()
-                        return
+                period = self.sw + self._strip_text_w
+                if self.scroll_loop:
+                    if self._scroll_x <= -self._strip_text_w:
+                        self._scroll_x += period
+                else:
+                    if self._scroll_x + self._strip_text_w < 0:
+                        self.exit(); return
             elif self.scroll_direction == "right":
                 self._scroll_x += delta
-                if self._scroll_x > self.sw:
-                    if self.scroll_loop:
-                        self._scroll_x = float(-self._text_width - 20)
-                    else:
+                period = self.sw + self._strip_text_w
+                if self.scroll_loop:
+                    if self._scroll_x >= self.sw:
+                        self._scroll_x -= period
+                else:
+                    if self._scroll_x > self.sw:
                         self.exit(); return
             elif self.scroll_direction == "up":
                 self._scroll_y -= delta
-                if self._scroll_y + self._text_height < 0:
-                    if self.scroll_loop:
-                        self._scroll_y = float(self.sh + 20)
-                    else:
+                period = self.sh + self._strip_text_h
+                if self.scroll_loop:
+                    if self._scroll_y <= -self._strip_text_h:
+                        self._scroll_y += period
+                else:
+                    if self._scroll_y + self._strip_text_h < 0:
                         self.exit(); return
             else:  # down
                 self._scroll_y += delta
-                if self._scroll_y > self.sh:
-                    if self.scroll_loop:
-                        self._scroll_y = float(-self._text_height - 20)
-                    else:
+                period = self.sh + self._strip_text_h
+                if self.scroll_loop:
+                    if self._scroll_y >= self.sh:
+                        self._scroll_y -= period
+                else:
+                    if self._scroll_y > self.sh:
                         self.exit(); return
         elif self.content_type == "bullet":
             for b in self._bullet_states:
@@ -736,6 +903,15 @@ class Screensaver:
         # static / clock / date / countdown 走传统 WM_PAINT 路径（这些场景几乎无重绘需求）
         is_animated = ct in ("scroll", "bullet")
 
+        # === 固定步长累加器（让滚动速度严格按"像素/秒"推进，不被帧抖动影响）===
+        # 思路：物理推进步长固定为 target_dt（如 1/60s），主循环把真实经过秒数累加，
+        # 然后按固定步长循环 tick 多次。这样一帧卡了 50ms 也不会让滚动一次跳 12 像素，
+        # 而是匀速分散到接下来几帧上 → 视觉上完全感知不到。
+        physics_dt = target_dt  # 物理步长 = 一个屏幕刷新周期
+        accumulator = 0.0
+        # 防止系统卡严重时累加器爆炸（例如挂起 30s）
+        max_accumulator = 0.25
+
         try:
             while self.running:
                 # 处理消息（不阻塞）
@@ -749,13 +925,23 @@ class Screensaver:
 
                 now = time.perf_counter()
                 elapsed = now - last_tick
-                # 防止 elapsed 过大（休眠唤醒）造成滚动一次跳一大截
-                if elapsed > 0.1:
-                    elapsed = target_dt
+                # 防止 elapsed 过大（休眠唤醒）造成累加器爆炸
+                if elapsed > max_accumulator:
+                    elapsed = physics_dt
                 last_tick = now
 
-                # 推进位置/弹幕状态
-                self.tick(elapsed)
+                # 累加并按固定步长推进物理状态（速度恒定，不受帧抖影响）
+                accumulator += elapsed
+                if accumulator > max_accumulator:
+                    accumulator = max_accumulator
+                # 推进次数有上限，避免下一帧前耗时过长
+                steps = 0
+                while accumulator >= physics_dt and steps < 6:
+                    self.tick(physics_dt)
+                    accumulator -= physics_dt
+                    steps += 1
+                # 不足一步的零头：再以一个完整步长 tick 一次（确保肉眼看不到停滞）
+                # 注意这里不能用 accumulator 当 dt（会导致速度抖动），保持物理步长不变
 
                 if is_animated:
                     # 快速路径：主循环直接画，不走 WM_PAINT 消息派发，最少开销
@@ -763,7 +949,12 @@ class Screensaver:
                         screen_dc = win32gui.GetDC(self.hwnd)
                         if screen_dc:
                             try:
-                                self._draw_to_hdc(screen_dc)
+                                if ct == "scroll":
+                                    # 滚动：直接从预渲染条带 BitBlt 一段，1~2 次 GDI 调用
+                                    self._draw_scroll_strip(screen_dc)
+                                else:
+                                    # bullet：双缓冲整屏重绘
+                                    self._draw_to_hdc(screen_dc)
                             finally:
                                 win32gui.ReleaseDC(self.hwnd, screen_dc)
                     except Exception:
