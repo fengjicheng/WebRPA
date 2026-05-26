@@ -1034,3 +1034,618 @@ export function DesktopDialogHandleConfig({ data, onChange }: ConfigProps) {
     </div>
   )
 }
+
+
+// ========== 现代桌面应用增强（Electron / 游戏 / Canvas） ==========
+
+export function DesktopClickByOcrConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>要 OCR 点击的文字 *</Label>
+        <VariableInput
+          value={(data.targetText as string) || ''}
+          onChange={(v) => onChange('targetText', v)}
+          placeholder="例如：登录"
+        />
+      </div>
+      <div>
+        <Label>匹配模式</Label>
+        <Select
+          value={(data.matchMode as string) || 'contains'}
+          onChange={(e) => onChange('matchMode', e.target.value)}
+        >
+          <option value="contains">包含（推荐）</option>
+          <option value="exact">完全匹配</option>
+          <option value="regex">正则表达式</option>
+        </Select>
+      </div>
+      <div>
+        <Label>鼠标按键</Label>
+        <Select
+          value={(data.clickButton as string) || 'left'}
+          onChange={(e) => onChange('clickButton', e.target.value)}
+        >
+          <option value="left">左键</option>
+          <option value="right">右键</option>
+          <option value="middle">中键</option>
+        </Select>
+      </div>
+      <div>
+        <Label>点击次数</Label>
+        <Input
+          type="number"
+          value={(data.clickCount as number) || 1}
+          onChange={(e) => onChange('clickCount', Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <Label>OCR 等待超时（秒）</Label>
+        <Input
+          type="number"
+          value={(data.timeout as number) || 10}
+          onChange={(e) => onChange('timeout', Number(e.target.value))}
+        />
+      </div>
+      <div className="text-xs text-gray-500 p-2 bg-blue-50 rounded">
+        Electron / 游戏 / Canvas 应用 UIA 看不见内部 UI 时用 OCR 找文字按钮
+      </div>
+    </div>
+  )
+}
+
+export function DesktopClickByImageConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>模板图片路径 *</Label>
+        <VariableInput
+          value={(data.templatePath as string) || ''}
+          onChange={(v) => onChange('templatePath', v)}
+          placeholder="C:\\xxx\\button.png 或 {imagePath}"
+        />
+      </div>
+      <div>
+        <Label>匹配置信度（0-1）</Label>
+        <Input
+          type="number"
+          step="0.01"
+          value={(data.confidence as number) ?? 0.85}
+          onChange={(e) => onChange('confidence', Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <Label>鼠标按键</Label>
+        <Select
+          value={(data.clickButton as string) || 'left'}
+          onChange={(e) => onChange('clickButton', e.target.value)}
+        >
+          <option value="left">左键</option>
+          <option value="right">右键</option>
+          <option value="middle">中键</option>
+        </Select>
+      </div>
+      <div>
+        <Label>等待超时（秒）</Label>
+        <Input
+          type="number"
+          value={(data.timeout as number) || 10}
+          onChange={(e) => onChange('timeout', Number(e.target.value))}
+        />
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(data.grayscale as boolean) ?? true}
+          onChange={(e) => onChange('grayscale', e.target.checked)}
+        />
+        <span className="text-sm">灰度匹配（更快更鲁棒）</span>
+      </label>
+    </div>
+  )
+}
+
+export function DesktopReadTextRegionConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label>左边界 X *</Label>
+          <Input
+            type="number"
+            value={(data.left as number) || 0}
+            onChange={(e) => onChange('left', Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <Label>上边界 Y *</Label>
+          <Input
+            type="number"
+            value={(data.top as number) || 0}
+            onChange={(e) => onChange('top', Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <Label>右边界 X *</Label>
+          <Input
+            type="number"
+            value={(data.right as number) || 1920}
+            onChange={(e) => onChange('right', Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <Label>下边界 Y *</Label>
+          <Input
+            type="number"
+            value={(data.bottom as number) || 1080}
+            onChange={(e) => onChange('bottom', Number(e.target.value))}
+          />
+        </div>
+      </div>
+      <div>
+        <Label>OCR 语言</Label>
+        <Select
+          value={(data.language as string) || 'ch_sim+en'}
+          onChange={(e) => onChange('language', e.target.value)}
+        >
+          <option value="ch_sim+en">简体中文 + 英文</option>
+          <option value="ch_tra+en">繁体中文 + 英文</option>
+          <option value="en">仅英文</option>
+          <option value="ch_sim">仅简体中文</option>
+          <option value="ja">日语</option>
+          <option value="ko">韩语</option>
+        </Select>
+      </div>
+      <div>
+        <Label>结果保存到变量</Label>
+        <Input
+          value={(data.variableName as string) || 'ocr_text'}
+          onChange={(e) => onChange('variableName', e.target.value)}
+          placeholder="ocr_text"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopHotkeyConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>热键组合 *</Label>
+        <VariableInput
+          value={(data.keys as string) || ''}
+          onChange={(v) => onChange('keys', v)}
+          placeholder="例如：ctrl+s / ctrl+shift+n / alt+f4 / win+e"
+        />
+        <div className="text-xs text-gray-500 mt-1">
+          用 + 连接多个键，支持 ctrl / shift / alt / win / 字母 / f1~f12 / enter / esc / tab 等
+        </div>
+      </div>
+      <div>
+        <Label>目标窗口标题（可选）</Label>
+        <VariableInput
+          value={(data.targetWindow as string) || ''}
+          onChange={(v) => onChange('targetWindow', v)}
+          placeholder="留空则发到当前活动窗口"
+        />
+      </div>
+      <div>
+        <Label>按键间隔（秒）</Label>
+        <Input
+          type="number"
+          step="0.01"
+          value={(data.interval as number) ?? 0.05}
+          onChange={(e) => onChange('interval', Number(e.target.value))}
+        />
+      </div>
+    </div>
+  )
+}
+
+
+// ========== 影刀级桌面增强 ==========
+
+export function DesktopFindControlSmartConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        智能查找：支持通配符（* ?）+ 模糊匹配 + 多属性组合，自动按评分挑最稳定的控件
+      </div>
+      <div>
+        <Label>应用变量</Label>
+        <Input
+          value={(data.appVariable as string) || 'desktop_app'}
+          onChange={(e) => onChange('appVariable', e.target.value)}
+          placeholder="desktop_app"
+        />
+      </div>
+      <div>
+        <Label>name 通配符</Label>
+        <VariableInput
+          value={(data.namePattern as string) || ''}
+          onChange={(v) => onChange('namePattern', v)}
+          placeholder="例如 *登录* 或 ?保存"
+        />
+      </div>
+      <div>
+        <Label>ClassName 通配符（可选）</Label>
+        <VariableInput
+          value={(data.classPattern as string) || ''}
+          onChange={(v) => onChange('classPattern', v)}
+          placeholder="例如 Button*"
+        />
+      </div>
+      <div>
+        <Label>AutomationId（可选，最稳定）</Label>
+        <VariableInput
+          value={(data.automationId as string) || ''}
+          onChange={(v) => onChange('automationId', v)}
+          placeholder="精确匹配"
+        />
+      </div>
+      <div>
+        <Label>控件类型（可选）</Label>
+        <Select
+          value={(data.controlType as string) || ''}
+          onChange={(e) => onChange('controlType', e.target.value)}
+        >
+          <option value="">不限</option>
+          <option value="Button">按钮</option>
+          <option value="Edit">输入框</option>
+          <option value="Text">文本</option>
+          <option value="ComboBox">下拉框</option>
+          <option value="ListItem">列表项</option>
+          <option value="CheckBox">复选框</option>
+          <option value="RadioButton">单选按钮</option>
+          <option value="Tab">选项卡</option>
+          <option value="MenuItem">菜单项</option>
+          <option value="TreeItem">树节点</option>
+          <option value="Hyperlink">超链接</option>
+          <option value="Image">图像</option>
+        </Select>
+      </div>
+      <div>
+        <Label>name 包含子串（可选）</Label>
+        <VariableInput
+          value={(data.textContains as string) || ''}
+          onChange={(v) => onChange('textContains', v)}
+          placeholder="包含此文字即可"
+        />
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(data.fuzzyMatch as boolean) ?? false}
+          onChange={(e) => onChange('fuzzyMatch', e.target.checked)}
+        />
+        <span className="text-sm">启用模糊匹配（name 不一致也能找到相似的）</span>
+      </label>
+      <div>
+        <Label>模糊匹配阈值（0-1）</Label>
+        <Input
+          type="number"
+          step="0.05"
+          min={0}
+          max={1}
+          value={(data.fuzzyThreshold as number) ?? 0.7}
+          onChange={(e) => onChange('fuzzyThreshold', Number(e.target.value))}
+        />
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(data.returnAll as boolean) ?? false}
+          onChange={(e) => onChange('returnAll', e.target.checked)}
+        />
+        <span className="text-sm">返回所有候选（数组形式）</span>
+      </label>
+      <div>
+        <Label>搜索深度</Label>
+        <Input
+          type="number"
+          value={(data.searchDepth as number) ?? 15}
+          onChange={(e) => onChange('searchDepth', Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <Label>等待超时（秒）</Label>
+        <Input
+          type="number"
+          value={(data.timeout as number) ?? 5}
+          onChange={(e) => onChange('timeout', Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <Label>保存到变量</Label>
+        <Input
+          value={(data.saveToVariable as string) || 'desktop_control'}
+          onChange={(e) => onChange('saveToVariable', e.target.value)}
+          placeholder="desktop_control"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopExtractTableConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        批量抓取列表/表格控件的所有行数据（影刀 DataExtraction Wizard 同款）
+      </div>
+      <div>
+        <Label>应用变量</Label>
+        <Input
+          value={(data.appVariable as string) || 'desktop_app'}
+          onChange={(e) => onChange('appVariable', e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>容器类型</Label>
+        <Select
+          value={(data.containerType as string) || 'List'}
+          onChange={(e) => onChange('containerType', e.target.value)}
+        >
+          <option value="List">列表 List</option>
+          <option value="DataGrid">表格 DataGrid</option>
+          <option value="Tree">树 Tree</option>
+          <option value="Table">表 Table</option>
+        </Select>
+      </div>
+      <div>
+        <Label>容器名（可选，留空自动找）</Label>
+        <VariableInput
+          value={(data.containerName as string) || ''}
+          onChange={(v) => onChange('containerName', v)}
+          placeholder="容器控件名"
+        />
+      </div>
+      <div>
+        <Label>列名映射（可选，逗号分隔）</Label>
+        <VariableInput
+          value={(data.includeColumns as string) || ''}
+          onChange={(v) => onChange('includeColumns', v)}
+          placeholder="例如：姓名,年龄,部门"
+        />
+      </div>
+      <div>
+        <Label>最多抓取条数</Label>
+        <Input
+          type="number"
+          value={(data.limit as number) ?? 1000}
+          onChange={(e) => onChange('limit', Number(e.target.value))}
+        />
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(data.scrollToLoad as boolean) ?? false}
+          onChange={(e) => onChange('scrollToLoad', e.target.checked)}
+        />
+        <span className="text-sm">滚动加载（虚拟列表场景）</span>
+      </label>
+      <div>
+        <Label>保存到变量</Label>
+        <Input
+          value={(data.variableName as string) || 'extracted_data'}
+          onChange={(e) => onChange('variableName', e.target.value)}
+          placeholder="extracted_data"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopGetAppStateConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        快照当前应用的完整 UI 树 + 焦点位置，AI 排错或快速感知 UI 结构必备
+      </div>
+      <div>
+        <Label>应用变量</Label>
+        <Input
+          value={(data.appVariable as string) || 'desktop_app'}
+          onChange={(e) => onChange('appVariable', e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>控件树深度</Label>
+        <Input
+          type="number"
+          value={(data.maxDepth as number) ?? 6}
+          onChange={(e) => onChange('maxDepth', Number(e.target.value))}
+        />
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={(data.includeInvisible as boolean) ?? false}
+          onChange={(e) => onChange('includeInvisible', e.target.checked)}
+        />
+        <span className="text-sm">包含不可见控件</span>
+      </label>
+      <div>
+        <Label>保存到变量</Label>
+        <Input
+          value={(data.variableName as string) || 'app_state'}
+          onChange={(e) => onChange('variableName', e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopQueryWithXpathConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        XPath 风格查询，支持 //Button[@name='登录'] / //*[contains(@name,'确定')]
+      </div>
+      <div>
+        <Label>应用变量</Label>
+        <Input
+          value={(data.appVariable as string) || 'desktop_app'}
+          onChange={(e) => onChange('appVariable', e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>XPath 表达式 *</Label>
+        <VariableInput
+          value={(data.xpath as string) || ''}
+          onChange={(v) => onChange('xpath', v)}
+          placeholder="//Button[@name='登录']"
+        />
+      </div>
+      <div>
+        <Label>等待超时（秒）</Label>
+        <Input
+          type="number"
+          value={(data.timeout as number) ?? 5}
+          onChange={(e) => onChange('timeout', Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <Label>保存到变量</Label>
+        <Input
+          value={(data.saveToVariable as string) || 'desktop_control'}
+          onChange={(e) => onChange('saveToVariable', e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopSelectTextConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>控件变量</Label>
+        <Input
+          value={(data.controlVariable as string) || 'desktop_control'}
+          onChange={(e) => onChange('controlVariable', e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>选中模式</Label>
+        <Select
+          value={(data.selectMode as string) || 'all'}
+          onChange={(e) => onChange('selectMode', e.target.value)}
+        >
+          <option value="all">全选 (Ctrl+A)</option>
+          <option value="double_click">双击</option>
+          <option value="range">范围（点击）</option>
+        </Select>
+      </div>
+      <div>
+        <Label>提取的文字保存到变量</Label>
+        <Input
+          value={(data.variableName as string) || 'selected_text'}
+          onChange={(e) => onChange('variableName', e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopGetFocusedControlConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        返回当前键盘焦点所在的控件信息（动态分析活跃元素）
+      </div>
+      <div>
+        <Label>保存到变量</Label>
+        <Input
+          value={(data.saveToVariable as string) || 'focused_control'}
+          onChange={(e) => onChange('saveToVariable', e.target.value)}
+          placeholder="focused_control"
+        />
+      </div>
+    </div>
+  )
+}
+
+export function DesktopAssertControlConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        断言控件状态，不满足则节点失败（测试场景必备）
+      </div>
+      <div>
+        <Label>控件变量</Label>
+        <Input
+          value={(data.controlVariable as string) || 'desktop_control'}
+          onChange={(e) => onChange('controlVariable', e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>断言类型 *</Label>
+        <Select
+          value={(data.assertion as string) || 'exists'}
+          onChange={(e) => onChange('assertion', e.target.value)}
+        >
+          <option value="exists">控件存在</option>
+          <option value="visible">控件可见</option>
+          <option value="enabled">控件启用</option>
+          <option value="selected">控件已选中</option>
+          <option value="text_contains">name 包含文字</option>
+          <option value="value_equals">value 等于</option>
+        </Select>
+      </div>
+      {(data.assertion === 'text_contains' || data.assertion === 'value_equals') && (
+        <div>
+          <Label>期望值</Label>
+          <VariableInput
+            value={(data.expected as string) || ''}
+            onChange={(v) => onChange('expected', v)}
+            placeholder="期望的文字 / 值"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function DesktopRecordActionsConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="text-xs p-2 bg-emerald-50 border border-emerald-200 rounded text-emerald-800">
+        录制鼠标/键盘操作 → 自动生成可回放事件序列（影刀杀手锏）。完整流程：start → 用户操作 → stop → replay
+      </div>
+      <div>
+        <Label>模式 *</Label>
+        <Select
+          value={(data.mode as string) || 'start'}
+          onChange={(e) => onChange('mode', e.target.value)}
+        >
+          <option value="start">开始录制</option>
+          <option value="stop">停止录制（拿到事件）</option>
+          <option value="replay">回放最近一次录制</option>
+        </Select>
+      </div>
+      <div>
+        <Label>事件保存到变量</Label>
+        <Input
+          value={(data.variableName as string) || 'recorded_actions'}
+          onChange={(e) => onChange('variableName', e.target.value)}
+          placeholder="recorded_actions"
+        />
+      </div>
+      {data.mode === 'replay' && (
+        <div>
+          <Label>回放速度倍率</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="10"
+            value={(data.speed as number) ?? 1.0}
+            onChange={(e) => onChange('speed', Number(e.target.value))}
+          />
+        </div>
+      )}
+    </div>
+  )
+}

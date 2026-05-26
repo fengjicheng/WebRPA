@@ -450,6 +450,20 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   desktop_scroll_control: '滚动控件',
   desktop_get_control_info: '获取控件信息',
   desktop_get_control_tree: '获取控件树',
+  // 现代桌面应用增强（Electron/游戏/Canvas 应用必备）
+  desktop_click_by_ocr: 'OCR文字点击',
+  desktop_click_by_image: '图像匹配点击',
+  desktop_read_text_region: '区域OCR识别',
+  desktop_hotkey: '发送热键',
+  // 影刀级桌面增强
+  desktop_find_control_smart: '智能查找控件',
+  desktop_extract_table: '批量抓取列表',
+  desktop_get_app_state: '应用状态快照',
+  desktop_query_with_xpath: 'XPath查找控件',
+  desktop_select_text: '选中并提取文字',
+  desktop_get_focused_control: '获取焦点控件',
+  desktop_assert_control: '断言控件状态',
+  desktop_record_actions: '录制用户操作',
   // Apprise多渠道通知
   notify_discord: 'Discord通知',
   notify_telegram: 'Telegram通知',
@@ -1052,6 +1066,20 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   desktop_scroll_control: 10, // 10秒
   desktop_get_control_info: 10, // 10秒
   desktop_get_control_tree: 60, // 1分钟
+  // 现代桌面应用增强
+  desktop_click_by_ocr: 30,         // OCR 识别可能慢
+  desktop_click_by_image: 15,       // 图像模板匹配
+  desktop_read_text_region: 30,     // 区域 OCR
+  desktop_hotkey: 10,               // 发送热键很快
+  // 影刀级桌面增强
+  desktop_find_control_smart: 10,   // 智能查找
+  desktop_extract_table: 60,        // 批量抓取可能慢
+  desktop_get_app_state: 30,        // UI 树快照
+  desktop_query_with_xpath: 10,     // XPath 查询
+  desktop_select_text: 5,           // 选中复制
+  desktop_get_focused_control: 5,   // 获取焦点
+  desktop_assert_control: 5,        // 断言
+  desktop_record_actions: 0,        // 录制不超时（用户控制）
   // Apprise多渠道通知
   notify_discord: 30,         // 30秒
   notify_telegram: 30,        // 30秒

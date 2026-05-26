@@ -133,6 +133,20 @@ import {
   DesktopScrollControlConfig,
   DesktopGetControlInfoConfig,
   DesktopGetControlTreeConfig,
+  // 现代桌面应用增强（Electron / 游戏 / Canvas）
+  DesktopClickByOcrConfig,
+  DesktopClickByImageConfig,
+  DesktopReadTextRegionConfig,
+  DesktopHotkeyConfig,
+  // 影刀级桌面增强
+  DesktopFindControlSmartConfig,
+  DesktopExtractTableConfig,
+  DesktopGetAppStateConfig,
+  DesktopQueryWithXpathConfig,
+  DesktopSelectTextConfig,
+  DesktopGetFocusedControlConfig,
+  DesktopAssertControlConfig,
+  DesktopRecordActionsConfig,
 } from './config-panels/DesktopModuleConfigs'
 import {
   ConditionConfig,
@@ -1828,6 +1842,32 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <DesktopGetControlInfoConfig data={nodeData} onChange={handleChange} />
       case 'desktop_get_control_tree':
         return <DesktopGetControlTreeConfig data={nodeData} onChange={handleChange} />
+      // 现代桌面应用增强（Electron / 游戏 / Canvas）
+      case 'desktop_click_by_ocr':
+        return <DesktopClickByOcrConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_click_by_image':
+        return <DesktopClickByImageConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_read_text_region':
+        return <DesktopReadTextRegionConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_hotkey':
+        return <DesktopHotkeyConfig data={nodeData} onChange={handleChange} />
+      // 影刀级桌面增强
+      case 'desktop_find_control_smart':
+        return <DesktopFindControlSmartConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_extract_table':
+        return <DesktopExtractTableConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_get_app_state':
+        return <DesktopGetAppStateConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_query_with_xpath':
+        return <DesktopQueryWithXpathConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_select_text':
+        return <DesktopSelectTextConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_get_focused_control':
+        return <DesktopGetFocusedControlConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_assert_control':
+        return <DesktopAssertControlConfig data={nodeData} onChange={handleChange} />
+      case 'desktop_record_actions':
+        return <DesktopRecordActionsConfig data={nodeData} onChange={handleChange} />
       // Apprise多渠道通知模块
       case 'notify_discord':
         return <NotifyDiscordConfig data={nodeData} onChange={handleChange} />
