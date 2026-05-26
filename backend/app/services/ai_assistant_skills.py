@@ -3498,6 +3498,8 @@ def _register_all() -> None:
             "- delete_node: 删除单个节点（payload.node_id）\n"
             "- delete_nodes: 批量删除节点（payload.node_ids）\n"
             "- update_node_config: 更新节点配置（payload.node_id, payload.config）\n"
+            "- bulk_update_nodes: 批量更新多个节点（payload.patches=[{node_id, config}, ...]，比循环 update_node_config 更快）\n"
+            "- get_node_runtime_errors: 从日志中提取最近一次执行的失败/错误信息（带 node_id）\n"
             "- focus_node: 聚焦/选中节点（payload.node_id）\n"
             "- toggle_node_disabled: 启用/禁用节点（payload.node_ids）\n"
             "- align_nodes: 对齐已选中的节点（payload.type='left'|'center'|'right'|'top'|'middle'|'bottom'|'distribute-horizontal'|'distribute-vertical'）\n"

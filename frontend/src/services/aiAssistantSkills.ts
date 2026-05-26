@@ -307,6 +307,46 @@ export async function executeClientAction(
         return { success: true, message: `已更新节点 ${nodeId}` }
       }
 
+      case 'bulk_update_nodes': {
+        // payload.patches: [{node_id, config}, ...]
+        const patches = (payload.patches as Array<{ node_id: string; config: Record<string, any> }>) || []
+        if (!Array.isArray(patches) || patches.length === 0) {
+          return { success: false, error: '缺少 patches' }
+        }
+        const store = useWorkflowStore.getState()
+        let applied = 0
+        for (const p of patches) {
+          if (!p?.node_id || !p?.config) continue
+          const cfg = { ...p.config }
+          // 同样保护 label
+          if ('label' in cfg) {
+            const labelVal = cfg.label
+            delete cfg.label
+            if (labelVal && !('name' in cfg) && !('remark' in cfg)) {
+              cfg.name = labelVal
+            }
+          }
+          store.updateNodeData(p.node_id, cfg as any)
+          applied++
+        }
+        return { success: true, message: `已批量更新 ${applied} 个节点` }
+      }
+
+      case 'get_node_runtime_errors': {
+        // 从 logs 中筛出最近一次执行的失败/错误日志，关联到节点
+        const s = useWorkflowStore.getState()
+        const errors = s.logs
+          .filter((l) => l.level === 'error' || l.level === 'failed')
+          .slice(-50)
+          .map((l) => ({
+            time: l.timestamp,
+            level: l.level,
+            message: l.message,
+            node_id: (l as any).nodeId || null,
+          }))
+        return { success: true, data: errors }
+      }
+
       case 'focus_node': {
         const nodeId = payload.node_id as string
         if (!nodeId) return { success: false, error: '缺少 node_id' }
