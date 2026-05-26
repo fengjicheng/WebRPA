@@ -391,11 +391,14 @@ async def skill_build_workflow(
     NOTE_GAP = 30       # 节点与便签之间的间距
 
     def _calc_note_size(content: str, font_size: int = 12, target_w: int = NOTE_W) -> tuple[int, int]:
-        """根据内容自动算便签尺寸（中文按 1 个字符宽，英文/数字按 0.55 算）。"""
+        """根据内容自动算便签尺寸（中文按 1 个字符宽，英文/数字按 0.55 算）。
+        NoteNode 实际结构：头部约 36px + 内容区 padding 20px + 文字本身。
+        """
         text = str(content or "")
         if not text:
-            return (target_w, NOTE_H)
-        chars_per_line = max(1, int(target_w / (font_size * 0.95)))
+            return (target_w, max(100, NOTE_H))
+        usable_w = target_w - 20  # 内容区左右 padding 各 10
+        chars_per_line = max(1, int(usable_w / (font_size * 0.95)))
         lines = text.split("\n")
         total_lines = 0
         for line in lines:
@@ -407,9 +410,10 @@ async def skill_build_workflow(
                 else:
                     visual += 0.55
             total_lines += max(1, int(visual / chars_per_line) + (1 if visual % chars_per_line else 0))
-        # 行高 ≈ 字号 * 1.5；上下边距各 16
-        h = max(70, int(total_lines * font_size * 1.5 + 32))
-        return (target_w, min(800, h))
+        # 头部 36px + 内容 padding 20px + 文字行高 1.6 * 字号 + 底部缓冲 8px
+        line_h = font_size * 1.6
+        h = int(36 + 20 + total_lines * line_h + 8)
+        return (target_w, max(100, min(800, h)))
     NOTE_GAP = 30       # 节点与便签之间的间距
 
     # 起点（y 留出空间给 title_note + 步骤上方便签）

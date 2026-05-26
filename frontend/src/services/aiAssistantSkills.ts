@@ -78,10 +78,11 @@ function convertAiNodeToReactFlow(n: any): any {
     // 根据内容长度自动算合适的便签尺寸（避免 AI 不调整尺寸导致文本溢出）
     const content = String(baseData.content ?? n.data?.content ?? '')
     const fontSize = Number(baseData.fontSize ?? n.data?.fontSize ?? 13)
-    // 计算每行近似字符数：宽度 / 字号 ≈ 字符数（中文每字符 ~1 字号宽，英文 ~0.55 字号宽）
-    // 用 280 当默认宽度做基准
-    const targetWidth = 280
-    const charsPerLine = Math.floor(targetWidth / (fontSize * 0.95))
+    // 用 320 当默认宽度做基准（中文便签更宽方便阅读）
+    const targetWidth = 320
+    // 内容区可用宽度 = 总宽 - 内边距 20px (p-2.5 上下/左右各 10)
+    const usableWidth = targetWidth - 20
+    const charsPerLine = Math.floor(usableWidth / (fontSize * 0.95))
     // 把显式换行符 + 自动换行都计入行数
     const explicitLines = content.split(/\r?\n/)
     const totalLines = explicitLines.reduce((sum, line) => {
@@ -92,12 +93,21 @@ function convertAiNodeToReactFlow(n: any): any {
       }
       return sum + Math.max(1, Math.ceil(visualWidth / charsPerLine))
     }, 0)
-    // 行高 ≈ 字号 * 1.5；外边距上下各 16px
-    const calcHeight = Math.max(70, totalLines * fontSize * 1.5 + 32)
+    // NoteNode 结构：头部 ~36px + 内容区 padding 20px (p-2.5) + 文字本身（行高 1.6 * 字号）+ 底部缓冲 8px
+    const HEADER_H = 36
+    const CONTENT_PADDING = 20
+    const lineHeight = fontSize * 1.6
+    const calcHeight = HEADER_H + CONTENT_PADDING + Math.max(lineHeight, totalLines * lineHeight) + 8
+    // 关键策略：自动尺寸放在前面，AI 显式给的 width/height 也只在比自动尺寸大时才用
+    // 这样 AI 不会因为传了一个偏小的固定尺寸（如 220×100）导致文本被截断
+    const aiW = Number(n.style?.width)
+    const aiH = Number(n.style?.height)
     style = {
-      width: targetWidth,
-      height: Math.min(800, calcHeight),
-      ...(n.style || {}),
+      width: aiW > targetWidth ? aiW : targetWidth,
+      height: Math.min(800, Math.max(100, aiH > calcHeight ? aiH : calcHeight)),
+      ...(n.style && typeof n.style === 'object' ? Object.fromEntries(
+        Object.entries(n.style).filter(([k]) => k !== 'width' && k !== 'height')
+      ) : {}),
     }
     // 便签默认黄色
     if (!baseData.color) baseData.color = '#fef08a'
