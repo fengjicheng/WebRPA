@@ -612,6 +612,11 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "desktop_radio": "桌面单选按钮操作",
         "desktop_list_operate": "桌面列表控件操作",
         "desktop_dialog_handle": "桌面对话框处理（确认/取消）",
+        # === 现代桌面应用增强（Electron / 游戏 / Canvas 应用专用）===
+        "desktop_click_by_ocr": "OCR 文字定位点击 - **当 UIA 看不见 UI 时（Electron/游戏/Canvas）必备**",
+        "desktop_click_by_image": "图像模板匹配点击 - 游戏 / 图标按钮 / 自定义 UI 用",
+        "desktop_read_text_region": "区域 OCR 文字提取 - 状态栏 / 验证码 / 进度提示",
+        "desktop_hotkey": "直接发送热键到当前窗口 - 老应用 / Electron 应用走快捷键",
     },
     "PDF（完整）": {
         "pdf_delete_pages": "PDF 删除指定页面",
@@ -983,6 +988,93 @@ client_action(action="get_workflow_detail")  # 拿到 nodes/edges/variables
   ② 看 selector_hints.baidu_hot_item_text_candidates 拿到 `.title-content-title` 之类的真实 selector
   ③ 调 `build_workflow` 生成 [打开页面 → 等待元素 → 获取列表文本（多个） → 循环打印]
 绝对不能跳过 ① 直接编 selector！
+
+# 桌面应用自动化的硬性纪律（必读）
+
+WebRPA 的桌面自动化基于 Windows UIAutomation（uiautomation 库）。能完美自动化的应用类型有限，
+你必须先识别**应用类型**才能选对模块组合，否则用错了根本跑不通。
+
+## 第 1 步：识别应用类型（关键判断）
+
+| 应用类型 | 特点 | 自动化策略 |
+|---|---|---|
+| **原生 Win32 / WinForms / WPF** | QQ / 钉钉 / 微信桌面 / Office / 资源管理器 | **首选 UIA 控件树**：connect → find_control → click_control |
+| **UWP 应用** | Win10/11 自带应用 / 微软商店 | 同上，UIA 全程覆盖 |
+| **Electron 应用** | VSCode / Discord / Slack / 飞书桌面 / 钉钉新版 | **UIA 看不见内部 UI**！必须用 OCR 文字定位 + 图像匹配 + 热键 |
+| **Flutter / Qt / Java Swing 老版** | 部分财务/工程软件 | 同 Electron，靠 OCR + 图像 + 热键 |
+| **游戏 / Unity / DirectX / OpenGL** | 任何全屏渲染 | UIA 完全无效，**只能 OCR + 图像 + 热键** |
+| **Canvas / WebGL 主导的应用** | 设计软件 / 在线白板 | 同上 |
+
+## 第 2 步：根据应用类型选模块（绝不混用）
+
+### 类型 A — 原生 Win32 应用（首选 UIA 控件树）
+标准流程（**严格按这个顺序**）：
+```
+1. desktop_app_start 或 desktop_app_connect    → 拿到 desktop_app 变量
+2. desktop_window_activate(appVariable=desktop_app)  → 激活窗口（很重要，不激活找不到控件）
+3. desktop_find_control(appVariable=desktop_app, findType=control_path,
+   controlPath="name:文件菜单>name:打开")    → 拿到 desktop_control 变量
+4. desktop_click_control(controlVariable=desktop_control)  → 点击
+5. desktop_input_control(controlVariable=desktop_control, text="...")  → 填字
+```
+**关键约束**：
+- 第 1 步必出 `desktop_app` 变量，否则后续所有 desktop_xxx 模块都跑不了
+- find_control 的 controlPath 格式严格为 `name:xxx>name:yyy`（用 `>` 分级，每级用 `name:` / `automationid:` / `classname:`）
+- name 必须**和应用界面完全一致**（包括空格），用 desktop_get_control_tree 先确认
+- 找不到控件时**降级到类型 C 策略**
+
+### 类型 B — Electron / Flutter / Qt 现代应用（UIA 看不见内部）
+**第一句话原则**：尝试 UIA 找窗口外壳，但**绝对不要尝试找内部按钮**——一定 fail。
+
+标准流程：
+```
+1. desktop_app_start 或 launch_application（启动应用）
+2. wait（等 2 秒让窗口稳定）
+3. **desktop_click_by_ocr(targetText="登录")**   ← 主力武器
+4. **desktop_click_by_image(templatePath="...")**  ← 图标按钮用
+5. **desktop_hotkey(keys="ctrl+s")**              ← 菜单功能用快捷键
+6. **real_keyboard / keyboard_action**             ← 输入文字用真键盘（直发到活动窗口）
+```
+**Electron 应用判断**：进程名 `xxx.exe`、窗口类名包含 `Chrome_WidgetWin_1` 即可确认。
+
+### 类型 C — 游戏 / Canvas / 全屏渲染（OCR + 图像 + 热键三剑客）
+**唯一的方案**：
+```
+1. launch_application 或 desktop_app_start
+2. desktop_click_by_image(templatePath=...)  → 主力（图像模板从图像资源面板上传）
+3. desktop_click_by_ocr(targetText=...)      → 备选（如果界面有文字）
+4. desktop_hotkey                             → 操作菜单/技能
+5. real_mouse_click / real_mouse_drag         → 精确坐标操作
+6. desktop_read_text_region                  → OCR 状态栏读血量/分数
+```
+
+## 第 3 步：用 desktop_picker 拿真实控件路径（类型 A 必做）
+
+涉及类型 A 的工作流，build_workflow 之前**必须先让用户用桌面元素选择器拾取一次**：
+- 提示用户："请在 WebRPA 顶栏点「桌面元素选择器」按钮，然后点击你要操作的应用控件"
+- 用户拾取后会得到 `controlPath`（如 `name:文件>name:打开`），复制到 controlPath 字段
+
+不能凭空猜 controlPath！应用界面的 name 你不可能知道。
+
+## 第 4 步：搭完后健壮性增强（桌面应用很容易失败）
+
+| 风险 | 加固 |
+|---|---|
+| 应用启动慢 | 第 1 步后加 `desktop_app_wait_ready` 或 `wait(3)` |
+| 应用窗口失焦后控件找不到 | 每个 find_control 前加 `desktop_window_activate` |
+| 模态对话框拦截 | 主流程头部加 `desktop_dialog_handle(dialogAction=accept)` |
+| 控件名变了 | 控件路径加 `automationid:xxx`（automation_id 比 name 稳） |
+
+## 反例（绝对不要这样做）
+
+❌ 用户说"自动化 VSCode 打开文件"
+❌ 你直接 desktop_find_control(controlPath="name:File>name:Open")
+❌ → 跑不通，VSCode 是 Electron 应用，UIA 看不见内部菜单
+
+✅ 正确做法：
+   desktop_hotkey(keys="ctrl+o") → 弹出"打开文件"系统对话框
+   → 这个系统对话框是原生 Win32（type A）→ 用 desktop_input_control 填路径
+   → desktop_hotkey(keys="enter") 确认
 
 # 全局观与"搭建闭环"硬性流程（必读，违反这条工作流必出问题）
 

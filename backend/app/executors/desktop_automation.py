@@ -2212,3 +2212,236 @@ class DesktopDialogHandleExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="需要安装 uiautomation 库: pip install uiautomation")
         except Exception as e:
             return ModuleResult(success=False, error=f"处理对话框失败: {str(e)}")
+
+
+
+# ============================================================================
+# 现代桌面应用增强能力（弥补 UIAutomation 对 Electron/游戏/Canvas 应用无能为力的短板）
+# 新增 4 个 fallback 模块：OCR 文字定位 / 图像匹配定位 / 热键发送 / 区域 OCR 提取
+# ============================================================================
+
+
+@register_executor
+class DesktopClickByOcrExecutor(ModuleExecutor):
+    """通过 OCR 识别屏幕文字然后点击该位置（适用于 Electron / 游戏 / Canvas 等 UIA 看不见的应用）"""
+
+    @property
+    def module_type(self) -> str:
+        return "desktop_click_by_ocr"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        try:
+            target_text = context.resolve_value(config.get("targetText", ""))
+            if not target_text:
+                return ModuleResult(success=False, error="targetText 不能为空")
+            click_button = (config.get("clickButton", "left") or "left").lower()
+            click_count = to_int(config.get("clickCount", 1), 1, context)
+            timeout = to_int(config.get("timeout", 10), 10, context)
+            match_mode = config.get("matchMode", "contains")  # exact / contains / regex
+            # 区域筛选：避免在错误窗口找到同名文本
+            region = config.get("region")  # {left,top,right,bottom} 或留空全屏
+
+            try:
+                import easyocr  # type: ignore
+                from PIL import ImageGrab
+                import pyautogui
+                import re as _re
+            except ImportError as e:
+                return ModuleResult(success=False, error=f"缺少依赖：{e}（需要 easyocr / Pillow / pyautogui）")
+
+            # OCR 识别
+            reader = easyocr.Reader(['ch_sim', 'en'], gpu=False, verbose=False)
+            start = time.time()
+            target_box = None
+
+            while time.time() - start < timeout:
+                # 截屏
+                if region and isinstance(region, dict):
+                    bbox = (
+                        int(region.get("left", 0)),
+                        int(region.get("top", 0)),
+                        int(region.get("right", 1920)),
+                        int(region.get("bottom", 1080)),
+                    )
+                    img = ImageGrab.grab(bbox=bbox)
+                    offset_x, offset_y = bbox[0], bbox[1]
+                else:
+                    img = ImageGrab.grab()
+                    offset_x, offset_y = 0, 0
+
+                import numpy as np
+                arr = np.array(img)
+                results = reader.readtext(arr)
+                # results: [[bbox, text, confidence], ...]
+                for box, text, conf in results:
+                    matched = False
+                    if match_mode == "exact":
+                        matched = text == target_text
+                    elif match_mode == "regex":
+                        try:
+                            matched = bool(_re.search(target_text, text))
+                        except Exception:
+                            matched = False
+                    else:  # contains
+                        matched = target_text in text
+                    if matched:
+                        # box 是 4 个点，取中心
+                        xs = [p[0] for p in box]
+                        ys = [p[1] for p in box]
+                        cx = int(sum(xs) / 4) + offset_x
+                        cy = int(sum(ys) / 4) + offset_y
+                        target_box = (cx, cy, text, conf)
+                        break
+                if target_box:
+                    break
+                await asyncio.sleep(0.5)
+
+            if not target_box:
+                return ModuleResult(success=False, error=f"在 {timeout}s 内 OCR 未识别到文字「{target_text}」")
+
+            cx, cy, matched_text, conf = target_box
+            # 真鼠标点击
+            pyautogui.click(cx, cy, clicks=click_count, button=click_button)
+            return ModuleResult(
+                success=True,
+                message=f"已点击 OCR 文字「{matched_text}」于 ({cx}, {cy})，置信度 {conf:.2f}",
+                data={"x": cx, "y": cy, "matched_text": matched_text, "confidence": float(conf)},
+            )
+        except Exception as e:
+            return ModuleResult(success=False, error=f"OCR 点击失败：{e}")
+
+
+@register_executor
+class DesktopClickByImageExecutor(ModuleExecutor):
+    """通过图像模板匹配定位并点击（适用于游戏 / Canvas / 自定义 UI 应用）"""
+
+    @property
+    def module_type(self) -> str:
+        return "desktop_click_by_image"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        try:
+            template_path = context.resolve_value(config.get("templatePath", ""))
+            if not template_path:
+                return ModuleResult(success=False, error="templatePath 不能为空")
+            confidence = float(config.get("confidence", 0.85))
+            click_button = (config.get("clickButton", "left") or "left").lower()
+            click_count = to_int(config.get("clickCount", 1), 1, context)
+            timeout = to_int(config.get("timeout", 10), 10, context)
+            grayscale = bool(config.get("grayscale", True))
+
+            try:
+                import pyautogui
+            except ImportError:
+                return ModuleResult(success=False, error="需要 pyautogui：pip install pyautogui opencv-python")
+
+            if not os.path.exists(template_path):
+                return ModuleResult(success=False, error=f"模板图片不存在：{template_path}")
+
+            start = time.time()
+            box = None
+            while time.time() - start < timeout:
+                try:
+                    box = pyautogui.locateOnScreen(template_path, confidence=confidence, grayscale=grayscale)
+                    if box:
+                        break
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)
+
+            if not box:
+                return ModuleResult(success=False, error=f"在 {timeout}s 内屏幕上未找到匹配图像（置信度 {confidence}）")
+
+            cx, cy = pyautogui.center(box)
+            pyautogui.click(cx, cy, clicks=click_count, button=click_button)
+            return ModuleResult(
+                success=True,
+                message=f"已点击图像匹配位置 ({cx}, {cy})",
+                data={"x": int(cx), "y": int(cy), "box": [int(box.left), int(box.top), int(box.width), int(box.height)]},
+            )
+        except Exception as e:
+            return ModuleResult(success=False, error=f"图像匹配点击失败：{e}")
+
+
+@register_executor
+class DesktopReadTextRegionExecutor(ModuleExecutor):
+    """OCR 识别屏幕指定区域的文字（用于状态栏 / 验证码 / 文本提取）"""
+
+    @property
+    def module_type(self) -> str:
+        return "desktop_read_text_region"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        try:
+            left = to_int(config.get("left", 0), 0, context)
+            top = to_int(config.get("top", 0), 0, context)
+            right = to_int(config.get("right", 1920), 1920, context)
+            bottom = to_int(config.get("bottom", 1080), 1080, context)
+            variable_name = config.get("variableName", "ocr_text")
+            language = config.get("language", "ch_sim+en")
+
+            try:
+                import easyocr  # type: ignore
+                from PIL import ImageGrab
+                import numpy as np
+            except ImportError as e:
+                return ModuleResult(success=False, error=f"缺少依赖：{e}")
+
+            languages = [s.strip() for s in language.split('+') if s.strip()]
+            reader = easyocr.Reader(languages, gpu=False, verbose=False)
+            img = ImageGrab.grab(bbox=(left, top, right, bottom))
+            results = reader.readtext(np.array(img))
+            text = "\n".join(r[1] for r in results)
+
+            if variable_name:
+                context.set_variable(variable_name, text)
+            return ModuleResult(
+                success=True,
+                message=f"OCR 识别到 {len(results)} 段文字",
+                data={"text": text, "segments": [{"text": r[1], "confidence": float(r[2])} for r in results]},
+            )
+        except Exception as e:
+            return ModuleResult(success=False, error=f"区域 OCR 失败：{e}")
+
+
+@register_executor
+class DesktopHotkeyExecutor(ModuleExecutor):
+    """直接发送热键到当前活动窗口（如 Ctrl+S / Ctrl+C / Alt+F4，老应用 / Electron 应用必备）"""
+
+    @property
+    def module_type(self) -> str:
+        return "desktop_hotkey"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        try:
+            keys = context.resolve_value(config.get("keys", ""))  # "ctrl+s" 或 "alt+tab" 等
+            if not keys:
+                return ModuleResult(success=False, error="keys 不能为空")
+            target_window = context.resolve_value(config.get("targetWindow", ""))  # 可选窗口标题
+            interval = float(config.get("interval", 0.05))
+
+            try:
+                import pyautogui
+            except ImportError:
+                return ModuleResult(success=False, error="需要 pyautogui")
+
+            # 如果指定了目标窗口先激活
+            if target_window:
+                try:
+                    import uiautomation as auto
+                    win = auto.WindowControl(searchDepth=2, Name=target_window)
+                    if win.Exists(0, 0):
+                        win.SetActive()
+                        await asyncio.sleep(0.2)
+                except Exception:
+                    pass
+
+            # 解析 keys 字符串："ctrl+shift+s" → ["ctrl","shift","s"]
+            key_list = [k.strip().lower() for k in keys.replace(" ", "").split("+") if k.strip()]
+            if not key_list:
+                return ModuleResult(success=False, error=f"无效的 keys 格式：{keys}")
+
+            pyautogui.hotkey(*key_list, interval=interval)
+            return ModuleResult(success=True, message=f"已发送热键：{keys}")
+        except Exception as e:
+            return ModuleResult(success=False, error=f"发送热键失败：{e}")

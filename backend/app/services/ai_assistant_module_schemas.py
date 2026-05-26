@@ -4460,3 +4460,67 @@ PRIORITY_SCHEMAS_2: dict = {
 }
 
 _ALL_SCHEMAS.update(PRIORITY_SCHEMAS_2)
+
+
+
+# ============================================================================
+# 现代桌面应用增强模块 schema(Electron / 游戏 / Canvas 应用专用)
+# ============================================================================
+
+DESKTOP_MODERN_SCHEMAS: dict = {
+    "desktop_click_by_ocr": {
+        "required": ["targetText"],
+        "optional": ["clickButton", "clickCount", "timeout", "matchMode", "region"],
+        "defaults": {"clickButton": "left", "clickCount": 1, "timeout": 10, "matchMode": "contains"},
+        "desc": {
+            "targetText": "要 OCR 识别并点击的文字(支持中英文)",
+            "clickButton": "left / right / middle",
+            "matchMode": "exact(完全匹配) / contains(包含) / regex(正则)",
+            "region": "可选,屏幕区域 {left, top, right, bottom},缩小搜索范围避免误识别",
+            "timeout": "OCR 等待秒数",
+        },
+        "example": {"targetText": "登录", "matchMode": "contains", "timeout": 5},
+        "combo": "**Electron / 游戏 / Canvas 应用最实用**:UIA 看不到内部 UI 时用 OCR 找文字按钮",
+    },
+    "desktop_click_by_image": {
+        "required": ["templatePath"],
+        "optional": ["confidence", "clickButton", "clickCount", "timeout", "grayscale"],
+        "defaults": {"confidence": 0.85, "clickButton": "left", "clickCount": 1, "timeout": 10, "grayscale": True},
+        "desc": {
+            "templatePath": "模板图片绝对路径(从图像资源面板传入)",
+            "confidence": "匹配置信度 0~1,推荐 0.85",
+            "grayscale": "True 灰度匹配(更快更鲁棒)",
+        },
+        "example": {"templatePath": "{templatePath}", "confidence": 0.9},
+        "combo": "图标按钮 / 游戏 UI / 自定义控件用图像匹配,先用图像资源面板上传模板",
+    },
+    "desktop_read_text_region": {
+        "required": ["left", "top", "right", "bottom"],
+        "optional": ["variableName", "language"],
+        "defaults": {"variableName": "ocr_text", "language": "ch_sim+en"},
+        "desc": {
+            "left": "区域左边界 X 坐标",
+            "top": "区域上边界 Y 坐标",
+            "right": "区域右边界 X 坐标",
+            "bottom": "区域下边界 Y 坐标",
+            "variableName": "OCR 结果存到此变量",
+            "language": "OCR 语言,如 ch_sim+en(简体中文+英文)",
+        },
+        "example": {"left": 100, "top": 200, "right": 500, "bottom": 250, "variableName": "status_text"},
+        "combo": "状态栏文字 / 验证码 / 进度提示等无控件区域的文字提取",
+    },
+    "desktop_hotkey": {
+        "required": ["keys"],
+        "optional": ["targetWindow", "interval"],
+        "defaults": {"interval": 0.05},
+        "desc": {
+            "keys": "热键组合,用 + 连接,如 'ctrl+s' / 'ctrl+shift+n' / 'alt+f4' / 'win+e'",
+            "targetWindow": "可选,先激活该标题的窗口再发送热键",
+            "interval": "按键间隔秒",
+        },
+        "example": {"keys": "ctrl+s", "targetWindow": "Notepad"},
+        "combo": "**老应用 / Electron 应用必备**:菜单藏在背后时直接用快捷键(保存/复制/查找)",
+    },
+}
+
+_ALL_SCHEMAS.update(DESKTOP_MODERN_SCHEMAS)
