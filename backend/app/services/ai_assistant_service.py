@@ -27,6 +27,8 @@ from app.models.ai_assistant import (
 )
 from app.services.ai_assistant_knowledge import build_system_prompt
 from app.services.ai_assistant_skills import execute_skill, registry as skill_registry
+# v2 新增 skill：dry-run / 运行时洞察 / 依赖预检 / 健壮性 / 桌面感知
+import app.services.ai_assistant_skills_v2  # noqa: F401  # side-effect: 注册新 skill
 
 
 # ---------- 持久化 ----------
