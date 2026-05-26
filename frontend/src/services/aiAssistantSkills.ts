@@ -75,7 +75,30 @@ function convertAiNodeToReactFlow(n: any): any {
   // 便签 / 分组节点的样式（默认尺寸，AI 没传时给个合理默认）
   let style: Record<string, any> | undefined = n.style
   if (frontendType === 'noteNode') {
-    style = { width: 220, height: 100, ...(n.style || {}) }
+    // 根据内容长度自动算合适的便签尺寸（避免 AI 不调整尺寸导致文本溢出）
+    const content = String(baseData.content ?? n.data?.content ?? '')
+    const fontSize = Number(baseData.fontSize ?? n.data?.fontSize ?? 13)
+    // 计算每行近似字符数：宽度 / 字号 ≈ 字符数（中文每字符 ~1 字号宽，英文 ~0.55 字号宽）
+    // 用 280 当默认宽度做基准
+    const targetWidth = 280
+    const charsPerLine = Math.floor(targetWidth / (fontSize * 0.95))
+    // 把显式换行符 + 自动换行都计入行数
+    const explicitLines = content.split(/\r?\n/)
+    const totalLines = explicitLines.reduce((sum, line) => {
+      // 中文字符按 1 算，英文/数字按 0.55 算（粗略）
+      let visualWidth = 0
+      for (const ch of line) {
+        visualWidth += /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(ch) ? 1 : 0.55
+      }
+      return sum + Math.max(1, Math.ceil(visualWidth / charsPerLine))
+    }, 0)
+    // 行高 ≈ 字号 * 1.5；外边距上下各 16px
+    const calcHeight = Math.max(70, totalLines * fontSize * 1.5 + 32)
+    style = {
+      width: targetWidth,
+      height: Math.min(800, calcHeight),
+      ...(n.style || {}),
+    }
     // 便签默认黄色
     if (!baseData.color) baseData.color = '#fef08a'
   } else if (frontendType === 'groupNode') {

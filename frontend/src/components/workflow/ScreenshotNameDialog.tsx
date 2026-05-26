@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Image as ImageIcon, AlertCircle, RotateCcw, Info } from 'lucide-react'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface ScreenshotNameDialogProps {
   defaultName: string
@@ -33,7 +34,11 @@ export function ScreenshotNameDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in"
+      style={{ zIndex: 2147483640 }}
+    >
       <div className="modern-dialog w-full max-w-[460px] animate-scale-in-bounce">
         {/* 标题栏 */}
         <div className="modern-dialog-header">
@@ -93,6 +98,7 @@ export function ScreenshotNameDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 
@@ -122,7 +128,11 @@ export function ScreenshotErrorDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] p-4 animate-fade-in"
+      style={{ zIndex: 2147483640 }}
+    >
       <div className="modern-dialog w-full max-w-[480px] animate-scale-in-bounce">
         {/* 标题栏 */}
         <div className="modern-dialog-header">
@@ -198,5 +208,6 @@ export function ScreenshotErrorDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

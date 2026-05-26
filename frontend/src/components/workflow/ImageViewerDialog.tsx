@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, ZoomIn, ZoomOut, RotateCw, Download, Maximize, Minimize, ImageIcon, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getBackendUrl } from '@/services/api'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface ImageViewerDialogProps {
   imageUrl: string
@@ -179,7 +180,8 @@ export function ImageViewerDialog({ imageUrl, autoClose, displayTime, onClose }:
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
+    <DialogPortal>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }}>
       <div 
         ref={containerRef}
         className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in"
@@ -301,6 +303,7 @@ export function ImageViewerDialog({ imageUrl, autoClose, displayTime, onClose }:
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 

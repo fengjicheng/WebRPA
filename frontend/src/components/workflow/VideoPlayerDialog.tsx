@@ -3,6 +3,7 @@ import { X, Play, Pause, Repeat, Volume2, VolumeX, Maximize, Minimize } from 'lu
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { getBackendUrl } from '@/services/api'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface VideoPlayerDialogProps {
   videoUrl: string
@@ -298,7 +299,8 @@ export function VideoPlayerDialog({ videoUrl, waitForEnd, onClose }: VideoPlayer
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
+    <DialogPortal>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }}>
       <div 
         ref={containerRef}
         className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in"
@@ -413,6 +415,7 @@ export function VideoPlayerDialog({ videoUrl, waitForEnd, onClose }: VideoPlayer
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 

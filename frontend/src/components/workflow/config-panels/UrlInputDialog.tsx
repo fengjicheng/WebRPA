@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { UrlInput } from '@/components/ui/url-input'
 import { X } from 'lucide-react'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface UrlInputDialogProps {
   isOpen: boolean
@@ -21,7 +22,8 @@ export function UrlInputDialog({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483640 }}>
+    <DialogPortal>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483646 }}>
       <div className="bg-white text-black border border-gray-200 rounded-xl shadow-2xl w-full max-w-md p-4 overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">选择元素</h3>
@@ -61,5 +63,6 @@ export function UrlInputDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

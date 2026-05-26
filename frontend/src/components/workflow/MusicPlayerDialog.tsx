@@ -3,6 +3,7 @@ import { X, Play, Pause, Repeat, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { getBackendUrl } from '@/services/api'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface MusicPlayerDialogProps {
   audioUrl: string
@@ -198,6 +199,7 @@ export function MusicPlayerDialog({ audioUrl, waitForEnd, onClose }: MusicPlayer
   }
 
   return (
+    <DialogPortal>
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
       style={{ zIndex: 2147483640 }}
@@ -289,6 +291,7 @@ export function MusicPlayerDialog({ audioUrl, waitForEnd, onClose }: MusicPlayer
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }
 

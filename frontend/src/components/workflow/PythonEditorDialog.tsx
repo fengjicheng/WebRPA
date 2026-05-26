@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Editor, { type Monaco, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import type { editor } from 'monaco-editor'
@@ -237,10 +238,10 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
   // 计算行数
   const lineCount = currentCode.split('\n').length
 
-  return (
+  return createPortal(
     <div 
       className="fixed inset-0 flex items-center justify-center bg-black/40 animate-fade-in"
-      style={{ zIndex: 2147483640 }}
+      style={{ zIndex: 2147483646 }}
       onKeyDown={handleKeyDown}
     >
       <div 
@@ -397,6 +398,7 @@ export function PythonEditorDialog({ isOpen, code, onClose, onSave }: PythonEdit
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

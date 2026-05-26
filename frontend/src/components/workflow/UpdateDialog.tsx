@@ -1,6 +1,7 @@
 import { Button } from '../ui/button'
 import { Download, X, Sparkles, ArrowRight, ChevronDown } from 'lucide-react'
 import { getBackendUrl } from '@/services/api'
+import { DialogPortal } from '@/components/ui/dialog-portal'
 
 interface UpdateDialogProps {
   isOpen: boolean
@@ -35,7 +36,11 @@ export function UpdateDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in">
+    <DialogPortal>
+    <div
+      className="fixed inset-0 bg-[hsl(217_45%_15%_/_0.55)] backdrop-blur-[3px] flex items-center justify-center p-4 animate-fade-in"
+      style={{ zIndex: 2147483640 }}
+    >
       <div className="modern-dialog w-full max-w-md animate-scale-in-bounce">
         {/* 顶部彩色装饰区 */}
         <div
@@ -116,5 +121,6 @@ export function UpdateDialog({
         </div>
       </div>
     </div>
+    </DialogPortal>
   )
 }

@@ -386,8 +386,30 @@ async def skill_build_workflow(
     GAP_X = 80          # 同一行节点之间水平间距
     GAP_Y = 160         # 行间距（足够放置 between-node 的边/标签）
     SECTION_GAP = 60    # 不同 section 之间额外间距
-    NOTE_W = 220
+    NOTE_W = 280        # 加宽默认便签宽度，避免长文本溢出
     NOTE_H = 100
+    NOTE_GAP = 30       # 节点与便签之间的间距
+
+    def _calc_note_size(content: str, font_size: int = 12, target_w: int = NOTE_W) -> tuple[int, int]:
+        """根据内容自动算便签尺寸（中文按 1 个字符宽，英文/数字按 0.55 算）。"""
+        text = str(content or "")
+        if not text:
+            return (target_w, NOTE_H)
+        chars_per_line = max(1, int(target_w / (font_size * 0.95)))
+        lines = text.split("\n")
+        total_lines = 0
+        for line in lines:
+            visual = 0.0
+            for ch in line:
+                # 中文/全角符号宽度按 1，英文按 0.55
+                if "\u4e00" <= ch <= "\u9fa5" or "\u3000" <= ch <= "\u303f" or "\uff00" <= ch <= "\uffef":
+                    visual += 1.0
+                else:
+                    visual += 0.55
+            total_lines += max(1, int(visual / chars_per_line) + (1 if visual % chars_per_line else 0))
+        # 行高 ≈ 字号 * 1.5；上下边距各 16
+        h = max(70, int(total_lines * font_size * 1.5 + 32))
+        return (target_w, min(800, h))
     NOTE_GAP = 30       # 节点与便签之间的间距
 
     # 起点（y 留出空间给 title_note + 步骤上方便签）
@@ -539,6 +561,7 @@ async def skill_build_workflow(
 
     # 5a) 顶部"工作流说明"便签（如果有）
     if title_note:
+        title_w, title_h = _calc_note_size(title_note[:600], font_size=14, target_w=max(NOTE_W * 2, 480))
         note_nodes.append({
             "id": _make_node_id(),
             "type": "note",
@@ -551,7 +574,7 @@ async def skill_build_workflow(
                 "fontSize": 14,
                 "fontBold": True,
             },
-            "style": {"width": max(NOTE_W * 2, 380), "height": 80},
+            "style": {"width": title_w, "height": title_h},
             "zIndex": -1,
         })
 
@@ -560,14 +583,16 @@ async def skill_build_workflow(
         if not step.get("comment"):
             continue
         sx, sy = positions[idx]
+        comment_text = str(step["comment"])[:300]
+        cmt_w, cmt_h = _calc_note_size(comment_text, font_size=12, target_w=NOTE_W)
         # 第一行的 step 上方可能与 title_note 重叠 → 这种情况放到节点右侧
         title_overlap_zone = title_note is not None and sy < 200
-        if title_overlap_zone or sy - NOTE_H - NOTE_GAP < 50:
+        if title_overlap_zone or sy - cmt_h - NOTE_GAP < 50:
             nx = sx + NODE_W + NOTE_GAP
             ny = sy
         else:
             nx = sx
-            ny = sy - NOTE_H - NOTE_GAP
+            ny = sy - cmt_h - NOTE_GAP
         note_nodes.append({
             "id": _make_node_id(),
             "type": "note",
@@ -575,11 +600,11 @@ async def skill_build_workflow(
             "data": {
                 "label": "",
                 "moduleType": "note",
-                "content": str(step["comment"])[:300],
+                "content": comment_text,
                 "color": "#fef08a",  # 黄色：步骤注释
                 "fontSize": 12,
             },
-            "style": {"width": NOTE_W, "height": NOTE_H},
+            "style": {"width": cmt_w, "height": cmt_h},
             "zIndex": -1,
         })
 
@@ -622,6 +647,8 @@ async def skill_build_workflow(
             else:
                 nx = float(n.get("x", START_X))
                 ny = float(n.get("y", START_Y))
+            note_fs = int(n.get("font_size", 13))
+            auto_w, auto_h = _calc_note_size(content[:600], font_size=note_fs, target_w=NOTE_W)
             note_nodes.append({
                 "id": _make_node_id(),
                 "type": "note",
@@ -631,13 +658,14 @@ async def skill_build_workflow(
                     "moduleType": "note",
                     "content": content[:600],
                     "color": color,
-                    "fontSize": int(n.get("font_size", 13)),
+                    "fontSize": note_fs,
                     "fontBold": bool(n.get("bold", False)),
                     "fontItalic": bool(n.get("italic", False)),
                 },
                 "style": {
-                    "width": int(n.get("width", NOTE_W)),
-                    "height": int(n.get("height", NOTE_H)),
+                    # AI 显式给了 width/height 就用它，否则用按内容自动计算的尺寸
+                    "width": int(n.get("width", auto_w)),
+                    "height": int(n.get("height", auto_h)),
                 },
                 "zIndex": -1,
             })

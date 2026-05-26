@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Editor, { type Monaco, loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import type { editor } from 'monaco-editor'
@@ -305,10 +306,10 @@ export function InjectJsEditorDialog({ isOpen, code, onClose, onSave }: InjectJs
     e.stopPropagation()
   }
 
-  return (
+  return createPortal(
     <div 
       className="fixed inset-0 flex items-center justify-center bg-black/40 animate-fade-in"
-      style={{ zIndex: 2147483640 }}
+      style={{ zIndex: 2147483646 }}
       onKeyDown={handleKeyDown}
     >
       <div 
@@ -454,6 +455,7 @@ export function InjectJsEditorDialog({ isOpen, code, onClose, onSave }: InjectJs
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

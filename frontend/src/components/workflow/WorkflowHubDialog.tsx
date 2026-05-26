@@ -2379,7 +2379,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
         {/* 工作流详情弹窗 */}
         {selectedWorkflow && (
-          <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483647 }}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="p-6 overflow-y-auto flex-1">
                 <div className="flex items-start justify-between mb-4">
@@ -2616,7 +2616,7 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
         {/* 编辑工作流弹窗 */}
         {editingWorkflow && (
-          <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4 animate-fade-in">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in" style={{ zIndex: 2147483647 }}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="p-6 overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
