@@ -56,14 +56,52 @@ export function AIAssistantPanel() {
   const [showSessions, setShowSessions] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // 用于打断当前任务：保留正在跑的 sessionId 和 AbortController
   const inflightSessionIdRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // 立即滚到底部（不带动画，用于打开面板/切换会话场景）
+  const scrollToBottomImmediate = () => {
+    const c = messagesContainerRef.current
+    if (c) {
+      c.scrollTop = c.scrollHeight
+    }
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, isSending])
+
+  // 打开面板时强制滚到最底（DOM 挂载/重排可能晚于 React 渲染，多帧兜底）
+  useEffect(() => {
+    if (!isOpen) return
+    // 立即一次（同步布局后）
+    scrollToBottomImmediate()
+    // 下一帧再来一次（等子组件 markdown 渲染、图片/代码块布局完）
+    let raf1 = 0
+    let raf2 = 0
+    raf1 = requestAnimationFrame(() => {
+      scrollToBottomImmediate()
+      raf2 = requestAnimationFrame(scrollToBottomImmediate)
+    })
+    // 兜底：80ms 后再滚一次（marked 解析有时是异步）
+    const t = setTimeout(scrollToBottomImmediate, 80)
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      clearTimeout(t)
+    }
+  }, [isOpen])
+
+  // 切换会话后立即滚到底
+  useEffect(() => {
+    if (!isOpen) return
+    scrollToBottomImmediate()
+    const r = requestAnimationFrame(scrollToBottomImmediate)
+    return () => cancelAnimationFrame(r)
+  }, [currentSessionId, isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -432,7 +470,7 @@ export function AIAssistantPanel() {
       )}
 
       {/* 消息区 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && !isSending && (
           <div className="h-full flex flex-col items-center justify-center text-center px-2 animate-fade-in-up">
             <div className="relative mb-4">
