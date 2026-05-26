@@ -3572,6 +3572,7 @@ def _register_all() -> None:
             "- focus_node: 聚焦/选中节点（payload.node_id）\n"
             "- toggle_node_disabled: 启用/禁用节点（payload.node_ids）\n"
             "- align_nodes: 对齐已选中的节点（payload.type='left'|'center'|'right'|'top'|'middle'|'bottom'|'distribute-horizontal'|'distribute-vertical'）\n"
+            "- auto_layout: 自动重排整个画布（拓扑排序，按依赖关系从左到右排列，每行最多 8 个）。一键整理混乱画布\n"
             "- copy_nodes: 复制节点到剪贴板（payload.node_ids）\n"
             "- paste_nodes: 粘贴剪贴板节点（payload.position 可选）\n"
             "- move_node: 把节点移动到指定坐标（payload.node_id, payload.x, payload.y）\n"
