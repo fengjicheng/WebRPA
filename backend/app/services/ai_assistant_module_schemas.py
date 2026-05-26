@@ -2646,3 +2646,333 @@ EXTRA2_SCHEMAS: dict = {
 }
 
 _ALL_SCHEMAS.update(EXTRA2_SCHEMAS)
+
+
+# ============================================================
+# 第八批：yt-dlp / SAP 扩展 / 列表数学高级 / 字符串工具
+# ============================================================
+
+EXTRA3_SCHEMAS: dict = {
+    # yt-dlp 视频下载
+    "ytdlp_download": {
+        "required": ["url"],
+        "optional": ["format", "outputDir", "fileName", "resultVariable"],
+        "defaults": {"format": "best", "resultVariable": "downloaded_video"},
+        "desc": {"format": "best/worst/720p/1080p 等"},
+        "example": {"url": "https://www.youtube.com/watch?v=...", "outputDir": "D:\\\\videos"},
+        "combo": "",
+    },
+    "ytdlp_download_audio": {
+        "required": ["url"],
+        "optional": ["format", "outputDir", "resultVariable"],
+        "defaults": {"format": "mp3", "resultVariable": "downloaded_audio"},
+        "desc": {},
+        "example": {"url": "https://...", "format": "mp3"},
+        "combo": "",
+    },
+    "ytdlp_get_info": {
+        "required": ["url"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "video_info"},
+        "desc": {},
+        "example": {"url": "https://..."},
+        "combo": "",
+    },
+    "ytdlp_download_subtitle": {
+        "required": ["url"],
+        "optional": ["language", "outputDir"],
+        "defaults": {"language": "zh"},
+        "desc": {},
+        "example": {"url": "https://...", "language": "en"},
+        "combo": "",
+    },
+
+    # SAP 扩展
+    "sap_get_status_message": {
+        "required": [],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "status_message"},
+        "desc": {},
+        "example": {},
+        "combo": "",
+    },
+    "sap_get_title": {
+        "required": [],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "title_text"},
+        "desc": {},
+        "example": {},
+        "combo": "",
+    },
+    "sap_close_warning": {
+        "required": [],
+        "optional": [],
+        "defaults": {},
+        "desc": {},
+        "example": {},
+        "combo": "",
+    },
+    "sap_set_checkbox": {
+        "required": ["fieldId", "checked"],
+        "optional": [],
+        "defaults": {"checked": True},
+        "desc": {},
+        "example": {"fieldId": "BTN-X", "checked": True},
+        "combo": "",
+    },
+    "sap_select_combobox": {
+        "required": ["fieldId", "value"],
+        "optional": [],
+        "defaults": {},
+        "desc": {},
+        "example": {"fieldId": "CB-1", "value": "OPT_A"},
+        "combo": "",
+    },
+    "sap_send_vkey": {
+        "required": ["vkey"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"vkey": "F1-F12 或 ENTER"},
+        "example": {"vkey": "F8"},
+        "combo": "",
+    },
+    "sap_read_gridview": {
+        "required": ["gridId"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "grid_data"},
+        "desc": {},
+        "example": {"gridId": "GRID-1"},
+        "combo": "",
+    },
+    "sap_export_gridview_excel": {
+        "required": ["gridId", "filePath"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "export_path"},
+        "desc": {},
+        "example": {"gridId": "GRID-1", "filePath": "D:\\\\out.xlsx"},
+        "combo": "",
+    },
+    "sap_set_focus": {
+        "required": ["fieldId"],
+        "optional": [],
+        "defaults": {},
+        "desc": {},
+        "example": {"fieldId": "F-1"},
+        "combo": "",
+    },
+    "sap_maximize_window": {
+        "required": [],
+        "optional": [],
+        "defaults": {},
+        "desc": {},
+        "example": {},
+        "combo": "",
+    },
+
+    # 列表数学高级
+    "list_shuffle": {
+        "required": ["listVariable"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "shuffled_list"},
+        "desc": {},
+        "example": {"listVariable": "items"},
+        "combo": "",
+    },
+    "list_sample": {
+        "required": ["listVariable", "count"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "sample_list"},
+        "desc": {"count": "随机抽取数量"},
+        "example": {"listVariable": "items", "count": 5},
+        "combo": "",
+    },
+    "list_find": {
+        "required": ["listVariable", "target"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "find_index"},
+        "desc": {"target": "要查找的值"},
+        "example": {"listVariable": "items", "target": "{x}"},
+        "combo": "",
+    },
+    "list_union": {
+        "required": ["lists"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "union_list"},
+        "desc": {},
+        "example": {"lists": ["a", "b"]},
+        "combo": "",
+    },
+    "list_cartesian_product": {
+        "required": ["lists"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "cartesian"},
+        "desc": {},
+        "example": {"lists": ["colors", "sizes"]},
+        "combo": "",
+    },
+
+    # 数学进阶
+    "math_log": {
+        "required": ["value"],
+        "optional": ["base", "resultVariable"],
+        "defaults": {"base": "e", "resultVariable": "log_result"},
+        "desc": {"base": "底数 e/2/10/任意数字"},
+        "example": {"value": "{x}", "base": "10"},
+        "combo": "",
+    },
+    "math_trig": {
+        "required": ["value", "operation"],
+        "optional": ["resultVariable"],
+        "defaults": {"operation": "sin", "resultVariable": "trig_result"},
+        "desc": {"operation": "sin/cos/tan/asin/acos/atan"},
+        "example": {"value": "{x}", "operation": "sin"},
+        "combo": "",
+    },
+    "math_exp": {
+        "required": ["value"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "exp_result"},
+        "desc": {},
+        "example": {"value": "1"},
+        "combo": "",
+    },
+    "math_gcd": {
+        "required": ["a", "b"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "gcd_result"},
+        "desc": {},
+        "example": {"a": "12", "b": "18"},
+        "combo": "",
+    },
+    "math_lcm": {
+        "required": ["a", "b"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "lcm_result"},
+        "desc": {},
+        "example": {"a": "4", "b": "6"},
+        "combo": "",
+    },
+    "math_factorial": {
+        "required": ["value"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "factorial_result"},
+        "desc": {},
+        "example": {"value": "5"},
+        "combo": "",
+    },
+    "math_clamp": {
+        "required": ["value", "min", "max"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "clamped_value"},
+        "desc": {"min": "下限", "max": "上限"},
+        "example": {"value": "{x}", "min": "0", "max": "100"},
+        "combo": "",
+    },
+    "math_base_convert": {
+        "required": ["value", "fromBase", "toBase"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "base_result"},
+        "desc": {"fromBase": "源进制 2/8/10/16", "toBase": "目标进制"},
+        "example": {"value": "FF", "fromBase": "16", "toBase": "10"},
+        "combo": "",
+    },
+    "math_permutation": {
+        "required": ["n", "r"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "perm_result"},
+        "desc": {"n": "总数", "r": "选取数"},
+        "example": {"n": "5", "r": "3"},
+        "combo": "",
+    },
+
+    # 统计扩展
+    "stat_percentile": {
+        "required": ["listVariable", "percentile"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "percentile"},
+        "desc": {"percentile": "分位数 0-100"},
+        "example": {"listVariable": "scores", "percentile": "90"},
+        "combo": "",
+    },
+    "stat_normalize": {
+        "required": ["listVariable"],
+        "optional": ["min", "max", "resultVariable"],
+        "defaults": {"min": "0", "max": "1", "resultVariable": "normalized"},
+        "desc": {},
+        "example": {"listVariable": "values"},
+        "combo": "",
+    },
+    "stat_standardize": {
+        "required": ["listVariable"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "standardized"},
+        "desc": {},
+        "example": {"listVariable": "values"},
+        "combo": "",
+    },
+
+    # 字典扩展
+    "dict_map_values": {
+        "required": ["dictVariable", "expression"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "mapped_dict"},
+        "desc": {"expression": "Python 表达式（value 是当前值）"},
+        "example": {"dictVariable": "scores", "expression": "value * 1.1"},
+        "combo": "",
+    },
+    "dict_deep_copy": {
+        "required": ["dictVariable"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "copied_dict"},
+        "desc": {},
+        "example": {"dictVariable": "data"},
+        "combo": "",
+    },
+
+    # 飞书扩展
+    "feishu_sheet_read": {
+        "required": ["spreadsheetToken", "range"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "sheet_data"},
+        "desc": {"range": "如 Sheet1!A1:D10"},
+        "example": {"spreadsheetToken": "...", "range": "Sheet1!A1:Z100"},
+        "combo": "",
+    },
+    "feishu_sheet_write": {
+        "required": ["spreadsheetToken", "range", "values"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"values": "二维数组"},
+        "example": {"spreadsheetToken": "...", "range": "Sheet1!A1", "values": [["a", "b"]]},
+        "combo": "",
+    },
+
+    # 表格扩展
+    "table_set_cell": {
+        "required": ["row", "column", "value"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"row": "行索引", "column": "列名"},
+        "example": {"row": 0, "column": "name", "value": "Tom"},
+        "combo": "",
+    },
+    "table_get_cell": {
+        "required": ["row", "column"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "cell_value"},
+        "desc": {},
+        "example": {"row": 0, "column": "name"},
+        "combo": "",
+    },
+    "table_delete_row": {
+        "required": ["row"],
+        "optional": [],
+        "defaults": {},
+        "desc": {},
+        "example": {"row": 0},
+        "combo": "",
+    },
+    "table_clear": {"required": [], "optional": [], "defaults": {}, "desc": {}, "example": {}, "combo": ""},
+}
+
+_ALL_SCHEMAS.update(EXTRA3_SCHEMAS)
