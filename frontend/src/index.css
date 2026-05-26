@@ -1709,27 +1709,45 @@ input[type="range"].slider-thumb::-moz-range-thumb {
 .webrpa-logo-letter {
   display: inline-block;
   position: relative;
-  font-style: italic;
-  transform: skewX(-6deg);
   /* 给倾斜字母右侧一点呼吸空间，避免下一个字母压住它的右上角 */
   padding-right: 1.5px;
 }
 
-/* "Web" 三个字母：渐变文字 + 细描边 */
-.webrpa-logo-letter-w,
-.webrpa-logo-letter-e,
-.webrpa-logo-letter-b {
-  background: linear-gradient(135deg,
-    hsl(var(--brand-700)) 0%,
-    hsl(var(--brand-500)) 35%,
-    hsl(var(--info-500)) 70%,
-    hsl(var(--brand-600)) 100%
-  );
+/* "Web" 父容器：共享流光（与 splash 加载页一致），父级倾斜不破坏子级 background-clip:text */
+.webrpa-logo-web {
+  display: inline-block;
+  position: relative;
+  font-style: italic;
+  transform: skewX(-6deg);
+  background:
+    /* 第一层：流光带（动画移动） */
+    linear-gradient(100deg,
+      hsl(0 0% 100% / 0) 40%,
+      hsl(0 0% 100% / 0.95) 50%,
+      hsl(0 0% 100% / 0) 60%
+    ),
+    /* 第二层：基础蓝渐变 */
+    linear-gradient(135deg,
+      hsl(var(--brand-700)) 0%,
+      hsl(var(--brand-500)) 35%,
+      hsl(var(--info-500)) 70%,
+      hsl(var(--brand-600)) 100%
+    );
+  background-size: 320% 100%, 100% 100%;
+  background-position: 200% 0, 0 0;
+  background-repeat: no-repeat, no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
   text-shadow: 0 1px 0 hsl(var(--brand-500) / 0.04);
+  animation: webrpa-logo-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+/* "Web" 子字母只占位 */
+.webrpa-logo-letter-w,
+.webrpa-logo-letter-e,
+.webrpa-logo-letter-b {
   padding: 0 1px;
 }
 
@@ -1740,11 +1758,22 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   margin-left: 7px;
   padding: 3px 10px 3px 8px;
   border-radius: 7px;
-  background: linear-gradient(135deg,
-    hsl(var(--brand-500)) 0%,
-    hsl(var(--brand-600)) 50%,
-    hsl(var(--info-600)) 100%
-  );
+  background:
+    /* 第一层：流光带（与 Web 字母一致） */
+    linear-gradient(100deg,
+      hsl(0 0% 100% / 0) 40%,
+      hsl(0 0% 100% / 0.55) 50%,
+      hsl(0 0% 100% / 0) 60%
+    ),
+    /* 第二层：胶囊蓝渐变底色 */
+    linear-gradient(135deg,
+      hsl(var(--brand-500)) 0%,
+      hsl(var(--brand-600)) 50%,
+      hsl(var(--info-600)) 100%
+    );
+  background-size: 320% 100%, 100% 100%;
+  background-position: 200% 0, 0 0;
+  background-repeat: no-repeat, no-repeat;
   box-shadow:
     0 2px 6px hsl(var(--brand-500) / 0.4),
     inset 0 1px 0 hsl(0 0% 100% / 0.35),
@@ -1752,6 +1781,8 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   position: relative;
   /* pill 内部要 hidden 来裁剪伪元素高光，但右侧给字母留了 padding 所以不会切到字 */
   overflow: hidden;
+  /* 与 Web 容器同步，同一个 keyframes、同一个延迟、同一个方向 */
+  animation: webrpa-logo-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
 .webrpa-logo-r-pill::before {
@@ -1771,39 +1802,29 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   padding: 0 1px;
   position: relative;
   z-index: 1;
+  /* RPA 字母在胶囊内单独斜体（胶囊整体不倾斜，避免变形） */
+  font-style: italic;
+  display: inline-block;
+  transform: skewX(-6deg);
 }
 .webrpa-logo-letter-a {
   /* 最后一个字母不再加右 padding，pill 自己留了空间 */
   padding-right: 0;
 }
 
-/* 流光：从左到右扫过整个 LOGO，约 4 秒一次 */
+/* 流光：从左到右扫过整个 LOGO，与 splash 加载页一致 */
 .webrpa-logo-shine {
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    100deg,
-    transparent 0%,
-    hsl(0 0% 100% / 0) 35%,
-    hsl(0 0% 100% / 0.6) 50%,
-    hsl(0 0% 100% / 0) 65%,
-    transparent 100%
-  );
-  pointer-events: none;
-  animation: webrpa-logo-shine 4.2s ease-in-out infinite;
-  mix-blend-mode: overlay;
+  display: none;
 }
 
 @keyframes webrpa-logo-shine {
-  0% { transform: translateX(0); }
-  60%, 100% { transform: translateX(420%); }
+  0%        { background-position: 200% 0, 0 0; }
+  50%, 100% { background-position: -200% 0, 0 0; }
 }
 
 /* 悬停时整段微微闪一下 */
-.webrpa-logo:hover .webrpa-logo-shine {
+.webrpa-logo:hover .webrpa-logo-web,
+.webrpa-logo:hover .webrpa-logo-r-pill {
   animation-duration: 1.6s;
 }
 

@@ -1120,15 +1120,16 @@ export function Toolbar() {
       {/* Logo/标题 - 艺术字风格 */}
       <div className="flex items-center select-none">
         <span className="webrpa-logo" aria-label="WebRPA">
-          <span className="webrpa-logo-letter webrpa-logo-letter-w">W</span>
-          <span className="webrpa-logo-letter webrpa-logo-letter-e">e</span>
-          <span className="webrpa-logo-letter webrpa-logo-letter-b">b</span>
+          <span className="webrpa-logo-web">
+            <span className="webrpa-logo-letter webrpa-logo-letter-w">W</span>
+            <span className="webrpa-logo-letter webrpa-logo-letter-e">e</span>
+            <span className="webrpa-logo-letter webrpa-logo-letter-b">b</span>
+          </span>
           <span className="webrpa-logo-r-pill">
             <span className="webrpa-logo-letter webrpa-logo-letter-r">R</span>
             <span className="webrpa-logo-letter webrpa-logo-letter-p">P</span>
             <span className="webrpa-logo-letter webrpa-logo-letter-a">A</span>
           </span>
-          <span className="webrpa-logo-shine" aria-hidden="true" />
         </span>
       </div>
 
