@@ -548,12 +548,38 @@ AI_NET_SCHEMAS: dict = {
         "combo": "",
     },
     "python_script": {
-        "required": ["code"],
-        "optional": ["resultVariable"],
-        "defaults": {"resultVariable": "python_result"},
-        "desc": {"code": "Python 代码（return 的值会保存到 resultVariable，自动注入所有工作流变量）"},
-        "example": {"code": "return sum(rows)", "resultVariable": "total"},
-        "combo": "",
+        "required": ["scriptContent"],
+        "optional": ["resultVariable", "scriptMode", "useBuiltinPython", "timeout", "stdoutVariable", "stderrVariable", "returnCodeVariable"],
+        "defaults": {
+            "scriptMode": "content",
+            "useBuiltinPython": True,
+            "timeout": 60,
+            "resultVariable": "python_result",
+        },
+        "desc": {
+            "scriptContent": (
+                "Python 代码字符串。**重要规则**:"
+                "(1) 用户代码会被自动包装在 `def _user_script():` 函数里,所以可以也建议使用 `return 值` 把结果回传给 resultVariable;"
+                "(2) 想读取上游工作流变量,**必须用 `vars.变量名`**(例如 `vars.user_input` 而不是直接 `user_input`);"
+                "(3) 想写入工作流变量,直接 `vars.变量名 = 值`(脚本结束后整套 vars 会自动 sync 回工作流);"
+                "(4) 不要写 import 在脚本最顶层用问题,一切照常。"
+            ),
+            "resultVariable": "脚本 return 的值会写入这个工作流变量,后续节点用 {resultVariable} 引用",
+            "scriptMode": "content(直接写代码) 或 file(从文件读取)",
+            "useBuiltinPython": "True 用内置 Python313;False 用系统 Python",
+            "timeout": "超时秒数",
+            "stdoutVariable": "标准输出 print() 的内容写入此变量",
+            "stderrVariable": "stderr 内容写入此变量",
+            "returnCodeVariable": "进程返回码写入此变量",
+        },
+        "example": {
+            "scriptContent": "import math\nn = int(vars.user_input)\nreturn math.factorial(n)",
+            "resultVariable": "factorial_result",
+            "scriptMode": "content",
+            "useBuiltinPython": True,
+            "timeout": 60,
+        },
+        "combo": "前置 input_prompt 用 variableName=user_input 拿用户输入,脚本内 `vars.user_input` 取值,return 后由 resultVariable 接收;后置 print_log 用 logMessage='结果 = {factorial_result}' 显示",
     },
     "click_image": {
         "required": ["imagePath"],
@@ -577,23 +603,44 @@ AI_NET_SCHEMAS: dict = {
 
 UTIL_SCHEMAS: dict = {
     "print_log": {
-        "required": ["message"],
-        "optional": ["level"],
-        "defaults": {"level": "info"},
-        "desc": {"message": "可用 {var} 引用变量", "level": "info/warning/error/success"},
-        "example": {"message": "处理到第 {i} 项: {item}"},
-        "combo": "调试必备，几乎每一步重要操作后都要 print_log",
+        "required": ["logMessage"],
+        "optional": ["logLevel"],
+        "defaults": {"logLevel": "info"},
+        "desc": {
+            "logMessage": "日志正文,可用 {var_name} 引用上游变量,例如 '阶乘 = {factorial_result}'",
+            "logLevel": "info / warning / error / success / debug",
+        },
+        "example": {"logMessage": "处理到第 {i} 项: {item}", "logLevel": "info"},
+        "combo": "调试必备,几乎每一步重要操作后都要 print_log",
     },
     "input_prompt": {
-        "required": ["prompt"],
-        "optional": ["inputMode", "defaultValue", "variableName"],
-        "defaults": {"inputMode": "text", "variableName": "user_input"},
-        "desc": {
-            "inputMode": "text/password/number/multiline/file/folder/checkbox/slider_int/list",
-            "defaultValue": "默认值",
+        "required": ["variableName"],
+        "optional": ["promptTitle", "promptMessage", "defaultValue", "inputMode", "minValue", "maxValue", "maxLength", "required", "selectOptions"],
+        "defaults": {
+            "promptTitle": "请输入",
+            "promptMessage": "请输入值:",
+            "inputMode": "single",
+            "required": True,
         },
-        "example": {"prompt": "请输入用户名", "variableName": "username"},
-        "combo": "工作流第一步常用，让用户输入参数",
+        "desc": {
+            "variableName": "**必填**:输入值会存到这个变量名,后续节点用 {variableName} 引用",
+            "promptTitle": "弹窗标题",
+            "promptMessage": "弹窗正文(提示用户该输入什么)",
+            "inputMode": "single(单行文本) / multiline(多行) / number(数字) / integer(整数) / password / list(每行一项的列表) / file / folder / checkbox / slider_int / slider_float / select_single / select_multiple",
+            "defaultValue": "默认填入值",
+            "minValue": "数字/滑动条模式下的最小值",
+            "maxValue": "数字/滑动条模式下的最大值",
+            "selectOptions": "select_single/select_multiple 模式的选项数组",
+        },
+        "example": {
+            "variableName": "user_input",
+            "promptTitle": "输入数字",
+            "promptMessage": "请输入要计算阶乘的非负整数",
+            "inputMode": "integer",
+            "minValue": 0,
+            "maxValue": 100,
+        },
+        "combo": "工作流第一步常用,让用户输入参数。下游节点用 {variableName}(本例中是 {user_input}) 引用输入值",
     },
     "system_notification": {
         "required": ["title", "message"],
@@ -4060,3 +4107,356 @@ FINAL_SCHEMAS: dict = {
 }
 
 _ALL_SCHEMAS.update(FINAL_SCHEMAS)
+
+
+# ============================================================================
+# 自动修复补丁：用真实执行器代码扫描出的精确字段名覆盖那些字段名错误的 schema
+# 由 backend/_autofix_schemas.py 生成，包含 338 个 schema 的字段名校准。
+# 加载顺序在最后，会覆盖前面所有 schema 中字段名不准的部分。
+# 涉及模块：input_prompt / python_script / print_log / wait / api_request /
+#         send_email / read_excel / set_variable / set_clipboard / 等 300+ 个
+# ============================================================================
+try:
+    from app.services.ai_assistant_module_schemas_autofix import AUTOFIX_SCHEMAS
+    _ALL_SCHEMAS.update(AUTOFIX_SCHEMAS)
+except ImportError:
+    pass  # autofix 文件可能不存在（开发环境跳过）
+
+
+
+# ============================================================================
+# 高优先级常用模块的精确 schema（手工校准，覆盖 autofix）
+# 这些是 AI 搭建工作流最常用的模块，必填字段、字段说明、example、combo 全部精准
+# ============================================================================
+
+PRIORITY_SCHEMAS: dict = {
+    "wait": {
+        "required": ["waitDuration"],
+        "optional": ["waitType"],
+        "defaults": {"waitType": "fixed", "waitDuration": 1},
+        "desc": {
+            "waitDuration": "等待秒数(数字,例如 2 表示 2 秒)",
+            "waitType": "fixed(固定等待)",
+        },
+        "example": {"waitDuration": 2, "waitType": "fixed"},
+        "combo": "调试用,生产环境优先用 wait_element / wait_page_load",
+    },
+    "set_variable": {
+        "required": ["variableName", "variableValue"],
+        "optional": [],
+        "defaults": {},
+        "desc": {
+            "variableName": "变量名(例如 user_name)",
+            "variableValue": "变量值(支持字符串/数字/布尔/JSON 字面量,也支持 {var} 引用其它变量)",
+        },
+        "example": {"variableName": "counter", "variableValue": 0},
+        "combo": "设置初始变量;循环计数器初始化",
+    },
+    "print_log": {
+        "required": ["logMessage"],
+        "optional": ["logLevel"],
+        "defaults": {"logLevel": "info"},
+        "desc": {
+            "logMessage": "日志正文,可用 {var_name} 引用上游变量,例如 '阶乘 = {factorial_result}'",
+            "logLevel": "info / warning / error / success / debug",
+        },
+        "example": {"logMessage": "处理到第 {i} 项: {item}", "logLevel": "info"},
+        "combo": "调试必备,几乎每一步重要操作后都要 print_log",
+    },
+    "input_prompt": {
+        "required": ["variableName"],
+        "optional": ["promptTitle", "promptMessage", "defaultValue", "inputMode", "minValue", "maxValue", "maxLength", "required", "selectOptions"],
+        "defaults": {
+            "promptTitle": "请输入",
+            "promptMessage": "请输入值:",
+            "inputMode": "single",
+            "required": True,
+        },
+        "desc": {
+            "variableName": "**必填**:输入值会存到这个变量名,后续节点用 {variableName} 引用",
+            "promptTitle": "弹窗标题",
+            "promptMessage": "弹窗正文(提示用户该输入什么)",
+            "inputMode": "single(单行) / multiline / number / integer / password / list / file / folder / checkbox / slider_int / slider_float / select_single / select_multiple",
+            "defaultValue": "默认填入值",
+            "minValue": "数字/滑动条模式下的最小值",
+            "maxValue": "数字/滑动条模式下的最大值",
+            "selectOptions": "select_single/select_multiple 模式的选项数组",
+        },
+        "example": {
+            "variableName": "user_input",
+            "promptTitle": "输入数字",
+            "promptMessage": "请输入要计算阶乘的非负整数",
+            "inputMode": "integer",
+            "minValue": 0,
+            "maxValue": 100,
+        },
+        "combo": "工作流第一步常用,让用户输入参数。下游节点用 {variableName} 引用输入值",
+    },
+    "python_script": {
+        "required": ["scriptContent"],
+        "optional": ["resultVariable", "scriptMode", "useBuiltinPython", "timeout", "stdoutVariable", "stderrVariable", "returnCodeVariable"],
+        "defaults": {
+            "scriptMode": "content",
+            "useBuiltinPython": True,
+            "timeout": 60,
+            "resultVariable": "python_result",
+        },
+        "desc": {
+            "scriptContent": (
+                "Python 代码字符串。**重要规则**:"
+                "(1) 用户代码会被自动包装在 def _user_script(): 函数里,所以使用 `return 值` 把结果回传给 resultVariable;"
+                "(2) 想读取上游工作流变量,**必须用 `vars.变量名`**(例如 `vars.user_input` 而不是直接 `user_input`);"
+                "(3) 想写入工作流变量,直接 `vars.变量名 = 值`(脚本结束后整套 vars 会自动 sync 回工作流);"
+            ),
+            "resultVariable": "脚本 return 的值会写入这个工作流变量",
+            "scriptMode": "content(直接写代码) 或 file(从文件读取)",
+            "useBuiltinPython": "True 用内置 Python313;False 用系统 Python",
+            "timeout": "超时秒数",
+        },
+        "example": {
+            "scriptContent": "import math\nn = int(vars.user_input)\nreturn math.factorial(n)",
+            "resultVariable": "factorial_result",
+            "scriptMode": "content",
+            "useBuiltinPython": True,
+            "timeout": 60,
+        },
+        "combo": "前置 input_prompt 用 variableName=user_input 拿用户输入,脚本内 vars.user_input 取值,return 后 resultVariable 接收;后置 print_log 用 logMessage='结果 = {factorial_result}' 显示",
+    },
+}
+
+_ALL_SCHEMAS.update(PRIORITY_SCHEMAS)
+
+
+
+# ============================================================================
+# 第二批精确 schema:API/邮件/Excel/数据库/字符串/列表常用
+# ============================================================================
+
+PRIORITY_SCHEMAS_2: dict = {
+    "api_request": {
+        "required": ["requestUrl", "requestMethod"],
+        "optional": ["requestHeaders", "requestBody", "requestCookies", "requestTimeout", "verifySSL", "followRedirects", "variableName"],
+        "defaults": {"requestMethod": "GET", "requestTimeout": 30, "verifySSL": True, "followRedirects": True, "variableName": "api_response"},
+        "desc": {
+            "requestUrl": "请求 URL,支持 {var}",
+            "requestMethod": "GET / POST / PUT / DELETE / PATCH",
+            "requestHeaders": "请求头(JSON 对象字符串,如 {\"Authorization\":\"Bearer xxx\"})",
+            "requestBody": "请求体(JSON 字符串或表单字符串)",
+            "variableName": "响应 JSON 存到这个变量(后续 json_parse 解析)",
+        },
+        "example": {"requestUrl": "https://api.example.com/users", "requestMethod": "GET", "requestHeaders": "{\"Accept\":\"application/json\"}", "variableName": "api_data"},
+        "combo": "后接 json_parse 解析返回 → foreach 遍历 → print_log 打印每项",
+    },
+    "send_email": {
+        "required": ["recipientEmail", "emailSubject", "emailContent"],
+        "optional": ["senderEmail", "authCode"],
+        "defaults": {},
+        "desc": {
+            "recipientEmail": "收件人邮箱(多个用逗号分隔)",
+            "emailSubject": "邮件主题",
+            "emailContent": "邮件正文(支持 HTML)",
+            "senderEmail": "发件人邮箱(留空用全局配置)",
+            "authCode": "SMTP 授权码(留空用全局配置)",
+        },
+        "example": {"recipientEmail": "user@example.com", "emailSubject": "工作流完成", "emailContent": "处理了 {count} 项数据"},
+        "combo": "工作流末尾通知用户;失败时发警报",
+    },
+    "read_excel": {
+        "required": ["fileName", "sheetName"],
+        "optional": ["readMode", "cellAddress", "startCell", "endCell", "rowIndex", "columnIndex", "startRow", "startCol", "variableName"],
+        "defaults": {"readMode": "all", "variableName": "excel_data"},
+        "desc": {
+            "fileName": "Excel 文件名(已上传到资源)",
+            "sheetName": "工作表名",
+            "readMode": "all(读全表) / cell(单元格) / range(区域) / row(整行) / column(整列)",
+            "cellAddress": "cell 模式下的单元格地址,如 A1",
+            "variableName": "读到的数据存到此变量",
+        },
+        "example": {"fileName": "data.xlsx", "sheetName": "Sheet1", "readMode": "all", "variableName": "rows"},
+        "combo": "后接 foreach(listVariable=rows) 遍历每行",
+    },
+    "json_parse": {
+        "required": ["sourceVariable"],
+        "optional": ["jsonPath", "columnName", "variableName"],
+        "defaults": {"variableName": "parsed_value"},
+        "desc": {
+            "sourceVariable": "JSON 字符串变量名(例如 api_response)",
+            "jsonPath": "JSONPath 表达式,如 $.data.items 或 $.users[0].name",
+            "variableName": "解析结果变量名",
+        },
+        "example": {"sourceVariable": "api_response", "jsonPath": "$.data.items", "variableName": "items"},
+        "combo": "前置 api_request 拿到响应;后置 foreach 遍历 items",
+    },
+    "regex_extract": {
+        "required": ["inputText", "pattern"],
+        "optional": ["extractMode", "ignoreCase", "variableName"],
+        "defaults": {"extractMode": "first", "ignoreCase": False, "variableName": "regex_result"},
+        "desc": {
+            "inputText": "要匹配的文本(支持 {var})",
+            "pattern": "正则表达式",
+            "extractMode": "first(取第一个) / all(全部匹配)",
+            "variableName": "结果变量名",
+        },
+        "example": {"inputText": "{html_content}", "pattern": "<title>(.+?)</title>", "extractMode": "first", "variableName": "page_title"},
+        "combo": "从 HTML/纯文本里提取结构化数据",
+    },
+    "string_replace": {
+        "required": ["inputText", "searchValue", "replaceValue"],
+        "optional": ["replaceAll", "replaceMode", "variableName"],
+        "defaults": {"replaceAll": True, "variableName": "replaced_text"},
+        "desc": {
+            "inputText": "原文本",
+            "searchValue": "要替换的内容",
+            "replaceValue": "替换后的内容",
+            "replaceAll": "是否替换所有匹配",
+        },
+        "example": {"inputText": "{raw_text}", "searchValue": "old", "replaceValue": "new", "variableName": "cleaned"},
+        "combo": "数据清洗常用",
+    },
+    "string_split": {
+        "required": ["inputText", "separator"],
+        "optional": ["maxSplit", "variableName"],
+        "defaults": {"variableName": "split_result"},
+        "desc": {"inputText": "原字符串", "separator": "分隔符,例如 , 或 \\n", "maxSplit": "最多分几段(0=不限)"},
+        "example": {"inputText": "{csv_line}", "separator": ",", "variableName": "fields"},
+        "combo": "拆 CSV 行;拆 URL 路径段",
+    },
+    "string_concat": {
+        "required": ["string1", "string2"],
+        "optional": ["variableName"],
+        "defaults": {"variableName": "concat_result"},
+        "desc": {"string1": "字符串 1", "string2": "字符串 2"},
+        "example": {"string1": "{prefix}", "string2": "{suffix}", "variableName": "full_path"},
+        "combo": "拼路径;拼 URL",
+    },
+    "list_operation": {
+        "required": ["listVariable", "listAction"],
+        "optional": ["listValue", "listIndex", "resultVariable"],
+        "defaults": {"listAction": "append"},
+        "desc": {
+            "listVariable": "目标列表的变量名",
+            "listAction": "append(尾插) / prepend(头插) / pop(尾出) / shift(头出) / remove(按值移除) / clear",
+            "listValue": "要插入/移除的值(append/prepend/remove 用)",
+            "listIndex": "操作位置索引",
+        },
+        "example": {"listVariable": "items", "listAction": "append", "listValue": "{new_item}"},
+        "combo": "动态构建列表;循环里收集结果",
+    },
+    "dict_operation": {
+        "required": ["dictVariable", "dictAction"],
+        "optional": ["dictKey", "dictValue"],
+        "defaults": {"dictAction": "set"},
+        "desc": {
+            "dictVariable": "目标字典的变量名",
+            "dictAction": "set(写入键) / delete(删除键) / clear(清空)",
+            "dictKey": "键名",
+            "dictValue": "值(set 用)",
+        },
+        "example": {"dictVariable": "user_profile", "dictAction": "set", "dictKey": "name", "dictValue": "{user_name}"},
+        "combo": "构建配置字典;累积统计结果",
+    },
+    "system_notification": {
+        "required": ["notifyTitle", "notifyMessage"],
+        "optional": ["duration"],
+        "defaults": {"duration": 5},
+        "desc": {"notifyTitle": "通知标题", "notifyMessage": "通知正文", "duration": "显示秒数"},
+        "example": {"notifyTitle": "工作流完成", "notifyMessage": "成功处理 {count} 条记录"},
+        "combo": "工作流末尾通知用户;长任务中途反馈进度",
+    },
+    "set_clipboard": {
+        "required": ["textContent"],
+        "optional": ["contentType", "imagePath"],
+        "defaults": {"contentType": "text"},
+        "desc": {
+            "textContent": "要写入剪贴板的文本(支持 {var})",
+            "contentType": "text(文本) / image(图片)",
+            "imagePath": "image 模式下的图片路径",
+        },
+        "example": {"textContent": "{result}", "contentType": "text"},
+        "combo": "工作流末尾把结果写到剪贴板让用户粘贴",
+    },
+    "copy_file": {
+        "required": ["sourcePath", "targetPath"],
+        "optional": ["overwrite", "resultVariable"],
+        "defaults": {"overwrite": False},
+        "desc": {"sourcePath": "源文件绝对路径", "targetPath": "目标文件绝对路径", "overwrite": "目标已存在时是否覆盖"},
+        "example": {"sourcePath": "D:\\\\src\\\\a.txt", "targetPath": "D:\\\\backup\\\\a.txt", "overwrite": True},
+        "combo": "备份/批量复制",
+    },
+    "delete_file": {
+        "required": ["filePath"],
+        "optional": ["deleteType"],
+        "defaults": {"deleteType": "file"},
+        "desc": {"filePath": "目标路径", "deleteType": "file(单文件) / folder(整个目录) / glob(通配符)"},
+        "example": {"filePath": "D:\\\\temp\\\\old.log", "deleteType": "file"},
+        "combo": "高危操作,优先在工作流头部用 confirm 节点确认",
+    },
+    "extract_table_data": {
+        "required": ["tableSelector"],
+        "optional": ["headerRow", "includeHeader", "exportToExcel", "excelPath", "variableName"],
+        "defaults": {"headerRow": 1, "includeHeader": True, "exportToExcel": False, "variableName": "table_data"},
+        "desc": {
+            "tableSelector": "表格的 CSS/XPath 选择器(例如 table.data-table)",
+            "headerRow": "表头所在行号(1-based)",
+            "exportToExcel": "True 自动导出到 Excel 文件",
+            "excelPath": "导出路径",
+            "variableName": "表格数据存到此变量",
+        },
+        "example": {"tableSelector": "table.tbl-data", "headerRow": 1, "includeHeader": True, "variableName": "rows"},
+        "combo": "网页表格批量采集;后接 foreach 遍历 rows",
+    },
+    "download_file": {
+        "required": ["downloadUrl"],
+        "optional": ["downloadMode", "fileName", "savePath", "triggerSelector", "variableName"],
+        "defaults": {"downloadMode": "url", "variableName": "download_path"},
+        "desc": {
+            "downloadUrl": "下载 URL",
+            "downloadMode": "url(直接下载) / trigger(点击触发下载)",
+            "savePath": "保存目录",
+            "fileName": "保存文件名(可空,自动从 URL 取)",
+            "triggerSelector": "trigger 模式下的触发按钮选择器",
+            "variableName": "下载完成后的本地路径存到此变量",
+        },
+        "example": {"downloadUrl": "https://example.com/file.zip", "downloadMode": "url", "savePath": "D:\\\\downloads", "variableName": "saved_path"},
+        "combo": "批量下载文件",
+    },
+    "switch_iframe": {
+        "required": ["locateBy"],
+        "optional": ["iframeSelector", "iframeIndex", "iframeName"],
+        "defaults": {"locateBy": "selector"},
+        "desc": {
+            "locateBy": "selector(选择器) / index(索引) / name(name 属性)",
+            "iframeSelector": "iframe 的 CSS/XPath 选择器",
+            "iframeIndex": "iframe 的索引(0-based)",
+            "iframeName": "iframe 的 name 属性",
+        },
+        "example": {"locateBy": "selector", "iframeSelector": "iframe#payment"},
+        "combo": "进入 iframe 后做操作,操作完用 switch_to_main 切回",
+    },
+    "inject_javascript": {
+        "required": ["javascriptCode"],
+        "optional": ["injectMode", "targetUrl", "targetIndex", "saveResult"],
+        "defaults": {"injectMode": "current", "saveResult": False},
+        "desc": {
+            "javascriptCode": "要执行的 JS 代码字符串",
+            "injectMode": "current(当前页面) / url(指定 URL 的标签页) / index(指定标签页索引)",
+            "saveResult": "True 把 JS return 的值存到 saveResult 指定的变量名",
+        },
+        "example": {"javascriptCode": "return document.title", "injectMode": "current", "saveResult": "page_title"},
+        "combo": "复杂网页交互;读取 window/document 状态",
+    },
+    "handle_dialog": {
+        "required": ["dialogAction"],
+        "optional": ["promptText", "saveMessage"],
+        "defaults": {"dialogAction": "accept"},
+        "desc": {
+            "dialogAction": "accept(确定) / dismiss(取消) / prompt(填值后确定)",
+            "promptText": "prompt 模式下要填入的文本",
+            "saveMessage": "True 把弹窗 message 存到此变量名",
+        },
+        "example": {"dialogAction": "accept"},
+        "combo": "处理 alert/confirm/prompt 弹窗,放在 click 之前预设动作",
+    },
+}
+
+_ALL_SCHEMAS.update(PRIORITY_SCHEMAS_2)
