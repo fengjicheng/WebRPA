@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { Input } from './input'
 import { cn } from '@/lib/utils'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { getModuleDefaultVar } from '@/lib/moduleDefaultVars'
 import type { Variable } from '@/types'
 
 // 从节点配置中提取变量名的字段列表
@@ -183,164 +184,9 @@ export function VariableNameInput({
       VARIABLE_NAME_FIELDS.forEach(field => {
         let varName = data[field] as string | undefined
         
-        // 如果字段没有值，尝试使用默认值
+        // 如果字段没有值，尝试用集中表里的默认变量名
         if (!varName || !varName.trim()) {
-          // 为触发器模块提供默认变量名
-          if (moduleType === 'element_change_trigger') {
-            if (field === 'saveNewElementSelector') {
-              varName = 'new_element_selector'
-            } else if (field === 'saveChangeInfo') {
-              varName = 'element_change_info'
-            }
-          } else if (moduleType === 'webhook_trigger' && field === 'saveToVariable') {
-            varName = 'webhook_data'
-          } else if (moduleType === 'file_watcher_trigger' && field === 'saveToVariable') {
-            varName = 'file_event'
-          } else if (moduleType === 'email_trigger' && field === 'saveToVariable') {
-            varName = 'email_data'
-          } else if (moduleType === 'api_trigger' && field === 'saveToVariable') {
-            varName = 'api_response'
-          } else if (moduleType === 'mouse_trigger' && field === 'saveToVariable') {
-            varName = 'mouse_position'
-          } else if (moduleType === 'image_trigger' && field === 'saveToVariable') {
-            varName = 'image_position'
-          } else if (moduleType === 'sound_trigger' && field === 'saveToVariable') {
-            varName = 'sound_volume'
-          } else if (moduleType === 'face_trigger' && field === 'saveToVariable') {
-            varName = 'face_detected'
-          }
-          // 媒体模块默认值
-          else if (moduleType === 'format_convert' && field === 'resultVariable') {
-            varName = 'converted_path'
-          } else if (moduleType === 'compress_image' && field === 'resultVariable') {
-            varName = 'compressed_image'
-          } else if (moduleType === 'compress_video' && field === 'resultVariable') {
-            varName = 'compressed_video'
-          } else if (moduleType === 'extract_audio' && field === 'resultVariable') {
-            varName = 'extracted_audio'
-          } else if (moduleType === 'trim_video' && field === 'resultVariable') {
-            varName = 'trimmed_video'
-          } else if (moduleType === 'merge_media' && field === 'resultVariable') {
-            varName = 'merged_file'
-          } else if (moduleType === 'add_watermark' && field === 'resultVariable') {
-            varName = 'watermarked_file'
-          } else if (moduleType === 'face_recognition' && field === 'resultVariable') {
-            varName = 'face_match_result'
-          } else if (moduleType === 'image_ocr' && field === 'resultVariable') {
-            varName = 'ocr_text'
-          } else if (moduleType === 'rotate_video' && field === 'resultVariable') {
-            varName = 'rotated_video'
-          } else if (moduleType === 'video_speed' && field === 'resultVariable') {
-            varName = 'speed_video'
-          } else if (moduleType === 'extract_frame' && field === 'resultVariable') {
-            varName = 'frame_image'
-          } else if (moduleType === 'add_subtitle' && field === 'resultVariable') {
-            varName = 'subtitled_video'
-          } else if (moduleType === 'adjust_volume' && field === 'resultVariable') {
-            varName = 'adjusted_audio'
-          } else if (moduleType === 'resize_video' && field === 'resultVariable') {
-            varName = 'resized_video'
-          } else if (moduleType === 'camera_capture' && field === 'saveToVariable') {
-            varName = 'camera_photo'
-          } else if (moduleType === 'camera_record' && field === 'saveToVariable') {
-            varName = 'camera_video'
-          }
-          // 其他常见模块的默认变量名
-          else if (moduleType === 'api_request' && field === 'resultVariable') {
-            varName = 'api_response'
-          } else if (moduleType === 'send_email' && field === 'resultVariable') {
-            varName = 'email_sent'
-          } else if (moduleType === 'read_excel' && field === 'resultVariable') {
-            varName = 'excel_data'
-          } else if (moduleType === 'screenshot' && field === 'resultVariable') {
-            varName = 'screenshot_path'
-          } else if (moduleType === 'get_element_info' && field === 'resultVariable') {
-            varName = 'element_info'
-          } else if (moduleType === 'download_file' && field === 'resultVariable') {
-            varName = 'file_downloaded'
-          } else if (moduleType === 'extract_table_data' && field === 'resultVariable') {
-            varName = 'table_data'
-          } else if (moduleType === 'run_command' && field === 'resultVariable') {
-            varName = 'command_output'
-          } else if (moduleType === 'js_script' && field === 'resultVariable') {
-            varName = 'js_result'
-          } else if (moduleType === 'python_script' && field === 'resultVariable') {
-            varName = 'python_result'
-          } else if (moduleType === 'ai_chat' && field === 'resultVariable') {
-            varName = 'ai_response'
-          } else if (moduleType === 'ai_vision' && field === 'resultVariable') {
-            varName = 'vision_result'
-          } else if (moduleType === 'ocr_captcha' && field === 'resultVariable') {
-            varName = 'captcha_text'
-          } else if (moduleType === 'image_ocr' && field === 'resultVariable') {
-            varName = 'ocr_text'
-          } else if (moduleType === 'face_recognition' && field === 'resultVariable') {
-            varName = 'face_match_result'
-          } else if (moduleType === 'click_image' && field === 'resultVariable') {
-            varName = 'image_clicked'
-          } else if (moduleType === 'click_text' && field === 'resultVariable') {
-            varName = 'text_clicked'
-          } else if (moduleType === 'list_operation' && field === 'resultVariable') {
-            varName = 'list_result'
-          } else if (moduleType === 'dict_operation' && field === 'resultVariable') {
-            varName = 'dict_result'
-          } else if (moduleType === 'string_replace' && field === 'resultVariable') {
-            varName = 'replaced_string'
-          } else if (moduleType === 'regex_extract' && field === 'resultVariable') {
-            varName = 'regex_result'
-          } else if (moduleType === 'json_parse' && field === 'resultVariable') {
-            varName = 'json_data'
-          } else if (moduleType === 'base64' && field === 'resultVariable') {
-            varName = 'encoded_data'
-          } else if (moduleType === 'random_number' && field === 'resultVariable') {
-            varName = 'random_value'
-          } else if (moduleType === 'get_time' && field === 'resultVariable') {
-            varName = 'current_time'
-          } else if (moduleType === 'db_query' && field === 'resultVariable') {
-            varName = 'query_result'
-          } else if (moduleType === 'db_execute' && field === 'resultVariable') {
-            varName = 'execute_result'
-          } else if (moduleType === 'db_insert' && field === 'resultVariable') {
-            varName = 'insert_result'
-          } else if (moduleType === 'db_update' && field === 'resultVariable') {
-            varName = 'update_result'
-          } else if (moduleType === 'db_delete' && field === 'resultVariable') {
-            varName = 'delete_result'
-          } else if (moduleType === 'list_get' && field === 'resultVariable') {
-            varName = 'list_item'
-          } else if (moduleType === 'list_length' && field === 'resultVariable') {
-            varName = 'list_size'
-          } else if (moduleType === 'dict_get' && field === 'resultVariable') {
-            varName = 'dict_value'
-          } else if (moduleType === 'dict_keys' && field === 'resultVariable') {
-            varName = 'dict_keys_list'
-          } else if (moduleType === 'get_clipboard' && field === 'resultVariable') {
-            varName = 'clipboard_content'
-          } else if (moduleType === 'get_mouse_position' && field === 'resultVariable') {
-            varName = 'mouse_position'
-          } else if (moduleType === 'screenshot_screen' && field === 'resultVariable') {
-            varName = 'screen_shot'
-          } else if (moduleType === 'list_files' && field === 'resultVariable') {
-            varName = 'files_list'
-          } else if (moduleType === 'get_file_info' && field === 'resultVariable') {
-            varName = 'file_info'
-          } else if (moduleType === 'read_text_file' && field === 'resultVariable') {
-            varName = 'file_content'
-          } else if (moduleType === 'input_prompt' && field === 'resultVariable') {
-            varName = 'user_input'
-          } else if (moduleType === 'network_capture' && field === 'resultVariable') {
-            varName = 'network_requests'
-          } else if (moduleType === 'firecrawl_scrape' && field === 'resultVariable') {
-            varName = 'firecrawl_data'
-          } else if (moduleType === 'ai_smart_scraper' && field === 'resultVariable') {
-            varName = 'scraped_data'
-          } else if (moduleType === 'ai_element_selector' && field === 'resultVariable') {
-            varName = 'selector_result'
-          } else if (moduleType === 'phone_screenshot' && field === 'resultVariable') {
-            varName = 'phone_screenshot'
-          } else if (moduleType === 'phone_get_clipboard' && field === 'resultVariable') {
-            varName = 'phone_clipboard_content'
-          }
+          varName = getModuleDefaultVar(moduleType, field)
         }
         
         if (typeof varName === 'string' && varName.trim() && !variableMap.has(varName)) {

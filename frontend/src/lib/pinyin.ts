@@ -164,6 +164,17 @@ const pinyinMap: Record<string, string> = {
   投: 'tou',
   // 触发器关键词补充
   周: 'zhou', 箱: 'xiang', 钩: 'gou', 隔: 'ge',
+  // 模块标签补全（确保所有模块都能拼音搜索）
+  器: 'qi', 比: 'bi', 差: 'cha', 飞: 'fei', 书: 'shu', 平: 'ping',
+  试: 'shi', 盲: 'mang', 反: 'fan', 扁: 'bian', 公: 'gong', 百: 'bai',
+  准: 'zhun', 例: 'li', 告: 'gao', 树: 'shu', 钉: 'ding', 站: 'zhan',
+  异: 'yi', 主: 'zhu', 均: 'jun', 笛: 'di', 卡: 'ka', 尔: 'er',
+  乱: 'luan', 四: 'si', 舍: 'she', 五: 'wu', 绝: 'jue', 三: 'san',
+  指: 'zhi', 约: 'yue', 阶: 'jie', 范: 'fan', 众: 'zhong', 归: 'gui',
+  一: 'yi', 符: 'fu', 安: 'an', 推: 'tui', 骤: 'zhou', 附: 'fu',
+  绪: 'xu', 菜: 'cai', 项: 'xiang', 企: 'qi', 业: 'ye', 酱: 'jiang',
+  事: 'shi', 虚: 'xu', 题: 'ti', 警: 'jing', 强: 'qiang', 声: 'sheng',
+  手: 'shou', 势: 'shi', 见: 'jian', 拍: 'pai', 义: 'yi',
 }
 
 /**

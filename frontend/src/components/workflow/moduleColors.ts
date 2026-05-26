@@ -143,9 +143,9 @@ export const moduleColors: Record<string, string> = {
 
   // ===== 元素判断 - 靛蓝色 =====
 
-  element_exists: 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  element_exists: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  element_visible: 'border-indigo-500 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  element_visible: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
 
 
@@ -205,63 +205,63 @@ export const moduleColors: Record<string, string> = {
 
   // ===== 🔢 数学运算 - 青绿色 =====
 
-  math_round: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_round: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_base_convert: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_base_convert: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_floor: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_floor: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_modulo: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_modulo: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_abs: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_abs: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_sqrt: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_sqrt: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_power: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_power: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_log: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_log: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_trig: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_trig: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_exp: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_exp: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_gcd: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_gcd: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_lcm: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_lcm: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_factorial: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_factorial: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_permutation: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_permutation: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_percentage: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_percentage: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_clamp: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_clamp: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  math_random_advanced: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  math_random_advanced: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
   
 
   // ===== 统计分析 - 青绿色 =====
 
-  stat_median: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_median: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_mode: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_mode: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_variance: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_variance: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_stdev: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_stdev: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_percentile: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_percentile: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_normalize: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_normalize: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  stat_standardize: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  stat_standardize: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  csv_parse: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  csv_parse: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  csv_generate: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  csv_generate: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_to_string_advanced: 'border-teal-500 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
+  list_to_string_advanced: 'border-emerald-700 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
 
 
@@ -295,49 +295,49 @@ export const moduleColors: Record<string, string> = {
 
   list_export: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_sum: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_sum: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_average: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_average: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_max: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_max: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_min: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_min: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_sort: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_sort: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_unique: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_unique: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_slice: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_slice: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
-  list_reverse: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_reverse: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_find: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_find: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_count: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_count: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_filter: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_filter: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_map: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_map: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_merge: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_merge: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_flatten: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_flatten: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_chunk: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_chunk: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_remove_empty: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_remove_empty: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_intersection: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_intersection: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_union: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_union: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_difference: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_difference: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_cartesian_product: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_cartesian_product: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_shuffle: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_shuffle: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  list_sample: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  list_sample: 'border-green-700 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
   dict_operation: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
@@ -345,21 +345,21 @@ export const moduleColors: Record<string, string> = {
 
   dict_keys: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  dict_merge: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_merge: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_filter: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_filter: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_map_values: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_map_values: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_invert: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_invert: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_sort: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_sort: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_deep_copy: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_deep_copy: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_get_path: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_get_path: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  dict_flatten: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
+  dict_flatten: 'border-teal-600 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
 
 
@@ -401,97 +401,97 @@ export const moduleColors: Record<string, string> = {
 
   // Oracle数据库
 
-  oracle_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_connect: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_query: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_query: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_execute: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_execute: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_insert: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_insert: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_update: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_update: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_delete: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_delete: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
-  oracle_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  oracle_disconnect: 'border-red-600 bg-red-100 dark:bg-red-900 text-red-900 dark:text-red-100',
 
   // PostgreSQL数据库
 
-  postgresql_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_connect: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_query: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_query: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_execute: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_execute: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_insert: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_insert: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_update: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_update: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_delete: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_delete: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
-  postgresql_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  postgresql_disconnect: 'border-blue-600 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
   // MongoDB数据库
 
-  mongodb_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_connect: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  mongodb_find: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_find: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  mongodb_insert: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_insert: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  mongodb_update: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_update: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  mongodb_delete: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_delete: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  mongodb_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  mongodb_disconnect: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
   // SQL Server数据库
 
-  sqlserver_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_connect: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_query: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_query: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_execute: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_execute: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_insert: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_insert: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_update: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_update: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_delete: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_delete: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sqlserver_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlserver_disconnect: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
   // SQLite数据库
 
-  sqlite_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_connect: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_query: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_query: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_execute: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_execute: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_insert: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_insert: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_update: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_update: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_delete: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_delete: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  sqlite_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  sqlite_disconnect: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
   // Redis数据库
 
-  redis_connect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_connect: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_get: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_get: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_set: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_set: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_del: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_del: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_hget: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_hget: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_hset: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_hset: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  redis_disconnect: 'border-sky-600 bg-sky-100 dark:bg-sky-900 text-sky-900 dark:text-sky-100',
+  redis_disconnect: 'border-rose-600 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
 
 
@@ -501,9 +501,9 @@ export const moduleColors: Record<string, string> = {
 
   loop: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
 
-  foreach: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
+  foreach: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
-  foreach_dict: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
+  foreach_dict: 'border-green-600 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100',
 
   break_loop: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
 
@@ -515,7 +515,7 @@ export const moduleColors: Record<string, string> = {
 
   subflow_header: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
 
-  probability_trigger: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
+  probability_trigger: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
 
   stop_workflow: 'border-orange-500 bg-orange-100 dark:bg-orange-900 text-orange-900 dark:text-orange-100',
 
@@ -753,9 +753,9 @@ export const moduleColors: Record<string, string> = {
 
   ai_vision: 'border-violet-700 bg-violet-100 dark:bg-violet-900 text-violet-900 dark:text-violet-100',
 
-  ai_generate_image: 'border-violet-700 bg-violet-100 dark:bg-violet-900 text-violet-900 dark:text-violet-100',
+  ai_generate_image: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
 
-  ai_generate_video: 'border-violet-700 bg-violet-100 dark:bg-violet-900 text-violet-900 dark:text-violet-100',
+  ai_generate_video: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
 
 
 
@@ -887,97 +887,97 @@ export const moduleColors: Record<string, string> = {
 
   // ===== 实用工具 - 石板色 =====
 
-  file_hash_compare: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  file_hash_compare: 'border-teal-800 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  file_diff_compare: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  file_diff_compare: 'border-teal-800 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  folder_hash_compare: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  folder_hash_compare: 'border-teal-800 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  folder_diff_compare: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  folder_diff_compare: 'border-teal-800 bg-teal-100 dark:bg-teal-900 text-teal-900 dark:text-teal-100',
 
-  random_password_generator: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  random_password_generator: 'border-indigo-800 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  url_encode_decode: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  url_encode_decode: 'border-indigo-800 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  md5_encrypt: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  md5_encrypt: 'border-indigo-800 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  sha_encrypt: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  sha_encrypt: 'border-indigo-800 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
 
-  timestamp_converter: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  timestamp_converter: 'border-pink-800 bg-pink-100 dark:bg-pink-900 text-pink-900 dark:text-pink-100',
 
-  rgb_to_hsv: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  rgb_to_hsv: 'border-pink-800 bg-pink-100 dark:bg-pink-900 text-pink-900 dark:text-pink-100',
 
-  rgb_to_cmyk: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  rgb_to_cmyk: 'border-pink-800 bg-pink-100 dark:bg-pink-900 text-pink-900 dark:text-pink-100',
 
-  hex_to_cmyk: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  hex_to_cmyk: 'border-pink-800 bg-pink-100 dark:bg-pink-900 text-pink-900 dark:text-pink-100',
 
-  uuid_generator: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  uuid_generator: 'border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
 
-  printer_call: 'border-slate-500 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  printer_call: 'border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
 
 
 
   // ===== 辅助工具 - 灰色 =====
 
-  print_log: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  print_log: 'border-amber-700 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  play_sound: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  play_sound: 'border-amber-700 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  system_notification: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  system_notification: 'border-amber-700 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  play_music: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  play_music: 'border-rose-700 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  play_video: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  play_video: 'border-rose-700 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  view_image: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  view_image: 'border-rose-700 bg-rose-100 dark:bg-rose-900 text-rose-900 dark:text-rose-100',
 
-  input_prompt: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  input_prompt: 'border-cyan-800 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
 
-  text_to_speech: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  text_to_speech: 'border-amber-700 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  js_script: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  js_script: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
-  python_script: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  python_script: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
-  export_log: 'border-gray-500 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  export_log: 'border-amber-700 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
 
 
   // ===== 📢 多渠道通知 - 靛蓝色 =====
 
-  notify_discord: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_discord: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_telegram: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_telegram: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_dingtalk: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_dingtalk: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_wecom: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_wecom: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_feishu: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_feishu: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_bark: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_bark: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_slack: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_slack: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_msteams: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_msteams: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_pushover: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_pushover: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_pushbullet: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_pushbullet: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_gotify: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_gotify: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_serverchan: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_serverchan: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_pushplus: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_pushplus: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_webhook: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_webhook: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_ntfy: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_ntfy: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_matrix: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_matrix: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
-  notify_rocketchat: 'border-indigo-600 bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100',
+  notify_rocketchat: 'border-amber-600 bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100',
 
 
 
@@ -1009,9 +1009,9 @@ export const moduleColors: Record<string, string> = {
 
   // ===== 分组/备注 - 特殊颜色 =====
 
-  group: 'border-gray-400 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
+  group: 'border-stone-500 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100',
 
-  note: 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900 text-yellow-900 dark:text-yellow-100',
+  note: 'border-stone-500 bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100',
 
 
 
@@ -1040,42 +1040,42 @@ export const moduleColors: Record<string, string> = {
   ssh_disconnect: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
   // ===== 🏢 SAP GUI 自动化 - 深蓝宝石色 =====
-  sap_login: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_logout: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_run_tcode: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_set_field_value: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_get_field_value: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_click_button: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_send_vkey: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_get_status_message: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_get_title: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_close_warning: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_set_checkbox: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_select_combobox: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_read_gridview: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_export_gridview_excel: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_set_focus: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
-  sap_maximize_window: 'border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100',
+  sap_login: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_logout: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_run_tcode: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_set_field_value: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_get_field_value: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_click_button: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_send_vkey: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_get_status_message: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_get_title: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_close_warning: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_set_checkbox: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_select_combobox: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_read_gridview: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_export_gridview_excel: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_set_focus: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
+  sap_maximize_window: 'border-blue-800 bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100',
 
   // ===== Allure测试报告 - 青色 =====
-  allure_init: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
-  allure_start_test: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
-  allure_add_step: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
-  allure_add_attachment: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
-  allure_stop_test: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
-  allure_generate_report: 'border-cyan-600 bg-cyan-100 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100',
+  allure_init: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
+  allure_start_test: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
+  allure_add_step: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
+  allure_add_attachment: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
+  allure_stop_test: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
+  allure_generate_report: 'border-emerald-600 bg-emerald-100 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-100',
 
   // ===== 桌面应用自动化 - 石板色 =====
-  desktop_app_get_info: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_app_wait_ready: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_window_list: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_control_info: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_control_tree: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_set_value: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_drag_control: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_list_operate: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_get_property: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-  desktop_dialog_handle: 'border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100',
+  desktop_app_get_info: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_app_wait_ready: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_window_list: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_control_info: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_control_tree: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_set_value: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_drag_control: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_list_operate: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_get_property: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  desktop_dialog_handle: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
   // ===== 🧩 自定义模块 - 紫色 =====
   custom_module: 'border-purple-600 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
@@ -1096,5 +1096,10 @@ export const moduleColors: Record<string, string> = {
   error: 'border-gray-500 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
   success: 'border-gray-500 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
 
-}
+  // ===== 盲水印（隐式数字水印） =====
+  bwm_embed_text: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
+  bwm_extract_text: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
+  bwm_embed_image: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
+  bwm_extract_image: 'border-purple-700 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
 
+}

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { getModuleDefaultVar } from '@/lib/moduleDefaultVars'
 import type { Variable } from '@/types'
 
 // 从节点配置中提取变量名的字段列表
@@ -95,74 +96,15 @@ const VariableInput = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, V
       nodes.forEach(node => {
         const data = node.data as Record<string, unknown>
         const moduleType = data.moduleType as string
-        
+
         VARIABLE_NAME_FIELDS.forEach(field => {
           let varName = data[field] as string | undefined
-          
-          // 如果字段没有值，尝试使用默认值
+
+          // 如果字段没有值，尝试用集中表里的默认变量名
           if (!varName || !varName.trim()) {
-            // 为触发器模块提供默认变量名
-            if (moduleType === 'element_change_trigger') {
-              if (field === 'saveNewElementSelector') {
-                varName = 'new_element_selector'
-              } else if (field === 'saveChangeInfo') {
-                varName = 'element_change_info'
-              }
-            } else if (moduleType === 'webhook_trigger' && field === 'saveToVariable') {
-              varName = 'webhook_data'
-            } else if (moduleType === 'file_watcher_trigger' && field === 'saveToVariable') {
-              varName = 'file_event'
-            } else if (moduleType === 'email_trigger' && field === 'saveToVariable') {
-              varName = 'email_data'
-            } else if (moduleType === 'api_trigger' && field === 'saveToVariable') {
-              varName = 'api_response'
-            } else if (moduleType === 'mouse_trigger' && field === 'saveToVariable') {
-              varName = 'mouse_position'
-            } else if (moduleType === 'image_trigger' && field === 'saveToVariable') {
-              varName = 'image_position'
-            } else if (moduleType === 'sound_trigger' && field === 'saveToVariable') {
-              varName = 'sound_volume'
-            } else if (moduleType === 'face_trigger' && field === 'saveToVariable') {
-              varName = 'face_detected'
-            }
-            // 媒体模块默认值
-            else if (moduleType === 'format_convert' && field === 'resultVariable') {
-              varName = 'converted_path'
-            } else if (moduleType === 'compress_image' && field === 'resultVariable') {
-              varName = 'compressed_image'
-            } else if (moduleType === 'compress_video' && field === 'resultVariable') {
-              varName = 'compressed_video'
-            } else if (moduleType === 'extract_audio' && field === 'resultVariable') {
-              varName = 'extracted_audio'
-            } else if (moduleType === 'trim_video' && field === 'resultVariable') {
-              varName = 'trimmed_video'
-            } else if (moduleType === 'merge_media' && field === 'resultVariable') {
-              varName = 'merged_file'
-            } else if (moduleType === 'add_watermark' && field === 'resultVariable') {
-              varName = 'watermarked_file'
-            } else if (moduleType === 'face_recognition' && field === 'resultVariable') {
-              varName = 'face_match_result'
-            } else if (moduleType === 'image_ocr' && field === 'resultVariable') {
-              varName = 'ocr_text'
-            } else if (moduleType === 'rotate_video' && field === 'resultVariable') {
-              varName = 'rotated_video'
-            } else if (moduleType === 'video_speed' && field === 'resultVariable') {
-              varName = 'speed_video'
-            } else if (moduleType === 'extract_frame' && field === 'resultVariable') {
-              varName = 'frame_image'
-            } else if (moduleType === 'add_subtitle' && field === 'resultVariable') {
-              varName = 'subtitled_video'
-            } else if (moduleType === 'adjust_volume' && field === 'resultVariable') {
-              varName = 'adjusted_audio'
-            } else if (moduleType === 'resize_video' && field === 'resultVariable') {
-              varName = 'resized_video'
-            } else if (moduleType === 'camera_capture' && field === 'saveToVariable') {
-              varName = 'camera_photo'
-            } else if (moduleType === 'camera_record' && field === 'saveToVariable') {
-              varName = 'camera_video'
-            }
+            varName = getModuleDefaultVar(moduleType, field)
           }
-          
+
           if (typeof varName === 'string' && varName.trim() && !variableMap.has(varName)) {
             // 根据模块类型推断变量类型
             let varType: Variable['type'] = 'string'
