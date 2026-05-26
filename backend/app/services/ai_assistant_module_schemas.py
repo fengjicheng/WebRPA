@@ -4464,51 +4464,11 @@ _ALL_SCHEMAS.update(PRIORITY_SCHEMAS_2)
 
 
 # ============================================================================
-# 现代桌面应用增强模块 schema(Electron / 游戏 / Canvas 应用专用)
+# 现代桌面应用增强模块 schema(Electron / Canvas 应用专用 - 仅热键)
+# 注:OCR 文字点击 / 图像匹配点击 / 区域 OCR 已由 click_text / click_image / image_ocr 等通用模块覆盖
 # ============================================================================
 
 DESKTOP_MODERN_SCHEMAS: dict = {
-    "desktop_click_by_ocr": {
-        "required": ["targetText"],
-        "optional": ["clickButton", "clickCount", "timeout", "matchMode", "region"],
-        "defaults": {"clickButton": "left", "clickCount": 1, "timeout": 10, "matchMode": "contains"},
-        "desc": {
-            "targetText": "要 OCR 识别并点击的文字(支持中英文)",
-            "clickButton": "left / right / middle",
-            "matchMode": "exact(完全匹配) / contains(包含) / regex(正则)",
-            "region": "可选,屏幕区域 {left, top, right, bottom},缩小搜索范围避免误识别",
-            "timeout": "OCR 等待秒数",
-        },
-        "example": {"targetText": "登录", "matchMode": "contains", "timeout": 5},
-        "combo": "**Electron / 游戏 / Canvas 应用最实用**:UIA 看不到内部 UI 时用 OCR 找文字按钮",
-    },
-    "desktop_click_by_image": {
-        "required": ["templatePath"],
-        "optional": ["confidence", "clickButton", "clickCount", "timeout", "grayscale"],
-        "defaults": {"confidence": 0.85, "clickButton": "left", "clickCount": 1, "timeout": 10, "grayscale": True},
-        "desc": {
-            "templatePath": "模板图片绝对路径(从图像资源面板传入)",
-            "confidence": "匹配置信度 0~1,推荐 0.85",
-            "grayscale": "True 灰度匹配(更快更鲁棒)",
-        },
-        "example": {"templatePath": "{templatePath}", "confidence": 0.9},
-        "combo": "图标按钮 / 游戏 UI / 自定义控件用图像匹配,先用图像资源面板上传模板",
-    },
-    "desktop_read_text_region": {
-        "required": ["left", "top", "right", "bottom"],
-        "optional": ["variableName", "language"],
-        "defaults": {"variableName": "ocr_text", "language": "ch_sim+en"},
-        "desc": {
-            "left": "区域左边界 X 坐标",
-            "top": "区域上边界 Y 坐标",
-            "right": "区域右边界 X 坐标",
-            "bottom": "区域下边界 Y 坐标",
-            "variableName": "OCR 结果存到此变量",
-            "language": "OCR 语言,如 ch_sim+en(简体中文+英文)",
-        },
-        "example": {"left": 100, "top": 200, "right": 500, "bottom": 250, "variableName": "status_text"},
-        "combo": "状态栏文字 / 验证码 / 进度提示等无控件区域的文字提取",
-    },
     "desktop_hotkey": {
         "required": ["keys"],
         "optional": ["targetWindow", "interval"],
@@ -4619,17 +4579,6 @@ DESKTOP_PRO_SCHEMAS: dict = {
         },
         "example": {"assertion": "text_contains", "expected": "成功"},
         "combo": "**测试场景必备**:自动化执行后断言界面状态,失败立刻知道哪一步出问题",
-    },
-    "desktop_record_actions": {
-        "required": ["mode"],
-        "optional": ["variableName", "speed"],
-        "defaults": {"variableName": "recorded_actions", "speed": 1.0},
-        "desc": {
-            "mode": "start(开始录制) / stop(停止录制) / replay(回放最后一次)",
-            "speed": "回放速度倍率,replay 时用",
-        },
-        "example": {"mode": "start"},
-        "combo": "**影刀杀手锏**:start → 用户操作 → stop 自动生成可重放的事件序列;replay 复现操作",
     },
 }
 

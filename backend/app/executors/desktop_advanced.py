@@ -1,4 +1,4 @@
-"""WebRPA 桌面自动化 - 影刀级增强模块
+﻿"""WebRPA 桌面自动化 - 影刀级增强模块
 
 新增能力（对标影刀 RPA 桌面自动化）：
 1. desktop_find_control_smart   智能控件查找(通配符/模糊/多属性组合/评分挑最稳)
@@ -8,7 +8,6 @@
 5. desktop_select_text          双击选中/Ctrl+A 全选并复制文字
 6. desktop_get_focused_control  拿到当前焦点控件(动态分析活动元素)
 7. desktop_assert_control       断言控件状态(测试场景必备)
-8. desktop_record_actions       录制用户操作 → 自动转换成工作流节点
 """
 from __future__ import annotations
 
@@ -797,139 +796,3 @@ class DesktopAssertControlExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"断言执行异常:{e}")
 
 
-# =====================================================================
-# 8. 录制用户操作(影刀杀手锏)
-# =====================================================================
-
-# 录制状态保存到模块级变量(整个进程共享)
-_RECORDER_STATE: dict = {
-    'running': False,
-    'started_at': 0,
-    'events': [],
-    'thread': None,
-}
-
-
-@register_executor
-class DesktopRecordActionsExecutor(ModuleExecutor):
-    """录制用户的鼠标点击/键盘输入/控件交互,生成可回放的操作序列(影刀杀手锏)
-
-    用法:
-    - mode='start' 启动录制
-    - mode='stop' 停止录制并返回所有事件
-    - mode='replay' 回放最近一次录制(可选 speed=1.0)
-    """
-
-    @property
-    def module_type(self) -> str:
-        return "desktop_record_actions"
-
-    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
-        try:
-            mode = config.get("mode", "start")  # start / stop / replay
-            variable_name = config.get("variableName", "recorded_actions")
-
-            if mode == "start":
-                if _RECORDER_STATE['running']:
-                    return ModuleResult(success=False, error="录制已在进行中,请先 stop")
-                try:
-                    from pynput import mouse, keyboard  # type: ignore
-                except ImportError:
-                    return ModuleResult(success=False, error="需要 pynput:pip install pynput")
-
-                _RECORDER_STATE['running'] = True
-                _RECORDER_STATE['started_at'] = time.time()
-                _RECORDER_STATE['events'] = []
-
-                def on_click(x, y, button, pressed):
-                    if not _RECORDER_STATE['running']:
-                        return False
-                    if pressed:
-                        _RECORDER_STATE['events'].append({
-                            'type': 'mouse_click',
-                            'x': x, 'y': y,
-                            'button': str(button).split('.')[-1],
-                            't': round(time.time() - _RECORDER_STATE['started_at'], 3),
-                        })
-
-                def on_press(key):
-                    if not _RECORDER_STATE['running']:
-                        return False
-                    try:
-                        ch = key.char
-                    except AttributeError:
-                        ch = str(key).replace('Key.', '')
-                    _RECORDER_STATE['events'].append({
-                        'type': 'key_press',
-                        'key': ch,
-                        't': round(time.time() - _RECORDER_STATE['started_at'], 3),
-                    })
-
-                ml = mouse.Listener(on_click=on_click)
-                kl = keyboard.Listener(on_press=on_press)
-                ml.start()
-                kl.start()
-                _RECORDER_STATE['thread'] = (ml, kl)
-                return ModuleResult(success=True, message="录制已开始,操作鼠标键盘后再用 mode='stop' 结束")
-
-            elif mode == "stop":
-                if not _RECORDER_STATE['running']:
-                    return ModuleResult(success=False, error="当前没有正在进行的录制")
-                _RECORDER_STATE['running'] = False
-                if _RECORDER_STATE['thread']:
-                    try:
-                        ml, kl = _RECORDER_STATE['thread']
-                        ml.stop()
-                        kl.stop()
-                    except Exception:
-                        pass
-                events = list(_RECORDER_STATE['events'])
-                if variable_name:
-                    context.set_variable(variable_name, events)
-                duration = round(time.time() - _RECORDER_STATE['started_at'], 1)
-                return ModuleResult(
-                    success=True,
-                    message=f"录制完成({duration}s,{len(events)} 个事件)",
-                    data={'event_count': len(events), 'duration_s': duration, 'events_preview': events[:10]},
-                )
-
-            elif mode == "replay":
-                events = context.get_variable(variable_name) or _RECORDER_STATE['events']
-                if not events:
-                    return ModuleResult(success=False, error="没有可回放的录制")
-                speed = float(config.get("speed", 1.0))
-                try:
-                    import pyautogui
-                    from pynput.keyboard import Controller as KCtrl  # type: ignore
-                except ImportError as e:
-                    return ModuleResult(success=False, error=f"需要 pyautogui + pynput:{e}")
-                kctrl = KCtrl()
-
-                last_t = 0
-                for ev in events:
-                    delay = max(0.0, (ev['t'] - last_t) / speed)
-                    if delay > 0:
-                        await asyncio.sleep(min(delay, 5.0))  # 单步最长等 5s
-                    last_t = ev['t']
-                    if ev['type'] == 'mouse_click':
-                        pyautogui.click(ev['x'], ev['y'], button=ev.get('button', 'left'))
-                    elif ev['type'] == 'key_press':
-                        try:
-                            k = ev['key']
-                            if len(k) == 1:
-                                kctrl.tap(k)
-                            else:
-                                # 处理特殊键
-                                from pynput.keyboard import Key as KK  # type: ignore
-                                special = getattr(KK, k, None)
-                                if special:
-                                    kctrl.tap(special)
-                        except Exception:
-                            pass
-
-                return ModuleResult(success=True, message=f"回放完成(速度 {speed}x)")
-
-            else:
-                return ModuleResult(success=False, error=f"未知 mode:{mode},应是 start/stop/replay")
-        except Exception as e:
-            return ModuleResult(success=False, error=f"录制器异常:{e}")

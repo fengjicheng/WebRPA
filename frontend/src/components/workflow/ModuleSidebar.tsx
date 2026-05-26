@@ -180,7 +180,6 @@ import {
   Activity,
   Puzzle,
   Boxes,
-  Image as ImageIcon2,
   Command,
   Wand2,
   Focus,
@@ -627,10 +626,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   desktop_scroll_control: ArrowDownUp,
   desktop_get_control_info: Info,
   desktop_get_control_tree: FolderTree,
-  // 现代桌面应用增强（Electron/游戏/Canvas）
-  desktop_click_by_ocr: ScanText,
-  desktop_click_by_image: ImageIcon2,
-  desktop_read_text_region: ScanText,
+  // 现代桌面应用增强（仅热键 - OCR/图像/区域 OCR 已由通用模块覆盖）
   desktop_hotkey: Command,
   // 影刀级桌面增强
   desktop_find_control_smart: Wand2,
@@ -640,7 +636,6 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   desktop_select_text: TextCursor,
   desktop_get_focused_control: Focus,
   desktop_assert_control: ShieldCheck,
-  desktop_record_actions: Video,
   // Apprise多渠道通知
   notify_discord: Bell,
   notify_telegram: Send,
@@ -1153,10 +1148,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   desktop_menu_click: ['桌面', '菜单', '点击', '选择', 'desktop', 'menu', 'click', 'select', '菜单项'],
   desktop_get_control_info: ['桌面', '控件', '信息', '获取', 'desktop', 'control', 'info', 'get', '属性', '详细'],
   desktop_get_control_tree: ['桌面', '控件', '树', '结构', 'desktop', 'control', 'tree', 'structure', '层级', '完整'],
-  // 现代桌面应用增强
-  desktop_click_by_ocr: ['桌面', 'OCR', '文字', '识别', '点击', 'electron', 'desktop', 'click', '文本', '现代'],
-  desktop_click_by_image: ['桌面', '图像', '匹配', '点击', '游戏', 'image', 'match', 'click', 'desktop', 'canvas'],
-  desktop_read_text_region: ['桌面', 'OCR', '区域', '识别', 'read', 'text', 'region', 'desktop', '提取', '文字', '验证码'],
+  // 现代桌面应用增强（仅热键）
   desktop_hotkey: ['桌面', '热键', '快捷键', '组合键', 'hotkey', 'shortcut', 'desktop', 'ctrl', 'alt', '键盘'],
   // 影刀级桌面增强
   desktop_find_control_smart: ['桌面', '智能', '查找', '控件', '通配符', '模糊', 'smart', 'find', 'wildcard', 'fuzzy', '影刀'],
@@ -1166,7 +1158,6 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   desktop_select_text: ['桌面', '选中', '文字', '复制', 'select', 'text', 'copy', '提取', '文本'],
   desktop_get_focused_control: ['桌面', '焦点', '当前', 'focus', 'focused', 'active', '活跃', '键盘'],
   desktop_assert_control: ['桌面', '断言', '验证', '测试', 'assert', 'verify', 'test', '检查'],
-  desktop_record_actions: ['桌面', '录制', '操作', '回放', '影刀', 'record', 'replay', 'action', '录像', '杀手锏'],
   desktop_app_get_info: ['桌面', '应用', '信息', '获取', 'desktop', 'app', 'info', 'get', '属性'],
   desktop_app_wait_ready: ['桌面', '应用', '等待', '就绪', 'desktop', 'app', 'wait', 'ready', '启动'],
   desktop_window_list: ['桌面', '窗口', '列表', '获取', 'desktop', 'window', 'list', '所有'],
@@ -1626,11 +1617,11 @@ const moduleCategories = [
       'desktop_window_activate', 'desktop_window_state', 'desktop_window_move', 'desktop_window_resize', 'desktop_window_list', 'desktop_window_capture',
       'desktop_find_control', 'desktop_control_info', 'desktop_control_tree', 'desktop_wait_control', 'desktop_click_control', 'desktop_input_control', 'desktop_get_text', 'desktop_set_value',
       'desktop_select_combo', 'desktop_checkbox', 'desktop_radio', 'desktop_drag_control', 'desktop_menu_click', 'desktop_list_operate', 'desktop_send_keys', 'desktop_get_property', 'desktop_dialog_handle',
-      // 现代应用增强（Electron / 游戏 / Canvas）
-      'desktop_click_by_ocr', 'desktop_click_by_image', 'desktop_read_text_region', 'desktop_hotkey',
-      // 影刀级增强（智能查找 / 批量抓取 / UI 快照 / XPath / 录制器）
+      // 现代应用增强（仅热键 - OCR/图像/区域 OCR 已由通用模块覆盖）
+      'desktop_hotkey',
+      // 影刀级增强（智能查找 / 批量抓取 / UI 快照 / XPath）
       'desktop_find_control_smart', 'desktop_extract_table', 'desktop_get_app_state', 'desktop_query_with_xpath',
-      'desktop_select_text', 'desktop_get_focused_control', 'desktop_assert_control', 'desktop_record_actions',
+      'desktop_select_text', 'desktop_get_focused_control', 'desktop_assert_control',
     ] as ModuleType[],
   },
   // ===== 画布工具 =====

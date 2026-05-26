@@ -425,12 +425,9 @@ export type ModuleType =
   | 'desktop_dialog_handle'
   | 'desktop_get_control_info'
   | 'desktop_get_control_tree'
-  // 现代桌面应用增强（OCR/图像/热键 - Electron/游戏/Canvas 应用必备）
-  | 'desktop_click_by_ocr'
-  | 'desktop_click_by_image'
-  | 'desktop_read_text_region'
+  // 现代桌面应用增强（仅热键 - OCR/图像/区域 OCR 已由 click_text/click_image/image_ocr 通用模块覆盖）
   | 'desktop_hotkey'
-  // 影刀级桌面增强（智能查找/批量抓取/UI 快照/XPath/录制器）
+  // 影刀级桌面增强（智能查找/批量抓取/UI 快照/XPath）
   | 'desktop_find_control_smart'
   | 'desktop_extract_table'
   | 'desktop_get_app_state'
@@ -438,7 +435,6 @@ export type ModuleType =
   | 'desktop_select_text'
   | 'desktop_get_focused_control'
   | 'desktop_assert_control'
-  | 'desktop_record_actions'
   // Apprise多渠道通知
   | 'notify_discord'
   | 'notify_telegram'

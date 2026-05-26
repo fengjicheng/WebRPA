@@ -133,10 +133,7 @@ import {
   DesktopScrollControlConfig,
   DesktopGetControlInfoConfig,
   DesktopGetControlTreeConfig,
-  // 现代桌面应用增强（Electron / 游戏 / Canvas）
-  DesktopClickByOcrConfig,
-  DesktopClickByImageConfig,
-  DesktopReadTextRegionConfig,
+  // 现代桌面应用增强（仅热键 - OCR/图像/区域 OCR 已由通用模块覆盖）
   DesktopHotkeyConfig,
   // 影刀级桌面增强
   DesktopFindControlSmartConfig,
@@ -146,7 +143,6 @@ import {
   DesktopSelectTextConfig,
   DesktopGetFocusedControlConfig,
   DesktopAssertControlConfig,
-  DesktopRecordActionsConfig,
 } from './config-panels/DesktopModuleConfigs'
 import {
   ConditionConfig,
@@ -1842,13 +1838,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <DesktopGetControlInfoConfig data={nodeData} onChange={handleChange} />
       case 'desktop_get_control_tree':
         return <DesktopGetControlTreeConfig data={nodeData} onChange={handleChange} />
-      // 现代桌面应用增强（Electron / 游戏 / Canvas）
-      case 'desktop_click_by_ocr':
-        return <DesktopClickByOcrConfig data={nodeData} onChange={handleChange} />
-      case 'desktop_click_by_image':
-        return <DesktopClickByImageConfig data={nodeData} onChange={handleChange} />
-      case 'desktop_read_text_region':
-        return <DesktopReadTextRegionConfig data={nodeData} onChange={handleChange} />
+      // 现代桌面应用增强（仅热键 - OCR/图像/区域 OCR 已由 click_text/click_image/image_ocr 通用模块覆盖）
       case 'desktop_hotkey':
         return <DesktopHotkeyConfig data={nodeData} onChange={handleChange} />
       // 影刀级桌面增强
@@ -1866,8 +1856,6 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <DesktopGetFocusedControlConfig data={nodeData} onChange={handleChange} />
       case 'desktop_assert_control':
         return <DesktopAssertControlConfig data={nodeData} onChange={handleChange} />
-      case 'desktop_record_actions':
-        return <DesktopRecordActionsConfig data={nodeData} onChange={handleChange} />
       // Apprise多渠道通知模块
       case 'notify_discord':
         return <NotifyDiscordConfig data={nodeData} onChange={handleChange} />

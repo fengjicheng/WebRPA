@@ -1077,13 +1077,10 @@ export const moduleColors: Record<string, string> = {
   desktop_get_property: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_dialog_handle: 'border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
-  // ===== 桌面应用自动化（现代应用增强 - OCR/图像/热键） - 石板色 =====
-  desktop_click_by_ocr: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
-  desktop_click_by_image: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
-  desktop_read_text_region: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
+  // ===== 桌面应用自动化（现代应用增强 - 仅热键） - 石板色 =====
   desktop_hotkey: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
-  // ===== 桌面应用自动化（影刀级 - 智能查找/批量抓取/UI快照/XPath/录制器） - 石板色 =====
+  // ===== 桌面应用自动化（影刀级 - 智能查找/批量抓取/UI快照/XPath） - 石板色 =====
   desktop_find_control_smart: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_extract_table: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_get_app_state: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
@@ -1091,7 +1088,6 @@ export const moduleColors: Record<string, string> = {
   desktop_select_text: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_get_focused_control: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
   desktop_assert_control: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
-  desktop_record_actions: 'border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100',
 
   // ===== 自定义模块 - 紫色 =====
   custom_module: 'border-purple-600 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100',
