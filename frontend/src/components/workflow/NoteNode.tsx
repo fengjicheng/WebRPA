@@ -148,7 +148,7 @@ export const NoteNode = memo(({ id, data, selected }: NodeProps) => {
         handleClassName="!w-3 !h-3 !bg-[hsl(var(--brand-500))] !border-2 !border-white !rounded-full"
       />
       <div
-        className="w-full h-full rounded-[12px] flex flex-col overflow-hidden transition-shadow duration-200"
+        className={`w-full h-full rounded-[12px] flex flex-col overflow-hidden transition-shadow duration-200 ${(nodeData as any).__aiSpawning ? 'ai-node-spawn' : ''}`}
         style={{
           backgroundColor: colorConfig.value,
           border: `2px solid ${selected ? colorConfig.border : colorConfig.border + '60'}`,

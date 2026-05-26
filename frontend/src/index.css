@@ -1875,3 +1875,28 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   from { transform: translateX(0); }
   to   { transform: translateX(-100%); }
 }
+
+/* ============================================================
+   AI 助手可视化逐步搭建工作流：节点入场动画
+   - 节点淡入 + 轻微下落 + 蓝色光晕脉冲，让用户"亲眼看着 AI 一步步把节点画到画布上"
+   ============================================================ */
+.ai-node-spawn {
+  animation: ai-node-spawn 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ai-node-spawn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.92);
+    box-shadow: 0 0 0 0 hsl(var(--brand-500) / 0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0) scale(1.02);
+    box-shadow: 0 0 0 12px hsl(var(--brand-500) / 0.18);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--brand-500) / 0);
+  }
+}

@@ -116,7 +116,9 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
         isDisabled ? 'border-gray-300 bg-gray-100 text-gray-500 opacity-70' : (isCustomModule ? '' : colorClass),
         selected && '!border-[hsl(var(--brand-500))] !shadow-pop-lg ring-2 ring-[hsl(var(--brand-500)/0.4)]',
         isHighlighted && '!border-[hsl(var(--warning-500))] ring-2 ring-[hsl(var(--warning-500)/0.5)]',
-        isSubflow && nodeData.subflowName ? 'cursor-pointer' : ''
+        isSubflow && nodeData.subflowName ? 'cursor-pointer' : '',
+        // AI 助手可视化搭建时节点入场动画
+        (nodeData as any).__aiSpawning && 'ai-node-spawn'
       )}
       style={
         isDisabled

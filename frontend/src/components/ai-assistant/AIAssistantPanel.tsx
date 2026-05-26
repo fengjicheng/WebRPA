@@ -162,6 +162,25 @@ export function AIAssistantPanel() {
             const newCalls = [...m.tool_calls]
             newCalls[idx] = { ...newCalls[idx], ...tc }
             state.upsertMessage({ ...m, tool_calls: newCalls })
+
+            // === build_workflow 工具一旦返回成功，立刻触发可视化逐步搭建 ===
+            // 不等整段流式回复结束，AI 还在说话时画布就开始画节点了
+            if (tc.name === 'build_workflow' && tc.status === 'success' && tc.result) {
+              const flagKey = `__client_executed_${tc.id}`
+              if (!(m as any)[flagKey]) {
+                (m as any)[flagKey] = true
+                const built: any = tc.result
+                if (Array.isArray(built?.nodes) && Array.isArray(built?.edges)) {
+                  // 异步触发，不阻塞 socket 事件循环
+                  void executeClientAction('load_workflow_from_data', {
+                    name: built.name || '小助手生成的工作流',
+                    nodes: built.nodes,
+                    edges: built.edges,
+                    animate: true,  // 启用可视化逐步搭建
+                  }).then(() => executeClientAction('fit_view', {}))
+                }
+              }
+            }
             return
           }
         }

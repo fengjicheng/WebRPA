@@ -212,13 +212,115 @@ export async function executeClientAction(
         const nodes = (payload.nodes as any[]) || []
         const edges = (payload.edges as any[]) || []
         const name = (payload.name as string) || '未命名工作流'
+        const animate = payload.animate !== false  // 默认开启可视化逐步搭建动画
         const xyNodes = nodes.map(convertAiNodeToReactFlow)
-        useWorkflowStore.getState().loadWorkflow({
-          nodes: xyNodes as any,
-          edges: edges as any,
-          name,
-        })
-        return { success: true, message: `已载入工作流「${name}」（${nodes.length} 节点）` }
+
+        const store = useWorkflowStore.getState()
+
+        if (!animate) {
+          // 兼容老调用方式：一次性装入
+          store.loadWorkflow({
+            nodes: xyNodes as any,
+            edges: edges as any,
+            name,
+          })
+          return { success: true, message: `已载入工作流「${name}」（${nodes.length} 节点）` }
+        }
+
+        // === 可视化逐步搭建：让用户亲眼看着 AI 把节点一个个画出来 ===
+        // 1) 先清空画布、设置工作流名
+        store.loadWorkflow({ nodes: [], edges: [], name })
+
+        // 2) 节点排序：先便签（zIndex=-1），再按 position 从左上到右下
+        // 便签是上下文，应该最先出现；之后节点按"自然阅读顺序"涌入画布
+        const noteNodes = xyNodes.filter((n: any) => n.type === 'note' || n.type === 'noteNode')
+        const moduleNodes = xyNodes
+          .filter((n: any) => n.type !== 'note' && n.type !== 'noteNode')
+          .sort((a: any, b: any) => {
+            const ay = a.position?.y ?? 0
+            const by = b.position?.y ?? 0
+            if (Math.abs(ay - by) > 30) return ay - by
+            return (a.position?.x ?? 0) - (b.position?.x ?? 0)
+          })
+
+        const orderedNodes = [...noteNodes, ...moduleNodes]
+
+        // 3) 节点 → 边的映射，方便每加完一个节点立刻连出与已存在节点的边
+        const presentIds = new Set<string>()
+        const remainingEdges = [...edges]
+
+        // 节点间隔（毫秒）：节点越多越快，最少 60ms / 最多 220ms 一个
+        const totalSteps = orderedNodes.length
+        const perStep = Math.max(60, Math.min(220, Math.round(2000 / Math.max(1, totalSteps))))
+
+        // 让 AI 助手聊天框先平滑给一行"正在画第 X 步"的提示（轻量）
+        // 利用 emitAssistantUiEvent 发到 UI（如果监听了会显示，没监听就忽略）
+        emitAssistantUiEvent('build_progress', { total: totalSteps, current: 0 })
+
+        // 4) 逐个 push 节点；每加一个节点就把已能连的边也加上
+        for (let i = 0; i < orderedNodes.length; i++) {
+          const n = orderedNodes[i]
+          presentIds.add((n as any).id)
+
+          // 节点入场动画：在节点 data 上打一个标志，配合 CSS 做淡入+轻微下落
+          ;(n as any).data = { ...((n as any).data || {}), __aiSpawning: true }
+
+          useWorkflowStore.setState((s) => ({
+            nodes: [...s.nodes, n as any],
+          }))
+
+          // 把所有"两端都已存在"的边一次性加进去
+          const readyEdges: any[] = []
+          for (let k = remainingEdges.length - 1; k >= 0; k--) {
+            const e = remainingEdges[k]
+            if (presentIds.has(e.source) && presentIds.has(e.target)) {
+              readyEdges.push(e)
+              remainingEdges.splice(k, 1)
+            }
+          }
+          if (readyEdges.length > 0) {
+            // 给 AI 自动创建的边加上 animated 标志，让连线"画"出来
+            const animatedEdges = readyEdges.map((e: any) => ({ ...e, animated: true }))
+            useWorkflowStore.setState((s) => ({
+              edges: [...s.edges, ...animatedEdges] as any,
+            }))
+            // 1.2s 后取消动画（保留静态连线）
+            setTimeout(() => {
+              const ids = new Set(animatedEdges.map((e: any) => e.id))
+              useWorkflowStore.setState((s) => ({
+                edges: s.edges.map((e: any) => (ids.has(e.id) ? { ...e, animated: false } : e)) as any,
+              }))
+            }, 1200)
+          }
+
+          emitAssistantUiEvent('build_progress', {
+            total: totalSteps,
+            current: i + 1,
+            label: (n as any).data?.name || (n as any).data?.moduleType || (n as any).type,
+          })
+
+          // 等一拍让 react-flow 完成渲染
+          await new Promise((r) => setTimeout(r, perStep))
+
+          // 入场动画结束后清掉标志
+          useWorkflowStore.setState((s) => ({
+            nodes: s.nodes.map((x: any) => (x.id === (n as any).id ? { ...x, data: { ...x.data, __aiSpawning: false } } : x)),
+          }))
+        }
+
+        // 5) 兜底：如果还有边没加（理论上不会），全部补上
+        if (remainingEdges.length > 0) {
+          useWorkflowStore.setState((s) => ({
+            edges: [...s.edges, ...remainingEdges] as any,
+          }))
+        }
+
+        // 6) 自动 fitView，让用户看到全貌
+        emitAssistantUiEvent('fit_view', {})
+
+        emitAssistantUiEvent('build_progress', { total: totalSteps, current: totalSteps, done: true })
+
+        return { success: true, message: `已可视化搭建工作流「${name}」（${nodes.length} 节点）` }
       }
 
       case 'load_workflow': {
