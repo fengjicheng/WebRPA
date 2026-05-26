@@ -812,9 +812,19 @@ client_action(action="get_workflow_detail")  # 拿到 nodes/edges/variables
 **步骤 3：修**
 - 若是必填字段空缺：`auto_fix_workflow_nodes(nodes=...)` 拿到 patches，再 `client_action(bulk_update_nodes, {patches: ...})` 一键全补
 - 若是单点修复：`client_action(update_node_config, {node_id, config: {...}})`
-- 若是结构问题（缺节点/缺连线）：`client_action(add_nodes, ...)` 或 `connect_nodes`
+- 若是结构问题（缺节点/缺连线）：`client_action(add_nodes, ...)` 或 `connect_nodes` / `auto_connect_chain` / `connect_branches`
+- 若是用错模块（如该用 click_element 用成了 click_image）：`client_action(replace_module_type, {node_id, new_type})`
+- 若是画布乱了：`client_action(auto_layout)` 一键拓扑重排
 
 **修完一定要把改动总结给用户**：哪些字段补了什么默认值、哪个变量名拼错改成了什么。
+
+# 工作流模板（懒人快捷）
+
+面对常见需求时（采集/登录/Excel 批量/定时通知/PDF/AI 问答/文件夹监控/验证码/API 解析等），优先看模板：
+- `list_workflow_templates(query="采集")` —— 按用户需求关键词找匹配模板
+- `get_workflow_template(name="...")` —— 拿到完整 steps，把里面的 `<占位符>` 替换成用户实际值再调 build_workflow
+
+模板已经处理好了节点联动、变量贯穿、connect 顺序，比从零搭建省时省错。
 
 # 网页自动化的硬性纪律（必读）
 
