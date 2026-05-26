@@ -2,17 +2,11 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="icon" type="image/png" href="logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebRPA</title>
+    <title>WebRPA 加载页面预览</title>
     <style>
-      /* ============================================================
-         WebRPA 首屏加载动画
-         - 与编辑器主题（浅色蓝白）和顶栏艺术字 LOGO 风格保持一致
-         - 设计参考：Linear / Notion / Vercel / Apple 现代加载体验
-         ============================================================ */
       :root {
-        /* 与 frontend/src/index.css 主题色保持一致 */
         --splash-brand-400: 213 94% 68%;
         --splash-brand-500: 217 91% 55%;
         --splash-brand-600: 221 83% 48%;
@@ -52,15 +46,7 @@
           radial-gradient(ellipse 80% 60% at 50% 28%, hsl(var(--splash-bg-soft)) 0%, transparent 70%),
           radial-gradient(ellipse 60% 50% at 50% 92%, hsl(var(--splash-brand-500) / 0.06) 0%, transparent 70%),
           hsl(var(--splash-bg));
-        transition: opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
-                    visibility 360ms cubic-bezier(0.16, 1, 0.3, 1);
       }
-      #webrpa-splash.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-      /* 装饰：背景上漂浮的几个柔和光斑 */
       #webrpa-splash::before,
       #webrpa-splash::after {
         content: '';
@@ -88,7 +74,6 @@
       }
     </style>
     <style>
-      /* ====== logo 容器与加载圆环 ====== */
       .splash-logo-wrap {
         position: relative;
         width: 132px;
@@ -116,16 +101,12 @@
         object-fit: contain;
         filter: drop-shadow(0 1px 2px hsl(var(--splash-text) / 0.08));
       }
-
-      /* 加载圆环 - 三层叠加：轨道 + 主弧 + 副弧 */
-      /* 轨道：固定的浅蓝色细圆（背景），让用户感知到环的"真身" */
       .splash-track {
         position: absolute;
         inset: 0;
         border-radius: 50%;
         border: 3px solid hsl(var(--splash-brand-500) / 0.1);
       }
-      /* 主弧：粗的蓝色渐变弧，正向旋转。1/3 圆弧逐渐显现 */
       .splash-ring-main {
         position: absolute;
         inset: 0;
@@ -144,7 +125,6 @@
         animation: splash-ring-spin 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
         filter: drop-shadow(0 0 10px hsl(var(--splash-brand-500) / 0.45));
       }
-      /* 副弧：内一圈反向旋转的细弧，赋予层次感 */
       .splash-ring-sub {
         position: absolute;
         inset: 8px;
@@ -162,11 +142,10 @@
         animation: splash-ring-spin-rev 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         opacity: 0.85;
       }
-      /* 围绕轨道发光的小球 */
       .splash-orbit-dot {
         position: absolute;
         inset: 0;
-        animation: splash-ring-spin 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation: splash-ring-spin 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
       .splash-orbit-dot::after {
         content: '';
@@ -185,7 +164,6 @@
       }
     </style>
     <style>
-      /* ====== 标题：完全复刻编辑器顶栏艺术字 LOGO ====== */
       .splash-title {
         position: relative;
         display: inline-flex;
@@ -208,18 +186,15 @@
         transform: skewX(-6deg);
         padding-right: 2px;
       }
-      /* "Web" 蓝渐变文字 + 流光（流光直接做在字符 background 上，clip-text 后只在字形内显示） */
       .splash-title-letter-w,
       .splash-title-letter-e,
       .splash-title-letter-b {
         background:
-          /* 第一层：流光（动画移动） */
           linear-gradient(100deg,
             hsl(0 0% 100% / 0) 38%,
             hsl(0 0% 100% / 0.95) 50%,
             hsl(0 0% 100% / 0) 62%
           ),
-          /* 第二层：基础蓝渐变 */
           linear-gradient(135deg,
             hsl(var(--splash-brand-700)) 0%,
             hsl(var(--splash-brand-500)) 35%,
@@ -239,8 +214,6 @@
       }
       .splash-title-letter-e { animation-delay: 0.06s; }
       .splash-title-letter-b { animation-delay: 0.12s; }
-
-      /* "RPA" 胶囊 */
       .splash-title-pill {
         display: inline-flex;
         align-items: center;
@@ -267,7 +240,6 @@
         background: linear-gradient(180deg, hsl(0 0% 100% / 0.2), transparent 60%);
         pointer-events: none;
       }
-      /* "RPA" 胶囊流光：胶囊自带 overflow:hidden，流光只在胶囊内扫过 */
       .splash-title-pill::after {
         content: '';
         position: absolute;
@@ -301,7 +273,6 @@
       }
     </style>
     <style>
-      /* ====== 副标题、进度条、底部 tip ====== */
       .splash-subtitle {
         font-size: 17px;
         color: hsl(var(--splash-muted));
@@ -329,7 +300,6 @@
       }
       .splash-dots span:nth-child(2) { animation-delay: 0.18s; }
       .splash-dots span:nth-child(3) { animation-delay: 0.36s; }
-
       .splash-progress {
         position: relative;
         width: 280px;
@@ -356,7 +326,6 @@
         animation: splash-progress 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
         box-shadow: 0 0 8px hsl(var(--splash-brand-500) / 0.4);
       }
-
       .splash-tip {
         position: absolute;
         bottom: 40px;
@@ -391,9 +360,26 @@
       }
       .splash-dots-inline span:nth-child(2) { animation-delay: 0.18s; }
       .splash-dots-inline span:nth-child(3) { animation-delay: 0.36s; }
+      /* 预览页右上角说明 */
+      .preview-badge {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9999999;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: hsl(var(--splash-muted));
+        background: hsl(var(--splash-card) / 0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid hsl(var(--splash-brand-500) / 0.15);
+        border-radius: 99px;
+        box-shadow: 0 2px 8px hsl(var(--splash-text) / 0.06);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        user-select: none;
+      }
     </style>
     <style>
-      /* ====== 动画 keyframes ====== */
       @keyframes splash-logo-in {
         from { opacity: 0; transform: scale(0.82) translateY(10px); }
         to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -436,20 +422,19 @@
     </style>
   </head>
   <body>
-    <!-- 首屏加载动画：与 WebRPA 编辑器主题与艺术字 LOGO 完全一致 -->
+    <div class="preview-badge">SPLASH 预览模式 · 永久显示</div>
+
     <div id="webrpa-splash" role="status" aria-label="WebRPA 加载中">
-      <!-- logo 卡片 + 三层加载圆环 -->
       <div class="splash-logo-wrap">
         <div class="splash-track"></div>
         <div class="splash-ring-sub"></div>
         <div class="splash-ring-main"></div>
         <div class="splash-orbit-dot"></div>
         <div class="splash-logo-card">
-          <img src="/logo.png" alt="" />
+          <img src="logo.png" alt="" />
         </div>
       </div>
 
-      <!-- 标题：编辑器同款艺术字 -->
       <div class="splash-title" aria-label="WebRPA">
         <span class="splash-title-letter splash-title-letter-w">W</span>
         <span class="splash-title-letter splash-title-letter-e">e</span>
@@ -461,68 +446,18 @@
         </span>
       </div>
 
-      <!-- 副标题 + 三点跳动 -->
       <p class="splash-subtitle">
         正在启动编辑器
         <span class="splash-dots"><span></span><span></span><span></span></span>
       </p>
 
-      <!-- 进度条 -->
       <div class="splash-progress" aria-hidden="true">
         <div class="splash-progress-bar"></div>
       </div>
 
-      <!-- 底部小字 -->
       <p class="splash-tip">
         青云制作_彭明航 &nbsp;·&nbsp; 执行器加载中<span class="splash-dots-inline"><span></span><span></span><span></span></span>
       </p>
     </div>
-
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-
-    <script>
-      // ============================================================
-      // 智能移除首屏加载动画
-      //   优先：React 渲染完 #root 后立即移除（用 MutationObserver 监听）
-      //   兜底：8 秒强制移除，避免某些异常情况下永远卡 splash
-      // ============================================================
-      (function () {
-        var splash = document.getElementById('webrpa-splash');
-        if (!splash) return;
-        var root = document.getElementById('root');
-        var removed = false;
-
-        function hideSplash() {
-          if (removed) return;
-          removed = true;
-          splash.classList.add('hidden');
-          setTimeout(function () {
-            if (splash && splash.parentNode) {
-              splash.parentNode.removeChild(splash);
-            }
-          }, 380);
-        }
-
-        // 监听 React 是否已渲染（#root 有子节点 = 已挂载）
-        if (root && typeof MutationObserver !== 'undefined') {
-          var observer = new MutationObserver(function () {
-            if (root.children.length > 0) {
-              observer.disconnect();
-              // 让首帧渲染稳定一下再淡出，避免闪烁
-              requestAnimationFrame(function () {
-                requestAnimationFrame(hideSplash);
-              });
-            }
-          });
-          observer.observe(root, { childList: true });
-        }
-
-        // 兜底：8 秒后强制移除
-        setTimeout(function () {
-          if (!removed) hideSplash();
-        }, 8000);
-      })();
-    </script>
   </body>
 </html>
