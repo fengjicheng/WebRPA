@@ -116,10 +116,19 @@ function convertAiNodeToReactFlow(n: any): any {
     if (!baseData.color) baseData.color = '#3b82f6'
   }
 
+  // 防御性 position：兼容 undefined / 缺 x / 缺 y / 非数字 等所有脏数据
+  const rawPos = n.position
+  const px = rawPos && typeof rawPos === 'object' ? Number(rawPos.x) : NaN
+  const py = rawPos && typeof rawPos === 'object' ? Number(rawPos.y) : NaN
+  const safePos = {
+    x: Number.isFinite(px) ? px : 200,
+    y: Number.isFinite(py) ? py : 200,
+  }
+
   return {
-    id: n.id,
+    id: n.id || `node-${Math.random().toString(36).slice(2, 11)}`,
     type: frontendType,
-    position: n.position || { x: 200, y: 200 },
+    position: safePos,
     data: baseData,
     ...(style ? { style } : {}),
     // 便签 / 分组放在底层

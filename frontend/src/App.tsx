@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { WorkflowEditor } from '@/components/workflow/WorkflowEditor'
+import { WorkflowErrorBoundary } from '@/components/workflow/WorkflowErrorBoundary'
 import { InputPromptDialog } from '@/components/workflow/InputPromptDialog'
 import { MusicPlayerContainer } from '@/components/workflow/MusicPlayerContainer'
 import { VideoPlayerContainer } from '@/components/workflow/VideoPlayerContainer'
@@ -232,7 +233,9 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background">
-      <WorkflowEditor />
+      <WorkflowErrorBoundary>
+        <WorkflowEditor />
+      </WorkflowErrorBoundary>
       <InputPromptDialog />
       <MusicPlayerContainer />
       <VideoPlayerContainer />

@@ -5,6 +5,54 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
 import type { ModuleType, Variable, LogEntry, ExecutionStatus, ModuleConfig, DataAsset, ImageAsset } from '@/types'
 import { useGlobalConfigStore } from './globalConfigStore'
 
+// ============================================================================
+// 全局节点/边 sanitizer：保证写入 react-flow 的数据永远不会让 react-flow 崩
+// 经历过的事故：某些来源（旧版本工作流文件、AI 生成、merge 导入等）的节点
+// position 字段缺失或不合法，react-flow 内部 getNodePositionWithOrigin 会
+// 读 position.x 抛 TypeError 导致整个编辑器白屏。这个 sanitizer 在所有
+// 入口（loadWorkflow / importWorkflow / mergeWorkflow / setState 等）统一兜底。
+// ============================================================================
+function sanitizeNode<T extends { id?: any; position?: any; data?: any; type?: any }>(n: T, fallbackIndex = 0): T {
+  if (!n || typeof n !== 'object') {
+    return {
+      id: `node-${nanoid()}`,
+      type: 'moduleNode',
+      position: { x: 100 + fallbackIndex * 280, y: 100 },
+      data: { moduleType: 'unknown' },
+    } as unknown as T
+  }
+  const out: any = { ...n }
+  if (!out.id || typeof out.id !== 'string') out.id = `node-${nanoid()}`
+  // position 必须是 {x: number, y: number}
+  const p = out.position
+  const px = p && typeof p === 'object' ? Number(p.x) : NaN
+  const py = p && typeof p === 'object' ? Number(p.y) : NaN
+  out.position = {
+    x: Number.isFinite(px) ? px : 100 + fallbackIndex * 280,
+    y: Number.isFinite(py) ? py : 100,
+  }
+  // data 必须是对象
+  if (!out.data || typeof out.data !== 'object') out.data = {}
+  // type 缺失则默认 moduleNode
+  if (!out.type || typeof out.type !== 'string') out.type = 'moduleNode'
+  return out as T
+}
+
+function sanitizeNodes(nodes: any): any[] {
+  if (!Array.isArray(nodes)) return []
+  return nodes.map((n, i) => sanitizeNode(n, i))
+}
+
+function sanitizeEdges(edges: any): any[] {
+  if (!Array.isArray(edges)) return []
+  return edges
+    .filter((e) => e && typeof e === 'object' && e.source && e.target)
+    .map((e: any) => ({
+      ...e,
+      id: e.id || `e-${e.source}-${e.target}-${nanoid(6)}`,
+    }))
+}
+
 // 底栏 Tab 类型
 export type BottomPanelTab = 'logs' | 'data' | 'variables' | 'assets' | 'images'
 
@@ -2645,14 +2693,17 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   loadWorkflow: (workflow) => {
+    // 全部走 sanitizer，防止脏数据让 react-flow 崩溃白屏
+    const safeNodes = sanitizeNodes(workflow.nodes)
+    const safeEdges = sanitizeEdges(workflow.edges)
     const snapshot = {
-      nodes: JSON.parse(JSON.stringify(workflow.nodes)),
-      edges: JSON.parse(JSON.stringify(workflow.edges)),
+      nodes: JSON.parse(JSON.stringify(safeNodes)),
+      edges: JSON.parse(JSON.stringify(safeEdges)),
       name: workflow.name,
     }
     set({
-      nodes: workflow.nodes,
-      edges: workflow.edges,
+      nodes: safeNodes as any,
+      edges: safeEdges as any,
       name: workflow.name,
       selectedNodeId: null,
       clipboard: [],
@@ -2768,12 +2819,16 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       
       // 导入变量（如果有）
       const importedVariables = workflow.variables || []
-      
+
+      // 全部 sanitize 防止脏数据让 react-flow 崩
+      const safeNodes = sanitizeNodes(convertedNodes)
+      const safeEdges = sanitizeEdges(workflow.edges)
+
       set({
         id: workflow.id || nanoid(),
         name: workflow.name || '导入的工作流',
-        nodes: convertedNodes,
-        edges: workflow.edges,
+        nodes: safeNodes,
+        edges: safeEdges,
         variables: importedVariables,  // 恢复变量
         selectedNodeId: null,
         hasUnsavedChanges: false,  // 导入后标记为已保存
@@ -2869,10 +2924,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       const newVariables = (workflow.variables || []).filter(
         (v: Variable) => !existingVarNames.has(v.name)
       )
-      
+
       set({
-        nodes: [...state.nodes, ...newNodes],
-        edges: [...state.edges, ...newEdges],
+        nodes: [...state.nodes, ...sanitizeNodes(newNodes)] as any,
+        edges: [...state.edges, ...sanitizeEdges(newEdges)] as any,
         variables: [...state.variables, ...newVariables],
         selectedNodeId: null,
       })
