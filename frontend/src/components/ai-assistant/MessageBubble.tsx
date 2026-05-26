@@ -384,8 +384,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
       <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
         <div className={`inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
-          {/* 思考过程（仅 assistant 且模型返回了 reasoning_content 时） */}
-          {!isUser && message.reasoning_content && (
+          {/* 思考过程（仅 assistant 且模型返回了非空 reasoning_content 时） */}
+          {!isUser && message.reasoning_content && message.reasoning_content.trim() && (
             <ReasoningCard
               content={message.reasoning_content}
               isThinking={!message.content && !(message.tool_calls && message.tool_calls.length > 0)}

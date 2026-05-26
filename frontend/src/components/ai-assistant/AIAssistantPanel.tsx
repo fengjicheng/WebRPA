@@ -173,6 +173,8 @@ export function AIAssistantPanel() {
       },
       onReasoningPartial: (data: any) => {
         const fullText = (data?.full as string) || ''
+        // 防御：非思考模型某些代理也会发空字符串的 reasoning_partial，过滤掉
+        if (!fullText.trim()) return
         const state = useAIAssistantStore.getState()
         const id = streamingMsgIdRef.current
         const msgs = state.messages
