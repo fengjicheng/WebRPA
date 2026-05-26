@@ -14,6 +14,7 @@ import {
   MessageCircleQuestion,
   ListTree,
   Layers,
+  Info,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAIAssistantStore, type ChatMessage } from '@/store/aiAssistantStore'
@@ -600,6 +601,33 @@ export function AIAssistantPanel() {
               })}
             </div>
 
+            {/* 使用建议提示卡片：让用户对小助手有合理预期 */}
+            <div
+              className="w-full max-w-[360px] mt-5 rounded-[10px] border border-[hsl(var(--warning-500)/0.3)] bg-[hsl(var(--warning-50))] p-3 text-left"
+              style={{ animation: 'fadeInUp 600ms cubic-bezier(0.25, 1, 0.5, 1) both' }}
+            >
+              <div className="flex items-center gap-1.5 mb-2">
+                <Info className="w-3.5 h-3.5 text-[hsl(var(--warning-700))]" />
+                <span className="text-[12px] font-semibold text-[hsl(var(--warning-800))]">使用建议</span>
+              </div>
+              <div className="text-[11.5px] leading-relaxed text-[hsl(var(--slate-700))] space-y-1.5">
+                <p>
+                  小助手 <strong>无法完全取代人工搭建</strong>，更适合作为你的搭档：先让它快速搭出基本框架或提建议，再由你完善细节。
+                </p>
+                <p>
+                  其智能程度还取决于接入的 AI 模型能力。一次性生成完美工作流很难，因为：
+                </p>
+                <ul className="list-disc list-inside space-y-0.5 pl-1 text-[11px] text-[hsl(var(--slate-600))]">
+                  <li>网页元素 Selector 难以准确预测</li>
+                  <li>桌面控件路径需要拾取器实地获取</li>
+                  <li>手机屏幕坐标无法凭空判断</li>
+                </ul>
+                <p className="text-[11px] text-[hsl(var(--slate-600))] mt-1">
+                  绝大多数情况下都需要人工干预，请合理预期。
+                </p>
+              </div>
+            </div>
+
             {!configReady && (
               <div className="status-row status-row-warning mt-5 max-w-[340px]">
                 <Settings className="w-3.5 h-3.5 shrink-0" />
@@ -634,6 +662,15 @@ export function AIAssistantPanel() {
 
       {/* 输入区 */}
       <div className="border-t border-[hsl(var(--border))] p-3 bg-[hsl(var(--slate-50))] flex-shrink-0">
+        {/* 常驻使用建议提示条：只在已有消息时显示，避免和欢迎页提示卡重复 */}
+        {messages.length > 0 && (
+          <div className="mb-2 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-[hsl(var(--slate-500))] px-1">
+            <Info className="w-3 h-3 mt-[2px] flex-shrink-0 text-[hsl(var(--warning-600))]" />
+            <span>
+              小助手适合先搭框架/给建议，<strong className="text-[hsl(var(--slate-700))]">细节仍需人工完善</strong>。Selector/控件路径/手机坐标 AI 难以准确预测。
+            </span>
+          </div>
+        )}
         <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
           <textarea
             ref={textareaRef}
