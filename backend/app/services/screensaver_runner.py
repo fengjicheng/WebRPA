@@ -134,6 +134,16 @@ class Screensaver:
         # 双击退出检测
         self._last_click_time = 0.0
 
+        # ===== GDI 资源缓存（避免每帧重建，是丝滑的关键）=====
+        # 后台 DC、位图、字体、画刷在 create_window 后初始化，整个生命周期复用
+        self._mem_dc = None
+        self._mem_bmp = None
+        self._mem_old_bmp = None
+        self._cached_font = None  # 主字体（按 font_size/bold/italic/rotation 缓存）
+        self._cached_bg_brush = None  # 背景画刷
+        self._cached_close_font = None  # 关闭提示小字体
+        self._bullet_font_cache: dict = {}  # (size, bold, italic) -> hfont
+
     # ===== 文本生成 =====
 
     def _format_clock(self) -> str:
@@ -238,6 +248,67 @@ class Screensaver:
             lf.lfEscapement = angle_tenths
             lf.lfOrientation = angle_tenths
         return win32gui.CreateFontIndirect(lf)
+
+    def _init_gdi_resources(self):
+        """创建后台 DC/位图/字体/画刷一次，整个屏保生命周期内复用。
+        这是滚动文本无卡顿的关键 - 避免每帧 60 次的 GDI 资源创建/销毁。"""
+        if self._mem_dc is not None:
+            return
+        screen_dc = win32gui.GetDC(self.hwnd)
+        try:
+            self._mem_dc = win32gui.CreateCompatibleDC(screen_dc)
+            self._mem_bmp = win32gui.CreateCompatibleBitmap(screen_dc, self.sw, self.sh)
+        finally:
+            win32gui.ReleaseDC(self.hwnd, screen_dc)
+        self._mem_old_bmp = win32gui.SelectObject(self._mem_dc, self._mem_bmp)
+
+        # 后台 DC 默认设置一次
+        win32gui.SetBkMode(self._mem_dc, win32con.TRANSPARENT)
+
+        # 主字体
+        self._cached_font = self._make_font()
+        # 背景画刷
+        self._cached_bg_brush = win32gui.CreateSolidBrush(rgb_to_colorref(self.background))
+        # 关闭提示字体
+        self._cached_close_font = self._make_font(size=14, bold=False, italic=False)
+
+    def _release_gdi_resources(self):
+        """退出时释放（一次性）"""
+        try:
+            if self._mem_dc and self._mem_old_bmp:
+                win32gui.SelectObject(self._mem_dc, self._mem_old_bmp)
+            if self._mem_bmp:
+                win32gui.DeleteObject(self._mem_bmp)
+            if self._mem_dc:
+                win32gui.DeleteDC(self._mem_dc)
+            if self._cached_font:
+                win32gui.DeleteObject(self._cached_font)
+            if self._cached_bg_brush:
+                win32gui.DeleteObject(self._cached_bg_brush)
+            if self._cached_close_font:
+                win32gui.DeleteObject(self._cached_close_font)
+            for f in self._bullet_font_cache.values():
+                try:
+                    win32gui.DeleteObject(f)
+                except Exception:
+                    pass
+            self._bullet_font_cache.clear()
+        except Exception:
+            pass
+        self._mem_dc = None
+        self._mem_bmp = None
+        self._mem_old_bmp = None
+        self._cached_font = None
+        self._cached_bg_brush = None
+        self._cached_close_font = None
+
+    def _get_bullet_font(self, size: int, bold: bool, italic: bool):
+        key = (size, bold, italic)
+        f = self._bullet_font_cache.get(key)
+        if f is None:
+            f = self._make_font(size=size, bold=bold, italic=italic)
+            self._bullet_font_cache[key] = f
+        return f
 
     # ===== Win32 窗口生命周期 =====
 
@@ -348,41 +419,34 @@ class Screensaver:
             win32gui.EndPaint(hwnd, ps)
 
     def _draw_to_hdc(self, hdc):
-        # 双缓冲：在内存 DC 上画，再 BitBlt 到屏幕
-        mem_dc = win32gui.CreateCompatibleDC(hdc)
-        bmp = win32gui.CreateCompatibleBitmap(hdc, self.sw, self.sh)
-        old_bmp = win32gui.SelectObject(mem_dc, bmp)
+        """绘制一帧到屏幕 DC（双缓冲，复用缓存资源）。
+        关键性能点：mem_dc/bitmap/font/brush 都是复用，整帧只做绘制 + BitBlt"""
+        # 首次进入或窗口大小变化时初始化资源
+        if self._mem_dc is None:
+            self._init_gdi_resources()
 
-        try:
-            # 填背景
-            brush = win32gui.CreateSolidBrush(rgb_to_colorref(self.background))
-            win32gui.FillRect(mem_dc, (0, 0, self.sw, self.sh), brush)
-            win32gui.DeleteObject(brush)
+        mem_dc = self._mem_dc
 
-            # 设置文字颜色（普通文本）
-            win32gui.SetTextColor(mem_dc, rgb_to_colorref(self.color))
-            win32gui.SetBkMode(mem_dc, win32con.TRANSPARENT)
+        # 1. 填背景（用缓存画刷）
+        win32gui.FillRect(mem_dc, (0, 0, self.sw, self.sh), self._cached_bg_brush)
 
-            ct = self.content_type
-            if ct == "bullet":
-                self._draw_bullets(mem_dc)
-            else:
-                text = self._current_text()
-                font = self._make_font()
-                old_font = win32gui.SelectObject(mem_dc, font)
-                self._draw_main_text(mem_dc, text, ct)
-                win32gui.SelectObject(mem_dc, old_font)
-                win32gui.DeleteObject(font)
+        # 2. 设置文字默认色
+        win32gui.SetTextColor(mem_dc, rgb_to_colorref(self.color))
 
-            if self.show_close_hint:
-                self._draw_close_hint(mem_dc)
+        ct = self.content_type
+        if ct == "bullet":
+            self._draw_bullets(mem_dc)
+        else:
+            text = self._current_text()
+            old_font = win32gui.SelectObject(mem_dc, self._cached_font)
+            self._draw_main_text(mem_dc, text, ct)
+            win32gui.SelectObject(mem_dc, old_font)
 
-            # BitBlt 到屏幕
-            win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, mem_dc, 0, 0, win32con.SRCCOPY)
-        finally:
-            win32gui.SelectObject(mem_dc, old_bmp)
-            win32gui.DeleteObject(bmp)
-            win32gui.DeleteDC(mem_dc)
+        if self.show_close_hint:
+            self._draw_close_hint(mem_dc)
+
+        # 3. 一次 BitBlt 到屏幕（GPU 友好的整帧拷贝）
+        win32gui.BitBlt(hdc, 0, 0, self.sw, self.sh, mem_dc, 0, 0, win32con.SRCCOPY)
 
     def _draw_main_text(self, hdc, text: str, ct: str):
         # 竖排：每个字符占一行，逐字符向下绘制
@@ -403,8 +467,9 @@ class Screensaver:
             if not self._inited_pos:
                 self._init_scroll_pos()
                 self._inited_pos = True
-            x = int(self._scroll_x)
-            y = int(self._scroll_y)
+            # 用 round 替代 int 截断 - 消除亚像素抖动造成的"卡顿感"
+            x = int(round(self._scroll_x))
+            y = int(round(self._scroll_y))
         else:
             # 居中
             x = (self.sw - tw) // 2
@@ -476,20 +541,19 @@ class Screensaver:
         if not self._bullet_states:
             self._init_bullets()
         for b in self._bullet_states:
-            font = self._make_font(size=b.get("size", self.font_size), bold=b.get("bold", False))
+            font = self._get_bullet_font(b.get("size", self.font_size), b.get("bold", False), False)
             old_font = win32gui.SelectObject(hdc, font)
             old_color = win32gui.SetTextColor(hdc, rgb_to_colorref(b["color"]))
             try:
-                win32gui.ExtTextOut(hdc, int(b["x"]), int(b["y"]), 0, None, b["text"])
+                # 用 round 替代 int 截断 - 消除亚像素抖动
+                win32gui.ExtTextOut(hdc, int(round(b["x"])), int(round(b["y"])), 0, None, b["text"])
             except Exception:
                 pass
             win32gui.SetTextColor(hdc, old_color)
             win32gui.SelectObject(hdc, old_font)
-            win32gui.DeleteObject(font)
 
     def _draw_close_hint(self, hdc):
-        font = self._make_font(size=14, bold=False, italic=False)
-        old_font = win32gui.SelectObject(hdc, font)
+        old_font = win32gui.SelectObject(hdc, self._cached_close_font)
         # 半暗色提示
         r, g, b = self.color
         dim = (r * 6 // 10, g * 6 // 10, b * 6 // 10)
@@ -503,7 +567,6 @@ class Screensaver:
         win32gui.ExtTextOut(hdc, self.sw - tw - 20, self.sh - th - 20, 0, None, text)
         win32gui.SetTextColor(hdc, old_color)
         win32gui.SelectObject(hdc, old_font)
-        win32gui.DeleteObject(font)
 
     def _init_scroll_pos(self):
         if self.scroll_direction == "left":
@@ -581,26 +644,74 @@ class Screensaver:
                     b["y"] = float(random.randint(40, max(41, self.sh - 40)))
 
     def _request_redraw(self):
+        """直接强制立即重绘（不再依赖消息队列里的 WM_PAINT 调度延迟）"""
         if self.hwnd:
             try:
-                win32gui.InvalidateRect(self.hwnd, None, False)
+                # RDW_INVALIDATE | RDW_UPDATENOW = 0x0001 | 0x0100
+                # 让 Windows 立即派发 WM_PAINT，而不是等下一个消息循环
+                win32gui.RedrawWindow(self.hwnd, None, None, 0x0001 | 0x0100)
             except Exception:
-                pass
+                # 兜底
+                try:
+                    win32gui.InvalidateRect(self.hwnd, None, False)
+                except Exception:
+                    pass
 
     def run(self):
         self.create_window()
-        last_clock_text = ""
-        # 高精度计时器：稳定 60fps 帧调度（perf_counter 比 time() 精确）
-        target_dt = 1.0 / 60.0
-        last_tick = time.perf_counter()
-        next_frame = last_tick + target_dt
+        # 创建窗口后立即初始化 GDI 资源（一次性）
+        self._init_gdi_resources()
 
-        # 提升 Windows 时钟分辨率到 1ms（默认 ~15ms），让 sleep 更精准
+        last_clock_text = ""
+
+        # === 极致丝滑配置 ===
+        # 1. 提升进程/线程优先级，减少被系统其它进程抢占造成的帧抖动
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            HIGH_PRIORITY_CLASS = 0x80
+            kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), HIGH_PRIORITY_CLASS)
+            THREAD_PRIORITY_ABOVE_NORMAL = 1
+            kernel32.SetThreadPriority(kernel32.GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL)
+        except Exception:
+            pass
+
+        # 2. 提升 Windows 时钟分辨率到 1ms（默认 ~15ms）让 sleep 更精准
         try:
             import ctypes
             ctypes.windll.winmm.timeBeginPeriod(1)
         except Exception:
             pass
+
+        # 3. 准备 DwmFlush（与显示器 vsync 严格同步）
+        # 这是消除卡顿/撕裂的最关键手段：每帧调用 DwmFlush 会精确等到下次屏幕刷新
+        try:
+            import ctypes
+            dwmapi = ctypes.windll.dwmapi
+            dwm_flush = dwmapi.DwmFlush
+            dwm_flush.restype = ctypes.c_long
+            use_vsync = True
+        except Exception:
+            dwm_flush = None
+            use_vsync = False
+
+        # 探测显示器刷新率（一般 60/75/120/144/240Hz）
+        try:
+            screen_dc = win32gui.GetDC(0)
+            try:
+                hz = win32api.GetDeviceCaps(screen_dc, 116)  # VREFRESH = 116
+            finally:
+                win32gui.ReleaseDC(0, screen_dc)
+            if hz <= 1:
+                hz = 60
+        except Exception:
+            hz = 60
+        target_dt = 1.0 / float(hz)
+
+        last_tick = time.perf_counter()
+        # 时钟/日期/倒计时这种文本只需 200ms 检查一次是否变化（不影响其它内容刷新）
+        slow_check_interval = 0.2
+        last_slow_check = 0.0
 
         try:
             while self.running:
@@ -611,40 +722,49 @@ class Screensaver:
                     pass
 
                 now = time.perf_counter()
-                if now >= next_frame:
-                    elapsed = now - last_tick
-                    last_tick = now
-                    # 推进目标帧时间；若已落后多帧则直接对齐当前时间，避免疯狂追赶
-                    next_frame += target_dt
-                    if next_frame < now:
-                        next_frame = now + target_dt
+                elapsed = now - last_tick
+                # 防止 elapsed 过大（如系统休眠后唤醒）造成滚动跳跃
+                if elapsed > 0.1:
+                    elapsed = target_dt
+                last_tick = now
 
-                    self.tick(elapsed)
-                    # clock/date/countdown 只需 100ms 更新一次
-                    if self.content_type in ("clock", "date", "countdown"):
-                        if self.content_type == "clock":
+                # 推进位置/弹幕状态
+                self.tick(elapsed)
+
+                # clock/date/countdown 的文本只在变化时才请求重绘
+                ct = self.content_type
+                if ct in ("clock", "date", "countdown"):
+                    if now - last_slow_check >= slow_check_interval:
+                        last_slow_check = now
+                        if ct == "clock":
                             cur = self._format_clock()
-                        elif self.content_type == "date":
+                        elif ct == "date":
                             cur = self._format_date()
                         else:
                             cur = self._format_countdown()
                         if cur != last_clock_text:
                             last_clock_text = cur
                             self._request_redraw()
-                    else:
-                        self._request_redraw()
+                else:
+                    # 滚动/弹幕：每帧都重绘
+                    self._request_redraw()
 
-                # 自适应 sleep：精确等到下一帧，避免空转跑满 CPU
-                remaining = next_frame - time.perf_counter()
-                if remaining > 0.002:
-                    # 大于 2ms 才睡，留出最后一点时间给消息泵
-                    time.sleep(min(remaining - 0.001, 0.015))
+                # 关键：等待显示器 vsync 信号，让帧间间隔与屏幕刷新对齐
+                # 这一步比 time.sleep 精确得多，是消除"卡卡"感的核心
+                if use_vsync and dwm_flush is not None:
+                    try:
+                        dwm_flush()
+                    except Exception:
+                        time.sleep(target_dt)
+                else:
+                    time.sleep(target_dt)
         finally:
             try:
                 import ctypes
                 ctypes.windll.winmm.timeEndPeriod(1)
             except Exception:
                 pass
+            self._release_gdi_resources()
 
     def exit(self):
         self.running = False

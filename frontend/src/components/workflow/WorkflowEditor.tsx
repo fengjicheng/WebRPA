@@ -196,7 +196,7 @@ function ModuleSearch({
           </span>
           <span className="text-[12px] font-medium text-[hsl(var(--slate-700))] group-hover:text-[hsl(var(--brand-700))] transition-colors">搜索模块</span>
           <kbd className="hidden sm:inline-flex items-center px-1.5 h-4 rounded border border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] text-[10px] font-mono text-[hsl(var(--muted-foreground))]">
-            Ctrl F
+            Ctrl+F
           </kbd>
         </button>
       </div>
