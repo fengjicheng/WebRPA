@@ -617,6 +617,15 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "desktop_click_by_image": "图像模板匹配点击 - 游戏 / 图标按钮 / 自定义 UI 用",
         "desktop_read_text_region": "区域 OCR 文字提取 - 状态栏 / 验证码 / 进度提示",
         "desktop_hotkey": "直接发送热键到当前窗口 - 老应用 / Electron 应用走快捷键",
+        # === 影刀级桌面增强(智能查找/批量抓取/UI 快照/录制器) ===
+        "desktop_find_control_smart": "**影刀级智能查找**:通配符 + 模糊 + 多属性 + 评分,比 find_control 强得多",
+        "desktop_extract_table": "**批量抓取列表/表格** - 影刀 DataExtraction Wizard 同款",
+        "desktop_get_app_state": "全应用 UI 状态快照 - AI 排错/快速感知 UI 结构",
+        "desktop_query_with_xpath": "XPath 风格查询 - //Button[@name='登录']/contains() 等表达式",
+        "desktop_select_text": "选中并提取文字 - 双击/全选/范围",
+        "desktop_get_focused_control": "拿当前焦点控件 - 动态活跃元素分析",
+        "desktop_assert_control": "断言控件状态 - 测试场景必备",
+        "desktop_record_actions": "**录制用户操作** - 影刀杀手锏,自动生成可回放事件序列",
     },
     "PDF（完整）": {
         "pdf_delete_pages": "PDF 删除指定页面",
@@ -1012,11 +1021,19 @@ WebRPA 的桌面自动化基于 Windows UIAutomation（uiautomation 库）。能
 ```
 1. desktop_app_start 或 desktop_app_connect    → 拿到 desktop_app 变量
 2. desktop_window_activate(appVariable=desktop_app)  → 激活窗口（很重要，不激活找不到控件）
-3. desktop_find_control(appVariable=desktop_app, findType=control_path,
-   controlPath="name:文件菜单>name:打开")    → 拿到 desktop_control 变量
+3. **desktop_find_control_smart**(namePattern='*登录*', controlType='Button', fuzzyMatch=True)
+   ← 优先用这个！通配符+模糊+评分,比老的 find_control 强得多
+   → 拿到 desktop_control 变量
 4. desktop_click_control(controlVariable=desktop_control)  → 点击
 5. desktop_input_control(controlVariable=desktop_control, text="...")  → 填字
 ```
+
+**小窍门**：
+- 多个候选时用 `returnAll=True` 返回数组,用 print_log 打印帮助调试
+- 高级用 XPath:`desktop_query_with_xpath(xpath="//Button[contains(@name,'确定')]")`
+- 批量数据用 `desktop_extract_table` 一次抓完整列表
+- 排错时先 `desktop_get_app_state` 看完整 UI 树
+- **录制器**:复杂操作让用户先 `desktop_record_actions(mode='start')` 录一次,再 stop 拿到事件,replay 回放
 **关键约束**：
 - 第 1 步必出 `desktop_app` 变量，否则后续所有 desktop_xxx 模块都跑不了
 - find_control 的 controlPath 格式严格为 `name:xxx>name:yyy`（用 `>` 分级，每级用 `name:` / `automationid:` / `classname:`）

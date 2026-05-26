@@ -4524,3 +4524,113 @@ DESKTOP_MODERN_SCHEMAS: dict = {
 }
 
 _ALL_SCHEMAS.update(DESKTOP_MODERN_SCHEMAS)
+
+
+
+# ============================================================================
+# 影刀级桌面自动化增强模块 schema
+# ============================================================================
+
+DESKTOP_PRO_SCHEMAS: dict = {
+    "desktop_find_control_smart": {
+        "required": [],
+        "optional": ["namePattern", "classPattern", "automationId", "controlType", "textContains",
+                     "fuzzyMatch", "fuzzyThreshold", "searchDepth", "timeout", "returnAll",
+                     "appVariable", "saveToVariable"],
+        "defaults": {"appVariable": "desktop_app", "saveToVariable": "desktop_control",
+                     "fuzzyMatch": False, "fuzzyThreshold": 0.7, "searchDepth": 15, "timeout": 5,
+                     "returnAll": False},
+        "desc": {
+            "namePattern": "name 通配符,支持 * ?,如 '*登录*' / '确*' / '?保存'",
+            "classPattern": "ClassName 通配符",
+            "automationId": "AutomationId 精确匹配(最稳定)",
+            "controlType": "Button / Edit / ComboBox / ListItem / CheckBox 等",
+            "textContains": "name 中必须包含的子串",
+            "fuzzyMatch": "True 启用模糊匹配(name 不一致也能找到相似的)",
+            "fuzzyThreshold": "模糊匹配阈值 0-1",
+            "returnAll": "True 返回所有匹配项的数组,False 只返回评分最高的",
+        },
+        "example": {"namePattern": "*登录*", "controlType": "Button", "fuzzyMatch": True},
+        "combo": "**类型 A 应用核心武器**:相比 desktop_find_control 支持通配符/模糊/多属性组合,准确率高得多;返回时按评分排序自动选最稳的",
+    },
+    "desktop_extract_table": {
+        "required": [],
+        "optional": ["containerName", "containerType", "includeColumns", "limit", "scrollToLoad",
+                     "appVariable", "variableName"],
+        "defaults": {"appVariable": "desktop_app", "containerType": "List",
+                     "limit": 1000, "scrollToLoad": False, "variableName": "extracted_data"},
+        "desc": {
+            "containerName": "容器控件名(可空)",
+            "containerType": "List / DataGrid / Tree / Table",
+            "includeColumns": "逗号分隔的列名映射,如 '姓名,年龄,部门'",
+            "limit": "最多抓取条数",
+            "scrollToLoad": "True 滚动加载虚拟列表",
+        },
+        "example": {"containerType": "DataGrid", "includeColumns": "姓名,年龄,部门", "limit": 500},
+        "combo": "**影刀 DataExtraction Wizard 同款**:批量抓取桌面应用的列表/表格数据,后接 foreach 遍历",
+    },
+    "desktop_get_app_state": {
+        "required": [],
+        "optional": ["maxDepth", "includeInvisible", "appVariable", "variableName"],
+        "defaults": {"appVariable": "desktop_app", "maxDepth": 6, "includeInvisible": False,
+                     "variableName": "app_state"},
+        "desc": {
+            "maxDepth": "控件树深度",
+            "includeInvisible": "是否包含不可见控件",
+        },
+        "example": {"maxDepth": 4, "variableName": "ui_snapshot"},
+        "combo": "AI 排错神器:返回完整窗口控件树+焦点位置,让 AI 一眼看清当前 UI 结构",
+    },
+    "desktop_query_with_xpath": {
+        "required": ["xpath"],
+        "optional": ["timeout", "appVariable", "saveToVariable"],
+        "defaults": {"appVariable": "desktop_app", "saveToVariable": "desktop_control", "timeout": 5},
+        "desc": {
+            "xpath": "XPath 表达式,如 //Button[@name='登录'] / //*[contains(@name,'确定')] / //Edit[@automationid='UserName']",
+        },
+        "example": {"xpath": "//Button[contains(@name,'确定')]", "timeout": 5},
+        "combo": "影刀 selector 表达式同款:支持属性匹配 + contains 子串 + 任意控件类型 *",
+    },
+    "desktop_select_text": {
+        "required": [],
+        "optional": ["selectMode", "controlVariable", "variableName"],
+        "defaults": {"controlVariable": "desktop_control", "selectMode": "all", "variableName": "selected_text"},
+        "desc": {
+            "selectMode": "all(全选 Ctrl+A) / double_click(双击) / range(范围)",
+        },
+        "example": {"selectMode": "all", "variableName": "doc_content"},
+        "combo": "前置 desktop_find_control 拿到 Edit/Document 控件,这步把内容选中复制到变量",
+    },
+    "desktop_get_focused_control": {
+        "required": [],
+        "optional": ["saveToVariable"],
+        "defaults": {"saveToVariable": "focused_control"},
+        "desc": {"saveToVariable": "存储焦点控件信息的变量名"},
+        "example": {"saveToVariable": "current_focus"},
+        "combo": "动态分析当前活跃元素;用户未指定控件时的兜底方案",
+    },
+    "desktop_assert_control": {
+        "required": ["assertion"],
+        "optional": ["expected", "controlVariable"],
+        "defaults": {"controlVariable": "desktop_control"},
+        "desc": {
+            "assertion": "exists(存在) / visible(可见) / enabled(可用) / selected(选中) / text_contains(包含文字) / value_equals(值等于)",
+            "expected": "期望值,text_contains 和 value_equals 用",
+        },
+        "example": {"assertion": "text_contains", "expected": "成功"},
+        "combo": "**测试场景必备**:自动化执行后断言界面状态,失败立刻知道哪一步出问题",
+    },
+    "desktop_record_actions": {
+        "required": ["mode"],
+        "optional": ["variableName", "speed"],
+        "defaults": {"variableName": "recorded_actions", "speed": 1.0},
+        "desc": {
+            "mode": "start(开始录制) / stop(停止录制) / replay(回放最后一次)",
+            "speed": "回放速度倍率,replay 时用",
+        },
+        "example": {"mode": "start"},
+        "combo": "**影刀杀手锏**:start → 用户操作 → stop 自动生成可重放的事件序列;replay 复现操作",
+    },
+}
+
+_ALL_SCHEMAS.update(DESKTOP_PRO_SCHEMAS)

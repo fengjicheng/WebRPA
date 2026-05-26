@@ -51,6 +51,7 @@ from . import screen_share
 from . import trigger
 from . import utility_tools
 from . import desktop_automation  # 全新的桌面应用自动化模块（基于 uiautomation）
+from . import desktop_advanced  # 影刀级桌面增强(智能查找/批量抓取/UI 快照/XPath/录制器)
 from . import format_factory
 from . import python_script
 from . import table_extract
