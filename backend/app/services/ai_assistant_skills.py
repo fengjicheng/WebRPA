@@ -227,6 +227,244 @@ async def skill_get_module_schema(module_types: list[str], **_: Any) -> dict[str
     }
 
 
+# ----- 工作流校验 / 自动修复 -----
+
+async def skill_validate_workflow_nodes(nodes: list[dict], edges: list[dict] | None = None, **_: Any) -> dict[str, Any]:
+    """对一份节点列表做静态校验，返回所有可疑问题。
+    AI 调用方式：
+      ① client_action(action='get_workflow_detail') 拿到 nodes/edges
+      ② validate_workflow_nodes(nodes=..., edges=...) 看报告
+      ③ 按报告里的修复建议调 client_action 修正
+
+    检查项：
+    - 必填字段是否填了（按 schema.required）
+    - 上一步的输出变量是否被下一步用到（变量贯穿）
+    - 是否存在孤立节点（没连任何边）
+    - 是否有未关闭的连接（db_connect 没配 db_close 等）
+    """
+    if not isinstance(nodes, list):
+        return {"error": "nodes 必须是数组"}
+    edges = edges or []
+
+    META_FIELDS = {"label", "moduleType", "name", "remark", "customName",
+                   "subflowName", "subflowGroupId", "isSubflow", "customModuleId",
+                   "isHighlighted", "parameterValues", "color", "icon"}
+
+    issues: list[dict[str, Any]] = []
+    # 收集每个节点产生的变量名 → 节点 id；和每个变量被使用的节点 id 列表
+    produced_vars: dict[str, list[str]] = {}  # var_name -> [producer_node_id]
+    consumed_vars: dict[str, list[str]] = {}  # var_name -> [consumer_node_id]
+
+    import re
+    var_pattern = re.compile(r"\{([a-zA-Z_][a-zA-Z_0-9]*)\}")
+
+    # 第一遍：建立变量产出/消费索引 + 必填字段检查
+    for node in nodes:
+        ntype = node.get("type") or (node.get("data") or {}).get("moduleType")
+        if not ntype:
+            continue
+        nid = node.get("id", "")
+        ndata = node.get("data") or {}
+        schema = get_module_schema(ntype)
+
+        # 检查必填
+        if schema and schema.get("required"):
+            for req_field in schema["required"]:
+                val = ndata.get(req_field)
+                if val is None or val == "" or (isinstance(val, list) and not val):
+                    issues.append({
+                        "level": "error",
+                        "node_id": nid,
+                        "module_type": ntype,
+                        "field": req_field,
+                        "message": f"必填字段「{req_field}」未填",
+                        "fix_hint": f"调用 client_action(update_node_config, {{node_id: '{nid}', config: {{{req_field}: ...}}}})",
+                    })
+
+        # 收集该节点产生的变量名
+        for var_field in ("variableName", "resultVariable", "saveResult", "saveToVariable",
+                          "saveNewElementSelector", "saveChangeInfo", "connectionVariable",
+                          "itemVariable", "indexVariable", "keyVariable", "valueVariable"):
+            val = ndata.get(var_field)
+            if isinstance(val, str) and val.strip():
+                produced_vars.setdefault(val.strip(), []).append(nid)
+
+        # 收集该节点引用的变量
+        for k, v in ndata.items():
+            if k in META_FIELDS:
+                continue
+            if isinstance(v, str):
+                for ref in var_pattern.findall(v):
+                    consumed_vars.setdefault(ref, []).append(nid)
+
+    # 第二遍：检查"产生但未被使用"的变量（可能是死变量）
+    for var, producers in produced_vars.items():
+        if var not in consumed_vars and len(producers) <= 1:
+            # 只产生不被使用的非中间变量，可能是 dangling
+            issues.append({
+                "level": "warning",
+                "node_id": producers[0],
+                "field": "result variable",
+                "message": f"变量「{var}」产生了但没被任何后续节点引用，可能是无效输出",
+                "fix_hint": "如果有意保留可忽略；否则在某个 print_log/set_variable 里用 {" + var + "} 引用一下",
+            })
+
+    # 第三遍：检查"使用但没产生"的变量（变量名拼错？）
+    for var, consumers in consumed_vars.items():
+        if var not in produced_vars:
+            # 一些内置/全局变量可豁免
+            BUILTIN = {"item", "index", "key", "value", "ai_response"}
+            if var in BUILTIN:
+                continue
+            issues.append({
+                "level": "error",
+                "node_id": consumers[0],
+                "field": "variable reference",
+                "message": f"引用了变量「{var}」但工作流中没有任何节点产生它，可能拼错或漏了上游",
+                "fix_hint": f"检查变量名拼写，或在前面加节点产生 {var}",
+            })
+
+    # 第四遍：孤立节点
+    edge_endpoints = set()
+    for e in edges:
+        edge_endpoints.add(e.get("source", ""))
+        edge_endpoints.add(e.get("target", ""))
+    for node in nodes:
+        nid = node.get("id", "")
+        ntype = node.get("type") or (node.get("data") or {}).get("moduleType") or ""
+        # 触发器/note/group 不需要被连
+        if ntype in ("note", "group", "subflow_header") or "trigger" in ntype:
+            continue
+        if nid and nid not in edge_endpoints and len(nodes) > 1:
+            issues.append({
+                "level": "warning",
+                "node_id": nid,
+                "module_type": ntype,
+                "message": f"节点「{ntype}」没有任何连线，可能是孤立的死节点",
+                "fix_hint": f"调 client_action(connect_nodes, ...) 把它连入主流程，或 client_action(delete_node)",
+            })
+
+    # 第五遍：未关闭的连接
+    OPENED_TO_CLOSE = {
+        "db_connect": "db_close",
+        "ssh_connect": "ssh_disconnect",
+        "oracle_connect": "oracle_disconnect",
+        "postgresql_connect": "postgresql_disconnect",
+        "mongodb_connect": "mongodb_disconnect",
+        "sqlserver_connect": "sqlserver_disconnect",
+        "sqlite_connect": "sqlite_disconnect",
+        "redis_connect": "redis_disconnect",
+    }
+    types_in_workflow = {n.get("type") or (n.get("data") or {}).get("moduleType") for n in nodes}
+    for opener, closer in OPENED_TO_CLOSE.items():
+        if opener in types_in_workflow and closer not in types_in_workflow:
+            issues.append({
+                "level": "warning",
+                "module_type": opener,
+                "message": f"使用了 {opener} 但工作流末尾没有 {closer}，可能造成连接泄漏",
+                "fix_hint": f"在工作流末尾加一个 {closer} 节点",
+            })
+
+    error_count = len([i for i in issues if i.get("level") == "error"])
+    warning_count = len([i for i in issues if i.get("level") == "warning"])
+
+    return {
+        "valid": error_count == 0,
+        "summary": f"共 {error_count} 个错误，{warning_count} 个警告",
+        "error_count": error_count,
+        "warning_count": warning_count,
+        "issues": issues,
+        "tip": (
+            "若 valid=False，按 issues[].fix_hint 调 client_action 逐项修复。"
+            "也可以一次调 auto_fix_workflow_nodes 让我自动用 schema 默认值补齐所有 required 字段。"
+        ),
+    }
+
+
+async def skill_auto_fix_workflow_nodes(nodes: list[dict], **_: Any) -> dict[str, Any]:
+    """根据 schema 自动给画布上每个节点补齐默认配置。
+    返回每个节点应该 update 的 patch，AI 拿到后用 client_action(update_node_config) 应用。
+    """
+    if not isinstance(nodes, list):
+        return {"error": "nodes 必须是数组"}
+
+    patches: list[dict[str, Any]] = []
+    for node in nodes:
+        ntype = node.get("type") or (node.get("data") or {}).get("moduleType")
+        if not ntype:
+            continue
+        nid = node.get("id", "")
+        ndata = node.get("data") or {}
+        schema = get_module_schema(ntype)
+        if not schema:
+            continue
+
+        patch: dict[str, Any] = {}
+        # 用 defaults 补齐缺失字段
+        for k, default_v in (schema.get("defaults") or {}).items():
+            cur = ndata.get(k)
+            if cur is None or cur == "":
+                patch[k] = default_v
+
+        if patch:
+            patches.append({"node_id": nid, "module_type": ntype, "patch": patch})
+
+    return {
+        "fix_count": len(patches),
+        "patches": patches,
+        "tip": "对每条 patch 调用 client_action(update_node_config, {node_id, config: patch})",
+    }
+
+
+async def skill_analyze_variable_flow(nodes: list[dict], **_: Any) -> dict[str, Any]:
+    """分析画布中所有变量的产生-引用链，便于 AI 理解数据流向。"""
+    if not isinstance(nodes, list):
+        return {"error": "nodes 必须是数组"}
+
+    import re
+    META_FIELDS = {"label", "moduleType", "name", "remark", "customName",
+                   "subflowName", "subflowGroupId", "isSubflow", "customModuleId",
+                   "isHighlighted", "parameterValues", "color", "icon"}
+    var_pattern = re.compile(r"\{([a-zA-Z_][a-zA-Z_0-9]*)\}")
+
+    flow: dict[str, dict[str, Any]] = {}  # var -> {producers, consumers}
+
+    for node in nodes:
+        nid = node.get("id", "")
+        ntype = node.get("type") or (node.get("data") or {}).get("moduleType") or ""
+        ndata = node.get("data") or {}
+        for var_field in ("variableName", "resultVariable", "saveResult", "saveToVariable",
+                          "saveNewElementSelector", "saveChangeInfo", "connectionVariable",
+                          "itemVariable", "indexVariable", "keyVariable", "valueVariable"):
+            val = ndata.get(var_field)
+            if isinstance(val, str) and val.strip():
+                v = val.strip()
+                flow.setdefault(v, {"producers": [], "consumers": []})
+                flow[v]["producers"].append({"node_id": nid, "type": ntype, "field": var_field})
+
+        for k, v in ndata.items():
+            if k in META_FIELDS:
+                continue
+            if isinstance(v, str):
+                for ref in var_pattern.findall(v):
+                    flow.setdefault(ref, {"producers": [], "consumers": []})
+                    flow[ref]["consumers"].append({"node_id": nid, "type": ntype, "field": k})
+
+    # 标记孤儿
+    for var, info in flow.items():
+        info["status"] = (
+            "orphan_use" if not info["producers"] and info["consumers"]
+            else "unused" if info["producers"] and not info["consumers"]
+            else "ok"
+        )
+
+    return {
+        "variable_count": len(flow),
+        "variables": flow,
+        "tip": "status=orphan_use 表示引用了但没产生（可能拼错），unused 表示产生了但没用到",
+    }
+
+
 async def skill_search_modules(keyword: str, **_: Any) -> dict[str, Any]:
     """按关键词搜索模块（支持中英文模糊匹配，最多返回 50 条）"""
     if not keyword or not keyword.strip():
@@ -2417,6 +2655,54 @@ def _register_all() -> None:
             "required": ["module_types"],
         },
         handler=skill_get_module_schema,
+    ))
+    registry.register(Skill(
+        name="validate_workflow_nodes",
+        description=(
+            "对一组节点做静态校验，找出：必填字段未填 / 变量名拼错 / 孤立节点 / 未关闭连接 等问题。"
+            "标准用法：先 client_action(action='get_workflow_detail') 拿到 nodes/edges，"
+            "再 validate_workflow_nodes(nodes=..., edges=...)。返回 issues 列表，每条带 fix_hint 教 AI 怎么修。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "nodes": {"type": "array", "description": "节点数组（来自 get_workflow_detail.data.nodes）"},
+                "edges": {"type": "array", "description": "连线数组（可选）"},
+            },
+            "required": ["nodes"],
+        },
+        handler=skill_validate_workflow_nodes,
+    ))
+    registry.register(Skill(
+        name="auto_fix_workflow_nodes",
+        description=(
+            "根据 schema 自动给画布上所有节点补齐默认配置。"
+            "返回 patches 数组，每条 {node_id, patch}。AI 用 client_action(update_node_config) 逐条应用。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "nodes": {"type": "array", "description": "节点数组"},
+            },
+            "required": ["nodes"],
+        },
+        handler=skill_auto_fix_workflow_nodes,
+    ))
+    registry.register(Skill(
+        name="analyze_variable_flow",
+        description=(
+            "分析画布中所有变量的产生-引用链。"
+            "返回 {var_name: {producers, consumers, status}}，status=orphan_use(引用没产生)/unused(产生没引用)/ok。"
+            "用于排查变量名拼错、数据断流等问题。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "nodes": {"type": "array", "description": "节点数组"},
+            },
+            "required": ["nodes"],
+        },
+        handler=skill_analyze_variable_flow,
     ))
     registry.register(Skill(
         name="search_modules",
