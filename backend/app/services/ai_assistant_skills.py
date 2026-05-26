@@ -3001,7 +3001,11 @@ def _register_all() -> None:
     ))
     registry.register(Skill(
         name="list_global_variables",
-        description="读取后端持久化的全局变量",
+        description=(
+            "【历史遗留】读取后端持久化文件 backend/data/global_vars.json。"
+            "**注意：这不是用户在底栏看到的全局变量**。底栏全局变量请用 client_action(action='list_variables') 获取，"
+            "底栏的增删改请用 client_action 的 add_variable / update_variable / delete_variable / clear_variables。"
+        ),
         parameters={"type": "object", "properties": {}},
         handler=skill_list_global_variables,
     ))
@@ -3453,37 +3457,9 @@ def _register_all() -> None:
         handler=skill_stop_workflow_now,
     ))
 
-    # === 全局变量 真生效（后端持久化） ===
-    registry.register(Skill(
-        name="set_global_variable",
-        description="设置后端持久化的全局变量（写入 backend/data/global_vars.json，重启仍在）",
-        parameters={
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "value": {"description": "任意 JSON 可序列化值"},
-            },
-            "required": ["name", "value"],
-        },
-        handler=skill_set_global_variable,
-    ))
-    registry.register(Skill(
-        name="delete_global_variable",
-        description="删除后端持久化的全局变量",
-        parameters={
-            "type": "object",
-            "properties": {"name": {"type": "string"}},
-            "required": ["name"],
-        },
-        handler=skill_delete_global_variable,
-    ))
-    registry.register(Skill(
-        name="clear_global_variables",
-        description="清空全部后端持久化全局变量（高危）",
-        parameters={"type": "object", "properties": {}},
-        handler=skill_clear_global_variables,
-        requires_approval=True,
-    ))
+    # === 注意：底栏全局变量请走前端 client_action（add_variable / update_variable / delete_variable / clear_variables）===
+    # 后端的持久化文件（backend/data/global_vars.json）只是历史遗留，与用户在底栏看到的全局变量不是同一份。
+    # 这里不再注册 set_global_variable / delete_global_variable / clear_global_variables 三个会写入孤儿文件的 skill。
 
     # === 资源管理 真生效 ===
     registry.register(Skill(
