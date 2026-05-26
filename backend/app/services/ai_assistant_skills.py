@@ -21,6 +21,12 @@ from app.services.ai_assistant_module_schemas import (
     get_all_module_schemas,
     apply_default_config,
 )
+from app.services.ai_assistant_templates import (
+    WORKFLOW_TEMPLATES,
+    get_all_templates,
+    find_template,
+    get_template_by_name,
+)
 
 
 # ---------- Skill 定义 ----------
@@ -480,6 +486,43 @@ async def skill_search_modules(keyword: str, **_: Any) -> dict[str, Any]:
         "count": len(matches),
         "matches": matches[:50],
         "tip": "拿到 type 后用 describe_module 查看配置字段示例，再写 build_workflow",
+    }
+
+
+async def skill_list_workflow_templates(query: str | None = None, **_: Any) -> dict[str, Any]:
+    """列出/搜索内置工作流模板。
+    - 不传 query：返回所有模板的简表
+    - 传 query：按用户需求关键词匹配最相关的几个模板
+    """
+    if query and query.strip():
+        templates = find_template(query.strip())
+    else:
+        templates = WORKFLOW_TEMPLATES
+    return {
+        "count": len(templates),
+        "templates": [
+            {
+                "name": t["name"],
+                "description": t.get("description", ""),
+                "triggers": t.get("triggers", []),
+                "step_types": [s["type"] for s in t.get("steps", [])],
+            }
+            for t in templates
+        ],
+        "tip": "拿到模板名后调 get_workflow_template 看完整 steps，可直接喂给 build_workflow",
+    }
+
+
+async def skill_get_workflow_template(name: str, **_: Any) -> dict[str, Any]:
+    """获取指定模板的完整内容（含 steps），可直接复制到 build_workflow"""
+    if not name:
+        return {"error": "缺少 name"}
+    t = get_template_by_name(name)
+    if not t:
+        return {"error": f"未找到模板：{name}"}
+    return {
+        "template": t,
+        "tip": "复制 steps 到 build_workflow.steps，把里面的 <占位符> 替换成用户实际需要的值",
     }
 
 
@@ -2715,6 +2758,32 @@ def _register_all() -> None:
             "required": ["keyword"],
         },
         handler=skill_search_modules,
+    ))
+    registry.register(Skill(
+        name="list_workflow_templates",
+        description=(
+            "列出/搜索内置工作流模板（10 个高频套路：网页采集/API/登录/Excel 批量/定时通知/PDF/AI 问答/文件夹监控等）。"
+            "面对用户需求时优先看有没有现成模板，省去从零搭建。传 query 按关键词搜，不传则列全部。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "可选：按用户需求关键词匹配（如「采集」「定时」）"},
+            },
+        },
+        handler=skill_list_workflow_templates,
+    ))
+    registry.register(Skill(
+        name="get_workflow_template",
+        description="获取指定模板的完整 steps（可直接复制到 build_workflow.steps，替换 <占位符> 即可）",
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "模板名（来自 list_workflow_templates 返回）"},
+            },
+            "required": ["name"],
+        },
+        handler=skill_get_workflow_template,
     ))
 
     # 工作流文件

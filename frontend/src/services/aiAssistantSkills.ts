@@ -477,6 +477,37 @@ export async function executeClientAction(
         return { success: true, message: `已请求单节点运行：${nodeId}` }
       }
 
+      case 'replace_module_type': {
+        // 替换某个节点的 module_type，保留位置和连线（高级修复用）
+        const nodeId = payload.node_id as string
+        const newType = payload.new_type as string
+        if (!nodeId || !newType) return { success: false, error: '缺少 node_id 或 new_type' }
+        const s = useWorkflowStore.getState()
+        const exists = s.nodes.find((n: any) => n.id === nodeId)
+        if (!exists) return { success: false, error: `节点 ${nodeId} 不存在` }
+        s.updateNodeData(nodeId, { moduleType: newType } as any)
+        // 同时改 react-flow 的 type 字段
+        useWorkflowStore.setState({
+          nodes: s.nodes.map((n: any) => (n.id === nodeId ? { ...n, type: newType } : n)),
+        } as any)
+        return { success: true, message: `节点 ${nodeId} 的类型已改为 ${newType}` }
+      }
+
+      case 'duplicate_node': {
+        // 复制单节点（含数据）+ 偏移定位
+        const nodeId = payload.node_id as string
+        if (!nodeId) return { success: false, error: '缺少 node_id' }
+        const s = useWorkflowStore.getState()
+        const src = s.nodes.find((n: any) => n.id === nodeId)
+        if (!src) return { success: false, error: `节点 ${nodeId} 不存在` }
+        s.copyNodes([nodeId])
+        s.pasteNodes({
+          x: (src.position?.x || 0) + 60,
+          y: (src.position?.y || 0) + 40,
+        })
+        return { success: true, message: `已复制节点 ${nodeId}` }
+      }
+
       case 'undo': {
         const s = useWorkflowStore.getState()
         if (!s.canUndo()) return { success: false, error: '没有可撤销的步骤' }
