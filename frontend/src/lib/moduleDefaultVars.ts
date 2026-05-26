@@ -225,6 +225,14 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   desktop_get_property: { resultVariable: 'property_value' },
   desktop_window_capture: { resultVariable: 'window_screenshot' },
 
+  // 桌面影刀级新模块（智能查找/批量抓取/UI快照/XPath 等）
+  desktop_find_control_smart: { saveToVariable: 'desktop_control' },
+  desktop_extract_table: { variableName: 'extracted_data' },
+  desktop_get_app_state: { variableName: 'app_state' },
+  desktop_query_with_xpath: { saveToVariable: 'desktop_control' },
+  desktop_select_text: { variableName: 'selected_text' },
+  desktop_get_focused_control: { saveToVariable: 'focused_control' },
+
   // ==================== AI 媒体 ====================
   ai_generate_image: { resultVariable: 'generated_image' },
   ai_generate_video: { resultVariable: 'generated_video' },

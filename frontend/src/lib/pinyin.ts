@@ -175,6 +175,23 @@ const pinyinMap: Record<string, string> = {
   绪: 'xu', 菜: 'cai', 项: 'xiang', 企: 'qi', 业: 'ye', 酱: 'jiang',
   事: 'shi', 虚: 'xu', 题: 'ti', 警: 'jing', 强: 'qiang', 声: 'sheng',
   手: 'shou', 势: 'shi', 见: 'jian', 拍: 'pai', 义: 'yi',
+  // 模块标签补全 3
+  允: 'yun', 言: 'yan', 许: 'xu',
+  // 关键词补全 4 - 模块关键词中所有汉字
+  双: 'shuang', 架: 'jia', 联: 'lian', 累: 'lei', 醒: 'xing', 台: 'tai',
+  坐: 'zuo', 抖: 'dou', 油: 'you', 管: 'guan', 博: 'bo', 者: 'zhe',
+  晰: 'xi', 护: 'hu', 优: 'you', 美: 'mei', 版: 'ban', 天: 'tian',
+  摸: 'mo', 住: 'zhu', 母: 'mu', 问: 'wen', 答: 'da', 然: 'ran',
+  适: 'shi', 构: 'gou', 航: 'hang', 麦: 'mai', 克: 'ke', 姿: 'zi',
+  评: 'ping', 论: 'lun', 释: 'shi', 区: 'qu', 明: 'ming', 籍: 'ji',
+  万: 'wan', 垂: 'chui', 斯: 'si', 柔: 'rou', 朦: 'meng', 胧: 'long',
+  利: 'li', 饱: 'bao', 颜: 'yan', 鲜: 'xian', 艳: 'yan', 横: 'heng',
+  纵: 'zong', 效: 'xiao', 艺: 'yi', 术: 'shu', 缘: 'yuan', 雕: 'diao',
+  抠: 'kou', 透: 'tou', 较: 'jiao', 唯: 'wei', 总: 'zong', 学: 'xue',
+  幂: 'mi', 筛: 'shai', 展: 'zhan', 互: 'hu', 占: 'zhan', 散: 'san',
+  逗: 'dou', 境: 'jing', 仅: 'jin', 刀: 'dao', 感: 'gan', 渠: 'qu',
+  苹: 'ping', 团: 'tuan', 队: 'dui', 缓: 'huan', 远: 'yuan', 服: 'fu',
+  车: 'che', 绘: 'hui',
 }
 
 /**

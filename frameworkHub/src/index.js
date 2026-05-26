@@ -99,8 +99,8 @@ app.get('/health', (req, res) => {
 // 获取最新版本号
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '1.32.0',
-    releaseDate: '2026-02-18',
+    version: '2.0.0',
+    releaseDate: '2026-05-26',
     downloadUrl: 'https://github.com/pmh1314520/WebRPA/releases',
     changelog: '请前往 GitHub Releases 页面查看更新日志'
   })
