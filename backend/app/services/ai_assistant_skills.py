@@ -319,18 +319,29 @@ async def skill_build_node(
     module_type: str,
     config: dict | None = None,
     label: str | None = None,
+    name: str | None = None,
     position: dict | None = None,
     **_: Any,
 ) -> dict[str, Any]:
-    """构造一个节点 JSON（前端可直接 addNode 进画布）"""
+    """构造一个节点 JSON（前端可直接 addNode 进画布）
+
+    注意：label 是模块官方名（前端按 moduleType 自动从 moduleTypeLabels 映射成中文），
+    AI 不应该改 label。如果想给节点起业务名，请用 name 字段（节点备注，画布会显示成
+    「<官方模块名> (<name>)」）。
+    """
+    node_data: dict[str, Any] = {
+        "moduleType": module_type,
+        "config": config or {},
+    }
+    # 兼容历史：AI 仍可能传 label，把它当作业务名落到 name
+    ai_business_name = name or label
+    if ai_business_name and ai_business_name != module_type:
+        node_data["name"] = ai_business_name
     node = {
         "id": _make_node_id(),
         "type": module_type,
         "position": position or {"x": 200.0, "y": 200.0},
-        "data": {
-            "label": label or module_type,
-            "config": config or {},
-        },
+        "data": node_data,
     }
     return {"node": node}
 
@@ -350,7 +361,7 @@ async def skill_build_workflow(
         steps: 有序步骤数组，每个元素：
             {
                 "type": "open_page",                     # 必填：模块 type
-                "label": "打开网页",                      # 可选：节点显示名（推荐写）
+                "label": "打开网页",                      # 可选：节点的业务备注（不是模块名！模块官方名按 type 自动显示）
                 "config": {"url": "..."},                # 可选：节点配置
                 "id": "step_open"                        # 可选：自定义 id（用于跳跃连接）
                 "next": "step_click",                    # 可选：指定连到哪个 id（默认下一条）
@@ -472,10 +483,14 @@ async def skill_build_workflow(
         x, y = positions[idx]
         # 业务配置全部直接展开到 data（NodeData 是扁平结构）
         cfg = step.get("config") or {}
+        # 注意：label 是模块官方名（前端会按 moduleType 自动用中文映射兜底，AI 不要试图改它）
+        # AI 给的 label 实际是"业务命名"，把它写到 name 字段当备注
         node_data: dict[str, Any] = {
-            "label": step.get("label") or mtype,
             "moduleType": mtype,
         }
+        ai_name = step.get("label") or step.get("name")
+        if ai_name and ai_name != mtype:
+            node_data["name"] = ai_name
         # 备注（remark）会显示在节点底部
         if step.get("comment"):
             # comment 既是 remark，也会单独生成一个便签节点
@@ -2376,13 +2391,17 @@ def _register_all() -> None:
     # 节点/工作流构造
     registry.register(Skill(
         name="build_node",
-        description="构造一个节点 JSON，前端会把它加入到当前画布",
+        description=(
+            "构造一个节点 JSON，前端会把它加入到当前画布。"
+            "注意：节点的模块名（label）是只读的，会按 module_type 自动显示官方中文名（如 open_page → 「打开网页」）。"
+            "如果你想给节点起一个业务相关的名字（如「打开登录页」），请用 name 字段，画布会显示成「<官方名> (<name>)」。"
+        ),
         parameters={
             "type": "object",
             "properties": {
                 "module_type": {"type": "string", "description": "节点类型，例如 open_page"},
                 "config": {"type": "object", "description": "节点的配置字段（具体字段视模块而定）"},
-                "label": {"type": "string", "description": "节点显示名称"},
+                "name": {"type": "string", "description": "节点的业务备注名（推荐写中文，例如「打开登录页」）。会显示在节点官方名旁边的括号里"},
                 "position": {
                     "type": "object",
                     "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
@@ -2400,7 +2419,9 @@ def _register_all() -> None:
             "③可选 title_note 在画布顶部生成蓝色「工作流说明」便签 ④可选 notes 数组追加任意位置便签 "
             "⑤同 section 字段会被分到一行，使工作流逻辑清晰可读。"
             "前端调用此工具后会**自动把结果装入画布**，无需再调 load_workflow_from_data。"
-            "强烈建议为每一步写 label（节点显示名）和 comment（注释，会变成便签）。"
+            "重要：节点的模块名（label）是只读的，按 module_type 自动显示官方中文名，不要试图传 label 改它。"
+            "如果想给节点起业务名，请用 name 字段（画布显示为「<官方模块名> (<name>)」）。"
+            "强烈建议为每一步写 name（业务备注）和 comment（注释，会变成便签）。"
         ),
         parameters={
             "type": "object",
@@ -2422,7 +2443,7 @@ def _register_all() -> None:
                         "type": "object",
                         "properties": {
                             "type": {"type": "string", "description": "节点 module_type，例如 open_page/click_element"},
-                            "label": {"type": "string", "description": "节点显示名（推荐写中文，例如「打开登录页」）"},
+                            "name": {"type": "string", "description": "节点的业务备注名（推荐写中文，例如「打开登录页」）。会显示在节点官方名旁边的括号里。注意：不要用这个字段试图改节点的官方模块名"},
                             "config": {"type": "object", "description": "节点配置字段"},
                             "id": {
                                 "type": "string",
@@ -3103,7 +3124,7 @@ def _register_all() -> None:
             "- copy_nodes: 复制节点到剪贴板（payload.node_ids）\n"
             "- paste_nodes: 粘贴剪贴板节点（payload.position 可选）\n"
             "- move_node: 把节点移动到指定坐标（payload.node_id, payload.x, payload.y）\n"
-            "- rename_node: 修改节点显示名（payload.node_id, payload.label）\n"
+            "- rename_node: 修改节点的备注（payload.node_id, payload.name）。注意：节点的官方模块名（label）是只读的，AI 重命名时实际只改 name 字段，画布上会显示成「<官方模块名> (<name>)」\n"
             "- find_nodes_by_type: 查找所有指定 type 的节点 id（payload.type）\n"
             "- connect_nodes: 创建节点之间的连线（payload.source, payload.target, payload.source_handle 可选, payload.target_handle 可选）\n"
             "- disconnect_edge: 删除指定连线（payload.edge_id）\n"

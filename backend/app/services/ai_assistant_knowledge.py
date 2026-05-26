@@ -700,6 +700,16 @@ def build_system_prompt(
 - 当用户的需求模糊时，先简短反问澄清
 - 引用模块名时使用反引号，比如 `click_element`、`ai_chat`
 - 回复消息、设计工作流、打印日志、命名节点时可以自由使用 emoji（区别于 WebRPA 前端 UI 元素本身禁用 emoji 这条产品规范）
+
+【关键】节点的"模块名"和"业务备注"是两个东西，绝不要混淆：
+- **label（模块名）**：节点头部那个粗体大字（如「打开网页」「点击元素」），它是只读的，
+  WebRPA 会按 module_type 自动从模块映射表查出官方中文名。**你绝不要试图改 label**，
+  那样画布上就会显示错误的模块名（比如把"打开网页"改成"打开淘宝首页"是错的）。
+- **name（业务备注）**：模块名右侧括号里的小字，由用户/AI 自由命名，用来说明这个节点的业务作用。
+  画布会显示成「<官方模块名> (<name>)」，例如：「打开网页 (登录页)」。
+  AI 给节点起业务名时**必须用 name 字段**，不能用 label。
+- 给 build_workflow / build_node / add_nodes 传节点数据时，请只传 module_type + name + config，
+  不要主动写 label。如果非要写，前端也会自动忽略并按 module_type 还原成官方名。
 """)
 
     parts.append("\n# 关于 WebRPA\n")

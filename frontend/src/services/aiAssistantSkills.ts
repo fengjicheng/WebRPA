@@ -40,14 +40,20 @@ function convertAiNodeToReactFlow(n: any): any {
 
   // 基础数据：label / moduleType / 其他配置字段都展开到 data
   const moduleType = n.data?.moduleType ?? businessType
-  // 没传 label 时自动用中文映射兜底（避免画布显示英文 moduleType）
-  let defaultLabel = ''
+  // 模块原名（中文）：永远用 moduleTypeLabels 查表，不接受 AI 改 label
+  let officialLabel = ''
   if (frontendType === 'moduleNode' && moduleType) {
-    defaultLabel = (moduleTypeLabels as Record<string, string>)[moduleType] || moduleType
+    officialLabel = (moduleTypeLabels as Record<string, string>)[moduleType] || moduleType
   }
+  // AI 传的 label 实际是它想给节点起的名字，应当落到 name（节点备注）字段
+  // 这样画布显示：「<官方模块名> (<AI 给的名字>)」
+  const aiCustomName = n.data?.label && n.data.label !== officialLabel ? n.data.label : undefined
   const baseData: Record<string, any> = {
-    label: n.data?.label || defaultLabel,
+    label: officialLabel,
     moduleType,
+  }
+  if (aiCustomName && !n.data?.name && !n.data?.remark) {
+    baseData.name = aiCustomName
   }
   // 把 data 里其它字段（remark/comment/content/config 等）合并展开
   if (n.data && typeof n.data === 'object') {
@@ -59,6 +65,11 @@ function convertAiNodeToReactFlow(n: any): any {
         baseData[k] = v
       }
     }
+  }
+  // 双保险：合并完后强制还原模块原名，绝不接受 AI 改 label
+  // （即便 config 子对象里也写了 label，也会被这一步覆盖回来）
+  if (frontendType === 'moduleNode' && officialLabel) {
+    baseData.label = officialLabel
   }
 
   // 便签 / 分组节点的样式（默认尺寸，AI 没传时给个合理默认）
@@ -249,6 +260,16 @@ export async function executeClientAction(
         const nodeId = payload.node_id as string
         const config = (payload.config as Record<string, any>) || {}
         if (!nodeId) return { success: false, error: '缺少 node_id' }
+        // 保护：label 是模块原名，AI 不允许通过 update_node_config 修改它
+        // 如果 AI 想改"显示名"，应该改 name（节点备注）字段
+        if ('label' in config) {
+          const labelVal = config.label
+          delete config.label
+          // 如果当前没有 name/remark，把 AI 传的 label 当作备注落到 name
+          if (labelVal && !('name' in config) && !('remark' in config)) {
+            config.name = labelVal
+          }
+        }
         useWorkflowStore.getState().updateNodeData(nodeId, config as any)
         return { success: true, message: `已更新节点 ${nodeId}` }
       }
@@ -306,11 +327,13 @@ export async function executeClientAction(
 
       case 'rename_node': {
         const nodeId = payload.node_id as string
-        const label = payload.label as string
+        // 兼容 AI 可能传 label / name / remark 任一字段：实际都写到 name（节点备注）
+        const newName = (payload.name as string) ?? (payload.remark as string) ?? (payload.label as string)
         if (!nodeId) return { success: false, error: '缺少 node_id' }
-        if (!label) return { success: false, error: '缺少 label' }
-        useWorkflowStore.getState().updateNodeData(nodeId, { label } as any)
-        return { success: true, message: `已重命名节点 ${nodeId} → ${label}` }
+        if (!newName) return { success: false, error: '缺少 name（节点备注）' }
+        // 关键：不能动 label（label 是模块原名），只改 name 这个备注字段
+        useWorkflowStore.getState().updateNodeData(nodeId, { name: newName } as any)
+        return { success: true, message: `已重命名节点 ${nodeId} → ${newName}（备注）` }
       }
 
       case 'find_nodes_by_type': {
