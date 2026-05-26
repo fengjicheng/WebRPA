@@ -876,6 +876,9 @@ async def skill_build_workflow(
                 "id": f"e-{sid}-{target_id}",
                 "source": sid,
                 "target": target_id,
+                # 与 WebRPA 默认连线样式保持一致（流光虚线 smoothstep）
+                "type": "smoothstep",
+                "animated": True,
             })
 
     # 5) 生成便签（智能排版）

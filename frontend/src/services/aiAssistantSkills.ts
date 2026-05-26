@@ -279,18 +279,17 @@ export async function executeClientAction(
             }
           }
           if (readyEdges.length > 0) {
-            // 给 AI 自动创建的边加上 animated 标志，让连线"画"出来
-            const animatedEdges = readyEdges.map((e: any) => ({ ...e, animated: true }))
-            useWorkflowStore.setState((s) => ({
-              edges: [...s.edges, ...animatedEdges] as any,
+            // 给 AI 自动创建的边加上 animated + type，与 WebRPA 默认连线样式保持一致（流光虚线）
+            const styledEdges = readyEdges.map((e: any) => ({
+              ...e,
+              type: e.type || 'smoothstep',
+              animated: true,
             }))
-            // 1.2s 后取消动画（保留静态连线）
-            setTimeout(() => {
-              const ids = new Set(animatedEdges.map((e: any) => e.id))
-              useWorkflowStore.setState((s) => ({
-                edges: s.edges.map((e: any) => (ids.has(e.id) ? { ...e, animated: false } : e)) as any,
-              }))
-            }, 1200)
+            useWorkflowStore.setState((s) => ({
+              edges: [...s.edges, ...styledEdges] as any,
+            }))
+            // 注意：保持 animated=true 不变（WebRPA 默认连线就是流光虚线）
+            // 之前误把它 1.2s 后改成 false，导致 AI 创建的连线变成实线，与用户手连的不一致
           }
 
           emitAssistantUiEvent('build_progress', {
@@ -606,6 +605,8 @@ export async function executeClientAction(
           target,
           sourceHandle: payload.source_handle || undefined,
           targetHandle: payload.target_handle || undefined,
+          type: 'smoothstep',
+          animated: true,
         }
         useWorkflowStore.setState({ edges: [...s.edges, newEdge] } as any)
         return { success: true, message: `已连接 ${source} → ${target}`, data: newEdge }
@@ -641,6 +642,8 @@ export async function executeClientAction(
             id: `e-${src}-${tgt}-${Date.now().toString(36)}-${i}`,
             source: src,
             target: tgt,
+            type: 'smoothstep',
+            animated: true,
           })
         }
         useWorkflowStore.setState({ edges: [...s.edges, ...newEdges] } as any)
@@ -664,6 +667,8 @@ export async function executeClientAction(
             source: cond,
             target: trueId,
             sourceHandle: 'true',
+            type: 'smoothstep',
+            animated: true,
           })
         }
         if (falseId) {
@@ -672,6 +677,8 @@ export async function executeClientAction(
             source: cond,
             target: falseId,
             sourceHandle: 'false',
+            type: 'smoothstep',
+            animated: true,
           })
         }
         useWorkflowStore.setState({ edges: [...s.edges, ...newEdges] } as any)
