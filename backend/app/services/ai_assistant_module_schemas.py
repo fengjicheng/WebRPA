@@ -2327,3 +2327,322 @@ IMAGE_DOC_NET_SCHEMAS: dict = {
 }
 
 _ALL_SCHEMAS.update(IMAGE_DOC_NET_SCHEMAS)
+
+
+# ============================================================
+# 第七批：宏录制 / 屏幕共享 / 数据库扩展 / 字符串高级 / 触发器扩展
+# ============================================================
+
+EXTRA2_SCHEMAS: dict = {
+    # 宏录制
+    "macro_recorder": {
+        "required": ["macroFile"],
+        "optional": ["mode", "speed", "loopCount"],
+        "defaults": {"mode": "play", "speed": 1.0, "loopCount": 1},
+        "desc": {
+            "macroFile": "宏文件路径（.json）",
+            "mode": "play 回放 / record 录制",
+            "speed": "回放速度倍数",
+            "loopCount": "回放次数",
+        },
+        "example": {"macroFile": "D:\\\\macro.json", "mode": "play"},
+        "combo": "工作流中插入宏回放：先 record 模式录制，再用 play 模式回放",
+    },
+
+    # Oracle 数据库（同 db_*）
+    "oracle_connect": {
+        "required": ["host", "username", "password", "service"],
+        "optional": ["port", "connectionVariable"],
+        "defaults": {"port": 1521, "connectionVariable": "oracle_conn"},
+        "desc": {"service": "服务名 / SID"},
+        "example": {"host": "192.168.1.100", "username": "scott", "password": "{p}", "service": "ORCL"},
+        "combo": "",
+    },
+    "oracle_query": {
+        "required": ["connectionVariable", "sql"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "oracle_conn", "resultVariable": "oracle_result"},
+        "desc": {},
+        "example": {"connectionVariable": "oracle_conn", "sql": "SELECT * FROM dual"},
+        "combo": "",
+    },
+    "oracle_execute": {
+        "required": ["connectionVariable", "sql"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "oracle_conn", "resultVariable": "oracle_affected"},
+        "desc": {},
+        "example": {"connectionVariable": "oracle_conn", "sql": "INSERT INTO ..."},
+        "combo": "",
+    },
+    "oracle_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "oracle_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "oracle_conn"},
+        "combo": "",
+    },
+
+    # PostgreSQL
+    "postgresql_connect": {
+        "required": ["host", "username", "password", "database"],
+        "optional": ["port", "connectionVariable"],
+        "defaults": {"port": 5432, "connectionVariable": "pg_conn"},
+        "desc": {},
+        "example": {"host": "localhost", "username": "postgres", "password": "{p}", "database": "test"},
+        "combo": "",
+    },
+    "postgresql_query": {
+        "required": ["connectionVariable", "sql"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "pg_conn", "resultVariable": "pg_result"},
+        "desc": {},
+        "example": {"connectionVariable": "pg_conn", "sql": "SELECT NOW()"},
+        "combo": "",
+    },
+    "postgresql_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "pg_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "pg_conn"},
+        "combo": "",
+    },
+
+    # MongoDB
+    "mongodb_connect": {
+        "required": ["uri", "database"],
+        "optional": ["connectionVariable"],
+        "defaults": {"connectionVariable": "mongo_conn"},
+        "desc": {"uri": "mongodb://... 连接串"},
+        "example": {"uri": "mongodb://localhost:27017", "database": "test"},
+        "combo": "",
+    },
+    "mongodb_find": {
+        "required": ["connectionVariable", "collection"],
+        "optional": ["filter", "limit", "resultVariable"],
+        "defaults": {"connectionVariable": "mongo_conn", "limit": 100, "resultVariable": "mongo_documents"},
+        "desc": {"filter": "查询过滤 dict"},
+        "example": {"connectionVariable": "mongo_conn", "collection": "users", "filter": {"active": True}},
+        "combo": "",
+    },
+    "mongodb_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "mongo_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "mongo_conn"},
+        "combo": "",
+    },
+
+    # SQL Server
+    "sqlserver_connect": {
+        "required": ["server", "username", "password", "database"],
+        "optional": ["connectionVariable"],
+        "defaults": {"connectionVariable": "mssql_conn"},
+        "desc": {},
+        "example": {"server": "localhost", "username": "sa", "password": "{p}", "database": "test"},
+        "combo": "",
+    },
+    "sqlserver_query": {
+        "required": ["connectionVariable", "sql"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "mssql_conn", "resultVariable": "mssql_result"},
+        "desc": {},
+        "example": {"connectionVariable": "mssql_conn", "sql": "SELECT GETDATE()"},
+        "combo": "",
+    },
+    "sqlserver_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "mssql_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "mssql_conn"},
+        "combo": "",
+    },
+
+    # SQLite
+    "sqlite_connect": {
+        "required": ["dbPath"],
+        "optional": ["connectionVariable"],
+        "defaults": {"connectionVariable": "sqlite_conn"},
+        "desc": {"dbPath": "SQLite 数据库文件路径"},
+        "example": {"dbPath": "D:\\\\app.db"},
+        "combo": "",
+    },
+    "sqlite_query": {
+        "required": ["connectionVariable", "sql"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "sqlite_conn", "resultVariable": "sqlite_result"},
+        "desc": {},
+        "example": {"connectionVariable": "sqlite_conn", "sql": "SELECT * FROM users"},
+        "combo": "",
+    },
+    "sqlite_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "sqlite_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "sqlite_conn"},
+        "combo": "",
+    },
+
+    # Redis
+    "redis_connect": {
+        "required": ["host"],
+        "optional": ["port", "password", "db", "connectionVariable"],
+        "defaults": {"port": 6379, "db": 0, "connectionVariable": "redis_conn"},
+        "desc": {},
+        "example": {"host": "localhost"},
+        "combo": "",
+    },
+    "redis_get": {
+        "required": ["connectionVariable", "key"],
+        "optional": ["resultVariable"],
+        "defaults": {"connectionVariable": "redis_conn", "resultVariable": "redis_value"},
+        "desc": {},
+        "example": {"connectionVariable": "redis_conn", "key": "session:1"},
+        "combo": "",
+    },
+    "redis_set": {
+        "required": ["connectionVariable", "key", "value"],
+        "optional": ["expiry"],
+        "defaults": {"connectionVariable": "redis_conn"},
+        "desc": {"expiry": "过期秒数（可选）"},
+        "example": {"connectionVariable": "redis_conn", "key": "k", "value": "{v}"},
+        "combo": "",
+    },
+    "redis_disconnect": {
+        "required": ["connectionVariable"],
+        "optional": [],
+        "defaults": {"connectionVariable": "redis_conn"},
+        "desc": {},
+        "example": {"connectionVariable": "redis_conn"},
+        "combo": "",
+    },
+
+    # 字符串高级
+    "string_trim": {
+        "required": ["text"],
+        "optional": ["mode", "resultVariable"],
+        "defaults": {"mode": "both", "resultVariable": "trimmed_string"},
+        "desc": {"mode": "left/right/both"},
+        "example": {"text": "  hello  "},
+        "combo": "",
+    },
+    "string_case": {
+        "required": ["text", "operation"],
+        "optional": ["resultVariable"],
+        "defaults": {"operation": "upper", "resultVariable": "cased_string"},
+        "desc": {"operation": "upper/lower/title/capitalize"},
+        "example": {"text": "{name}", "operation": "title"},
+        "combo": "",
+    },
+    "string_substring": {
+        "required": ["text", "start"],
+        "optional": ["length", "end", "resultVariable"],
+        "defaults": {"resultVariable": "sub_string"},
+        "desc": {"start": "起始索引", "length": "长度", "end": "结束索引"},
+        "example": {"text": "{full}", "start": 0, "length": 10},
+        "combo": "",
+    },
+
+    # 列表高级（更多）
+    "list_chunk": {
+        "required": ["listVariable", "size"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "chunks"},
+        "desc": {"size": "每块大小"},
+        "example": {"listVariable": "items", "size": 10},
+        "combo": "分批处理大列表用",
+    },
+    "list_flatten": {
+        "required": ["listVariable"],
+        "optional": ["depth", "resultVariable"],
+        "defaults": {"depth": 1, "resultVariable": "flat_list"},
+        "desc": {"depth": "扁平层数"},
+        "example": {"listVariable": "nested"},
+        "combo": "",
+    },
+    "list_remove_empty": {
+        "required": ["listVariable"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "filtered_list"},
+        "desc": {},
+        "example": {"listVariable": "items"},
+        "combo": "",
+    },
+    "list_intersection": {
+        "required": ["lists"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "intersection"},
+        "desc": {"lists": "列表数组"},
+        "example": {"lists": ["a", "b"]},
+        "combo": "",
+    },
+    "list_difference": {
+        "required": ["listA", "listB"],
+        "optional": ["resultVariable"],
+        "defaults": {"resultVariable": "difference"},
+        "desc": {},
+        "example": {"listA": "old", "listB": "new"},
+        "combo": "",
+    },
+
+    # 实用工具
+    "set_clipboard": {
+        "required": ["content"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"content": "要复制的内容"},
+        "example": {"content": "{result}"},
+        "combo": "",
+    },
+    "get_clipboard": {
+        "required": [],
+        "optional": ["variableName"],
+        "defaults": {"variableName": "clipboard_content"},
+        "desc": {},
+        "example": {"variableName": "txt"},
+        "combo": "",
+    },
+    "shutdown_system": {
+        "required": [],
+        "optional": ["mode", "delay"],
+        "defaults": {"mode": "shutdown", "delay": 0},
+        "desc": {"mode": "shutdown/restart/logoff/lock", "delay": "延迟秒数"},
+        "example": {"mode": "shutdown", "delay": 60},
+        "combo": "",
+    },
+    "lock_screen": {"required": [], "optional": [], "defaults": {}, "desc": {}, "example": {}, "combo": ""},
+
+    # 自定义模块（让 AI 知道这是个特殊节点）
+    "custom_module": {
+        "required": ["customModuleId"],
+        "optional": ["parameterValues"],
+        "defaults": {},
+        "desc": {"customModuleId": "用户自定义模块的 ID", "parameterValues": "传入的参数 dict"},
+        "example": {"customModuleId": "my_login_flow"},
+        "combo": "复用用户预先封装的流程",
+    },
+
+    # 便签 / 分组（视觉辅助）
+    "note": {
+        "required": ["content"],
+        "optional": ["color", "fontSize", "fontBold"],
+        "defaults": {"color": "#fef08a", "fontSize": 13},
+        "desc": {"content": "便签文字"},
+        "example": {"content": "这部分是数据采集"},
+        "combo": "",
+    },
+    "group": {
+        "required": [],
+        "optional": ["label", "color"],
+        "defaults": {"color": "#3b82f6"},
+        "desc": {"label": "分组标签"},
+        "example": {"label": "登录阶段"},
+        "combo": "",
+    },
+}
+
+_ALL_SCHEMAS.update(EXTRA2_SCHEMAS)
