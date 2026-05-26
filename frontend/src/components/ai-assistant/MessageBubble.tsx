@@ -9,7 +9,7 @@ import {
   ChevronDown,
   Brain,
 } from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { marked } from 'marked'
 import type { ChatMessage, ToolCall } from '@/store/aiAssistantStore'
 
@@ -290,7 +290,10 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
   )
 }
 
-// 思考过程卡片：思考中默认展开实时显示，思考结束（content 出现）自动收起
+// 思考过程卡片：
+//  - 思考中：自动展开 + 内容自动滚到底部
+//  - 思考结束（出现 content 或 tool_calls）：自动收起
+//  - 用户主动点过 → 完全尊重用户的选择
 function ReasoningCard({
   content,
   isThinking,
@@ -300,17 +303,34 @@ function ReasoningCard({
   isThinking: boolean
   durationSec?: number
 }) {
-  // 默认值：思考中 → 展开；思考完 → 收起。用户可手动覆盖
+  // 用户是否手动操作过（true=主动展开，false=主动收起，null=未操作）
   const [userExpanded, setUserExpanded] = useState<boolean | null>(null)
-  const expanded = userExpanded ?? isThinking
+  // 是否曾经检测到思考已结束 - 一旦结束就锁定为 false（避免某些边缘情况下又翻回来）
+  const [thinkingFinished, setThinkingFinished] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
 
-  // 思考结束的瞬间：如果用户没动过手，自动收起（已经由 default 完成）
-  // 用户主动展开/收起后保留用户选择
+  // 思考结束触发 - 一旦从 thinking → not thinking，永久标记为已结束
   useEffect(() => {
-    if (!isThinking && userExpanded === null) {
-      // 思考刚结束，保持自动收起（即 expanded=false），啥都不做
+    if (!isThinking) {
+      setThinkingFinished(true)
     }
-  }, [isThinking, userExpanded])
+  }, [isThinking])
+
+  // 用户没操作过：展开状态 = 思考中（思考时展开，思考完收起）
+  // 用户操作过：完全用用户的选择
+  const expanded = userExpanded !== null ? userExpanded : (isThinking && !thinkingFinished)
+
+  // 思考过程中内容增长时自动滚到最底部（让用户看到最新思考内容）
+  useEffect(() => {
+    if (!expanded || !isThinking) return
+    const el = bodyRef.current
+    if (!el) return
+    // 用 rAF 确保 DOM 已经渲染完新内容再滚
+    const raf = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [content, expanded, isThinking])
 
   const headerLabel = isThinking
     ? '思考中…'
@@ -330,7 +350,10 @@ function ReasoningCard({
         {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
       </button>
       {expanded && (
-        <div className="px-3 pb-3 pt-1 text-[12.5px] leading-relaxed text-[hsl(var(--slate-600))] whitespace-pre-wrap break-words border-t border-[hsl(var(--brand-500)/0.1)] max-h-[400px] overflow-y-auto">
+        <div
+          ref={bodyRef}
+          className="px-3 pb-3 pt-1 text-[12.5px] leading-relaxed text-[hsl(var(--slate-600))] whitespace-pre-wrap break-words border-t border-[hsl(var(--brand-500)/0.1)] max-h-[400px] overflow-y-auto"
+        >
           {content || '（暂无思考内容）'}
         </div>
       )}
