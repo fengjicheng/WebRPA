@@ -889,25 +889,44 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                   {renderText(config.text || 'WebRPA →')}
                 </span>
               ) : config.content_type === 'bullet' ? (
-                <div
-                  className="absolute inset-0 flex items-center"
-                  style={{ animation: `screensaverBulletFlow ${Math.max(4, 30 - Math.min(20, (config.scroll_speed || 200) / 30))}s linear infinite` }}
-                >
-                  <span className="whitespace-nowrap pl-[100%]" style={{ fontFamily: previewStyle.fontFamily }}>
-                    {config.bullets.map((b, i) => (
-                      <span
+                <div className="absolute inset-0 overflow-hidden">
+                  {config.bullets.map((b, i) => {
+                    // 用 idx 做稳定随机种子（避免每次渲染抖动）
+                    const seed = (i * 9301 + 49297) % 233280
+                    const rand = seed / 233280
+                    // 随机垂直位置：3% ~ 88%（避免重叠到底部）
+                    const topPct = 3 + rand * 85
+                    // 每条弹幕速度独立：用 b.speed，转成动画时长（秒）
+                    const speed = b.speed || 200
+                    // 在预览框内：屏幕宽度 × 缩放系数 / 速度 = 跨屏所需秒数
+                    const durationSec = Math.max(4, Math.min(40, 800 / speed))
+                    // 用错峰延迟避免所有弹幕同一时刻起跑
+                    const delay = -((i * 0.7 + rand * 2) % durationSec)
+                    return (
+                      <div
                         key={i}
+                        className="absolute whitespace-nowrap"
                         style={{
-                          marginRight: 32,
-                          color: b.color || (previewStyle.color as string),
-                          fontWeight: b.bold ? 700 : (previewStyle.fontWeight as any),
-                          fontSize: Math.max(6, (b.font_size ?? config.font_size) * previewScale),
+                          top: `${topPct}%`,
+                          left: 0,
+                          animation: `screensaverBulletFlow ${durationSec}s linear ${delay}s infinite`,
+                          willChange: 'transform',
                         }}
                       >
-                        {b.text}
-                      </span>
-                    ))}
-                  </span>
+                        <span
+                          className="pl-[100%] inline-block"
+                          style={{
+                            fontFamily: previewStyle.fontFamily,
+                            color: b.color || (previewStyle.color as string),
+                            fontWeight: b.bold ? 700 : (previewStyle.fontWeight as any),
+                            fontSize: Math.max(6, (b.font_size ?? config.font_size) * previewScale),
+                          }}
+                        >
+                          {b.text}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center px-3 text-center">

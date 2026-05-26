@@ -716,11 +716,12 @@ class Screensaver:
             win32gui.SelectObject(hdc, old_font)
 
     def _draw_close_hint(self, hdc):
+        # 关键：直接绘制路径下 hdc 来自 GetDC(hwnd)，未设过 BkMode；
+        # 必须显式设为 TRANSPARENT 否则 ExtTextOut 会用白色填充文字背景
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
         old_font = win32gui.SelectObject(hdc, self._cached_close_font)
-        # 半暗色提示
-        r, g, b = self.color
-        dim = (r * 6 // 10, g * 6 // 10, b * 6 // 10)
-        old_color = win32gui.SetTextColor(hdc, rgb_to_colorref(dim))
+        # 用纯灰色提示文本（不再混合主文字色，避免在彩色背景上不清晰）
+        old_color = win32gui.SetTextColor(hdc, rgb_to_colorref((160, 160, 160)))
         text = f"按 {self.exit_hotkey} 或双击屏幕退出"
         try:
             sz = win32gui.GetTextExtentPoint32(hdc, text)

@@ -39,7 +39,17 @@ class AIChatExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="模型名称不能为空")
         if not user_prompt:
             return ModuleResult(success=False, error="用户提示词不能为空")
-        
+
+        # 自动补全 OpenAI 兼容路径（用户给 base url 时也能正常工作）
+        url = (api_url or "").strip()
+        if url and "/chat/completions" not in url and "/completions" not in url:
+            url = url.rstrip("/")
+            if not url.endswith("/v1") and "/v1/" not in url:
+                # 没带 /v1：智谱、DeepSeek 等都支持 /v1/chat/completions
+                url = url + "/v1/chat/completions"
+            else:
+                url = url + "/chat/completions"
+
         try:
             messages = []
             if system_prompt:
@@ -61,8 +71,8 @@ class AIChatExecutor(ModuleExecutor):
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
             
-            async with httpx.AsyncClient(timeout=120) as client:
-                response = await client.post(api_url, json=request_body, headers=headers)
+            async with httpx.AsyncClient(timeout=180) as client:
+                response = await client.post(url, json=request_body, headers=headers)
             
             if response.status_code != 200:
                 error_msg = response.text
@@ -75,43 +85,68 @@ class AIChatExecutor(ModuleExecutor):
                 return ModuleResult(success=False, error=f"API请求失败 ({response.status_code}): {error_msg}")
             
             ai_response = ""
+            reasoning_response = ""
             usage_info = {}
             
             try:
                 result = response.json()
                 
                 if 'choices' in result and len(result['choices']) > 0:
-                    ai_response = result['choices'][0].get('message', {}).get('content', '')
+                    msg = result['choices'][0].get('message', {}) or {}
+                    ai_response = msg.get('content') or ''
+                    # 思考模型（DeepSeek-Reasoner / Qwen-Thinking 等）返回的内部思考链
+                    reasoning_response = msg.get('reasoning_content') or ''
                     usage_info = result.get('usage', {})
                 elif 'message' in result:
-                    ai_response = result.get('message', {}).get('content', '')
+                    # Ollama 风格的非流式响应
+                    msg = result.get('message', {}) or {}
+                    ai_response = msg.get('content') or ''
+                    reasoning_response = msg.get('reasoning_content') or ''
                 else:
                     return ModuleResult(success=False, error="API返回格式异常")
                     
             except Exception as json_error:
+                # 兜底：尝试按 NDJSON / SSE 行拆解（某些代理把流式包装在非流式响应里）
                 try:
                     response_text = response.text.strip()
                     
-                    lines = response_text.split('\n')
-                    for line in lines:
-                        if line.strip():
-                            try:
-                                chunk = json.loads(line)
-                                if 'message' in chunk:
-                                    content = chunk.get('message', {}).get('content', '')
-                                    if content:
-                                        ai_response += content
-                                if chunk.get('done', False):
-                                    break
-                            except json.JSONDecodeError:
-                                continue
+                    for line in response_text.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if line.startswith('data:'):
+                            line = line[5:].strip()
+                            if line == '[DONE]':
+                                break
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        # OpenAI 流式格式
+                        if 'choices' in chunk and chunk['choices']:
+                            delta = chunk['choices'][0].get('delta') or chunk['choices'][0].get('message') or {}
+                            if delta.get('content'):
+                                ai_response += delta['content']
+                            if delta.get('reasoning_content'):
+                                reasoning_response += delta['reasoning_content']
+                        # Ollama 流式格式
+                        elif 'message' in chunk:
+                            content = chunk.get('message', {}).get('content', '')
+                            if content:
+                                ai_response += content
+                            if chunk.get('done', False):
+                                break
                     
-                    if not ai_response:
+                    if not ai_response and not reasoning_response:
                         return ModuleResult(success=False, error=f"无法解析API响应: {str(json_error)}")
                         
                 except Exception as e:
                     return ModuleResult(success=False, error=f"解析API响应失败: {str(e)}")
             
+            # 兼容思考模型：当模型只返回 reasoning_content（罕见但可能发生），用思考链作为回复
+            if not ai_response and reasoning_response:
+                ai_response = reasoning_response
+
             if not ai_response:
                 return ModuleResult(success=False, error="AI返回内容为空")
             
@@ -123,7 +158,12 @@ class AIChatExecutor(ModuleExecutor):
             return ModuleResult(
                 success=True, 
                 message=f"AI回复: {display_content}",
-                data={'response': ai_response, 'model': model, 'usage': usage_info}
+                data={
+                    'response': ai_response,
+                    'reasoning': reasoning_response or None,
+                    'model': model,
+                    'usage': usage_info,
+                }
             )
         
         except httpx.TimeoutException:
@@ -164,6 +204,15 @@ class AIVisionExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="模型名称不能为空")
         if not user_prompt:
             return ModuleResult(success=False, error="提问内容不能为空")
+
+        # 自动补全 OpenAI 兼容路径
+        url = (api_url or "").strip()
+        if url and "/chat/completions" not in url and "/completions" not in url:
+            url = url.rstrip("/")
+            if not url.endswith("/v1") and "/v1/" not in url:
+                url = url + "/v1/chat/completions"
+            else:
+                url = url + "/chat/completions"
         
         try:
             image_base64 = None
@@ -264,8 +313,8 @@ class AIVisionExecutor(ModuleExecutor):
                 "Authorization": f"Bearer {api_key}"
             }
             
-            async with httpx.AsyncClient(timeout=120) as client:
-                response = await client.post(api_url, json=request_body, headers=headers)
+            async with httpx.AsyncClient(timeout=180) as client:
+                response = await client.post(url, json=request_body, headers=headers)
             
             if response.status_code != 200:
                 error_msg = response.text
@@ -282,7 +331,12 @@ class AIVisionExecutor(ModuleExecutor):
             if 'choices' not in result or len(result['choices']) == 0:
                 return ModuleResult(success=False, error="API返回格式异常")
             
-            ai_response = result['choices'][0].get('message', {}).get('content', '')
+            msg = result['choices'][0].get('message', {}) or {}
+            ai_response = msg.get('content') or ''
+            reasoning_response = msg.get('reasoning_content') or ''
+            # 思考模型只在 reasoning_content 返回时兜底
+            if not ai_response and reasoning_response:
+                ai_response = reasoning_response
             
             if not ai_response:
                 return ModuleResult(success=False, error="AI返回内容为空")
@@ -295,7 +349,12 @@ class AIVisionExecutor(ModuleExecutor):
             return ModuleResult(
                 success=True, 
                 message=f"AI视觉回复: {display_content}",
-                data={'response': ai_response, 'model': model, 'image_source': image_source}
+                data={
+                    'response': ai_response,
+                    'reasoning': reasoning_response or None,
+                    'model': model,
+                    'image_source': image_source,
+                }
             )
         
         except httpx.TimeoutException:
