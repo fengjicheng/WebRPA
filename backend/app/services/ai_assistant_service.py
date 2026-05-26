@@ -408,7 +408,7 @@ def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]
 
 # ---------- 主对话循环 ----------
 
-MAX_TOOL_ROUNDS = 8  # 单次用户消息最多轮工具调用（提升以支持复杂任务）
+MAX_TOOL_ROUNDS = 20  # 单次用户消息最多轮工具调用（原 8 轮太紧，复杂排错/搭建容易踩到上限就被停）
 
 # 上下文压缩阈值：消息总条数超过此值时，自动总结早期消息
 CONTEXT_COMPRESSION_THRESHOLD = 50
@@ -956,13 +956,31 @@ async def chat_once(
 
                 continue  # 进入下一轮
 
-            # 模型给出最终文本回复
-            final_assistant_msg = ChatMessage(
-                id=uuid.uuid4().hex[:12],
-                role=MessageRole.ASSISTANT,
-                content=content,
-                reasoning_content=reasoning_content,
-            )
+            # 模型给出最终文本回复（或到达 MAX_TOOL_ROUNDS 必须停下时）
+            # 如果到达上限但模型还想调工具，给一段提示让用户知道可以再说一句继续
+            if tool_calls and config.enable_tools and round_idx >= MAX_TOOL_ROUNDS:
+                final_content = (content or "").strip()
+                tool_names = ", ".join((tc.name for tc in tool_calls)) or "（更多工具）"
+                hint = (
+                    f"\n\n---\n"
+                    f"⏸️ 我已完成 {MAX_TOOL_ROUNDS} 轮工具调用，按当前任务复杂度先暂停一下。\n"
+                    f"我接下来还想调用：**{tool_names}**\n"
+                    f"如果你希望继续，直接回复「继续」或描述想让我做什么，我会接着执行。"
+                )
+                final_content = (final_content + hint) if final_content else hint.lstrip()
+                final_assistant_msg = ChatMessage(
+                    id=uuid.uuid4().hex[:12],
+                    role=MessageRole.ASSISTANT,
+                    content=final_content,
+                    reasoning_content=reasoning_content,
+                )
+            else:
+                final_assistant_msg = ChatMessage(
+                    id=uuid.uuid4().hex[:12],
+                    role=MessageRole.ASSISTANT,
+                    content=content,
+                    reasoning_content=reasoning_content,
+                )
             session.messages.append(final_assistant_msg)
             break
 

@@ -666,7 +666,7 @@ export function AIAssistantPanel() {
             <Wrench className="w-2.5 h-2.5" />
             <span className="font-medium">{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
           </div>
-          <span className="font-mono">WebRPA AI · v2</span>
+          <span className="font-mono">WebRPA AI</span>
         </div>
       </div>
     </div>
