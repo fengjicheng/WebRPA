@@ -448,6 +448,63 @@ export async function executeClientAction(
         return { success: true, message: `已删除连线 ${edgeId}` }
       }
 
+      case 'auto_connect_chain': {
+        // 把一组节点 id 按顺序串起来：[a, b, c, d] => a→b, b→c, c→d
+        const nodeIds = (payload.node_ids as string[]) || []
+        if (!Array.isArray(nodeIds) || nodeIds.length < 2) {
+          return { success: false, error: '至少需要 2 个 node_id' }
+        }
+        const s = useWorkflowStore.getState()
+        const newEdges: any[] = []
+        for (let i = 0; i < nodeIds.length - 1; i++) {
+          const src = nodeIds[i]
+          const tgt = nodeIds[i + 1]
+          if (!s.nodes.some((n: any) => n.id === src) || !s.nodes.some((n: any) => n.id === tgt)) {
+            continue
+          }
+          // 已连过则跳过，避免重复
+          if (s.edges.some((e: any) => e.source === src && e.target === tgt)) continue
+          newEdges.push({
+            id: `e-${src}-${tgt}-${Date.now().toString(36)}-${i}`,
+            source: src,
+            target: tgt,
+          })
+        }
+        useWorkflowStore.setState({ edges: [...s.edges, ...newEdges] } as any)
+        return { success: true, message: `已添加 ${newEdges.length} 条连线`, data: newEdges }
+      }
+
+      case 'connect_branches': {
+        // 给一个判断节点（条件/元素存在等）连两个分支
+        // payload.condition_node_id / payload.true_node_id / payload.false_node_id
+        const cond = payload.condition_node_id as string
+        const trueId = payload.true_node_id as string
+        const falseId = payload.false_node_id as string
+        if (!cond || (!trueId && !falseId)) {
+          return { success: false, error: '缺少 condition_node_id 或分支节点' }
+        }
+        const s = useWorkflowStore.getState()
+        const newEdges: any[] = []
+        if (trueId) {
+          newEdges.push({
+            id: `e-${cond}-${trueId}-true-${Date.now().toString(36)}`,
+            source: cond,
+            target: trueId,
+            sourceHandle: 'true',
+          })
+        }
+        if (falseId) {
+          newEdges.push({
+            id: `e-${cond}-${falseId}-false-${Date.now().toString(36)}`,
+            source: cond,
+            target: falseId,
+            sourceHandle: 'false',
+          })
+        }
+        useWorkflowStore.setState({ edges: [...s.edges, ...newEdges] } as any)
+        return { success: true, message: `已添加 ${newEdges.length} 条分支连线`, data: newEdges }
+      }
+
       case 'select_all_nodes': {
         const s = useWorkflowStore.getState()
         useWorkflowStore.setState({

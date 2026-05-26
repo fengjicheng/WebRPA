@@ -3578,6 +3578,8 @@ def _register_all() -> None:
             "- rename_node: 修改节点的备注（payload.node_id, payload.name）。注意：节点的官方模块名（label）是只读的，AI 重命名时实际只改 name 字段，画布上会显示成「<官方模块名> (<name>)」\n"
             "- find_nodes_by_type: 查找所有指定 type 的节点 id（payload.type）\n"
             "- connect_nodes: 创建节点之间的连线（payload.source, payload.target, payload.source_handle 可选, payload.target_handle 可选）\n"
+            "- auto_connect_chain: 把一组节点按顺序自动串起来（payload.node_ids=[a,b,c,d] 会生成 a→b→c→d）。比循环 connect_nodes 高效得多\n"
+            "- connect_branches: 给条件/判断节点连两个分支（payload.condition_node_id, payload.true_node_id, payload.false_node_id）。处理 condition/element_exists/element_visible/image_exists 等带 true/false 输出的节点必备\n"
             "- disconnect_edge: 删除指定连线（payload.edge_id）\n"
             "- select_all_nodes: 选中画布所有节点\n"
             "- clear_selection: 取消所有节点选中\n"
