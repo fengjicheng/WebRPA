@@ -22,6 +22,8 @@ export interface ChatMessage {
   tool_calls?: ToolCall[]
   tool_call_id?: string
   timestamp?: string
+  /** DeepSeek-Reasoner 等思考模型的内部思考链（用于回传给 LLM，不在 UI 显示） */
+  reasoning_content?: string | null
 }
 
 export interface SessionListItem {

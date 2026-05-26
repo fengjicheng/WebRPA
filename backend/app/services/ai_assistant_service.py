@@ -142,6 +142,9 @@ def _convert_message_for_llm(msg: ChatMessage) -> dict[str, Any]:
 
     if msg.role == MessageRole.ASSISTANT and msg.tool_calls:
         base["content"] = msg.content or None
+        # DeepSeek-Reasoner 等思考模型要求把 reasoning_content 原样回传
+        if getattr(msg, "reasoning_content", None):
+            base["reasoning_content"] = msg.reasoning_content
         base["tool_calls"] = [
             {
                 "id": tc.id,
@@ -156,6 +159,9 @@ def _convert_message_for_llm(msg: ChatMessage) -> dict[str, Any]:
         return base
 
     base["content"] = msg.content or ""
+    # 思考模型的 assistant 消息（即使没有 tool_calls）也要带回 reasoning_content
+    if msg.role == MessageRole.ASSISTANT and getattr(msg, "reasoning_content", None):
+        base["reasoning_content"] = msg.reasoning_content
     return base
 
 
@@ -265,13 +271,14 @@ async def _call_llm(
     raise LLMError(f"LLM 请求失败：{last_err}")
 
 
-def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]]:
-    """从 LLM 响应中抽出文本与工具调用"""
+def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall], str | None]:
+    """从 LLM 响应中抽出文本、工具调用、reasoning_content（DeepSeek 思考链）"""
     if "choices" not in data or not data["choices"]:
-        return "", []
+        return "", [], None
     choice = data["choices"][0]
     msg = choice.get("message", {})
     content = msg.get("content") or ""
+    reasoning_content = msg.get("reasoning_content") or None
     raw_tool_calls = msg.get("tool_calls") or []
     tool_calls: list[ToolCall] = []
     for tc in raw_tool_calls:
@@ -286,7 +293,7 @@ def _parse_assistant_response(data: dict[str, Any]) -> tuple[str, list[ToolCall]
             name=fn.get("name", ""),
             arguments=args,
         ))
-    return content, tool_calls
+    return content, tool_calls, reasoning_content
 
 
 # ---------- 主对话循环 ----------
@@ -414,7 +421,7 @@ async def _maybe_compress_messages(
                 ],
                 tools=None,
             )
-            summary, _ = _parse_assistant_response(data)
+            summary, _, _ = _parse_assistant_response(data)
     except Exception as e:
         print(f"[AIAssistant] 自动压缩 LLM 摘要失败：{e}")
 
@@ -667,7 +674,7 @@ async def chat_once(
                 final_assistant_msg = err_msg
                 break
 
-            content, tool_calls = _parse_assistant_response(raw)
+            content, tool_calls, reasoning_content = _parse_assistant_response(raw)
 
             if tool_calls and config.enable_tools and round_idx < MAX_TOOL_ROUNDS:
                 assistant_msg = ChatMessage(
@@ -675,6 +682,7 @@ async def chat_once(
                     role=MessageRole.ASSISTANT,
                     content=content,
                     tool_calls=tool_calls,
+                    reasoning_content=reasoning_content,
                 )
                 session.messages.append(assistant_msg)
 
@@ -794,6 +802,7 @@ async def chat_once(
                 id=uuid.uuid4().hex[:12],
                 role=MessageRole.ASSISTANT,
                 content=content,
+                reasoning_content=reasoning_content,
             )
             session.messages.append(final_assistant_msg)
             break

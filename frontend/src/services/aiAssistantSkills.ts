@@ -7,7 +7,7 @@
  * 设计原则：把所有用户能在 UI 上做的事都暴露成 action，
  * 让小助手具有完全的前端操作能力。
  */
-import { useWorkflowStore } from '@/store/workflowStore'
+import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { localWorkflowApi, workflowApi, screensaverApi } from '@/services/api'
 import { socketService } from '@/services/socket'
@@ -39,9 +39,15 @@ function convertAiNodeToReactFlow(n: any): any {
   }
 
   // 基础数据：label / moduleType / 其他配置字段都展开到 data
+  const moduleType = n.data?.moduleType ?? businessType
+  // 没传 label 时自动用中文映射兜底（避免画布显示英文 moduleType）
+  let defaultLabel = ''
+  if (frontendType === 'moduleNode' && moduleType) {
+    defaultLabel = (moduleTypeLabels as Record<string, string>)[moduleType] || moduleType
+  }
   const baseData: Record<string, any> = {
-    label: n.data?.label ?? '',
-    moduleType: n.data?.moduleType ?? businessType,
+    label: n.data?.label || defaultLabel,
+    moduleType,
   }
   // 把 data 里其它字段（remark/comment/content/config 等）合并展开
   if (n.data && typeof n.data === 'object') {

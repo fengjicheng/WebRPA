@@ -45,6 +45,9 @@ class ChatMessage(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     tool_call_id: Optional[str] = None  # 当 role=tool 时指向源调用
     timestamp: datetime = Field(default_factory=datetime.now)
+    # DeepSeek-Reasoner / Qwen-Reasoner 等思考模型在响应中返回的内部思考链
+    # 这些模型要求下一轮调用时把它原样回传，否则会报 400: reasoning_content must be passed back
+    reasoning_content: Optional[str] = None
 
 
 class ChatSession(BaseModel):
