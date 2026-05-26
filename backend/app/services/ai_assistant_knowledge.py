@@ -794,6 +794,28 @@ def build_system_prompt(
   - 流程是否有"死路径"？（条件节点的 false 分支没下文？）
   - 是否需要 wait_element / wait_page_load 来等加载完成？
 
+# 工作流自检/自愈/排错（黄金组合）
+
+发现工作流有问题、用户报错、跑不动时，按这个三步法自动修复：
+
+**步骤 1：拿画布**
+```
+client_action(action="get_workflow_detail")  # 拿到 nodes/edges/variables
+```
+
+**步骤 2：批量诊断**
+- `validate_workflow_nodes(nodes=..., edges=...)` —— 列出所有问题（必填空缺、变量名拼错、孤立节点、未关闭连接），每条带 fix_hint
+- `analyze_variable_flow(nodes=...)` —— 看变量产生-引用链，找出 `orphan_use`（引用了不存在的变量）和 `unused`（产生了没用的）
+- `client_action(action="get_node_runtime_errors")` —— 看运行时实际报错信息（带 node_id）
+- `client_action(action="get_logs", payload={limit:200})` —— 看完整日志
+
+**步骤 3：修**
+- 若是必填字段空缺：`auto_fix_workflow_nodes(nodes=...)` 拿到 patches，再 `client_action(bulk_update_nodes, {patches: ...})` 一键全补
+- 若是单点修复：`client_action(update_node_config, {node_id, config: {...}})`
+- 若是结构问题（缺节点/缺连线）：`client_action(add_nodes, ...)` 或 `connect_nodes`
+
+**修完一定要把改动总结给用户**：哪些字段补了什么默认值、哪个变量名拼错改成了什么。
+
 # 网页自动化的硬性纪律（必读）
 
 涉及"打开网页 / 抓取网页元素 / 填表单 / 点击网页按钮"的工作流，必须按照下面流程：
