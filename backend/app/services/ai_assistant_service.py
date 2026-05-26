@@ -656,7 +656,14 @@ async def chat_once(
 
             # 节点 ID 与 label 映射（让 LLM 能精确引用节点）
             if 0 < len(nodes) <= 50:
-                workflow_summary += "- 节点清单（id - type - label）：\n"
+                workflow_summary += "- 节点清单（id - type - label - 关键配置 - 备注）：\n"
+                # 关键配置摘要：取最高信号的字段让 AI 一眼看懂当前节点配了什么
+                IMPORTANT_FIELDS = [
+                    "url", "selector", "text", "variableName", "resultVariable",
+                    "saveToVariable", "listVariable", "dictVariable", "itemVariable",
+                    "loopType", "loopCount", "filePath", "command", "operator",
+                    "leftValue", "rightValue", "userPrompt", "model",
+                ]
                 for n in nodes[:50]:
                     nid = n.get("id", "?")
                     nt = n.get("type", "?")
@@ -664,7 +671,20 @@ async def chat_once(
                     data = n.get("data") or {}
                     if isinstance(data, dict):
                         label = data.get("label") or data.get("customName") or ""
-                    workflow_summary += f"  - {nid} - {nt} - {label}\n"
+                    name = data.get("name", "") if isinstance(data, dict) else ""
+                    cfg_parts: list[str] = []
+                    if isinstance(data, dict):
+                        for f in IMPORTANT_FIELDS:
+                            if f in data and data[f] not in (None, "", []):
+                                v = str(data[f])
+                                if len(v) > 40:
+                                    v = v[:40] + "…"
+                                cfg_parts.append(f"{f}={v}")
+                                if len(cfg_parts) >= 3:
+                                    break
+                    cfg_summary = "; ".join(cfg_parts) if cfg_parts else "(空)"
+                    name_part = f" 备注={name}" if name else ""
+                    workflow_summary += f"  - {nid} - {nt} - {label} - [{cfg_summary}]{name_part}\n"
 
             # 变量
             if variables:
