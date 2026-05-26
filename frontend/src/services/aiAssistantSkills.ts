@@ -336,7 +336,7 @@ export async function executeClientAction(
         // 从 logs 中筛出最近一次执行的失败/错误日志，关联到节点
         const s = useWorkflowStore.getState()
         const errors = s.logs
-          .filter((l) => l.level === 'error' || l.level === 'failed')
+          .filter((l) => l.level === 'error' || l.level === 'warning')
           .slice(-50)
           .map((l) => ({
             time: l.timestamp,
