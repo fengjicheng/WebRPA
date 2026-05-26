@@ -208,16 +208,16 @@
         transform: skewX(-6deg);
         padding-right: 2px;
       }
-      /* "Web" 蓝渐变文字 + 流光（流光直接做在字符 background 上，clip-text 后只在字形内显示） */
-      .splash-title-letter-w,
-      .splash-title-letter-e,
-      .splash-title-letter-b {
+      /* 把 Web 三个字母装进一个共同容器，让流光作为整体扫过整个 Web，光带连贯不"在字母间重启" */
+      .splash-title-web {
+        display: inline-block;
+        position: relative;
         background:
-          /* 第一层：流光（动画移动） */
+          /* 第一层：流光带（动画移动） */
           linear-gradient(100deg,
-            hsl(0 0% 100% / 0) 38%,
+            hsl(0 0% 100% / 0) 40%,
             hsl(0 0% 100% / 0.95) 50%,
-            hsl(0 0% 100% / 0) 62%
+            hsl(0 0% 100% / 0) 60%
           ),
           /* 第二层：基础蓝渐变 */
           linear-gradient(135deg,
@@ -227,37 +227,55 @@
             hsl(var(--splash-brand-600)) 100%
           );
         background-size: 320% 100%, 100% 100%;
-        background-position: -200% 0, 0 0;
+        background-position: 200% 0, 0 0;
         background-repeat: no-repeat, no-repeat;
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
         color: transparent;
         text-shadow: 0 1px 0 hsl(var(--splash-brand-500) / 0.04);
-        padding: 0 2px;
-        animation: splash-letter-shine 3.6s ease-in-out infinite;
+        /* 与 RPA 胶囊共享同一个 keyframes，靠 animation-delay 形成"接力扫光" */
+        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
-      .splash-title-letter-e { animation-delay: 0.06s; }
-      .splash-title-letter-b { animation-delay: 0.12s; }
+      /* 子字母只负责倾斜艺术化，不再单独 clip-text */
+      .splash-title-letter-w,
+      .splash-title-letter-e,
+      .splash-title-letter-b {
+        padding: 0 2px;
+      }
 
-      /* "RPA" 胶囊 */
+      /* "RPA" 胶囊 - 流光做在 background 上，与 Web 容器共享 keyframes，用 animation-delay 接力 */
       .splash-title-pill {
         display: inline-flex;
         align-items: center;
         margin-left: 14px;
         padding: 6px 18px 6px 14px;
         border-radius: 14px;
-        background: linear-gradient(135deg,
-          hsl(var(--splash-brand-500)) 0%,
-          hsl(var(--splash-brand-600)) 50%,
-          hsl(var(--splash-info-600)) 100%
-        );
+        background:
+          /* 第一层：流光带（与 Web 容器一致） */
+          linear-gradient(100deg,
+            hsl(0 0% 100% / 0) 40%,
+            hsl(0 0% 100% / 0.55) 50%,
+            hsl(0 0% 100% / 0) 60%
+          ),
+          /* 第二层：胶囊蓝渐变底色 */
+          linear-gradient(135deg,
+            hsl(var(--splash-brand-500)) 0%,
+            hsl(var(--splash-brand-600)) 50%,
+            hsl(var(--splash-info-600)) 100%
+          );
+        background-size: 320% 100%, 100% 100%;
+        background-position: 200% 0, 0 0;
+        background-repeat: no-repeat, no-repeat;
         box-shadow:
           0 4px 14px hsl(var(--splash-brand-500) / 0.42),
           0 1px 0 hsl(0 0% 100% / 0.35) inset,
           0 -1px 0 hsl(var(--splash-brand-700) / 0.4) inset;
         position: relative;
         overflow: hidden;
+        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        /* 与 Web 容器完全同步：同一个延迟、同一个时长、同一个方向 */
+        animation-delay: 0s;
       }
       .splash-title-pill::before {
         content: '';
@@ -266,26 +284,6 @@
         border-radius: 14px;
         background: linear-gradient(180deg, hsl(0 0% 100% / 0.2), transparent 60%);
         pointer-events: none;
-      }
-      /* "RPA" 胶囊流光：胶囊自带 overflow:hidden，流光只在胶囊内扫过 */
-      .splash-title-pill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -55%;
-        width: 55%;
-        height: 100%;
-        background: linear-gradient(
-          100deg,
-          transparent 0%,
-          hsl(0 0% 100% / 0) 38%,
-          hsl(0 0% 100% / 0.65) 50%,
-          hsl(0 0% 100% / 0) 62%,
-          transparent 100%
-        );
-        pointer-events: none;
-        animation: splash-pill-shine 3.6s ease-in-out infinite;
-        animation-delay: 0.18s;
       }
       .splash-title-letter-r,
       .splash-title-letter-p,
@@ -417,13 +415,16 @@
         0%   { transform: translateX(-100%); }
         100% { transform: translateX(350%); }
       }
-      @keyframes splash-letter-shine {
-        0%        { background-position: -200% 0, 0 0; }
-        60%, 100% { background-position: 200% 0, 0 0; }
-      }
-      @keyframes splash-pill-shine {
-        0%        { transform: translateX(0); }
-        60%, 100% { transform: translateX(380%); }
+      /* 流光关键帧：背景从右侧外（200%）移动到左侧外（-200%），即"光带从字形左边进、右边出"
+         配合 background-position 写法："xxx% 0" 表示背景图相对容器左边的偏移
+         200%  → 光带在容器右外，字形里看不到光
+         0     → 光带在字形中央（最亮的瞬间）
+         -200% → 光带在容器左外，字形里又看不到光了
+         为什么是从 200%→-200% 而不是反过来？因为 100deg 的渐变本身是右上→左下方向，
+         所以背景从右往左移看起来才是"从左→右扫过字形"（视觉方向） */
+      @keyframes splash-shine {
+        0%        { background-position: 200% 0, 0 0; }
+        50%, 100% { background-position: -200% 0, 0 0; }
       }
       @keyframes webrpa-float-a {
         0%, 100% { transform: translate(0, 0) scale(1); }
@@ -451,9 +452,11 @@
 
       <!-- 标题：编辑器同款艺术字 -->
       <div class="splash-title" aria-label="WebRPA">
-        <span class="splash-title-letter splash-title-letter-w">W</span>
-        <span class="splash-title-letter splash-title-letter-e">e</span>
-        <span class="splash-title-letter splash-title-letter-b">b</span>
+        <span class="splash-title-web">
+          <span class="splash-title-letter splash-title-letter-w">W</span>
+          <span class="splash-title-letter splash-title-letter-e">e</span>
+          <span class="splash-title-letter splash-title-letter-b">b</span>
+        </span>
         <span class="splash-title-pill">
           <span class="splash-title-letter splash-title-letter-r">R</span>
           <span class="splash-title-letter splash-title-letter-p">P</span>

@@ -186,14 +186,15 @@
         transform: skewX(-6deg);
         padding-right: 2px;
       }
-      .splash-title-letter-w,
-      .splash-title-letter-e,
-      .splash-title-letter-b {
+      /* 把 Web 三个字母装进一个共同容器，让流光作为整体扫过整个 Web，光带连贯不"在字母间重启" */
+      .splash-title-web {
+        display: inline-block;
+        position: relative;
         background:
           linear-gradient(100deg,
-            hsl(0 0% 100% / 0) 38%,
+            hsl(0 0% 100% / 0) 40%,
             hsl(0 0% 100% / 0.95) 50%,
-            hsl(0 0% 100% / 0) 62%
+            hsl(0 0% 100% / 0) 60%
           ),
           linear-gradient(135deg,
             hsl(var(--splash-brand-700)) 0%,
@@ -202,35 +203,48 @@
             hsl(var(--splash-brand-600)) 100%
           );
         background-size: 320% 100%, 100% 100%;
-        background-position: -200% 0, 0 0;
+        background-position: 200% 0, 0 0;
         background-repeat: no-repeat, no-repeat;
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
         color: transparent;
         text-shadow: 0 1px 0 hsl(var(--splash-brand-500) / 0.04);
-        padding: 0 2px;
-        animation: splash-letter-shine 3.6s ease-in-out infinite;
+        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
       }
-      .splash-title-letter-e { animation-delay: 0.06s; }
-      .splash-title-letter-b { animation-delay: 0.12s; }
+      .splash-title-letter-w,
+      .splash-title-letter-e,
+      .splash-title-letter-b {
+        padding: 0 2px;
+      }
       .splash-title-pill {
         display: inline-flex;
         align-items: center;
         margin-left: 14px;
         padding: 6px 18px 6px 14px;
         border-radius: 14px;
-        background: linear-gradient(135deg,
-          hsl(var(--splash-brand-500)) 0%,
-          hsl(var(--splash-brand-600)) 50%,
-          hsl(var(--splash-info-600)) 100%
-        );
+        background:
+          linear-gradient(100deg,
+            hsl(0 0% 100% / 0) 40%,
+            hsl(0 0% 100% / 0.55) 50%,
+            hsl(0 0% 100% / 0) 60%
+          ),
+          linear-gradient(135deg,
+            hsl(var(--splash-brand-500)) 0%,
+            hsl(var(--splash-brand-600)) 50%,
+            hsl(var(--splash-info-600)) 100%
+          );
+        background-size: 320% 100%, 100% 100%;
+        background-position: 200% 0, 0 0;
+        background-repeat: no-repeat, no-repeat;
         box-shadow:
           0 4px 14px hsl(var(--splash-brand-500) / 0.42),
           0 1px 0 hsl(0 0% 100% / 0.35) inset,
           0 -1px 0 hsl(var(--splash-brand-700) / 0.4) inset;
         position: relative;
         overflow: hidden;
+        animation: splash-shine 4.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        animation-delay: 0s;
       }
       .splash-title-pill::before {
         content: '';
@@ -239,25 +253,6 @@
         border-radius: 14px;
         background: linear-gradient(180deg, hsl(0 0% 100% / 0.2), transparent 60%);
         pointer-events: none;
-      }
-      .splash-title-pill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -55%;
-        width: 55%;
-        height: 100%;
-        background: linear-gradient(
-          100deg,
-          transparent 0%,
-          hsl(0 0% 100% / 0) 38%,
-          hsl(0 0% 100% / 0.65) 50%,
-          hsl(0 0% 100% / 0) 62%,
-          transparent 100%
-        );
-        pointer-events: none;
-        animation: splash-pill-shine 3.6s ease-in-out infinite;
-        animation-delay: 0.18s;
       }
       .splash-title-letter-r,
       .splash-title-letter-p,
@@ -403,13 +398,9 @@
         0%   { transform: translateX(-100%); }
         100% { transform: translateX(350%); }
       }
-      @keyframes splash-letter-shine {
-        0%        { background-position: -200% 0, 0 0; }
-        60%, 100% { background-position: 200% 0, 0 0; }
-      }
-      @keyframes splash-pill-shine {
-        0%        { transform: translateX(0); }
-        60%, 100% { transform: translateX(380%); }
+      @keyframes splash-shine {
+        0%        { background-position: 200% 0, 0 0; }
+        50%, 100% { background-position: -200% 0, 0 0; }
       }
       @keyframes webrpa-float-a {
         0%, 100% { transform: translate(0, 0) scale(1); }
@@ -436,9 +427,11 @@
       </div>
 
       <div class="splash-title" aria-label="WebRPA">
-        <span class="splash-title-letter splash-title-letter-w">W</span>
-        <span class="splash-title-letter splash-title-letter-e">e</span>
-        <span class="splash-title-letter splash-title-letter-b">b</span>
+        <span class="splash-title-web">
+          <span class="splash-title-letter splash-title-letter-w">W</span>
+          <span class="splash-title-letter splash-title-letter-e">e</span>
+          <span class="splash-title-letter splash-title-letter-b">b</span>
+        </span>
         <span class="splash-title-pill">
           <span class="splash-title-letter splash-title-letter-r">R</span>
           <span class="splash-title-letter splash-title-letter-p">P</span>
