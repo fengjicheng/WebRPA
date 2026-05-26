@@ -29,15 +29,36 @@ export function PathInput({
   const handleSelect = async () => {
     setIsSelecting(true)
     try {
+      // 兼容两种返回结构：apiRequest 包过的 {success, data: {success, path}}
+      // 和直接的 {success, path}
+      const extractPath = (resp: any): string | null => {
+        if (!resp) return null
+        const inner = resp.data && typeof resp.data === 'object' ? resp.data : resp
+        if (inner?.success && typeof inner.path === 'string' && inner.path) {
+          return inner.path
+        }
+        // 极端情况：path 在 resp 顶层
+        if (typeof resp.path === 'string' && resp.path) return resp.path
+        return null
+      }
+
       if (type === 'folder') {
         const result = await systemApi.selectFolder(title || '选择文件夹')
-        if (result.data?.success && result.data.path) {
-          onChange(result.data.path)
+        const p = extractPath(result)
+        console.log('[PathInput][folder] 后端返回:', result, '解析到 path:', p)
+        if (p) {
+          onChange(p)
+        } else {
+          console.warn('[PathInput] 文件夹选择未拿到 path:', result)
         }
       } else {
         const result = await systemApi.selectFile(title || '选择文件', undefined, fileTypes)
-        if (result.data?.success && result.data.path) {
-          onChange(result.data.path)
+        const p = extractPath(result)
+        console.log('[PathInput][file] 后端返回:', result, '解析到 path:', p)
+        if (p) {
+          onChange(p)
+        } else {
+          console.warn('[PathInput] 文件选择未拿到 path:', result)
         }
       }
     } catch (error) {
