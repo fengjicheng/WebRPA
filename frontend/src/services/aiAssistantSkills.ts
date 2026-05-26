@@ -9,6 +9,7 @@
  */
 import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { useDialogRegistry, getDialogInfoForAI } from '@/store/dialogRegistry'
 import { localWorkflowApi, workflowApi, screensaverApi, dataAssetApi, imageAssetApi, scheduledTaskApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 
@@ -1676,6 +1677,82 @@ export async function executeClientAction(
         const message = (payload.message as string) || ''
         useWorkflowStore.getState().addLog({ level, message })
         return { success: true, message: '已添加日志' }
+      }
+
+      // ============================================================
+      // 弹窗自主操作（让 AI 能感知任何弹窗 + 自主响应）
+      // ============================================================
+      case 'list_open_dialogs': {
+        // 列出当前所有打开的弹窗 + 它们的可用 actions
+        const dialogs = getDialogInfoForAI()
+        return {
+          success: true,
+          data: {
+            count: dialogs.length,
+            dialogs,
+            tip: dialogs.length === 0
+              ? '当前没有打开的弹窗'
+              : '对每个弹窗调 respond_to_dialog(dialog_id, action, params) 自主响应',
+          },
+        }
+      }
+
+      case 'respond_to_dialog': {
+        // 响应一个弹窗：点某个 action 按钮（含可选参数）
+        const dialogId = payload.dialog_id as string
+        const actionName = payload.action as string
+        const params = (payload.params as Record<string, any>) || {}
+        if (!dialogId || !actionName) {
+          return { success: false, error: '缺少 dialog_id / action' }
+        }
+        const reg = useDialogRegistry.getState()
+        const dialog = reg.dialogs.find((d) => d.id === dialogId)
+        if (!dialog) {
+          return { success: false, error: `弹窗 ${dialogId} 不存在或已关闭` }
+        }
+        const act = dialog.actions.find((a) => a.name === actionName)
+        if (!act) {
+          return {
+            success: false,
+            error: `弹窗 ${dialog.type} 没有 action「${actionName}」`,
+            data: { available_actions: dialog.actions.map((a) => a.name) },
+          }
+        }
+        try {
+          await Promise.resolve(act.handler(params))
+          return {
+            success: true,
+            message: `已响应弹窗「${dialog.title}」执行 action「${actionName}」`,
+          }
+        } catch (err: any) {
+          return { success: false, error: `执行 action 异常：${err?.message || err}` }
+        }
+      }
+
+      case 'dismiss_dialog': {
+        // 关闭弹窗（等价于点该弹窗的"取消"动作；若没有 cancel action 则尝试 close/dismiss）
+        const dialogId = payload.dialog_id as string
+        if (!dialogId) return { success: false, error: '缺少 dialog_id' }
+        const reg = useDialogRegistry.getState()
+        const dialog = reg.dialogs.find((d) => d.id === dialogId)
+        if (!dialog) return { success: false, error: `弹窗 ${dialogId} 不存在或已关闭` }
+        const cancelAct =
+          dialog.actions.find((a) => a.name === 'cancel') ||
+          dialog.actions.find((a) => a.name === 'dismiss') ||
+          dialog.actions.find((a) => a.name === 'close')
+        if (!cancelAct) {
+          return {
+            success: false,
+            error: `弹窗 ${dialog.type} 没有可用的关闭 action`,
+            data: { available_actions: dialog.actions.map((a) => a.name) },
+          }
+        }
+        try {
+          await Promise.resolve(cancelAct.handler({}))
+          return { success: true, message: `已关闭弹窗「${dialog.title}」` }
+        } catch (err: any) {
+          return { success: false, error: `关闭异常：${err?.message || err}` }
+        }
       }
 
       default:

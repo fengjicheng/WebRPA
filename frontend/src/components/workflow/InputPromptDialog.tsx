@@ -6,6 +6,7 @@ import { socketService } from '@/services/socket'
 import { X, List, Hash, Type, Lock, AlignLeft, File, Folder, CheckSquare, SlidersHorizontal, ListChecks } from 'lucide-react'
 import { getBackendUrl } from '@/services/api'
 import { DialogPortal } from '@/components/ui/dialog-portal'
+import { useDialogRegistry } from '@/store/dialogRegistry'
 
 interface PromptData {
   requestId: string
@@ -230,6 +231,83 @@ export function InputPromptDialog() {
       setError('')
     }
   }
+
+  // ====== 弹窗注册：让 AI 能感知并自主操作此弹窗 ======
+  useEffect(() => {
+    if (!promptData) return
+    const reg = useDialogRegistry.getState()
+    const dialogId = `input_prompt_${promptData.requestId}`
+
+    // 让 AI 用对应类型的参数提交
+    const submitParam = (() => {
+      const m = promptData.inputMode
+      if (m === 'number' || m === 'integer' || m === 'slider_int' || m === 'slider_float') {
+        return { type: 'number' as const, description: '要填入的数字', required: true }
+      }
+      if (m === 'checkbox') {
+        return { type: 'boolean' as const, description: '勾选状态', required: true }
+      }
+      if (m === 'select_multiple') {
+        return { type: 'array' as const, description: '选中项数组', required: true }
+      }
+      return { type: 'string' as const, description: '要填入的文本', required: true }
+    })()
+
+    reg.register({
+      id: dialogId,
+      type: 'input_prompt',
+      title: promptData.title || '需要输入',
+      message: promptData.message || '',
+      context: {
+        request_id: promptData.requestId,
+        variable_name: promptData.variableName,
+        input_mode: promptData.inputMode,
+        default_value: promptData.defaultValue,
+        min_value: promptData.minValue,
+        max_value: promptData.maxValue,
+        max_length: promptData.maxLength,
+        required: promptData.required !== false,
+        select_options: promptData.selectOptions,
+      },
+      actions: [
+        {
+          name: 'submit',
+          label: '提交输入值',
+          primary: true,
+          params: { value: submitParam },
+          handler: (params) => {
+            const v = params?.value
+            if (promptData.inputMode === 'checkbox') {
+              socketService.sendInputResult(promptData.requestId, v ? 'true' : 'false')
+            } else if (promptData.inputMode === 'select_multiple') {
+              socketService.sendInputResult(
+                promptData.requestId,
+                JSON.stringify(Array.isArray(v) ? v : [v])
+              )
+            } else {
+              socketService.sendInputResult(promptData.requestId, String(v ?? ''))
+            }
+            setPromptData(null)
+            setInputValue('')
+            setCheckboxValue(false)
+            setSliderValue(0)
+            setSelectedItems([])
+            setError('')
+          },
+        },
+        {
+          name: 'cancel',
+          label: '取消输入',
+          handler: () => handleCancel(),
+        },
+      ],
+    })
+
+    return () => {
+      reg.unregister(dialogId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptData?.requestId])
 
   if (!promptData) return null
 

@@ -140,7 +140,8 @@ export function ConfirmDialog({
 }
 
 // 用于创建全局确认对话框的 hook
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useDialogRegistry } from '@/store/dialogRegistry'
 
 interface UseConfirmOptions {
   type?: ConfirmDialogType
@@ -193,6 +194,60 @@ export function useConfirm() {
     state.resolve?.(false)
     setState((prev) => ({ ...prev, isOpen: false, resolve: null }))
   }, [state.resolve])
+
+  // ====== 弹窗注册：让 AI 能感知并自主操作此弹窗 ======
+  const dialogIdRef = useRef<string>('')
+  useEffect(() => {
+    if (!state.isOpen) return
+    // 每次打开生成一个新 id（同一会话内多次 confirm 互不冲突）
+    if (!dialogIdRef.current) {
+      dialogIdRef.current = `confirm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    }
+    const dialogId = dialogIdRef.current
+    const reg = useDialogRegistry.getState()
+    const isAlert = state.options.type === 'alert'
+    const isDanger = state.options.type === 'warning'
+
+    reg.register({
+      id: dialogId,
+      type: isAlert ? 'alert' : 'confirm',
+      title: state.options.title || (isAlert ? '提示' : '请确认'),
+      message: state.message,
+      context: {
+        is_destructive: isDanger,
+        confirm_text: state.options.confirmText || '确定',
+        cancel_text: state.options.cancelText || '取消',
+      },
+      actions: isAlert
+        ? [
+            {
+              name: 'ok',
+              label: state.options.confirmText || '知道了',
+              primary: true,
+              handler: () => handleConfirm(),
+            },
+          ]
+        : [
+            {
+              name: 'confirm',
+              label: state.options.confirmText || '确定',
+              primary: true,
+              destructive: isDanger,
+              handler: () => handleConfirm(),
+            },
+            {
+              name: 'cancel',
+              label: state.options.cancelText || '取消',
+              handler: () => handleCancel(),
+            },
+          ],
+    })
+
+    return () => {
+      reg.unregister(dialogId)
+      dialogIdRef.current = ''
+    }
+  }, [state.isOpen, state.message, state.options.title, state.options.type, handleConfirm, handleCancel])
 
   const ConfirmDialogComponent = () => (
     <ConfirmDialog

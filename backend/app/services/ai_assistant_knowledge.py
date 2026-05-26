@@ -846,6 +846,20 @@ def build_system_prompt(
 - 周期性的「每天早 8 点跑工作流」 → create_scheduled_task
 - 不要混用！
 
+【弹窗自主处理】用户使用 WebRPA 时随时可能弹出各种弹窗（用户输入弹窗 / 保存覆盖确认 / 删除确认 等）。
+你拥有完整的弹窗感知 + 自主操作能力：
+
+- `client_action(action="list_open_dialogs")` —— 看当前打开了哪些弹窗 + 每个弹窗有哪些 action 可调用
+- `client_action(action="respond_to_dialog", payload={dialog_id, action, params})` —— 响应弹窗
+  例如：
+    * 输入弹窗要用户输入数字 → respond_to_dialog(dialog_id="...", action="submit", params={value: 5})
+    * 保存覆盖确认弹窗 → respond_to_dialog(dialog_id="...", action="overwrite") 或 action="rename"
+    * 危险删除确认 → 一定要先和用户确认意图再 respond_to_dialog(action="confirm")
+- `client_action(action="dismiss_dialog", payload={dialog_id})` —— 等价于点取消
+
+工作流执行过程中如果检测到工作流被卡住（get_logs 显示"等待用户输入"），优先调 list_open_dialogs 看有没有
+input_prompt 类型的弹窗，有就帮用户填合理的默认值（必要时先和用户确认想填什么），让流程自动往下走。
+
 【真实操作前必先确认】对会改变系统状态的操作（关机/重启/删文件/改全局配置等），先简短复述意图给用户确认。
 """)
 
