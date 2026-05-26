@@ -4,7 +4,7 @@
  * 用户在前端配置后发请求到 /api/screensaver/start，由后端独立 Python 进程
  * 启动 tkinter 全屏窗口覆盖整个桌面（不受浏览器限制）。
  */
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Play, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -128,6 +128,157 @@ function loadConfig(): ScreensaverConfig {
 }
 
 
+/**
+ * 弹幕预览：用 RAF 真模拟后端 _draw_bullets 的逻辑
+ *  - 每条独立 x/y/speed/color/size
+ *  - x 跑出屏幕左侧后 y 重新随机
+ *  - 与父组件解耦：颜色拖动不会重启动画
+ */
+const BulletPreview = React.memo(function BulletPreview({
+  bullets,
+  previewW,
+  previewH,
+  fallbackColor,
+  fallbackFontSize,
+  fontFamily,
+  previewScale,
+}: {
+  bullets: BulletItem[]
+  previewW: number
+  previewH: number
+  fallbackColor: string
+  fallbackFontSize: number
+  fontFamily: string
+  previewScale: number
+}) {
+  // 每条弹幕的 DOM ref，通过直接改 style.transform 推动，绕过 React 重渲染
+  const refs = useRef<(HTMLSpanElement | null)[]>([])
+  // 弹幕状态（每条独立），用 ref 持有避免引发渲染
+  const stateRef = useRef<Array<{ x: number; y: number; w: number }>>([])
+
+  // 当数量变化时重新初始化状态
+  useEffect(() => {
+    refs.current = refs.current.slice(0, bullets.length)
+    stateRef.current = bullets.map((_, i) => ({
+      x: previewW + Math.random() * previewW * 0.5 + i * 30,
+      y: 8 + Math.random() * Math.max(1, previewH - 40),
+      w: 100,
+    }))
+  }, [bullets.length, previewW, previewH])
+
+  useEffect(() => {
+    if (previewW <= 0 || previewH <= 0) return
+    let raf = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000)
+      last = now
+      const states = stateRef.current
+      for (let i = 0; i < bullets.length; i++) {
+        const b = bullets[i]
+        const el = refs.current[i]
+        const s = states[i]
+        if (!el || !s) continue
+        // 推进 x（speed 用预览缩放系数换算成预览空间速度）
+        const speedPx = (b.speed || 200) * (previewW > 0 ? previewW / 1920 : 1)
+        s.x -= speedPx * dt
+        // 拿到真实文本宽度（首次 render 后即可用）
+        if (el.offsetWidth) s.w = el.offsetWidth
+        // 划出屏幕：x + w < 0 时回到右侧并重新随机 y
+        if (s.x + s.w < 0) {
+          s.x = previewW + Math.random() * previewW * 0.3
+          s.y = 8 + Math.random() * Math.max(1, previewH - 40)
+        }
+        el.style.transform = `translate3d(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px, 0)`
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [bullets.length, previewW, previewH])
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {bullets.map((b, i) => (
+        <span
+          key={i}
+          ref={(el) => { refs.current[i] = el }}
+          className="absolute top-0 left-0 whitespace-nowrap"
+          style={{
+            color: b.color || fallbackColor,
+            fontWeight: b.bold ? 700 : 400,
+            fontSize: Math.max(6, (b.font_size ?? fallbackFontSize) * previewScale),
+            fontFamily,
+            willChange: 'transform',
+          }}
+        >
+          {b.text}
+        </span>
+      ))}
+    </div>
+  )
+})
+
+
+/**
+ * 优化的颜色选择器：
+ * - 拖动时本地状态实时反映（input UI 同步变化）
+ * - 真正写入父组件做防抖（80ms）— 拖动中持续变化时不重启父组件渲染
+ * - 鼠标松开 / 弹窗关闭时立即提交最新值
+ */
+const ColorInput = React.memo(function ColorInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: string
+  onChange: (v: string) => void
+  className?: string
+}) {
+  const [local, setLocal] = useState(value)
+  const debounceRef = useRef<number | null>(null)
+  // 父组件 value 外部变化时同步过来
+  useEffect(() => { setLocal(value) }, [value])
+  // 卸载时清防抖
+  useEffect(() => () => {
+    if (debounceRef.current != null) {
+      window.clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  const flush = (v: string) => {
+    if (debounceRef.current != null) {
+      window.clearTimeout(debounceRef.current)
+    }
+    debounceRef.current = window.setTimeout(() => {
+      onChange(v)
+      debounceRef.current = null
+    }, 80)
+  }
+
+  return (
+    <input
+      type="color"
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value
+        setLocal(v)
+        flush(v)
+      }}
+      // 弹窗关闭 / 失焦时立即提交（避免最后一次还在防抖里被忽略）
+      onBlur={(e) => {
+        if (debounceRef.current != null) {
+          window.clearTimeout(debounceRef.current)
+          debounceRef.current = null
+        }
+        onChange(e.target.value)
+      }}
+      className={className}
+    />
+  )
+})
+
+
 export function ScreensaverDialog({ open, onClose }: Props) {
   const [config, setConfig] = useState<ScreensaverConfig>(() => loadConfig())
   const [running, setRunning] = useState(false)
@@ -175,10 +326,14 @@ export function ScreensaverDialog({ open, onClose }: Props) {
     }
   }, [open])
 
+  // localStorage 持久化做 debounce，避免颜色拖动时每像素都写一次造成卡顿
   useEffect(() => {
-    try {
-      localStorage.setItem(SCREENSAVER_CONFIG_KEY, JSON.stringify(config))
-    } catch {}
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(SCREENSAVER_CONFIG_KEY, JSON.stringify(config))
+      } catch {}
+    }, 200)
+    return () => clearTimeout(timer)
   }, [config])
 
   useEffect(() => {
@@ -622,10 +777,9 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                         placeholder="弹幕文本"
                         className="flex-1"
                       />
-                      <input
-                        type="color"
+                      <ColorInput
                         value={b.color || config.color}
-                        onChange={(e) => updateBullet(idx, { color: e.target.value })}
+                        onChange={(v) => updateBullet(idx, { color: v })}
                         className="w-8 h-8 rounded cursor-pointer"
                       />
                       <Input
@@ -697,11 +851,11 @@ export function ScreensaverDialog({ open, onClose }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">文字颜色</Label>
-                  <input type="color" value={config.color} onChange={(e) => update('color', e.target.value)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
+                  <ColorInput value={config.color} onChange={(v) => update('color', v)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
                 </div>
                 <div>
                   <Label className="text-xs">背景颜色</Label>
-                  <input type="color" value={config.background} onChange={(e) => update('background', e.target.value)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
+                  <ColorInput value={config.background} onChange={(v) => update('background', v)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">背景透明度：{Math.round(config.background_alpha * 100)}%</Label>
@@ -736,7 +890,7 @@ export function ScreensaverDialog({ open, onClose }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">描边颜色（留空不描边）</Label>
-                  <input type="color" value={config.outline_color || '#000000'} onChange={(e) => update('outline_color', e.target.value)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
+                  <ColorInput value={config.outline_color || '#000000'} onChange={(v) => update('outline_color', v)} className="w-full h-9 rounded cursor-pointer border border-[hsl(var(--border))]" />
                 </div>
                 <div>
                   <Label className="text-xs">描边宽度</Label>
@@ -889,45 +1043,15 @@ export function ScreensaverDialog({ open, onClose }: Props) {
                   {renderText(config.text || 'WebRPA →')}
                 </span>
               ) : config.content_type === 'bullet' ? (
-                <div className="absolute inset-0 overflow-hidden">
-                  {config.bullets.map((b, i) => {
-                    // 用 idx 做稳定随机种子（避免每次渲染抖动）
-                    const seed = (i * 9301 + 49297) % 233280
-                    const rand = seed / 233280
-                    // 随机垂直位置：3% ~ 88%（避免重叠到底部）
-                    const topPct = 3 + rand * 85
-                    // 每条弹幕速度独立：用 b.speed，转成动画时长（秒）
-                    const speed = b.speed || 200
-                    // 在预览框内：屏幕宽度 × 缩放系数 / 速度 = 跨屏所需秒数
-                    const durationSec = Math.max(4, Math.min(40, 800 / speed))
-                    // 用错峰延迟避免所有弹幕同一时刻起跑
-                    const delay = -((i * 0.7 + rand * 2) % durationSec)
-                    return (
-                      <div
-                        key={i}
-                        className="absolute whitespace-nowrap"
-                        style={{
-                          top: `${topPct}%`,
-                          left: 0,
-                          animation: `screensaverBulletFlow ${durationSec}s linear ${delay}s infinite`,
-                          willChange: 'transform',
-                        }}
-                      >
-                        <span
-                          className="pl-[100%] inline-block"
-                          style={{
-                            fontFamily: previewStyle.fontFamily,
-                            color: b.color || (previewStyle.color as string),
-                            fontWeight: b.bold ? 700 : (previewStyle.fontWeight as any),
-                            fontSize: Math.max(6, (b.font_size ?? config.font_size) * previewScale),
-                          }}
-                        >
-                          {b.text}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
+                <BulletPreview
+                  bullets={config.bullets}
+                  previewW={previewBox.w}
+                  previewH={previewBox.h}
+                  fallbackColor={config.color}
+                  fallbackFontSize={config.font_size}
+                  fontFamily={config.font_family}
+                  previewScale={previewScale}
+                />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center px-3 text-center">
                   <span
