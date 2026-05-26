@@ -881,13 +881,99 @@ async def skill_build_workflow(
     # 5) 生成便签（智能排版）
     note_nodes: list[dict[str, Any]] = []
 
-    # 5a) 顶部"工作流说明"便签（如果有）
-    if title_note:
-        title_w, title_h = _calc_note_size(title_note[:600], font_size=14, target_w=max(NOTE_W * 2, 480))
+    # === 碰撞避让的核心数据结构：所有已占用的矩形（节点 + 已放便签） ===
+    # 每个矩形 (x, y, w, h)。便签新位置会用这个列表做碰撞检测，重叠就自动挪开
+    occupied_rects: list[tuple[float, float, float, float]] = []
+    for n in nodes:
+        occupied_rects.append((
+            n["position"]["x"],
+            n["position"]["y"],
+            float(NODE_W),
+            float(NODE_H),
+        ))
+
+    PAD = 12.0  # 便签和占用矩形之间的最小间距
+
+    def _rects_overlap(a: tuple[float, float, float, float],
+                       b: tuple[float, float, float, float],
+                       pad: float = PAD) -> bool:
+        ax, ay, aw, ah = a
+        bx, by, bw, bh = b
+        return not (
+            ax + aw + pad <= bx
+            or bx + bw + pad <= ax
+            or ay + ah + pad <= by
+            or by + bh + pad <= ay
+        )
+
+    def _find_free_position(
+        ideal_x: float,
+        ideal_y: float,
+        w: float,
+        h: float,
+        prefer: str = "down",
+    ) -> tuple[float, float]:
+        """从 (ideal_x, ideal_y) 开始，按 prefer 方向螺旋搜索一个不与任何 occupied 矩形重叠的位置。
+        prefer: 'down' / 'up' / 'right' / 'left' 决定优先尝试方向
+        """
+        candidate = (ideal_x, ideal_y, w, h)
+        if not any(_rects_overlap(candidate, r) for r in occupied_rects):
+            return ideal_x, ideal_y
+
+        # 按方向偏移搜索
+        step = 24.0
+        max_tries = 60
+        # 优先方向序列
+        dirs = {
+            "down":  [(0, 1), (1, 0), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)],
+            "up":    [(0, -1), (1, 0), (-1, 0), (0, 1), (1, -1), (-1, -1), (1, 1), (-1, 1)],
+            "right": [(1, 0), (0, 1), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)],
+            "left":  [(-1, 0), (0, 1), (0, -1), (1, 0), (-1, 1), (-1, -1), (1, 1), (1, -1)],
+        }.get(prefer, [(0, 1), (1, 0), (-1, 0), (0, -1)])
+
+        for ring in range(1, max_tries):
+            for dx, dy in dirs:
+                tx = ideal_x + dx * step * ring
+                ty = ideal_y + dy * step * ring
+                cand = (tx, ty, w, h)
+                if not any(_rects_overlap(cand, r) for r in occupied_rects):
+                    return tx, ty
+
+        # 实在找不到，硬挪到画布最右侧避免覆盖
+        max_x = max((r[0] + r[2] for r in occupied_rects), default=START_X) + 80
+        return max_x, ideal_y
+
+    def _add_note(
+        ideal_x: float,
+        ideal_y: float,
+        w: float,
+        h: float,
+        prefer: str,
+        data: dict,
+    ):
+        """放一个便签，自动避让已占用矩形"""
+        nx, ny = _find_free_position(ideal_x, ideal_y, w, h, prefer=prefer)
+        occupied_rects.append((nx, ny, w, h))
         note_nodes.append({
             "id": _make_node_id(),
             "type": "note",
-            "position": {"x": float(START_X), "y": 60.0},
+            "position": {"x": float(nx), "y": float(ny)},
+            "data": data,
+            "style": {"width": int(w), "height": int(h)},
+            "zIndex": -1,
+        })
+
+    # 5a) 顶部"工作流说明"便签（如果有）
+    if title_note:
+        title_w, title_h = _calc_note_size(title_note[:600], font_size=14, target_w=max(NOTE_W * 2, 480))
+        # 顶部便签固定放在画布最上方，不参与避让搜索（但加入 occupied 让后续避开它）
+        title_x = float(START_X)
+        title_y = 60.0
+        occupied_rects.append((title_x, title_y, float(title_w), float(title_h)))
+        note_nodes.append({
+            "id": _make_node_id(),
+            "type": "note",
+            "position": {"x": title_x, "y": title_y},
             "data": {
                 "label": "",
                 "moduleType": "note",
@@ -900,37 +986,33 @@ async def skill_build_workflow(
             "zIndex": -1,
         })
 
-    # 5b) 每个 step 的 comment（如果有）→ 在该节点上方生成小便签
+    # 5b) 每个 step 的 comment（如果有）→ 在该节点上方生成小便签，自动避让重叠
     for idx, step in enumerate(steps):
         if not step.get("comment"):
             continue
         sx, sy = positions[idx]
         comment_text = str(step["comment"])[:300]
         cmt_w, cmt_h = _calc_note_size(comment_text, font_size=12, target_w=NOTE_W)
-        # 第一行的 step 上方可能与 title_note 重叠 → 这种情况放到节点右侧
+        # 优先放节点上方；如果上方与 title 或其他便签重叠，再让 _find_free_position 重定位
         title_overlap_zone = title_note is not None and sy < 200
-        if title_overlap_zone or sy - cmt_h - NOTE_GAP < 50:
-            nx = sx + NODE_W + NOTE_GAP
-            ny = sy
+        if title_overlap_zone:
+            # 第一行节点上方有 title，便签放节点右侧
+            ideal_x = sx + NODE_W + NOTE_GAP
+            ideal_y = sy
+            prefer = "right"
         else:
-            nx = sx
-            ny = sy - cmt_h - NOTE_GAP
-        note_nodes.append({
-            "id": _make_node_id(),
-            "type": "note",
-            "position": {"x": float(nx), "y": float(ny)},
-            "data": {
-                "label": "",
-                "moduleType": "note",
-                "content": comment_text,
-                "color": "#fef08a",  # 黄色：步骤注释
-                "fontSize": 12,
-            },
-            "style": {"width": cmt_w, "height": cmt_h},
-            "zIndex": -1,
+            ideal_x = sx
+            ideal_y = sy - cmt_h - NOTE_GAP
+            prefer = "up"
+        _add_note(ideal_x, ideal_y, float(cmt_w), float(cmt_h), prefer, {
+            "label": "",
+            "moduleType": "note",
+            "content": comment_text,
+            "color": "#fef08a",  # 黄色：步骤注释
+            "fontSize": 12,
         })
 
-    # 5c) 显式追加的 notes
+    # 5c) 显式追加的 notes（同样走避让）
     if notes:
         color_map = {
             "yellow": "#fef08a", "green": "#bbf7d0", "blue": "#bfdbfe",
@@ -944,52 +1026,48 @@ async def skill_build_workflow(
             color = color_map.get((n.get("color") or "yellow").lower(), "#fef08a")
             anchor = n.get("anchor_to")
             side = (n.get("side") or "right").lower()
-            nx: float
-            ny: float
+            note_fs = int(n.get("font_size", 13))
+            auto_w, auto_h = _calc_note_size(content[:600], font_size=note_fs, target_w=NOTE_W)
+            w = int(n.get("width", auto_w))
+            h = int(n.get("height", auto_h))
+            ideal_x: float
+            ideal_y: float
+            prefer: str = "down"
             if anchor:
                 anchor_id = _resolve_id(str(anchor))
                 if anchor_id and anchor_id in step_ids:
                     aidx = step_ids.index(anchor_id)
                     ax, ay = positions[aidx]
                     if side == "top":
-                        nx = ax
-                        ny = ay - NOTE_H - NOTE_GAP
+                        ideal_x = ax
+                        ideal_y = ay - h - NOTE_GAP
+                        prefer = "up"
                     elif side == "bottom":
-                        nx = ax
-                        ny = ay + NODE_H + NOTE_GAP
+                        ideal_x = ax
+                        ideal_y = ay + NODE_H + NOTE_GAP
+                        prefer = "down"
                     elif side == "left":
-                        nx = ax - NOTE_W - NOTE_GAP
-                        ny = ay
+                        ideal_x = ax - w - NOTE_GAP
+                        ideal_y = ay
+                        prefer = "left"
                     else:  # right
-                        nx = ax + NODE_W + NOTE_GAP
-                        ny = ay
+                        ideal_x = ax + NODE_W + NOTE_GAP
+                        ideal_y = ay
+                        prefer = "right"
                 else:
-                    nx = float(n.get("x", START_X))
-                    ny = float(n.get("y", START_Y))
+                    ideal_x = float(n.get("x", START_X))
+                    ideal_y = float(n.get("y", START_Y))
             else:
-                nx = float(n.get("x", START_X))
-                ny = float(n.get("y", START_Y))
-            note_fs = int(n.get("font_size", 13))
-            auto_w, auto_h = _calc_note_size(content[:600], font_size=note_fs, target_w=NOTE_W)
-            note_nodes.append({
-                "id": _make_node_id(),
-                "type": "note",
-                "position": {"x": nx, "y": ny},
-                "data": {
-                    "label": "",
-                    "moduleType": "note",
-                    "content": content[:600],
-                    "color": color,
-                    "fontSize": note_fs,
-                    "fontBold": bool(n.get("bold", False)),
-                    "fontItalic": bool(n.get("italic", False)),
-                },
-                "style": {
-                    # AI 显式给了 width/height 就用它，否则用按内容自动计算的尺寸
-                    "width": int(n.get("width", auto_w)),
-                    "height": int(n.get("height", auto_h)),
-                },
-                "zIndex": -1,
+                ideal_x = float(n.get("x", START_X))
+                ideal_y = float(n.get("y", START_Y))
+            _add_note(ideal_x, ideal_y, float(w), float(h), prefer, {
+                "label": "",
+                "moduleType": "note",
+                "content": content[:600],
+                "color": color,
+                "fontSize": note_fs,
+                "fontBold": bool(n.get("bold", False)),
+                "fontItalic": bool(n.get("italic", False)),
             })
 
     # 把便签放在节点之前（让 react-flow 渲染顺序合理；前端 zIndex 也设为 -1）
