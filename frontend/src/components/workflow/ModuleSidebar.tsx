@@ -1683,6 +1683,14 @@ function ModuleItemRaw({
   const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 })
   const colorButtonRef = useRef<HTMLButtonElement>(null)
 
+  // 防御：缺失图标/labels 不能让整个面板崩
+  if (!Icon || !label) {
+    if (typeof console !== 'undefined') {
+      console.warn(`[ModuleSidebar] 模块 "${type}" 缺少图标或 label，已被忽略（可能是删除模块后用户的收藏/统计残留）`)
+    }
+    return null
+  }
+
   // 点击外部关闭颜色选择器
   useEffect(() => {
     if (showColorPicker) {

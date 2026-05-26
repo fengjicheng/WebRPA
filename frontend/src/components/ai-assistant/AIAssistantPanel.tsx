@@ -666,7 +666,7 @@ export function AIAssistantPanel() {
         {messages.length > 0 && (
           <div className="mb-2 flex items-start gap-1.5 text-[10.5px] leading-relaxed text-[hsl(var(--slate-700))] px-1 font-semibold">
             <Info className="w-3 h-3 mt-[2px] flex-shrink-0 text-[hsl(var(--warning-600))]" />
-            <span>请理性使用，不要完全依赖AI生成的工作流，建议人工二次完善与验证！</span>
+            <span>小助手仅作为辅助工具，它并不能完全替代人工！</span>
           </div>
         )}
         <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
