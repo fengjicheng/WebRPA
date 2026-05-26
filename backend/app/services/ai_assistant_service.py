@@ -29,6 +29,8 @@ from app.services.ai_assistant_knowledge import build_system_prompt
 from app.services.ai_assistant_skills import execute_skill, registry as skill_registry
 # v2 新增 skill：dry-run / 运行时洞察 / 依赖预检 / 健壮性 / 桌面感知
 import app.services.ai_assistant_skills_v2  # noqa: F401  # side-effect: 注册新 skill
+# v3 新增 skill：系统控制 / 一次性延时 / 自学习 / 教训 / 用户画像（对标 Hermes Agent）
+import app.services.ai_assistant_skills_v3  # noqa: F401  # side-effect: 注册新 skill
 
 
 # ---------- 持久化 ----------
@@ -710,12 +712,38 @@ async def chat_once(
     except Exception:
         pass
 
+    # 4-bis. 加载教训 + 用户画像 + 学过的 skill（对标 Hermes Agent 的 5 支柱）
+    extra_prompt_sections: list[str] = []
+    try:
+        from app.services.ai_assistant_skills_v3 import (
+            get_lessons_summary_for_prompt,
+            get_user_profile_summary_for_prompt,
+            get_learned_skills_summary_for_prompt,
+        )
+        for fn in (
+            get_user_profile_summary_for_prompt,
+            get_lessons_summary_for_prompt,
+            get_learned_skills_summary_for_prompt,
+        ):
+            try:
+                section = fn() if fn != get_lessons_summary_for_prompt else fn(limit=30)
+            except TypeError:
+                section = fn()
+            if section:
+                extra_prompt_sections.append(section)
+    except Exception:
+        pass
+
     system_text = build_system_prompt(
         user_extra_prompt=config.system_prompt,
         enable_tools=config.enable_tools,
         workflow_summary=workflow_summary,
         memory_summary=memory_summary,
     )
+
+    # 把教训/画像/已学技能附加在系统提示词后
+    if extra_prompt_sections:
+        system_text = system_text + "\n\n" + "\n\n".join(extra_prompt_sections)
 
     # 4b. 给 system_text 追加可用 client_action 完整列表（让 LLM 不必反复猜测名称）
     if config.enable_tools:
