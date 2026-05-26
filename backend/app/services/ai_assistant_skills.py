@@ -513,10 +513,8 @@ async def skill_build_workflow(
         ai_name = step.get("label") or step.get("name")
         if ai_name and ai_name != mtype:
             node_data["name"] = ai_name
-        # 备注（remark）会显示在节点底部
-        if step.get("comment"):
-            # comment 既是 remark，也会单独生成一个便签节点
-            node_data["remark"] = step["comment"][:80]
+        # 注意：comment 只用来生成便签节点（见 5b），不再叠加到节点头部的 remark 字段，
+        # 避免与配置面板里的"节点备注"输入框（绑定 name 字段）显示不一致
         node_data.update(cfg)
 
         node = {

@@ -2181,12 +2181,12 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               <div className="space-y-4 animate-fade-in">
                 {/* 通用配置 */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">节点名称</Label>
+                  <Label htmlFor="name">节点备注</Label>
                   <Input
                     id="name"
                     value={(nodeData.name as string) || ''}
                     onChange={(e) => handleChange('name', e.target.value)}
-                    placeholder="可选的节点名称"
+                    placeholder="可选的节点备注"
                     className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>

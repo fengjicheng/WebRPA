@@ -175,11 +175,6 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
                 ({customName})
               </span>
             )}
-            {nodeData.remark && (
-              <span className="text-amber-500 dark:text-amber-400 font-normal ml-1">
-                ({nodeData.remark})
-              </span>
-            )}
           </div>
           {summary && (
             <div className={cn(
