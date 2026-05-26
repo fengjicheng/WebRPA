@@ -389,6 +389,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <ReasoningCard
               content={message.reasoning_content}
               isThinking={!message.content && !(message.tool_calls && message.tool_calls.length > 0)}
+              durationSec={(message as any).thinking_duration_sec}
             />
           )}
           {message.content && (

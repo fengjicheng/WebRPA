@@ -180,7 +180,15 @@ export function AIAssistantPanel() {
         if (id) {
           const exists = msgs.find((m) => m.id === id)
           if (exists) {
-            state.upsertMessage({ ...exists, reasoning_content: fullText })
+            // 在本地附加 thinking_started_at（只第一次设置）和 thinking_duration_sec（持续更新）
+            const startedAt = (exists as any).thinking_started_at || Date.now()
+            const duration = (Date.now() - startedAt) / 1000
+            state.upsertMessage({
+              ...exists,
+              reasoning_content: fullText,
+              thinking_started_at: startedAt,
+              thinking_duration_sec: duration,
+            } as any)
             return
           }
         }
@@ -191,7 +199,9 @@ export function AIAssistantPanel() {
           role: 'assistant',
           content: '',
           reasoning_content: fullText,
-        })
+          thinking_started_at: Date.now(),
+          thinking_duration_sec: 0,
+        } as any)
       },
       onContentPartial: (data: any) => {
         const fullText = (data?.full as string) || ''
@@ -201,7 +211,16 @@ export function AIAssistantPanel() {
         if (id) {
           const exists = msgs.find((m) => m.id === id)
           if (exists) {
-            state.upsertMessage({ ...exists, content: fullText })
+            // content 出现意味着思考结束 - 把 thinking_duration_sec 锁住
+            const startedAt = (exists as any).thinking_started_at
+            const finalDuration = startedAt
+              ? (exists as any).thinking_duration_sec || (Date.now() - startedAt) / 1000
+              : (exists as any).thinking_duration_sec
+            state.upsertMessage({
+              ...exists,
+              content: fullText,
+              thinking_duration_sec: finalDuration,
+            } as any)
             return
           }
         }
