@@ -9,7 +9,7 @@
  */
 import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
-import { localWorkflowApi, workflowApi, screensaverApi, dataAssetApi, imageAssetApi } from '@/services/api'
+import { localWorkflowApi, workflowApi, screensaverApi, dataAssetApi, imageAssetApi, scheduledTaskApi } from '@/services/api'
 import { socketService } from '@/services/socket'
 
 /**
@@ -764,6 +764,322 @@ export async function executeClientAction(
           scope: v.scope,
         })
         return { success: true, message: `已修改变量 ${name} 的类型为 ${newType}` }
+      }
+
+      // ============================================================
+      // 本地工作流（指定路径打开/保存/删除/列出）
+      // ============================================================
+      case 'list_local_workflows': {
+        try {
+          const folder = payload.folder as string | undefined
+          const res: any = await localWorkflowApi.list(folder)
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_local_workflow_content': {
+        const filename = payload.filename as string
+        if (!filename) return { success: false, error: '缺少 filename' }
+        try {
+          const fileWithExt = filename.endsWith('.json') ? filename : `${filename}.json`
+          const res: any = await localWorkflowApi.get(fileWithExt)
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'delete_local_workflow': {
+        const filename = payload.filename as string
+        if (!filename) return { success: false, error: '缺少 filename' }
+        try {
+          const fileWithExt = filename.endsWith('.json') ? filename : `${filename}.json`
+          await localWorkflowApi.delete(fileWithExt)
+          return { success: true, message: `已删除本地工作流 ${filename}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'save_workflow_to_folder': {
+        // 把当前画布工作流保存到指定文件名（不弹对话框）
+        const filename = (payload.filename as string) || ''
+        if (!filename) return { success: false, error: '缺少 filename' }
+        try {
+          const s = useWorkflowStore.getState()
+          const data = {
+            filename: filename.endsWith('.json') ? filename : `${filename}.json`,
+            content: {
+              name: s.name || filename,
+              nodes: s.nodes,
+              edges: s.edges,
+              variables: s.variables,
+            },
+          }
+          await localWorkflowApi.save(data)
+          return { success: true, message: `已保存到 ${data.filename}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_local_workflow_default_folder': {
+        try {
+          const res: any = await localWorkflowApi.getDefaultFolder()
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      // ============================================================
+      // 工作流仓库（远程 Hub）
+      // ============================================================
+      case 'hub_list_workflows': {
+        // payload.keyword?, payload.category?, payload.page?(1), payload.limit?(20), payload.sort_by?(latest|popular|hot)
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const params = new URLSearchParams()
+          if (payload.keyword) params.set('keyword', String(payload.keyword))
+          if (payload.category) params.set('category', String(payload.category))
+          if (payload.page) params.set('page', String(payload.page))
+          if (payload.limit) params.set('limit', String(payload.limit))
+          if (payload.sort_by) params.set('sort_by', String(payload.sort_by))
+          const resp = await fetch(`${hubUrl}/api/workflows?${params}`)
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          const data = await resp.json()
+          return { success: true, data }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'hub_get_categories': {
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const resp = await fetch(`${hubUrl}/api/workflows/categories`)
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          const data = await resp.json()
+          return { success: true, data }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'hub_download_workflow': {
+        // 下载 hub 上的一个工作流并直接装入画布
+        const workflowId = payload.workflow_id as string
+        if (!workflowId) return { success: false, error: '缺少 workflow_id' }
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const resp = await fetch(`${hubUrl}/api/workflows/${workflowId}/download`, { method: 'POST' })
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          const data = await resp.json()
+          const wf = data?.workflow || data
+          if (!wf?.nodes) return { success: false, error: 'Hub 返回格式异常' }
+          if (payload.load_into_canvas !== false) {
+            useWorkflowStore.getState().loadWorkflow({
+              nodes: wf.nodes || [],
+              edges: wf.edges || [],
+              name: wf.name || workflowId,
+            })
+          }
+          return { success: true, message: `已下载并装入：${wf.name || workflowId}`, data: wf }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'hub_publish_workflow': {
+        // 把当前画布发布到 hub。payload: name?, description?, category?, tags?, author?
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const s = useWorkflowStore.getState()
+          const body = {
+            name: (payload.name as string) || s.name || '未命名工作流',
+            description: payload.description || '',
+            category: payload.category || '其他',
+            tags: payload.tags || [],
+            author: payload.author || '匿名',
+            workflow: {
+              nodes: s.nodes,
+              edges: s.edges,
+              variables: s.variables,
+            },
+            clientId: (typeof window !== 'undefined' && (window.localStorage?.getItem('webrpa.clientId') || '')) || '',
+          }
+          const resp = await fetch(`${hubUrl}/api/workflows`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          const data = await resp.json()
+          return { success: true, message: `已发布到工作流仓库：${body.name}`, data }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'hub_get_my_workflows': {
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const clientId = (typeof window !== 'undefined' && (window.localStorage?.getItem('webrpa.clientId') || '')) || ''
+          const resp = await fetch(`${hubUrl}/api/workflows/my-workflows`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId }),
+          })
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          const data = await resp.json()
+          return { success: true, data }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'hub_delete_my_workflow': {
+        const workflowId = payload.workflow_id as string
+        if (!workflowId) return { success: false, error: '缺少 workflow_id' }
+        try {
+          const hubUrl = (typeof window !== 'undefined' && (window.localStorage?.getItem('workflow_hub_url') || '')) || 'https://hub.pmhs.top'
+          const clientId = (typeof window !== 'undefined' && (window.localStorage?.getItem('webrpa.clientId') || '')) || ''
+          const resp = await fetch(`${hubUrl}/api/workflows/${workflowId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId }),
+          })
+          if (!resp.ok) return { success: false, error: `Hub 返回 ${resp.status}` }
+          return { success: true, message: `已从 hub 删除工作流 ${workflowId}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      // ============================================================
+      // 计划任务（完整 CRUD + 启停 + 日志）
+      // ============================================================
+      case 'list_scheduled_tasks_full': {
+        try {
+          const res: any = await scheduledTaskApi.list()
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_scheduled_task_detail': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          const res: any = await scheduledTaskApi.get(id)
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'create_scheduled_task': {
+        // payload 直接传后端要的 task 对象
+        try {
+          const res: any = await scheduledTaskApi.create(payload || {})
+          return { success: true, message: '已创建计划任务', data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'update_scheduled_task': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          const data = { ...payload }
+          delete (data as any).id
+          const res: any = await scheduledTaskApi.update(id, data)
+          return { success: true, message: `已更新计划任务 ${id}`, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'delete_scheduled_task': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          await scheduledTaskApi.delete(id)
+          return { success: true, message: `已删除计划任务 ${id}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'toggle_scheduled_task': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        const enabled = !!payload.enabled
+        try {
+          await scheduledTaskApi.toggle(id, enabled)
+          return { success: true, message: `计划任务 ${id} 已${enabled ? '启用' : '禁用'}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'execute_scheduled_task': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          await scheduledTaskApi.execute(id)
+          return { success: true, message: `已立即执行计划任务 ${id}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'stop_scheduled_task': {
+        const id = payload.id as string
+        if (!id) return { success: false, error: '缺少 id' }
+        try {
+          await scheduledTaskApi.stop(id)
+          return { success: true, message: `已停止计划任务 ${id}` }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_scheduled_task_logs': {
+        const id = payload.id as string
+        const limit = Number(payload.limit) || 100
+        try {
+          const res: any = id
+            ? await scheduledTaskApi.getTaskLogs(id, limit)
+            : await scheduledTaskApi.getAllLogs(limit)
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'clear_scheduled_task_logs': {
+        const id = payload.id as string
+        try {
+          if (id) await scheduledTaskApi.clearTaskLogs(id)
+          else await scheduledTaskApi.clearAllLogs()
+          return { success: true, message: id ? `已清空任务 ${id} 的日志` : '已清空所有计划任务日志' }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
+      }
+
+      case 'get_scheduled_task_statistics': {
+        try {
+          const res: any = await scheduledTaskApi.getStatistics()
+          return { success: true, data: res?.data ?? res }
+        } catch (e: any) {
+          return { success: false, error: e?.message || String(e) }
+        }
       }
 
       // ============================================================
