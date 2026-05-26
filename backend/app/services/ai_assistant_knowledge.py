@@ -759,14 +759,18 @@ def build_system_prompt(
 
 1. 当用户提出涉及"现有工作流"、"已经有的"、"项目里"等字眼的需求时，先调用 `get_full_snapshot` 拿到整体上下文
 2. 当用户描述要做的事但没有明说节点时，先用 `search_modules` 搜出可能的模块
-3. **关键：用户让你"搭建/创建/做一个工作流"时，必须调用 `build_workflow` 一次性产出节点+边**。
-   后台会自动把 build_workflow 的结果装入画布（你不需要再手动调 load_workflow_from_data）。
+3. **关键：用户让你"搭建/创建/做一个工作流"时**：
+   ① 先想清楚要哪些 module_type
+   ② **批量调一次 `get_module_schema(module_types=[...])` 拿到所有要用的模块的 required / optional / defaults / example**
+   ③ 再调 `build_workflow` 一次性产出节点+边，每个 step 的 config 至少要把 schema.required 全部填上
+   ④ 后台会自动用 schema.defaults 补全用户没填的可选字段（比如 timeout、resultVariable 这种）
+   ⑤ 后台会把 build_workflow 结果自动装入画布，不需要再调 load_workflow_from_data
 4. **生成工作流时务必兼顾"功能正确"和"排版美观、可读性高"**：
    - 总是为整个工作流写 `title_note`，简述用途+前置条件，会变成顶部蓝色置顶便签
    - 关键步骤为 step 写 `comment`，会自动生成黄色便签贴在节点上方，让用户一眼看懂在做什么
    - 流程过长（>8 步）时把步骤分到不同 `section`（例如「准备阶段」「数据采集」「数据处理」「输出」），避免一长串
    - 一行最多 8 个节点，超过会自动折回；优先靠 section 分行而不是堆在一起
-   - 节点 `label` 务必用中文动词短语（例如「打开登录页」、「输入账号」），而不是英文 type
+   - 节点 `name` 务必用中文动词短语（例如「打开登录页」、「输入账号」），让用户一看就懂
    - 在重要分支/循环/容易出错的地方追加 `notes` 提示
 5. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
 6. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测
@@ -774,6 +778,21 @@ def build_system_prompt(
 8. 涉及到批量操作时优先调用 `client_action(action="find_nodes_by_type")` 拿到节点 id 后再批量处理
 9. **效率优先：可以同时调用多个无依赖的工具**（例如同时 search_modules('键盘') 和 search_modules('循环')），后端会并行执行
 10. 关键节点完成后，可以调用 `client_action(action="show_toast", payload={message:"...", type:"success"})` 给用户一个明显的提示
+
+# 模块配置纪律（必读，否则工作流会跑不通）
+
+- **严禁把 build_workflow 的 step.config 留空**。即使简单模块也至少要把 schema.required 全部填上。
+- **schema 的来源**：`get_module_schema(["mtype1", "mtype2"])` 一次返回多个模块的字段说明。
+- **联动看 schema.combo**：每个模块的 schema 里有"前后通常搭配什么"的提示，按它组合可以让工作流真的能跑。
+- **变量贯穿**：上一步的 resultVariable 是下一步的输入。例如：
+  - `api_request(resultVariable="api_data")` → `json_parse(jsonText="{api_data}", resultVariable="parsed")` → `foreach(listVariable="parsed.items", itemVariable="row")` → `print_log(message="处理: {row}")`
+  - 不要让数据"断流"——每个产生数据的模块的 resultVariable 必须被后面的模块用到，否则就是无效步骤。
+- **网页类必须先 probe**：搭建涉及网页元素的工作流前，**必须先调 probe_page** 拿到真实的 selector，不要凭空写 `.btn` `.title` 这种泛泛的选择器。
+- **写完工作流要自检**：build_workflow 返回成功后，问自己：
+  - 每个 step 的 required 字段都填了吗？
+  - 上下文变量名是否一致？（变量 a 出现在 step3，但 step5 引用的是变量 b？）
+  - 流程是否有"死路径"？（条件节点的 false 分支没下文？）
+  - 是否需要 wait_element / wait_page_load 来等加载完成？
 
 # 网页自动化的硬性纪律（必读）
 

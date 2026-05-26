@@ -16,6 +16,11 @@ from app.services.ai_assistant_knowledge import (
     find_module_description,
     get_all_known_module_types,
 )
+from app.services.ai_assistant_module_schemas import (
+    get_module_schema,
+    get_all_module_schemas,
+    apply_default_config,
+)
 
 
 # ---------- Skill 定义 ----------
@@ -134,6 +139,9 @@ async def skill_describe_module(module_type: str, **_: Any) -> dict[str, Any]:
             "error": f"未找到模块 {module_type}，它可能不存在或拼写错误",
         }
 
+    # 优先返回内置 schema（最权威），同时兼容旧的"从工作流学习"
+    schema = get_module_schema(module_type)
+
     # 从所有本地工作流中找出该 type 的节点作为配置参考
     config_examples: list[dict[str, Any]] = []
     config_field_names: set[str] = set()
@@ -179,15 +187,43 @@ async def skill_describe_module(module_type: str, **_: Any) -> dict[str, Any]:
         "type": module_type,
         "description": desc or "（暂无文档）",
         "registered": is_registered,
+        "schema": schema,  # 内置 schema：必填/可选/默认/字段说明/example/combo
         "config_field_names": sorted(config_field_names),
         "config_examples": config_examples[:3],
         "tip": (
-            "上述 config_field_names 是该模块在历史工作流中实际用过的配置字段名。"
-            "config_examples 给出真实样例。需要更精准的字段说明可同时调用 search_in_workflows 查找该模块的全部用法。"
-        ) if config_examples else (
-            "本地工作流中尚无该模块的使用样例。"
-            "建议参考 WebRPA 教学文档或在 build_workflow 时仅传必填字段。"
+            "schema 字段（如有）是最权威的配置说明，包含 required（必填）/optional（可选）/"
+            "defaults（默认值）/desc（每个字段的中文说明）/example（完整样例）/combo（前后联动建议）。"
+            "build_workflow 时只需关注 required 字段，defaults 会被后端自动套用。"
+            if schema else
+            "本模块暂无内置 schema，可参考 config_examples 中其他用户的真实样例，"
+            "或直接调 search_in_workflows 查更多用法。"
         ),
+    }
+
+
+async def skill_get_module_schema(module_types: list[str], **_: Any) -> dict[str, Any]:
+    """批量查询多个模块的 schema"""
+    if not module_types or not isinstance(module_types, list):
+        return {"error": "module_types 必须是非空数组"}
+    result: dict[str, Any] = {}
+    for mt in module_types:
+        if not isinstance(mt, str):
+            continue
+        s = get_module_schema(mt)
+        if s:
+            result[mt] = s
+        else:
+            # 即使没有内置 schema 也返回提示，让 AI 知道这个模块不在 schema 库里
+            desc = find_module_description(mt)
+            result[mt] = {
+                "schema_missing": True,
+                "description": desc or "（暂无文档）",
+                "tip": "本模块没有内置 schema，可调 describe_module 看历史样例，或自行推断字段",
+            }
+    return {
+        "count": len([k for k, v in result.items() if not v.get("schema_missing")]),
+        "schemas": result,
+        "tip": "schema.required 是必填，schema.defaults 会被后端在 build_workflow 时自动套用",
     }
 
 
@@ -331,7 +367,7 @@ async def skill_build_node(
     """
     node_data: dict[str, Any] = {
         "moduleType": module_type,
-        "config": config or {},
+        "config": apply_default_config(module_type, config or {}),
     }
     # 兼容历史：AI 仍可能传 label，把它当作业务名落到 name
     ai_business_name = name or label
@@ -509,6 +545,9 @@ async def skill_build_workflow(
         x, y = positions[idx]
         # 业务配置全部直接展开到 data（NodeData 是扁平结构）
         cfg = step.get("config") or {}
+        # 自动套用 schema 默认值（用户传的优先，没传的用默认）
+        # 这样 AI 即便忘填某些可选字段，工作流也能跑通
+        cfg = apply_default_config(mtype, cfg)
         # 注意：label 是模块官方名（前端会按 moduleType 自动用中文映射兜底，AI 不要试图改它）
         # AI 给的 label 实际是"业务命名"，把它写到 name 字段当备注
         node_data: dict[str, Any] = {
@@ -2344,7 +2383,10 @@ def _register_all() -> None:
     ))
     registry.register(Skill(
         name="describe_module",
-        description="查询某个模块的用途和说明",
+        description=(
+            "查询某个模块的完整说明：用途/必填字段/可选字段/默认值/字段中文说明/完整配置例子/前后联动建议。"
+            "构造工作流时**强烈建议先调这个工具**确认字段，再调 build_workflow，可以避免漏配置字段。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -2356,6 +2398,25 @@ def _register_all() -> None:
             "required": ["module_type"],
         },
         handler=skill_describe_module,
+    ))
+    registry.register(Skill(
+        name="get_module_schema",
+        description=(
+            "批量查询多个模块的 schema（必填/可选/默认/例子/联动）。"
+            "比 describe_module 更紧凑，适合一次问 5~20 个模块。返回 dict: {module_type: schema}。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "module_types": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "要查询的 module_type 数组",
+                }
+            },
+            "required": ["module_types"],
+        },
+        handler=skill_get_module_schema,
     ))
     registry.register(Skill(
         name="search_modules",
