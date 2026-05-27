@@ -793,6 +793,42 @@ async def chat_once(
         )
         system_text = system_text + client_actions_hint
 
+    # 5b. Kiro 风格 Spec 模式：检测到「搭建工作流」类需求时，强提醒走三阶段流程
+    workflow_build_keywords = (
+        "搭建", "搭一个", "做一个", "做个", "创建工作流", "创建一个工作流",
+        "帮我做", "帮我搭", "帮我建", "帮我创建", "帮我设计", "帮我写",
+        "新建工作流", "新建一个工作流", "生成工作流", "生成一个工作流",
+        "build", "create workflow", "make workflow",
+    )
+    if any(kw in user_message_text.lower() for kw in (k.lower() for k in workflow_build_keywords)):
+        spec_mode_alert = """
+
+# 🎯 Spec 模式已激活 - 必须严格走三阶段流程
+
+用户当前是「搭建工作流」类需求，**必须严格按照系统提示词中「搭建工作流的硬性流程」三阶段执行**：
+
+1. **阶段 1（需求分析）**：先在 reasoning 里梳理用户真实意图、隐含约束、边界条件
+   - 模糊的关键点必须先反问（例：保存到哪里？格式什么？批量多少个？）
+   - 不要急着调 build_workflow
+
+2. **阶段 2（工作流设计）**：先做调研
+   - search_modules / get_workflow_templates / get_workflow_detail
+   - 网页类：probe_page 拿真实 selector
+   - 列出完整模块清单 + 变量传递链
+   - **强制 get_module_schema(批量)** 拿 required/defaults
+   - 自检设计（变量是否连贯？必填是否齐全？错误处理是否到位？）
+
+3. **阶段 3（实施 + 验证）**：
+   - build_workflow 一次到位
+   - **立即** validate_workflow_nodes + analyze_variable_flow（非选）
+   - 有问题用 auto_fix_workflow_nodes / bulk_update_nodes 修
+   - 条件允许时 run_workflow + get_logs 自测
+   - 三段式总结报告
+
+**严禁**：用户一开口就直接 build_workflow，不调 schema、不 validate、不 probe、不 self-test。
+"""
+        system_text = system_text + spec_mode_alert
+
     # 5. 多轮工具调用编排
     tools = skill_registry.to_openai_tools() if config.enable_tools else None
 
