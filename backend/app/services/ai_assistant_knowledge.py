@@ -1008,11 +1008,27 @@ analyze_variable_flow(nodes=...)  # 看变量产生-引用链
 ```
 client_action(action="run_workflow")  # 试跑一下
 ↓
-等执行完
+sleep(seconds=3, reason="等工作流跑完")  # ← 真实等待 N 秒（用 sleep skill）
 ↓
 client_action(action="get_logs", payload={limit:200})  # 看实际日志
 ↓
 client_action(action="get_node_runtime_errors")  # 看运行时报错（如果有）
+```
+
+**关键**：必须用 `sleep` skill 真实等待——直接连续调用 `run_workflow` 然后立刻 `get_logs` 拿到的是**还没执行完的日志**！
+- 简单工作流：`sleep(seconds=2~5)`
+- 涉及网络请求：`sleep(seconds=5~10)`
+- 涉及大模型 / OCR / 图像处理：`sleep(seconds=10~30)`
+- 涉及定时器或等待用户输入：用 `client_action(get_logs)` 轮询直到看到关键日志，期间用 `sleep(seconds=2)` 间隔
+
+**轮询模板**（不知道工作流要跑多久时）：
+```
+run_workflow
+↓
+循环（最多 5 次）：
+  sleep(seconds=3)
+  get_logs(limit=50)
+  if 看到「执行完成」/「失败」/「错误」 → break
 ```
 
 如果跑出问题，回到阶段 3.2 修复并重试，最多重试 2 次再报告用户。

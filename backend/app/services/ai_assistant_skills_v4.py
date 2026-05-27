@@ -766,6 +766,37 @@ async def skill_clipboard_set(text: str, **_: Any) -> dict[str, Any]:
         return {"error": f"写剪贴板失败：{e}"}
 
 
+async def skill_sleep(
+    seconds: float = 1.0,
+    reason: str = "",
+    **_: Any,
+) -> dict[str, Any]:
+    """AI 自己等待 N 秒（真正的阻塞等待）。
+
+    sleep 完成后才会返回，AI 在 N 秒后才会拿到结果继续下一步。
+    最常用场景：run_workflow 后等几秒再 get_logs 看结果。
+
+    上限 300 秒。需要更长等待请用 schedule_one_shot 延时任务。
+    """
+    try:
+        s = float(seconds)
+        if s < 0:
+            s = 0
+        if s > 300:
+            return {
+                "error": f"sleep 上限 300 秒，传入 {s} 秒过大。"
+                         "更长等待请用 schedule_one_shot 延时任务。"
+            }
+        await asyncio.sleep(s)
+        return {
+            "slept_seconds": s,
+            "reason": reason or "ok",
+            "note": "已真实等待完成，可继续下一步操作",
+        }
+    except Exception as e:
+        return {"error": f"sleep 失败：{e}"}
+
+
 async def skill_format_table(
     rows: list[dict[str, Any]],
     columns: list[str] | None = None,
@@ -1196,6 +1227,23 @@ def _register_v4() -> None:
             "required": ["text"],
         },
         handler=skill_clipboard_set,
+    ))
+    registry.register(Skill(
+        name="sleep",
+        description=(
+            "AI 自己阻塞等待 N 秒后返回（真实等待，N 秒后才会执行下一步工具）。"
+            "最常用场景：run_workflow 后等几秒再 get_logs。上限 300 秒。"
+            "示例：sleep(seconds=3, reason='等工作流跑完')"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "seconds": {"type": "number", "description": "等待秒数（0~300）"},
+                "reason": {"type": "string", "description": "等待原因（仅日志，可选）"},
+            },
+            "required": ["seconds"],
+        },
+        handler=skill_sleep,
     ))
     registry.register(Skill(
         name="format_table",
