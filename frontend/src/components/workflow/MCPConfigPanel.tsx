@@ -650,7 +650,7 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
     >
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col overflow-hidden"
-        style={{ maxHeight: 'calc(100vh - 7rem)' }}
+        style={{ maxHeight: 'min(calc(100vh - 7rem), 580px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
