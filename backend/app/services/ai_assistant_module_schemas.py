@@ -709,19 +709,203 @@ def apply_default_config(module_type: str, user_config: dict | None = None) -> d
     """合并 schema 默认值 + 用户传的 config，用户值优先
 
     特殊处理：
-    - 某些模块的字段在执行器中会用 json.loads 解析（如 table_add_row.rowData），
-      AI 如果直接传 dict / list，前端表单会显示 [object Object]，运行也会报 JSON 解析失败。
-      这里自动把 dict / list 序列化为 JSON 字符串，AI 传什么都对。
+    - 字段名归一化：AI 经常传错字段名（如 timeout → waitTimeout, message → logMessage），
+      自动按白名单纠正
+    - JSON 字符串字段：AI 传 dict / list 自动序列化为 JSON 字符串
+    - 单位归一化：AI 传 timeout=15000（毫秒）但后端要秒，自动转换
+    - 枚举归一化：AI 传 'xlsx' 但后端要 'excel'，自动转换
     """
+    user = dict(user_config or {})
+    # 第 1 步：先把用户传入的别名归一化为后端字段名
+    _rename_aliases(module_type, user)
+    # 第 2 步：用 schema 默认值兜底（用户已传的字段不动）
     schema = _ALL_SCHEMAS.get(module_type)
-    if not schema:
-        return user_config or {}
-    out = dict(schema.get("defaults") or {})
-    if user_config:
-        out.update(user_config)
-    # 自动 JSON 字符串化（针对执行器期望 JSON 字符串的字段）
-    _auto_jsonify_fields(module_type, out)
-    return out
+    if schema:
+        defaults = schema.get("defaults") or {}
+        for k, v in defaults.items():
+            user.setdefault(k, v)
+    # 第 3 步：自动 JSON 字符串化
+    _auto_jsonify_fields(module_type, user)
+    # 第 4 步：单位归一化
+    _normalize_units(module_type, user)
+    # 第 5 步：枚举值归一化
+    _normalize_enum_values(module_type, user)
+    return user
+
+
+# 字段名别名映射（AI 经常写错的字段名 → 实际后端字段名）
+_FIELD_ALIASES_BY_MODULE: dict[str, dict[str, str]] = {
+    "wait_element": {
+        "timeout": "waitTimeout",
+        "state": "waitCondition",
+    },
+    "wait_image": {
+        "timeout": "waitTimeout",
+    },
+    "wait_page_load": {
+        "timeout": "pageLoadTimeout",
+        "state": "pageLoadState",
+    },
+    "print_log": {
+        "message": "logMessage",
+        "level": "logLevel",
+        "text": "logMessage",
+    },
+    "table_add_row": {
+        "row": "rowData",
+        "data": "rowData",
+    },
+    "table_add_column": {
+        "column": "columnName",
+        "name": "columnName",
+        "default": "defaultValue",
+    },
+    "table_set_cell": {
+        "row": "rowIndex",
+        "column": "columnName",
+        "value": "cellValue",
+    },
+    "table_get_cell": {
+        "row": "rowIndex",
+        "column": "columnName",
+        "result_var": "variableName",
+        "resultVariable": "variableName",
+    },
+    "table_delete_row": {
+        "row": "rowIndex",
+        "index": "rowIndex",
+    },
+    "table_export": {
+        "filePath": "savePath",
+        "path": "savePath",
+        "format": "exportFormat",
+    },
+    "input_prompt": {
+        "title": "promptTitle",
+        "message": "promptMessage",
+        "default": "defaultValue",
+        "default_value": "defaultValue",
+    },
+    "system_notification": {
+        "title": "notifyTitle",
+        "message": "notifyMessage",
+    },
+    "open_page": {
+        "target_url": "url",
+    },
+    "click_element": {
+        "click_type": "clickType",
+    },
+    "input_text": {
+        "value": "text",
+        "content": "text",
+    },
+    "set_variable": {
+        "value": "variableValue",
+        "name": "variableName",
+        "var_value": "variableValue",
+    },
+    "get_time": {
+        "format": "timeFormat",
+    },
+    "wait": {
+        "duration": "waitDuration",
+        "seconds": "waitDuration",
+    },
+    "api_request": {
+        "url": "apiUrl",
+        "method": "httpMethod",
+    },
+}
+
+
+def _rename_aliases(module_type: str, cfg: dict) -> None:
+    """把 cfg 中的别名字段重命名为后端实际字段名。
+
+    例如 wait_element 传了 timeout → 改写成 waitTimeout。
+    若两个名字都存在（默认值 + 用户别名），优先用用户传的别名值，
+    避免默认值覆盖用户意图。
+    """
+    aliases = _FIELD_ALIASES_BY_MODULE.get(module_type)
+    if not aliases:
+        return
+    for alias, official in aliases.items():
+        if alias in cfg:
+            # 用户传了别名 → 始终用别名的值（覆盖 defaults 里的 official）
+            cfg[official] = cfg.pop(alias)
+
+
+# 期望的"秒"字段，但 AI 经常误传毫秒（>1000 视为毫秒）
+_SECONDS_FIELDS_BY_MODULE: dict[str, set[str]] = {
+    "wait_element": {"waitTimeout"},
+    "wait_image": {"waitTimeout"},
+    "wait": {"waitDuration"},
+    "wait_page_load": {"pageLoadTimeout"},
+    "open_page": {"timeout"},
+}
+
+
+def _normalize_units(module_type: str, cfg: dict) -> None:
+    """单位归一化：秒字段如果传了 >300 的值（基本不会有 5 分钟以上的等待），
+    猜测是毫秒，自动 / 1000。"""
+    fields = _SECONDS_FIELDS_BY_MODULE.get(module_type)
+    if not fields:
+        return
+    for f in fields:
+        if f not in cfg:
+            continue
+        try:
+            val = float(cfg[f])
+            if val > 300:  # 超过 300 秒大概率是毫秒误传
+                cfg[f] = int(val / 1000) if val >= 1000 else int(val)
+        except (ValueError, TypeError):
+            pass
+
+
+# 枚举值归一化（AI 经常写错的枚举值 → 后端实际值）
+_ENUM_NORMALIZE_BY_MODULE: dict[str, dict[str, dict[str, str]]] = {
+    "table_export": {
+        "exportFormat": {
+            "xlsx": "excel",
+            "xls": "excel",
+            "Excel": "excel",
+            "EXCEL": "excel",
+            "CSV": "csv",
+            "JSON": "json",
+        },
+    },
+    "wait_element": {
+        "waitCondition": {
+            "exists": "attached",
+            "exist": "attached",
+            "show": "visible",
+            "shown": "visible",
+            "hide": "hidden",
+            "hide_or_remove": "hidden",
+        },
+    },
+    "print_log": {
+        "logLevel": {
+            "log": "info",
+            "warn": "warning",
+            "err": "error",
+            "ok": "success",
+            "succeed": "success",
+        },
+    },
+}
+
+
+def _normalize_enum_values(module_type: str, cfg: dict) -> None:
+    """枚举值归一化（AI 写错的枚举映射回正确值）。"""
+    field_map = _ENUM_NORMALIZE_BY_MODULE.get(module_type)
+    if not field_map:
+        return
+    for field, value_map in field_map.items():
+        if field in cfg:
+            cur = str(cfg[field])
+            if cur in value_map:
+                cfg[field] = value_map[cur]
 
 
 # 后端执行器期望的"JSON 字符串"类字段（不是 dict / list）
