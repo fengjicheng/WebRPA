@@ -456,7 +456,8 @@ function ServerEditModal({ name: initialName, server: initialServer, template, e
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
+        style={{ maxHeight: 'calc(100vh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header（固定不滚动） */}
@@ -648,21 +649,22 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden"
+        className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col overflow-hidden"
+        style={{ maxHeight: 'calc(100vh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-violet-600" />
-            <h3 className="font-semibold text-gray-800">推荐 MCP 模板</h3>
-            <span className="text-xs text-gray-500">选一个一键预填表单（保存前可改）</span>
+        <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-violet-600 flex-shrink-0" />
+            <h3 className="font-semibold text-gray-800 text-sm">推荐 MCP 模板</h3>
+            <span className="text-[11px] text-gray-500 truncate">选一个一键预填表单（保存前可改）</span>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-lg leading-none">×</button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-lg leading-none flex-shrink-0">×</button>
         </div>
 
         {/* 搜索 */}
-        <div className="px-5 py-2.5 border-b border-gray-100 flex-shrink-0">
+        <div className="px-4 py-2 border-b border-gray-100 flex-shrink-0">
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -677,17 +679,17 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
         </div>
 
         {/* 列表 */}
-        <div className="px-5 py-3 overflow-y-auto flex-1 space-y-4">
+        <div className="px-4 py-2.5 overflow-y-auto flex-1 space-y-3">
           {Object.keys(grouped).length === 0 && (
             <div className="text-center text-sm text-gray-500 py-8">没有找到匹配的模板</div>
           )}
           {Object.entries(grouped).map(([cat, list]) => (
             <div key={cat}>
-              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <div className="text-[10.5px] font-semibold text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <span>{TEMPLATE_CATEGORIES[cat] || cat}</span>
                 <span className="text-gray-400 font-normal normal-case">· {list.length}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                 {list.map((tpl) => {
                   const exists = existingNames.includes(tpl.name)
                   return (
@@ -696,17 +698,17 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
                       type="button"
                       disabled={exists}
                       onClick={() => onPick(tpl)}
-                      className={`text-left p-3 rounded-md border transition-all ${
+                      className={`text-left p-2 rounded-md border transition-all ${
                         exists
                           ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
                           : 'border-gray-200 bg-white hover:border-violet-400 hover:bg-violet-50/40 hover:shadow-sm cursor-pointer'
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="text-lg leading-none mt-0.5">{tpl.icon}</span>
+                        <span className="text-base leading-none mt-0.5">{tpl.icon}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="font-medium text-sm text-gray-900 truncate">{tpl.title}</span>
+                          <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+                            <span className="font-medium text-[13px] text-gray-900 truncate">{tpl.title}</span>
                             {tpl.recommended && (
                               <span className="text-[9px] font-bold tracking-wider px-1 py-px rounded bg-violet-100 text-violet-700 leading-none flex items-center gap-0.5">
                                 <Star className="w-2.5 h-2.5 fill-current" />
@@ -717,9 +719,9 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
                               <span className="text-[10px] text-gray-500 px-1.5 py-px rounded bg-gray-100">已添加</span>
                             )}
                           </div>
-                          <div className="text-[11.5px] text-gray-600 leading-snug line-clamp-2">{tpl.description}</div>
+                          <div className="text-[11px] text-gray-600 leading-snug line-clamp-2">{tpl.description}</div>
                           {tpl.needsConfig.length > 0 && (
-                            <div className="mt-1.5 text-[10.5px] text-amber-700">
+                            <div className="mt-0.5 text-[10px] text-amber-700 truncate">
                               需配置：{tpl.needsConfig[0]}
                               {tpl.needsConfig.length > 1 && ' 等'}
                             </div>
@@ -735,7 +737,7 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-2.5 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-gray-50/50">
+        <div className="px-4 py-2 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-gray-50/50">
           <a
             href="https://github.com/modelcontextprotocol/servers"
             target="_blank"
