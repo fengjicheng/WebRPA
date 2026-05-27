@@ -452,12 +452,12 @@ function ServerEditModal({ name: initialName, server: initialServer, template, e
 
   return (
     <div
-      className="fixed inset-0 z-[10001] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10001] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 py-14"
       onClick={onClose}
     >
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: 'calc(100vh - 2rem)' }}
+        style={{ maxHeight: 'calc(100vh - 7rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header（固定不滚动） */}
@@ -645,12 +645,12 @@ function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps)
 
   return (
     <div
-      className="fixed inset-0 z-[10001] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10001] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4 py-14"
       onClick={onClose}
     >
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-3xl flex flex-col overflow-hidden"
-        style={{ maxHeight: 'calc(100vh - 2rem)' }}
+        style={{ maxHeight: 'calc(100vh - 7rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
