@@ -447,27 +447,40 @@ LIST_SCHEMAS: dict = {
         "combo": "后接 foreach 遍历键",
     },
     "table_add_row": {
-        "required": ["row"],
+        "required": ["rowData"],
         "optional": [],
         "defaults": {},
-        "desc": {"row": "字典或字段映射"},
-        "example": {"row": {"name": "{name}", "age": "{age}"}},
-        "combo": "数据采集时常用，工作流末尾导出",
+        "desc": {
+            "rowData": "**JSON 字符串格式**！不要传 dict 直接 stringify，必须是 JSON 字符串。"
+                       "键为列名，值为单元格内容，可以用 `{变量}` 引用工作流变量。"
+                       "示例：'{\"姓名\":\"{name}\",\"年龄\":\"{age}\"}'",
+        },
+        "example": {"rowData": "{\"姓名\":\"{name}\",\"年龄\":\"{age}\",\"城市\":\"北京\"}"},
+        "combo": "数据采集时常用，工作流末尾用 table_export 导出 Excel",
     },
     "table_add_column": {
-        "required": ["column"],
+        "required": ["columnName"],
         "optional": ["defaultValue"],
-        "defaults": {},
-        "desc": {"column": "列名"},
-        "example": {"column": "新列"},
+        "defaults": {"defaultValue": ""},
+        "desc": {
+            "columnName": "列名（字符串）",
+            "defaultValue": "新增列的默认值，可以用 `{变量}` 引用工作流变量",
+        },
+        "example": {"columnName": "排名", "defaultValue": ""},
         "combo": "",
     },
     "table_export": {
-        "required": ["filePath"],
-        "optional": ["sheetName"],
-        "defaults": {"sheetName": "Sheet1"},
-        "desc": {"filePath": "导出文件绝对路径（.xlsx 或 .csv）"},
-        "example": {"filePath": "D:\\\\result.xlsx"},
+        "required": ["savePath"],
+        "optional": ["exportFormat", "fileNamePattern", "sheetName", "variableName"],
+        "defaults": {"exportFormat": "excel", "sheetName": "数据"},
+        "desc": {
+            "savePath": "导出目录绝对路径（不是文件路径！只是目录），示例 D:\\\\Reports\\\\",
+            "exportFormat": "导出格式：'excel' / 'csv' / 'json'，默认 excel",
+            "fileNamePattern": "可选文件名模式，支持 {date}/{time}/{timestamp} 占位符，示例 'report_{date}'",
+            "sheetName": "Excel sheet 名称，默认'数据'",
+            "variableName": "可选，把生成的完整路径存到此变量",
+        },
+        "example": {"savePath": "D:\\\\Reports\\\\", "exportFormat": "excel", "fileNamePattern": "热榜_{date}"},
         "combo": "工作流末尾把采集到的数据落盘",
     },
 }
@@ -693,14 +706,55 @@ def get_all_module_schemas() -> dict[str, dict]:
 
 
 def apply_default_config(module_type: str, user_config: dict | None = None) -> dict:
-    """合并 schema 默认值 + 用户传的 config，用户值优先"""
+    """合并 schema 默认值 + 用户传的 config，用户值优先
+
+    特殊处理：
+    - 某些模块的字段在执行器中会用 json.loads 解析（如 table_add_row.rowData），
+      AI 如果直接传 dict / list，前端表单会显示 [object Object]，运行也会报 JSON 解析失败。
+      这里自动把 dict / list 序列化为 JSON 字符串，AI 传什么都对。
+    """
     schema = _ALL_SCHEMAS.get(module_type)
     if not schema:
         return user_config or {}
     out = dict(schema.get("defaults") or {})
     if user_config:
         out.update(user_config)
+    # 自动 JSON 字符串化（针对执行器期望 JSON 字符串的字段）
+    _auto_jsonify_fields(module_type, out)
     return out
+
+
+# 后端执行器期望的"JSON 字符串"类字段（不是 dict / list）
+# AI 经常会把 dict 直接传过来，前端表单就会显示 [object Object]
+# 这里把这些字段自动序列化
+_JSONIFY_FIELDS_BY_MODULE: dict[str, set[str]] = {
+    "table_add_row": {"rowData"},
+    "table_set_cell": {"cellValue"},  # cellValue 也允许复杂结构
+    "feishu_bitable_write": {"records"},
+    "feishu_sheet_write": {"values"},
+    "api_request": {"headers", "body", "queryParams", "params"},
+    "webhook_request": {"headers", "body", "queryParams", "params"},
+    "send_email": {"attachments"},
+}
+
+
+def _auto_jsonify_fields(module_type: str, cfg: dict) -> None:
+    """把指定字段的 dict/list 值自动转成 JSON 字符串。"""
+    import json as _json
+    fields = _JSONIFY_FIELDS_BY_MODULE.get(module_type)
+    if not fields:
+        return
+    for field in fields:
+        if field not in cfg:
+            continue
+        val = cfg[field]
+        # 已是字符串就跳过（即使是 "{...}" 也不动）
+        if isinstance(val, (dict, list)):
+            try:
+                cfg[field] = _json.dumps(val, ensure_ascii=False)
+            except Exception:
+                # 兜底：转 str
+                cfg[field] = str(val)
 
 
 # ============================================================
@@ -2996,30 +3050,38 @@ EXTRA3_SCHEMAS: dict = {
 
     # 表格扩展
     "table_set_cell": {
-        "required": ["row", "column", "value"],
+        "required": ["rowIndex", "columnName", "cellValue"],
         "optional": [],
         "defaults": {},
-        "desc": {"row": "行索引", "column": "列名"},
-        "example": {"row": 0, "column": "name", "value": "Tom"},
+        "desc": {
+            "rowIndex": "行索引（0 开始的整数，可填变量）",
+            "columnName": "列名",
+            "cellValue": "单元格新值（可用 `{变量}` 引用工作流变量）",
+        },
+        "example": {"rowIndex": 0, "columnName": "状态", "cellValue": "已完成"},
         "combo": "",
     },
     "table_get_cell": {
-        "required": ["row", "column"],
-        "optional": ["resultVariable"],
-        "defaults": {"resultVariable": "cell_value"},
-        "desc": {},
-        "example": {"row": 0, "column": "name"},
+        "required": ["rowIndex", "columnName"],
+        "optional": ["variableName"],
+        "defaults": {"variableName": "cell_value"},
+        "desc": {
+            "rowIndex": "行索引（0 开始）",
+            "columnName": "列名",
+            "variableName": "把单元格值存到此变量名",
+        },
+        "example": {"rowIndex": 0, "columnName": "姓名", "variableName": "first_name"},
         "combo": "",
     },
     "table_delete_row": {
-        "required": ["row"],
+        "required": ["rowIndex"],
         "optional": [],
         "defaults": {},
-        "desc": {},
-        "example": {"row": 0},
+        "desc": {"rowIndex": "要删除的行索引（0 开始）"},
+        "example": {"rowIndex": 0},
         "combo": "",
     },
-    "table_clear": {"required": [], "optional": [], "defaults": {}, "desc": {}, "example": {}, "combo": ""},
+    "table_clear": {"required": [], "optional": [], "defaults": {}, "desc": {}, "example": {}, "combo": "清空整张数据表格"},
 }
 
 _ALL_SCHEMAS.update(EXTRA3_SCHEMAS)

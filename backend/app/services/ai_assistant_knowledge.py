@@ -1322,8 +1322,150 @@ search_modules(query="...") 查内置模块
 | 查询/获取整张表 | `client_action(get_collected_data)` | - |
 
 **用户说"把 10 条数据填进数据表格"** → 标准做法：
-- 数据已经在变量里：`foreach(listVariable=...) → table_add_row(row={col1:{item.col1}, ...})`
+- 数据已经在变量里：`foreach(listVariable=...) → table_add_row(rowData='{"列名":"{item.属性}"}')`
 - 数据是 AI 生成的：直接 `client_action(set_collected_data, payload={rows: [...]})` 一次塞完
+  （client_action 走前端 JS 不需要 JSON 字符串，直接传 list[dict]）
+
+# 🔧 配置项填写铁律（所有模块都遵守）
+
+模块的 config 字段填错是 AI 最常见的错误。下面是必须遵守的铁律：
+
+## 一、字段类型必须严格匹配（不要传错类型）
+
+每个 `get_module_schema` 返回的 schema 里都有 desc，**desc 描述里写了什么类型就传什么类型**：
+
+| desc 描述特征 | 应当传什么 | ❌ 错误示范 |
+|---|---|---|
+| "JSON 字符串" / "JSON 对象格式" | 字符串（合法 JSON） | 传 dict → 显示 `[object Object]` |
+| "字符串" / 引用变量 | 字符串 | 传 number / dict |
+| "整数" / "数字" | int 或可转 int 的字符串 | 传 dict |
+| "数组" / "列表" | 数组 / 字符串变量名 | 传单个值 |
+| "布尔" / "true/false" | bool | 传 1 / "true" 字符串（实际可，但优先 bool） |
+
+**⚠️ 特别注意 JSON 字符串字段**：
+
+| 模块 | 字段 | 应当传 |
+|---|---|---|
+| `table_add_row` | **rowData** | JSON 字符串：`'{"姓名":"{name}","年龄":{age}}'` |
+| `table_set_cell` | cellValue | 单元格新值（字符串/数字均可） |
+| `feishu_bitable_write` | records | JSON 字符串数组 |
+| `feishu_sheet_write` | values | JSON 字符串二维数组 |
+| `api_request` | headers / body / params | JSON 字符串 |
+| `webhook_request` | headers / body | JSON 字符串 |
+
+注意：build_workflow 内部会自动把 dict/list 序列化成 JSON 字符串，AI 即使传 dict 也会被自动转好。但**写代码时优先直接传 JSON 字符串**，更明确。
+
+❌ **错误示例**（AI 传 dict 导致前端显示 [object Object]）：
+```python
+{"type": "table_add_row", "config": {"row": {"姓名": "张三", "年龄": 18}}}
+# 字段名错（应是 rowData）+ 值是 dict（应是 JSON 字符串）
+```
+
+✅ **正确示例**：
+```python
+{"type": "table_add_row", "config": {
+    "rowData": '{"姓名": "{user_name}", "年龄": "{user_age}"}'
+}}
+```
+
+## 二、变量引用语法（{变量名}）
+
+WebRPA 的所有可输入框都支持 `{变量名}` 语法在运行时替换为变量值：
+
+### 2.1 单层变量
+```
+{user_name}     → 取变量 user_name 的值
+{api_response}  → 取变量 api_response 的值（可能是字符串、数字、dict）
+```
+
+### 2.2 嵌套属性（dict 取键 / list 取索引）
+```
+{user.email}              → user 是 dict，取 email 键
+{api_response.data.name}  → 多层嵌套
+{users[0].name}           → users 是数组，取第 0 项的 name
+```
+
+### 2.3 在字符串中拼接
+```
+"你好 {user_name}，你的年龄是 {user_age}"
+"https://api.example.com/users/{user_id}"
+"{user.first_name} {user.last_name}"
+```
+
+### 2.4 在 JSON 字符串里也能用变量
+```python
+"rowData": '{"姓名": "{name}", "年龄": "{age}", "城市": "北京"}'
+# 运行时 {name} 会被替换成实际变量值，生成合法 JSON
+```
+
+### 2.5 ⚠️ 单花括号 vs 双花括号（关键）
+
+WebRPA **统一用单花括号** `{变量名}`。**不要用双花括号** `{{变量名}}`！
+- ✅ `{user_name}` —— WebRPA 标准
+- ❌ `{{user_name}}` —— 会被当成普通字面字符 `{user_name}`，**不会被替换**
+
+只有在两种场景下需要双花括号 escape：
+- 在 Python f-string 里写 WebRPA 模板字符串：`f"hello {{user}} world"` → 实际产生 `hello {user} world`
+- 在 markdown 文档里展示 `{...}` 字面量
+
+## 三、单元格值 / 列表项中怎么用变量
+
+数据采集场景（`foreach + table_add_row`）：
+
+```python
+{"type": "foreach", "id": "loop", "config": {
+    "listVariable": "items",       # 来源数组变量名
+    "itemVariable": "item",        # 当前项的变量名
+    "indexVariable": "idx",        # 当前索引的变量名
+}, "branches": {"loop": "add_row"}},
+
+{"type": "table_add_row", "id": "add_row", "config": {
+    "rowData": '{"序号": "{idx}", "标题": "{item.title}", "链接": "{item.url}"}'
+}}
+```
+
+- 循环里取每项的属性：`{item.属性名}`
+- 取索引：`{idx}` 或 `{loop_index}`（看 indexVariable）
+- 内嵌的 list 元素：`{item.tags[0]}`
+
+## 四、看 schema 的 example 字段
+
+**所有模块 schema 都带 `example` 字段**——里面就是字段类型和写法的样板。**配置任何模块前必须先调 `get_module_schema` 看 example**，照抄风格。
+
+例如 table_add_row schema：
+```
+example: {"rowData": "{\"姓名\":\"{name}\",\"年龄\":\"{age}\",\"城市\":\"北京\"}"}
+```
+照着这个写就对，不要凭空发挥。
+
+## 五、必填字段必须给值（不能用占位符 / 空字符串糊弄）
+
+```python
+# ❌ 错误：必填字段填了占位符
+{"type": "open_page", "config": {"url": "请填写URL"}}
+
+# ❌ 错误：必填字段空着
+{"type": "open_page", "config": {}}
+
+# ✅ 正确：必填字段填实际值或变量引用
+{"type": "open_page", "config": {"url": "https://www.baidu.com"}}
+{"type": "open_page", "config": {"url": "{target_url}"}}
+```
+
+如果用户没说清楚某个必填字段的值（如 URL、文件路径），**先反问用户**，不要瞎填。
+
+## 六、变量名 vs 变量引用
+
+注意区分**变量名字段**（如 resultVariable / saveToVariable）和**变量引用字段**（如 message、url）：
+
+- **变量名字段**：写**纯变量名**（不带花括号）。这些字段告诉模块"把结果存到这个名字的变量里"
+  - ✅ `"resultVariable": "user_data"` —— 把结果存到 user_data 变量
+  - ❌ `"resultVariable": "{user_data}"` —— 错！会被当成变量名 `{user_data}`
+
+- **变量引用字段**：写 `{变量名}` 模板。这些字段在运行时把变量值替换进去
+  - ✅ `"message": "你好 {user_name}！"` —— 输出"你好 张三！"
+  - ❌ `"message": "user_name"` —— 输出字面量"user_name"
+
 
 # 🎨 工作流排版美学（让 AI 生成的画布像人工手搭）
 
