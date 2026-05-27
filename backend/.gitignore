@@ -34,6 +34,9 @@ data/scheduled_task_logs.json
 # 后端持久化全局变量（用户可能存放 Token 等）
 data/global_vars.json
 
+# MCP 服务器配置（用户配的可能含 API Key / Token 等敏感信息）
+data/mcp_config.json
+
 # 自定义模块（可能含用户业务逻辑）
 data/custom_modules/
 
