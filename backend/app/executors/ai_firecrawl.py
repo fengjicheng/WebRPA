@@ -2,6 +2,7 @@
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 import json
 from playwright.async_api import async_playwright
+from app.services.headless_browser import launch_headless_chromium
 from bs4 import BeautifulSoup
 import html2text
 import re
@@ -45,8 +46,7 @@ class FirecrawlScrapeExecutor(ModuleExecutor):
             await context.send_progress(f"格式: {', '.join(formats)}", "info")
             
             # 使用 Playwright 获取页面内容
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+            async with launch_headless_chromium() as browser:
                 page = await browser.new_page()
                 
                 try:
@@ -202,8 +202,7 @@ class FirecrawlMapExecutor(ModuleExecutor):
             # 使用 Playwright 获取页面并提取链接
             links_found: Set[str] = set()
             
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+            async with launch_headless_chromium() as browser:
                 page = await browser.new_page()
                 
                 try:
@@ -372,8 +371,7 @@ class FirecrawlCrawlExecutor(ModuleExecutor):
             to_visit: List[tuple] = [(url, 0)]  # (url, depth)
             results: List[Dict] = []
             
-            async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+            async with launch_headless_chromium() as browser:
                 
                 try:
                     while to_visit and len(results) < limit:

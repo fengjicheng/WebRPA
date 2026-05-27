@@ -2011,7 +2011,8 @@ async def skill_probe_page(url: str, timeout: int = 20000, **_: Any) -> dict[str
         target = "https://" + target
 
     try:
-        from playwright.async_api import async_playwright
+        from playwright.async_api import async_playwright  # noqa: F401  保留检查
+        from app.services.headless_browser import launch_headless_chromium
     except ImportError:
         return {"error": "playwright 未安装。请先在 Python313 环境安装：pip install playwright"}
 
@@ -2019,11 +2020,7 @@ async def skill_probe_page(url: str, timeout: int = 20000, **_: Any) -> dict[str
     err: str | None = None
 
     try:
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(
-                headless=True,
-                args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
-            )
+        async with launch_headless_chromium() as browser:
             ctx = await browser.new_context(
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -2047,12 +2044,10 @@ async def skill_probe_page(url: str, timeout: int = 20000, **_: Any) -> dict[str
                     await ctx.close()
                 except Exception:
                     pass
-                try:
-                    await browser.close()
-                except Exception:
-                    pass
+    except RuntimeError as e:
+        return {"error": str(e)}
     except Exception as e:
-        return {"error": f"启动 playwright 失败：{e}（提示：确保已运行 playwright install chromium）"}
+        return {"error": f"启动 playwright 失败：{e}"}
 
     if snapshot is None:
         return {"error": err or "未拿到页面快照"}
