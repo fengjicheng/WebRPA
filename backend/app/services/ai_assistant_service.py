@@ -795,7 +795,7 @@ async def chat_once(
         )
         system_text = system_text + client_actions_hint
 
-    # 5b. Kiro 风格 Spec 模式：检测到「搭建工作流」类需求时，强提醒走三阶段流程
+    # 5b. Spec 模式：检测到「搭建工作流」类需求时，强提醒走三阶段流程
     workflow_build_keywords = (
         "搭建", "搭一个", "做一个", "做个", "创建工作流", "创建一个工作流",
         "帮我做", "帮我搭", "帮我建", "帮我创建", "帮我设计", "帮我写",
@@ -829,9 +829,10 @@ async def chat_once(
 
 **严禁**：用户一开口就直接 build_workflow，不调 schema、不 validate、不 probe、不 self-test。
 
-**严禁**：默认用 `python_script` / `js_script` 解决问题。**必须先 `search_modules` 查内置模块**。
-WebRPA 471 个内置模块覆盖了几乎所有场景（数据表格、Excel、JSON、API、邮件、文件、PDF、图片、OCR、
-桌面、手机、定时、通知、数据库...），**优先用内置模块**。只有真的没对应模块才用 python_script 兜底。
+**模块 vs 脚本的选择**：先 `search_modules` 查内置模块。如果模块能 1-3 步优雅解决就用模块；
+如果模块要拼 5+ 步、变量传递繁琐、是纯算法/复杂逻辑，**大胆用 `python_script`** —— 哪个简单选哪个。
+不要走极端：既不要默认造轮子（明明有 read_excel 偏要 python+pandas），也不要为了用模块硬画 8 个节点
+（明明 `return math.factorial(n)` 一行搞定）。
 """
         system_text = system_text + spec_mode_alert
 
