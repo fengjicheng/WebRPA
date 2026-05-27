@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Trash2, RefreshCw, CheckCircle2, XCircle, Server, AlertCircle, Loader2, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, CheckCircle2, XCircle, Server, AlertCircle, Loader2, ChevronRight, ChevronDown, ExternalLink, Sparkles, Search, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getBackendBaseUrl } from '@/services/config'
+import { MCP_TEMPLATES, TEMPLATE_CATEGORIES, type MCPTemplate } from './mcpTemplates'
 
 /**
  * MCP（Model Context Protocol）配置面板
@@ -59,6 +60,8 @@ export function MCPConfigPanel() {
   const [loading, setLoading] = useState(false)
   const [reloading, setReloading] = useState(false)
   const [editingName, setEditingName] = useState<string | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<MCPTemplate | null>(null)
+  const [showTemplates, setShowTemplates] = useState(false)
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
@@ -214,11 +217,15 @@ export function MCPConfigPanel() {
           )}
         </div>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowTemplates(true)} disabled={loading}>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="ml-1">推荐模板</span>
+          </Button>
           <Button size="sm" variant="outline" onClick={reload} disabled={reloading || loading}>
             {reloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
             <span className="ml-1">重新连接</span>
           </Button>
-          <Button size="sm" onClick={() => setEditingName('__new__')} disabled={loading}>
+          <Button size="sm" onClick={() => { setEditingTemplate(null); setEditingName('__new__') }} disabled={loading}>
             <Plus className="w-3.5 h-3.5" />
             <span className="ml-1">添加</span>
           </Button>
@@ -327,15 +334,49 @@ export function MCPConfigPanel() {
       {/* 编辑/新增表单 */}
       {editingName !== null && (
         <ServerEditModal
-          name={editingName === '__new__' ? '' : editingName}
-          server={editingName === '__new__' ? DEFAULT_NEW_SERVER : config.mcpServers[editingName]}
+          name={editingName === '__new__' ? (editingTemplate?.name || '') : editingName}
+          server={
+            editingName === '__new__'
+              ? (editingTemplate ? templateToServerConfig(editingTemplate) : DEFAULT_NEW_SERVER)
+              : config.mcpServers[editingName]
+          }
+          template={editingName === '__new__' ? editingTemplate : null}
           existingNames={serverNames}
-          onClose={() => setEditingName(null)}
+          onClose={() => { setEditingName(null); setEditingTemplate(null) }}
           onSave={(name, server) => upsertServer(name, server, editingName === '__new__' ? undefined : editingName)}
+        />
+      )}
+
+      {/* 推荐模板选择器 */}
+      {showTemplates && (
+        <TemplatePicker
+          existingNames={serverNames}
+          onClose={() => setShowTemplates(false)}
+          onPick={(tpl) => {
+            setShowTemplates(false)
+            setEditingTemplate(tpl)
+            setEditingName('__new__')
+          }}
         />
       )}
     </div>
   )
+}
+
+// =============================================================================
+// 模板 → MCPServerConfig 转换
+// =============================================================================
+function templateToServerConfig(tpl: MCPTemplate): MCPServerConfig {
+  return {
+    transport: tpl.transport,
+    command: tpl.command,
+    args: tpl.args ? [...tpl.args] : undefined,
+    env: tpl.env ? { ...tpl.env } : undefined,
+    url: tpl.url,
+    headers: tpl.headers ? { ...tpl.headers } : undefined,
+    autoApprove: tpl.autoApprove ? [...tpl.autoApprove] : undefined,
+    disabled: false,
+  }
 }
 
 // =============================================================================
@@ -345,12 +386,13 @@ export function MCPConfigPanel() {
 interface ServerEditModalProps {
   name: string
   server: MCPServerConfig
+  template?: MCPTemplate | null
   existingNames: string[]
   onClose: () => void
   onSave: (name: string, server: MCPServerConfig) => void | Promise<void>
 }
 
-function ServerEditModal({ name: initialName, server: initialServer, existingNames, onClose, onSave }: ServerEditModalProps) {
+function ServerEditModal({ name: initialName, server: initialServer, template, existingNames, onClose, onSave }: ServerEditModalProps) {
   const [name, setName] = useState(initialName)
   const [transport, setTransport] = useState<'stdio' | 'sse' | 'http'>(initialServer.transport || 'stdio')
   const [command, setCommand] = useState(initialServer.command || '')
@@ -427,6 +469,30 @@ function ServerEditModal({ name: initialName, server: initialServer, existingNam
 
         {/* Body（中间区域滚动） */}
         <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+          {/* 模板来源提示 */}
+          {template && (
+            <div className="p-2.5 rounded-md bg-violet-50 border border-violet-200/60 text-xs text-violet-800">
+              <div className="flex items-center gap-1.5 font-semibold mb-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                正在使用模板：{template.icon} {template.title}
+              </div>
+              <div className="text-violet-700/90 mb-1">{template.description}</div>
+              {template.needsConfig.length > 0 && (
+                <div className="text-violet-700 mt-1.5 pt-1.5 border-t border-violet-200/60">
+                  <div className="font-semibold mb-0.5">需要你填的字段：</div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {template.needsConfig.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-1 text-violet-700/70">
+                    把下面字段中尖括号占位（&lt;...&gt;）替换为你的实际值即可。
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <Label className="text-gray-700 text-xs">服务器名称（唯一标识，不能含空格）</Label>
             <Input
@@ -544,6 +610,145 @@ function ServerEditModal({ name: initialName, server: initialServer, existingNam
           <Button onClick={handleSave} disabled={!name.trim() || nameConflict || (transport === 'stdio' ? !command.trim() : !url.trim())}>
             保存
           </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+// =============================================================================
+// 推荐模板选择器
+// =============================================================================
+interface TemplatePickerProps {
+  existingNames: string[]
+  onClose: () => void
+  onPick: (tpl: MCPTemplate) => void
+}
+
+function TemplatePicker({ existingNames, onClose, onPick }: TemplatePickerProps) {
+  const [query, setQuery] = useState('')
+
+  const grouped = MCP_TEMPLATES.reduce<Record<string, MCPTemplate[]>>((acc, tpl) => {
+    if (query) {
+      const q = query.toLowerCase()
+      const hit =
+        tpl.title.toLowerCase().includes(q) ||
+        tpl.description.toLowerCase().includes(q) ||
+        tpl.id.toLowerCase().includes(q)
+      if (!hit) return acc
+    }
+    ;(acc[tpl.category] ||= []).push(tpl)
+    return acc
+  }, {})
+
+  return (
+    <div
+      className="fixed inset-0 z-[10001] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-violet-600" />
+            <h3 className="font-semibold text-gray-800">推荐 MCP 模板</h3>
+            <span className="text-xs text-gray-500">选一个一键预填表单（保存前可改）</span>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-lg leading-none">×</button>
+        </div>
+
+        {/* 搜索 */}
+        <div className="px-5 py-2.5 border-b border-gray-100 flex-shrink-0">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索模板名称或描述…"
+              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-black focus:outline-none focus:border-violet-500"
+            />
+          </div>
+        </div>
+
+        {/* 列表 */}
+        <div className="px-5 py-3 overflow-y-auto flex-1 space-y-4">
+          {Object.keys(grouped).length === 0 && (
+            <div className="text-center text-sm text-gray-500 py-8">没有找到匹配的模板</div>
+          )}
+          {Object.entries(grouped).map(([cat, list]) => (
+            <div key={cat}>
+              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <span>{TEMPLATE_CATEGORIES[cat] || cat}</span>
+                <span className="text-gray-400 font-normal normal-case">· {list.length}</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {list.map((tpl) => {
+                  const exists = existingNames.includes(tpl.name)
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      disabled={exists}
+                      onClick={() => onPick(tpl)}
+                      className={`text-left p-3 rounded-md border transition-all ${
+                        exists
+                          ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                          : 'border-gray-200 bg-white hover:border-violet-400 hover:bg-violet-50/40 hover:shadow-sm cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg leading-none mt-0.5">{tpl.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="font-medium text-sm text-gray-900 truncate">{tpl.title}</span>
+                            {tpl.recommended && (
+                              <span className="text-[9px] font-bold tracking-wider px-1 py-px rounded bg-violet-100 text-violet-700 leading-none flex items-center gap-0.5">
+                                <Star className="w-2.5 h-2.5 fill-current" />
+                                推荐
+                              </span>
+                            )}
+                            {exists && (
+                              <span className="text-[10px] text-gray-500 px-1.5 py-px rounded bg-gray-100">已添加</span>
+                            )}
+                          </div>
+                          <div className="text-[11.5px] text-gray-600 leading-snug line-clamp-2">{tpl.description}</div>
+                          {tpl.needsConfig.length > 0 && (
+                            <div className="mt-1.5 text-[10.5px] text-amber-700">
+                              需配置：{tpl.needsConfig[0]}
+                              {tpl.needsConfig.length > 1 && ' 等'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-2.5 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-gray-50/50">
+          <a
+            href="https://github.com/modelcontextprotocol/servers"
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => {
+              e.preventDefault()
+              window.open('https://github.com/modelcontextprotocol/servers', '_blank')
+            }}
+            className="text-xs text-violet-700 hover:text-violet-900 inline-flex items-center gap-0.5"
+          >
+            浏览更多 MCP 服务器 <ExternalLink className="w-3 h-3" />
+          </a>
+          <Button variant="outline" size="sm" onClick={onClose}>关闭</Button>
         </div>
       </div>
     </div>
