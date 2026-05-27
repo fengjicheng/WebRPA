@@ -828,6 +828,10 @@ async def chat_once(
    - 三段式总结报告
 
 **严禁**：用户一开口就直接 build_workflow，不调 schema、不 validate、不 probe、不 self-test。
+
+**严禁**：默认用 `python_script` / `js_script` 解决问题。**必须先 `search_modules` 查内置模块**。
+WebRPA 471 个内置模块覆盖了几乎所有场景（数据表格、Excel、JSON、API、邮件、文件、PDF、图片、OCR、
+桌面、手机、定时、通知、数据库...），**优先用内置模块**。只有真的没对应模块才用 python_script 兜底。
 """
         system_text = system_text + spec_mode_alert
 
