@@ -506,7 +506,7 @@ export function AIAssistantPanel() {
           >
             <History className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" title="关闭" onClick={() => setOpen(false)}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -549,7 +549,6 @@ export function AIAssistantPanel() {
                   <button
                     onClick={(e) => handleDeleteSession(s.id, e)}
                     className="opacity-0 group-hover:opacity-100 p-1 rounded-[5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-all"
-                    title="删除"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -686,7 +685,6 @@ export function AIAssistantPanel() {
             size="icon-sm"
             variant={isSending ? 'destructive' : 'default'}
             className="!h-8 !w-8 flex-shrink-0 m-1"
-            title={isSending ? '停止 (再次发送也会自动停止)' : '发送 (Enter)'}
           >
             {isSending ? (
               <Square className="w-3.5 h-3.5 fill-current" />

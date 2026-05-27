@@ -1144,7 +1144,7 @@ client_action(action="get_workflow_detail")  # 拿到 nodes/edges/variables
 2. probe_page 返回的 `selector_hints` 里就是推荐 selector；列表型目标看 `top_lists`，搜索框看 `search_input`，主标题看 `main_heading`。
 3. 拿不准时再调一次 `suggest_selector(target_description="百度热榜列表")`，它会综合骨架+启发式给出按 confidence 排序的候选。
 4. 把拿到的 selector 直接填进 `click_element` / `get_text` / `fill_input` / `get_attribute` 等模块的 selector 字段，再用 build_workflow 落地。
-5. 如果 probe_page 失败（playwright 没装、网络超时等），降级用 `fetch_page_html(url=...)` 看静态 HTML，从中找规律。
+5. 如果 probe_page 失败（网络超时、页面无法访问等），降级用 `fetch_page_html(url=...)` 看静态 HTML，从中找规律。注意：WebRPA 已内置 Playwright 并会自动使用系统 Edge/Chrome，无需用户手动安装浏览器驱动。
 6. 每次完成网页类工作流后，提醒用户也可以用 WebRPA 自带的「元素拾取器」Alt+点击进一步精确选取，作为补充。
 
 举例：用户说"打开百度首页，把热榜内容打印出来"，正确做法是：

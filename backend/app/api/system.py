@@ -106,6 +106,7 @@ def set_napcat_sio(sio):
 
 
 class SaveClipboardImageRequest(BaseModel):
+    name: Optional[str] = None
     folder: Optional[str] = None
     filename: Optional[str] = None
 
@@ -115,7 +116,7 @@ async def save_clipboard_image(request: SaveClipboardImageRequest):
     """保存剪贴板图片到图像资源"""
     try:
         from PIL import ImageGrab
-        import hashlib
+        import uuid
         from datetime import datetime
         import os
         
@@ -124,37 +125,56 @@ async def save_clipboard_image(request: SaveClipboardImageRequest):
         if img is None:
             return {"success": False, "error": "剪贴板中没有图片"}
         
-        # 确定保存路径
-        base_dir = Path("backend/backend/data/image_assets")
+        # 使用 image_assets 模块的统一存储路径
+        from app.api.image_assets import IMAGE_UPLOAD_DIR, image_assets
+        
+        # 确定保存目录
         if request.folder:
-            save_dir = base_dir / request.folder
+            save_dir = os.path.join(IMAGE_UPLOAD_DIR, request.folder)
         else:
-            save_dir = base_dir
+            save_dir = IMAGE_UPLOAD_DIR
         
-        save_dir.mkdir(parents=True, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
         
-        # 生成文件名
-        if request.filename:
-            filename = request.filename
-            if not filename.endswith('.png'):
-                filename += '.png'
+        # 生成文件ID和文件名
+        file_id = str(uuid.uuid4())
+        # 优先使用 name 字段（前端传来），其次 filename，最后自动生成
+        user_name = request.name or request.filename
+        if user_name:
+            display_name = user_name if user_name.endswith('.png') else f"{user_name}.png"
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"clipboard_{timestamp}.png"
+            display_name = f"clipboard_{timestamp}.png"
         
-        save_path = save_dir / filename
+        # 实际保存用 UUID 文件名，避免冲突
+        saved_name = f"{file_id}.png"
+        save_path = os.path.join(save_dir, saved_name)
         
         # 保存图片
-        img.save(str(save_path), 'PNG')
+        img.save(save_path, 'PNG')
         
-        # 返回相对路径
-        relative_path = str(save_path.relative_to(base_dir))
+        # 获取文件大小
+        file_size = os.path.getsize(save_path)
+        
+        # 注册到 image_assets 元数据中
+        folder_path = request.folder or ''
+        asset = {
+            'id': file_id,
+            'name': saved_name,
+            'originalName': display_name,
+            'size': file_size,
+            'uploadedAt': datetime.now().isoformat(),
+            'path': save_path,
+            'folder': folder_path,
+            'extension': '.png',
+        }
+        image_assets[file_id] = asset
         
         return {
             "success": True,
-            "path": str(save_path),
-            "relativePath": relative_path,
-            "filename": filename
+            "assetId": file_id,
+            "path": save_path,
+            "filename": display_name
         }
     
     except Exception as e:

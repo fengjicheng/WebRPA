@@ -2282,7 +2282,7 @@ async def skill_probe_page(url: str, timeout: int = 20000, **_: Any) -> dict[str
         from playwright.async_api import async_playwright  # noqa: F401  保留检查
         from app.services.headless_browser import launch_headless_chromium
     except ImportError:
-        return {"error": "playwright 未安装。请先在 Python313 环境安装：pip install playwright"}
+        return {"error": "playwright 未安装。请联系管理员检查 Python313 环境。"}
 
     snapshot: dict[str, Any] | None = None
     err: str | None = None

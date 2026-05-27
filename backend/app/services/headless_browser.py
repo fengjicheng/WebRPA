@@ -69,8 +69,9 @@ async def launch_headless_chromium(
         if browser is None:
             raise RuntimeError(
                 "无法启动 Chromium 内核浏览器（已依次尝试系统 Edge / 系统 Chrome / 内置 Chromium）。\n"
-                "建议：① 安装 Microsoft Edge 或 Google Chrome；\n"
-                "      ② 或运行 `Python313\\python.exe -m playwright install chromium`。\n"
+                "可能原因：系统 Edge/Chrome 正在更新或被占用。\n"
+                "建议：① 确认 Microsoft Edge 或 Google Chrome 已安装且可正常打开；\n"
+                "      ② 关闭其他占用浏览器的进程后重试。\n"
                 f"详细错误：{' | '.join(errs)}"
             )
 
