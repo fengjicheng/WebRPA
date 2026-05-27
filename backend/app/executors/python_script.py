@@ -241,14 +241,45 @@ except Exception as e:
                     cwd=cwd,
                     env=env
                 )
-                
+
+                # 实时把 stdout / stderr 转发到 WebRPA 日志面板
+                # 这样脚本里的 print(...) 就能直接出现在底部日志面板
+                stdout_chunks: list[str] = []
+                stderr_chunks: list[str] = []
+
+                async def _pump_stream(stream, chunks: list[str], level: str):
+                    try:
+                        while True:
+                            line = await stream.readline()
+                            if not line:
+                                break
+                            try:
+                                text = line.decode('utf-8', errors='replace').rstrip('\r\n')
+                            except Exception:
+                                text = str(line)
+                            if not text:
+                                continue
+                            chunks.append(text)
+                            try:
+                                await context.send_progress(f"[Python脚本] {text}", level)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+
+                pump_tasks = []
+                if process.stdout is not None:
+                    pump_tasks.append(asyncio.create_task(_pump_stream(process.stdout, stdout_chunks, "info")))
+                if process.stderr is not None:
+                    pump_tasks.append(asyncio.create_task(_pump_stream(process.stderr, stderr_chunks, "error")))
+
                 # 等待执行完成（带超时）
                 try:
-                    stdout_data, stderr_data = await asyncio.wait_for(
-                        process.communicate(),
-                        timeout=timeout
-                    )
+                    await asyncio.wait_for(process.wait(), timeout=timeout)
                     return_code = process.returncode
+                    # 等流泵完
+                    if pump_tasks:
+                        await asyncio.gather(*pump_tasks, return_exceptions=True)
                 except asyncio.TimeoutError:
                     # 超时，终止进程
                     try:
@@ -256,15 +287,17 @@ except Exception as e:
                         await process.wait()
                     except Exception:
                         pass
-                    
+                    for t in pump_tasks:
+                        t.cancel()
+
                     return ModuleResult(
                         success=False,
                         error=f"脚本执行超时（{timeout}秒）"
                     )
-                
-                # 解码输出
-                stdout_text = stdout_data.decode('utf-8', errors='ignore') if stdout_data else ''
-                stderr_text = stderr_data.decode('utf-8', errors='ignore') if stderr_data else ''
+
+                # 拼接输出
+                stdout_text = '\n'.join(stdout_chunks)
+                stderr_text = '\n'.join(stderr_chunks)
                 
                 # 读取返回值和变量（如果有）
                 script_result = None

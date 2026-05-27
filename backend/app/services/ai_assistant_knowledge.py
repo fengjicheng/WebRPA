@@ -1079,6 +1079,79 @@ WebRPA 的桌面自动化基于 Windows UIAutomation（uiautomation 库）。能
 | 模态对话框拦截 | 主流程头部加 `desktop_dialog_handle(dialogAction=accept)` |
 | 控件名变了 | 控件路径加 `automationid:xxx`（automation_id 比 name 稳） |
 
+# 脚本模块使用的硬性纪律（必读）
+
+涉及 `python_script` / `js_script` 的工作流，必须遵守以下铁律：
+
+## 一、Python 脚本（python_script）
+
+**结构**：脚本会被 WebRPA 自动包成一个 `_user_script()` 函数执行，所以**支持 `return` 返回值**，也能用 `vars.变量名` 直接读写工作流变量。
+
+**正确用法**：
+```python
+# 拿到工作流变量 user_input(input_prompt 模块产生)
+n = int(vars.user_input)
+import math
+result = math.factorial(n)
+
+# 方法 1：用 return 把结果返回给工作流（外层在 resultVariable 里接收）
+return result
+
+# 方法 2：直接修改 vars，外层会自动同步回工作流变量
+vars.factorial_result = result
+```
+
+外层节点配置里**必须填 `resultVariable`**（如 `factorial_result`），不然 return 的值就没人接。
+
+**print 行为**：
+- ✅ Python 脚本里的 `print(...)` 现在**会实时进入日志面板**（带 `[Python脚本]` 前缀）
+- 但作为正式的"对用户展示结果"，**仍然应该用 print_log 模块**——因为 print_log 支持模板变量替换、彩色级别、并能被 export_log 模块导出。print 只适合调试输出。
+
+**正确链路**：
+```
+input_prompt(variableName="user_input")
+  ↓
+python_script(code="return math.factorial(int(vars.user_input))",
+              resultVariable="factorial_result")
+  ↓
+print_log(level="success",
+          message="🎉 {user_input} 的阶乘 = {factorial_result}")
+```
+
+**绝对禁止**：
+- ❌ 在脚本里直接 `print(f"结果是 {result}")` 然后**不**在外面接 `print_log`——虽然能进日志，但"业务结果"应该走 print_log + 模板变量这条规范路径
+- ❌ 不写 `return`，也不写 `vars.xxx = ...`，把脚本当死胡同——下游模块拿不到任何东西
+
+## 二、JS 脚本（js_script）
+
+**结构**：在浏览器页面上下文中执行，可以拿 `document` / `window`。
+
+**关键差异**：
+- ✅ JS 脚本里的 `console.log(...)` **不会进 WebRPA 日志面板**（它输出到浏览器的 DevTools 控制台）
+- ✅ 想让结果出现在日志面板：**必须** `return` 一个值，外层节点配上 `resultVariable`，再用 `print_log(message="{结果变量}")` 显示
+
+**正确链路**：
+```
+js_script(code="return document.title;",
+          resultVariable="page_title")
+  ↓
+print_log(message="页面标题：{page_title}")
+```
+
+**绝对禁止**：
+- ❌ `console.log("xxx")` 然后期望它出现在日志底栏——绝对不会
+- ❌ 不写 return，外层无法拿到任何东西
+
+## 三、通用规则
+
+| 规则 | 说明 |
+|---|---|
+| **每个脚本都要写 return / 修改 vars** | 否则下游拿不到数据 |
+| **resultVariable 必填** | 不填的话 return 的值就丢了 |
+| **业务结果走 print_log** | 模板变量 `{xxx}` + 级别 + 可导出 |
+| **print/console.log 只用于调试** | 不当作面向用户的输出 |
+
+
 ## 反例（绝对不要这样做）
 
 ❌ 用户说"自动化 VSCode 打开文件"
