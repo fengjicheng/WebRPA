@@ -1279,83 +1279,89 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   custom_module: ['自定义', '模块', '函数', 'custom', 'module', '复用'],
 }
 
-// 模块分类 - 优化后更清晰的分类结构
+// 模块分类 - 按功能主题合理归类
 const moduleCategories = [
   // ===== 浏览器自动化 =====
   {
-    name: '页面操作',
+    name: '网页导航',
     color: 'bg-blue-500',
-    modules: ['open_page', 'use_opened_page', 'close_page', 'refresh_page', 'go_back', 'go_forward', 'inject_javascript', 'switch_iframe', 'switch_to_main', 'switch_tab'] as ModuleType[],
+    modules: ['open_page', 'use_opened_page', 'close_page', 'refresh_page', 'go_back', 'go_forward', 'switch_tab', 'switch_iframe', 'switch_to_main', 'wait_page_load', 'page_load_complete'] as ModuleType[],
   },
   {
-    name: '元素交互',
+    name: '网页元素交互',
     color: 'bg-indigo-500',
-    modules: ['click_element', 'hover_element', 'input_text', 'select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'handle_dialog', 'upload_file'] as ModuleType[],
+    modules: ['click_element', 'hover_element', 'input_text', 'select_dropdown', 'set_checkbox', 'drag_element', 'scroll_page', 'handle_dialog', 'upload_file', 'inject_javascript'] as ModuleType[],
   },
   {
-    name: '元素操作',
-    color: 'bg-purple-500',
-    modules: ['get_child_elements', 'get_sibling_elements'] as ModuleType[],
-  },
-  {
-    name: '元素判断',
+    name: '网页元素查询',
     color: 'bg-indigo-600',
-    modules: ['element_exists', 'element_visible'] as ModuleType[],
+    modules: ['get_element_info', 'get_child_elements', 'get_sibling_elements', 'element_exists', 'element_visible', 'wait_element', 'extract_table_data'] as ModuleType[],
   },
   {
-    name: '数据采集',
+    name: '网页数据采集',
     color: 'bg-emerald-500',
-    modules: ['get_element_info', 'screenshot', 'save_image', 'download_file', 'extract_table_data'] as ModuleType[],
-  },
-  {
-    name: '等待控制',
-    color: 'bg-cyan-500',
-    modules: ['wait', 'wait_element', 'wait_image', 'wait_page_load', 'page_load_complete'] as ModuleType[],
-  },
-  {
-    name: '高级操作',
-    color: 'bg-sky-600',
-    modules: ['network_capture', 'network_monitor_start', 'network_monitor_wait', 'network_monitor_stop'] as ModuleType[],
+    modules: ['screenshot', 'save_image', 'download_file', 'network_capture', 'network_monitor_start', 'network_monitor_wait', 'network_monitor_stop'] as ModuleType[],
   },
   // ===== 桌面自动化 =====
   {
-    name: '鼠标模拟',
+    name: '鼠标操作',
     color: 'bg-violet-500',
     modules: ['real_mouse_click', 'real_mouse_move', 'real_mouse_drag', 'real_mouse_scroll', 'get_mouse_position'] as ModuleType[],
   },
   {
-    name: '键盘模拟',
+    name: '键盘操作',
     color: 'bg-purple-500',
     modules: ['real_keyboard', 'keyboard_action'] as ModuleType[],
   },
   {
-    name: '图像/文字识别点击',
+    name: '图像识别与点击',
     color: 'bg-rose-500',
-    modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image', 'image_exists'] as ModuleType[],
+    modules: ['click_image', 'click_text', 'hover_image', 'hover_text', 'drag_image', 'image_exists', 'wait_image'] as ModuleType[],
   },
   {
-    name: '屏幕操作',
+    name: '屏幕与录制',
     color: 'bg-pink-500',
-    modules: ['screenshot_screen', 'screen_record', 'window_focus', 'camera_capture', 'camera_record'] as ModuleType[],
+    modules: ['screenshot_screen', 'screen_record', 'window_focus', 'camera_capture', 'camera_record', 'macro_recorder'] as ModuleType[],
   },
   {
-    name: '宏录制',
-    color: 'bg-fuchsia-500',
-    modules: ['macro_recorder'] as ModuleType[],
+    name: '桌面应用控制',
+    color: 'bg-slate-600',
+    modules: [
+      'desktop_app_start', 'desktop_app_connect', 'desktop_app_close', 'desktop_app_get_info', 'desktop_app_wait_ready',
+      'desktop_window_activate', 'desktop_window_state', 'desktop_window_move', 'desktop_window_resize', 'desktop_window_list', 'desktop_window_capture',
+      'desktop_find_control', 'desktop_find_control_smart', 'desktop_control_info', 'desktop_control_tree', 'desktop_wait_control',
+      'desktop_click_control', 'desktop_input_control', 'desktop_get_text', 'desktop_set_value',
+      'desktop_select_combo', 'desktop_checkbox', 'desktop_radio', 'desktop_drag_control', 'desktop_menu_click',
+      'desktop_list_operate', 'desktop_send_keys', 'desktop_get_property', 'desktop_dialog_handle',
+      'desktop_hotkey', 'desktop_extract_table', 'desktop_get_app_state', 'desktop_query_with_xpath',
+      'desktop_select_text', 'desktop_get_focused_control', 'desktop_assert_control',
+    ] as ModuleType[],
   },
   {
-    name: '系统控制',
+    name: '系统操作',
     color: 'bg-gray-600',
-    modules: ['shutdown_system', 'lock_screen', 'run_command'] as ModuleType[],
+    modules: ['shutdown_system', 'lock_screen', 'run_command', 'set_clipboard', 'get_clipboard'] as ModuleType[],
+  },
+  // ===== 手机自动化 =====
+  {
+    name: '手机自动化',
+    color: 'bg-cyan-600',
+    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_image_exists', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
+  },
+  // ===== 流程控制 =====
+  {
+    name: '流程控制',
+    color: 'bg-orange-500',
+    modules: ['condition', 'loop', 'foreach', 'foreach_dict', 'break_loop', 'continue_loop', 'stop_workflow', 'wait', 'scheduled_task', 'subflow', 'input_prompt'] as ModuleType[],
   },
   {
-    name: '剪贴板',
-    color: 'bg-stone-600',
-    modules: ['set_clipboard', 'get_clipboard'] as ModuleType[],
+    name: '触发器',
+    color: 'bg-yellow-500',
+    modules: ['webhook_trigger', 'hotkey_trigger', 'file_watcher_trigger', 'email_trigger', 'api_trigger', 'mouse_trigger', 'image_trigger', 'sound_trigger', 'face_trigger', 'gesture_trigger', 'element_change_trigger', 'probability_trigger'] as ModuleType[],
   },
   // ===== 数据处理 =====
   {
-    name: '变量操作',
+    name: '变量与运算',
     color: 'bg-teal-500',
     modules: ['set_variable', 'increment_decrement', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
   },
@@ -1365,86 +1371,38 @@ const moduleCategories = [
     modules: ['string_concat', 'string_replace', 'string_split', 'string_join', 'string_trim', 'string_case', 'string_substring', 'regex_extract'] as ModuleType[],
   },
   {
-    name: '列表/字典',
+    name: '列表操作',
     color: 'bg-green-600',
-    modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'foreach', 'foreach_dict', 'dict_operation', 'dict_get', 'dict_keys'] as ModuleType[],
+    modules: ['list_operation', 'list_get', 'list_length', 'list_export', 'list_sum', 'list_average', 'list_max', 'list_min', 'list_sort', 'list_unique', 'list_slice', 'list_reverse', 'list_find', 'list_count', 'list_filter', 'list_map', 'list_merge', 'list_flatten', 'list_chunk', 'list_remove_empty', 'list_intersection', 'list_union', 'list_difference', 'list_cartesian_product', 'list_shuffle', 'list_sample'] as ModuleType[],
   },
   {
-    name: '列表运算',
-    color: 'bg-emerald-600',
-    modules: ['list_sum', 'list_average', 'list_max', 'list_min', 'list_sort', 'list_unique', 'list_slice'] as ModuleType[],
-  },
-  {
-    name: '列表高级操作',
-    color: 'bg-green-700',
-    modules: ['list_reverse', 'list_find', 'list_count', 'list_filter', 'list_map', 'list_merge', 'list_flatten', 'list_chunk', 'list_remove_empty', 'list_intersection', 'list_union', 'list_difference', 'list_cartesian_product', 'list_shuffle', 'list_sample'] as ModuleType[],
-  },
-  {
-    name: '字典高级操作',
+    name: '字典操作',
     color: 'bg-teal-600',
-    modules: ['dict_merge', 'dict_filter', 'dict_map_values', 'dict_invert', 'dict_sort', 'dict_deep_copy', 'dict_get_path', 'dict_flatten'] as ModuleType[],
+    modules: ['dict_operation', 'dict_get', 'dict_keys', 'dict_merge', 'dict_filter', 'dict_map_values', 'dict_invert', 'dict_sort', 'dict_deep_copy', 'dict_get_path', 'dict_flatten'] as ModuleType[],
   },
   {
-    name: '数学运算',
-    color: 'bg-cyan-600',
-    modules: ['math_round', 'math_base_convert', 'math_floor', 'math_modulo', 'math_abs', 'math_sqrt', 'math_power', 'math_log', 'math_trig', 'math_exp', 'math_gcd', 'math_lcm', 'math_factorial', 'math_permutation', 'math_percentage', 'math_clamp', 'math_random_advanced'] as ModuleType[],
+    name: '数学与统计',
+    color: 'bg-cyan-700',
+    modules: ['math_round', 'math_base_convert', 'math_floor', 'math_modulo', 'math_abs', 'math_sqrt', 'math_power', 'math_log', 'math_trig', 'math_exp', 'math_gcd', 'math_lcm', 'math_factorial', 'math_permutation', 'math_percentage', 'math_clamp', 'math_random_advanced', 'stat_median', 'stat_mode', 'stat_variance', 'stat_stdev', 'stat_percentile', 'stat_normalize', 'stat_standardize'] as ModuleType[],
   },
   {
-    name: '统计分析',
-    color: 'bg-emerald-700',
-    modules: ['stat_median', 'stat_mode', 'stat_variance', 'stat_stdev', 'stat_percentile', 'stat_normalize', 'stat_standardize', 'csv_parse', 'csv_generate', 'list_to_string_advanced'] as ModuleType[],
-  },
-  {
-    name: '数据表格',
+    name: '表格与CSV',
     color: 'bg-sky-500',
-    modules: ['table_add_row', 'table_add_column', 'table_set_cell', 'table_get_cell', 'table_delete_row', 'table_clear', 'table_export', 'read_excel'] as ModuleType[],
+    modules: ['table_add_row', 'table_add_column', 'table_set_cell', 'table_get_cell', 'table_delete_row', 'table_clear', 'table_export', 'read_excel', 'csv_parse', 'csv_generate', 'list_to_string_advanced'] as ModuleType[],
   },
+  // ===== 数据库 =====
   {
-    name: 'MySQL数据库',
+    name: '数据库',
     color: 'bg-sky-600',
-    modules: ['db_connect', 'db_query', 'db_execute', 'db_insert', 'db_update', 'db_delete', 'db_close'] as ModuleType[],
-  },
-  {
-    name: 'Oracle数据库',
-    color: 'bg-red-600',
-    modules: ['oracle_connect', 'oracle_query', 'oracle_execute', 'oracle_insert', 'oracle_update', 'oracle_delete', 'oracle_disconnect'] as ModuleType[],
-  },
-  {
-    name: 'PostgreSQL数据库',
-    color: 'bg-blue-600',
-    modules: ['postgresql_connect', 'postgresql_query', 'postgresql_execute', 'postgresql_insert', 'postgresql_update', 'postgresql_delete', 'postgresql_disconnect'] as ModuleType[],
-  },
-  {
-    name: 'MongoDB数据库',
-    color: 'bg-green-600',
-    modules: ['mongodb_connect', 'mongodb_find', 'mongodb_insert', 'mongodb_update', 'mongodb_delete', 'mongodb_disconnect'] as ModuleType[],
-  },
-  {
-    name: 'SQL Server数据库',
-    color: 'bg-indigo-600',
-    modules: ['sqlserver_connect', 'sqlserver_query', 'sqlserver_execute', 'sqlserver_insert', 'sqlserver_update', 'sqlserver_delete', 'sqlserver_disconnect'] as ModuleType[],
-  },
-  {
-    name: 'SQLite数据库',
-    color: 'bg-cyan-600',
-    modules: ['sqlite_connect', 'sqlite_query', 'sqlite_execute', 'sqlite_insert', 'sqlite_update', 'sqlite_delete', 'sqlite_disconnect'] as ModuleType[],
-  },
-  {
-    name: 'Redis数据库',
-    color: 'bg-rose-600',
-    modules: ['redis_connect', 'redis_get', 'redis_set', 'redis_del', 'redis_hget', 'redis_hset', 'redis_disconnect'] as ModuleType[],
-  },
-  // ===== 流程控制 =====
-  {
-    name: '流程控制',
-    color: 'bg-orange-500',
-    modules: ['condition', 'loop', 'break_loop', 'continue_loop', 'stop_workflow', 'scheduled_task', 'subflow'] as ModuleType[],
-  },
-  // ===== 触发器 =====
-  {
-    name: '触发器',
-    color: 'bg-yellow-500',
-    modules: ['webhook_trigger', 'hotkey_trigger', 'file_watcher_trigger', 'email_trigger', 'api_trigger', 'mouse_trigger', 'image_trigger', 'sound_trigger', 'face_trigger', 'gesture_trigger', 'element_change_trigger', 'probability_trigger'] as ModuleType[],
+    modules: [
+      'db_connect', 'db_query', 'db_execute', 'db_insert', 'db_update', 'db_delete', 'db_close',
+      'oracle_connect', 'oracle_query', 'oracle_execute', 'oracle_insert', 'oracle_update', 'oracle_delete', 'oracle_disconnect',
+      'postgresql_connect', 'postgresql_query', 'postgresql_execute', 'postgresql_insert', 'postgresql_update', 'postgresql_delete', 'postgresql_disconnect',
+      'mongodb_connect', 'mongodb_find', 'mongodb_insert', 'mongodb_update', 'mongodb_delete', 'mongodb_disconnect',
+      'sqlserver_connect', 'sqlserver_query', 'sqlserver_execute', 'sqlserver_insert', 'sqlserver_update', 'sqlserver_delete', 'sqlserver_disconnect',
+      'sqlite_connect', 'sqlite_query', 'sqlite_execute', 'sqlite_insert', 'sqlite_update', 'sqlite_delete', 'sqlite_disconnect',
+      'redis_connect', 'redis_get', 'redis_set', 'redis_del', 'redis_hget', 'redis_hset', 'redis_disconnect',
+    ] as ModuleType[],
   },
   // ===== 文件与文档 =====
   {
@@ -1462,40 +1420,40 @@ const moduleCategories = [
     color: 'bg-orange-600',
     modules: ['markdown_to_html', 'html_to_markdown', 'markdown_to_pdf', 'markdown_to_docx', 'docx_to_markdown', 'html_to_docx', 'docx_to_html', 'markdown_to_epub', 'epub_to_markdown', 'latex_to_pdf', 'rst_to_html', 'org_to_html', 'universal_doc_convert'] as ModuleType[],
   },
+  {
+    name: '文件对比',
+    color: 'bg-teal-800',
+    modules: ['file_hash_compare', 'file_diff_compare', 'folder_hash_compare', 'folder_diff_compare'] as ModuleType[],
+  },
   // ===== 媒体处理 =====
   {
-    name: '格式工厂',
-    color: 'bg-rose-600',
-    modules: ['image_format_convert', 'video_format_convert', 'audio_format_convert', 'video_to_audio', 'video_to_gif', 'batch_format_convert'] as ModuleType[],
+    name: '图像编辑',
+    color: 'bg-pink-600',
+    modules: ['compress_image', 'image_resize', 'image_crop', 'image_rotate', 'image_flip', 'image_blur', 'image_sharpen', 'image_brightness', 'image_contrast', 'image_color_balance', 'image_add_text', 'image_merge', 'image_thumbnail', 'image_filter', 'image_grayscale', 'image_round_corners', 'image_remove_bg', 'add_watermark', 'image_get_info', 'image_convert_format', 'qr_generate', 'qr_decode'] as ModuleType[],
   },
   {
-    name: '视频编辑',
+    name: '盲水印',
+    color: 'bg-purple-700',
+    modules: ['bwm_embed_text', 'bwm_extract_text', 'bwm_embed_image', 'bwm_extract_image'] as ModuleType[],
+  },
+  {
+    name: '视频处理',
     color: 'bg-purple-600',
     modules: ['format_convert', 'compress_video', 'trim_video', 'merge_media', 'rotate_video', 'video_speed', 'extract_frame', 'add_subtitle', 'resize_video', 'download_m3u8', 'ytdlp_download', 'ytdlp_download_audio', 'ytdlp_get_info', 'ytdlp_list_formats', 'ytdlp_download_subtitle', 'ytdlp_download_playlist'] as ModuleType[],
   },
   {
-    name: '音频编辑',
+    name: '音频处理',
     color: 'bg-violet-600',
     modules: ['extract_audio', 'adjust_volume', 'audio_to_text'] as ModuleType[],
   },
   {
-    name: '图像编辑',
-    color: 'bg-pink-600',
-    modules: ['compress_image', 'image_resize', 'image_crop', 'image_rotate', 'image_flip', 'image_blur', 'image_sharpen', 'image_brightness', 'image_contrast', 'image_color_balance', 'image_add_text', 'image_merge', 'image_thumbnail', 'image_filter', 'image_grayscale', 'image_round_corners', 'image_remove_bg'] as ModuleType[],
+    name: '媒体格式转换',
+    color: 'bg-rose-600',
+    modules: ['image_format_convert', 'video_format_convert', 'audio_format_convert', 'video_to_audio', 'video_to_gif', 'batch_format_convert'] as ModuleType[],
   },
+  // ===== AI 能力 =====
   {
-    name: '图像工具',
-    color: 'bg-fuchsia-600',
-    modules: ['add_watermark', 'image_get_info', 'image_convert_format', 'qr_generate', 'qr_decode'] as ModuleType[],
-  },
-  {
-    name: '盲水印（隐式数字水印）',
-    color: 'bg-purple-700',
-    modules: ['bwm_embed_text', 'bwm_extract_text', 'bwm_embed_image', 'bwm_extract_image'] as ModuleType[],
-  },
-  // ===== AI能力 =====
-  {
-    name: 'AI对话',
+    name: 'AI对话与视觉',
     color: 'bg-violet-700',
     modules: ['ai_chat', 'ai_vision'] as ModuleType[],
   },
@@ -1506,22 +1464,22 @@ const moduleCategories = [
   },
   {
     name: 'AI爬虫',
-    color: 'bg-purple-700',
+    color: 'bg-fuchsia-700',
     modules: ['ai_smart_scraper', 'ai_element_selector', 'firecrawl_scrape', 'firecrawl_map', 'firecrawl_crawl'] as ModuleType[],
   },
   {
     name: 'AI识别',
-    color: 'bg-fuchsia-700',
+    color: 'bg-rose-700',
     modules: ['ocr_captcha', 'slider_captcha', 'face_recognition', 'image_ocr'] as ModuleType[],
   },
-  // ===== 网络通信 =====
+  // ===== 网络与通信 =====
   {
     name: '网络请求',
     color: 'bg-sky-700',
     modules: ['api_request', 'webhook_request', 'send_email'] as ModuleType[],
   },
   {
-    name: '多渠道通知',
+    name: '消息推送',
     color: 'bg-amber-600',
     modules: ['notify_discord', 'notify_telegram', 'notify_dingtalk', 'notify_wecom', 'notify_feishu', 'notify_bark', 'notify_slack', 'notify_msteams', 'notify_pushover', 'notify_pushbullet', 'notify_gotify', 'notify_serverchan', 'notify_pushplus', 'notify_webhook', 'notify_ntfy', 'notify_matrix', 'notify_rocketchat'] as ModuleType[],
   },
@@ -1541,51 +1499,35 @@ const moduleCategories = [
     modules: ['feishu_bitable_write', 'feishu_bitable_read', 'feishu_sheet_write', 'feishu_sheet_read'] as ModuleType[],
   },
   {
-    name: 'SSH远程操作',
-    color: 'bg-slate-600',
+    name: 'SSH远程',
+    color: 'bg-slate-700',
     modules: ['ssh_connect', 'ssh_execute_command', 'ssh_upload_file', 'ssh_download_file', 'ssh_disconnect'] as ModuleType[],
+  },
+  {
+    name: '局域网共享',
+    color: 'bg-cyan-500',
+    modules: ['share_folder', 'share_file', 'stop_share', 'start_screen_share', 'stop_screen_share'] as ModuleType[],
   },
   {
     name: 'SAP自动化',
     color: 'bg-blue-800',
     modules: ['sap_login', 'sap_logout', 'sap_run_tcode', 'sap_set_field_value', 'sap_get_field_value', 'sap_click_button', 'sap_send_vkey', 'sap_get_status_message', 'sap_get_title', 'sap_close_warning', 'sap_set_checkbox', 'sap_select_combobox', 'sap_read_gridview', 'sap_export_gridview_excel', 'sap_set_focus', 'sap_maximize_window'] as ModuleType[],
   },
-  {
-    name: '手机自动化',
-    color: 'bg-cyan-600',
-    modules: ['phone_tap', 'phone_swipe', 'phone_long_press', 'phone_input_text', 'phone_press_key', 'phone_screenshot', 'phone_start_mirror', 'phone_stop_mirror', 'phone_install_app', 'phone_start_app', 'phone_stop_app', 'phone_uninstall_app', 'phone_push_file', 'phone_pull_file', 'phone_click_image', 'phone_click_text', 'phone_wait_image', 'phone_image_exists', 'phone_set_volume', 'phone_set_brightness', 'phone_set_clipboard', 'phone_get_clipboard'] as ModuleType[],
-  },
-  {
-    name: '网络共享',
-    color: 'bg-cyan-500',
-    modules: ['share_folder', 'share_file', 'stop_share', 'start_screen_share', 'stop_screen_share'] as ModuleType[],
-  },
   // ===== 实用工具 =====
   {
-    name: '文件对比',
-    color: 'bg-teal-800',
-    modules: ['file_hash_compare', 'file_diff_compare', 'folder_hash_compare', 'folder_diff_compare'] as ModuleType[],
-  },
-  {
-    name: '加密编码',
+    name: '加密与编码',
     color: 'bg-indigo-800',
-    modules: ['md5_encrypt', 'sha_encrypt', 'url_encode_decode', 'random_password_generator'] as ModuleType[],
+    modules: ['md5_encrypt', 'sha_encrypt', 'url_encode_decode', 'random_password_generator', 'uuid_generator'] as ModuleType[],
   },
   {
-    name: '格式转换',
+    name: '颜色与时间转换',
     color: 'bg-pink-800',
     modules: ['rgb_to_hsv', 'rgb_to_cmyk', 'hex_to_cmyk', 'timestamp_converter'] as ModuleType[],
   },
   {
-    name: '其他工具',
-    color: 'bg-gray-700',
-    modules: ['uuid_generator', 'printer_call'] as ModuleType[],
-  },
-  // ===== 辅助功能 =====
-  {
-    name: '消息通知',
+    name: '通知与日志',
     color: 'bg-amber-700',
-    modules: ['print_log', 'play_sound', 'system_notification', 'text_to_speech', 'export_log'] as ModuleType[],
+    modules: ['print_log', 'export_log', 'play_sound', 'system_notification', 'text_to_speech'] as ModuleType[],
   },
   {
     name: '媒体播放',
@@ -1593,36 +1535,15 @@ const moduleCategories = [
     modules: ['play_music', 'play_video', 'view_image'] as ModuleType[],
   },
   {
-    name: '用户交互',
-    color: 'bg-cyan-800',
-    modules: ['input_prompt'] as ModuleType[],
-  },
-  {
     name: '脚本执行',
     color: 'bg-slate-700',
-    modules: ['js_script', 'python_script'] as ModuleType[],
+    modules: ['js_script', 'python_script', 'printer_call'] as ModuleType[],
   },
   // ===== 测试报告 =====
   {
     name: '测试报告',
     color: 'bg-emerald-600',
     modules: ['allure_init', 'allure_start_test', 'allure_add_step', 'allure_add_attachment', 'allure_stop_test', 'allure_generate_report'] as ModuleType[],
-  },
-  // ===== 桌面应用自动化 =====
-  {
-    name: '桌面应用自动化',
-    color: 'bg-slate-600',
-    modules: [
-      'desktop_app_start', 'desktop_app_connect', 'desktop_app_close', 'desktop_app_get_info', 'desktop_app_wait_ready',
-      'desktop_window_activate', 'desktop_window_state', 'desktop_window_move', 'desktop_window_resize', 'desktop_window_list', 'desktop_window_capture',
-      'desktop_find_control', 'desktop_control_info', 'desktop_control_tree', 'desktop_wait_control', 'desktop_click_control', 'desktop_input_control', 'desktop_get_text', 'desktop_set_value',
-      'desktop_select_combo', 'desktop_checkbox', 'desktop_radio', 'desktop_drag_control', 'desktop_menu_click', 'desktop_list_operate', 'desktop_send_keys', 'desktop_get_property', 'desktop_dialog_handle',
-      // 现代应用增强（仅热键 - OCR/图像/区域 OCR 已由通用模块覆盖）
-      'desktop_hotkey',
-      // 影刀级增强（智能查找 / 批量抓取 / UI 快照 / XPath）
-      'desktop_find_control_smart', 'desktop_extract_table', 'desktop_get_app_state', 'desktop_query_with_xpath',
-      'desktop_select_text', 'desktop_get_focused_control', 'desktop_assert_control',
-    ] as ModuleType[],
   },
   // ===== 画布工具 =====
   {

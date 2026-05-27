@@ -10,6 +10,7 @@ export interface GlobalConfig {
   system: {
     checkUpdateOnStartup: boolean  // 启动时是否检查更新
     autoDetectClipboardScreenshot: boolean  // 自动识别剪贴板截图
+    showAIAssistantButton: boolean  // 显示右下角AI小助手入口按钮
   }
   // AI大脑模块默认配置
   ai: {
@@ -145,6 +146,7 @@ const defaultConfig: GlobalConfig = {
   system: {
     checkUpdateOnStartup: true,  // 默认开启启动时检查更新
     autoDetectClipboardScreenshot: true,  // 默认开启自动识别剪贴板截图
+    showAIAssistantButton: true,  // 默认显示AI小助手入口按钮
   },
   ai: {
     apiUrl: '',

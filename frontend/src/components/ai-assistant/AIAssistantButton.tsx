@@ -1,11 +1,13 @@
 import { Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAIAssistantStore } from '@/store/aiAssistantStore'
+import { useGlobalConfigStore } from '@/store/globalConfigStore'
 
 /** 浮动右下角的助手触发按钮 - 蓝渐变 FAB + 呼吸光环 */
 export function AIAssistantButton() {
   const isOpen = useAIAssistantStore((s) => s.isPanelOpen)
   const togglePanel = useAIAssistantStore((s) => s.togglePanel)
+  const showButton = useGlobalConfigStore((s) => s.config.system.showAIAssistantButton)
   const [hovered, setHovered] = useState(false)
 
   useEffect(() => {
@@ -20,7 +22,7 @@ export function AIAssistantButton() {
     return () => window.removeEventListener('keydown', handler)
   }, [togglePanel])
 
-  if (isOpen) return null
+  if (isOpen || !showButton) return null
 
   return (
     <button

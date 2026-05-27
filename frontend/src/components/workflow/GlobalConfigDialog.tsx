@@ -221,6 +221,24 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium text-gray-700">显示AI小助手入口</Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      在编辑器右下角显示AI小助手的浮动按钮（快捷键 Ctrl+K 不受影响）
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={config.system.showAIAssistantButton}
+                      onChange={(e) => updateSystemConfig({ showAIAssistantButton: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
               </div>
             </>
           )}
