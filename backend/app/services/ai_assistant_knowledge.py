@@ -1325,6 +1325,80 @@ search_modules(query="...") 查内置模块
 - 数据已经在变量里：`foreach(listVariable=...) → table_add_row(row={col1:{item.col1}, ...})`
 - 数据是 AI 生成的：直接 `client_action(set_collected_data, payload={rows: [...]})` 一次塞完
 
+# 🎨 工作流排版美学（让 AI 生成的画布像人工手搭）
+
+build_workflow 不是只把节点排成一条直线就完事——好的工作流应该有**层次、分叉、合流、错峰**，让用户一眼看懂业务结构。
+
+## 模块的多个输出端点（必须正确路由！）
+
+WebRPA 节点底部不是只有一个输出端点。**多输出端点的模块必须用 `branches` 字段显式路由**，不要让两条线都连到同一个端点：
+
+| 模块 | 多个输出端点（sourceHandle） | 业务含义 |
+|---|---|---|
+| `condition` | `true` / `false` | 条件成立 / 不成立 |
+| `element_exists` | `true` / `false` | 存在 / 不存在 |
+| `element_visible` | `true` / `false` | 可见 / 不可见 |
+| `image_exists` | `true` / `false` | 图像存在 / 不存在 |
+| `face_recognition` | `true` / `false` | 人脸匹配 / 不匹配 |
+| `phone_image_exists` | `true` / `false` | 手机图像存在 / 不存在 |
+| `loop` / `foreach` / `foreach_dict` | `loop` / `done` | 循环体 / 循环结束后 |
+| `probability_trigger` | `path1` / `path2` | 概率路径 1 / 路径 2 |
+| **任意模块** | `error` | 模块执行失败时的橙色错误分支 |
+
+## 用 branches 的标准写法
+
+❌ **错误**（两条线都连到默认端点，画布上看不到分叉）：
+```python
+build_workflow(steps=[
+    {"type": "element_exists", "id": "check", ...},
+    {"type": "click_element", "id": "click", ...},  # 默认连下一条 → 错！应该走 true 分支
+    {"type": "print_log", "id": "log", "config": {"message": "未找到"}},
+])
+```
+
+✅ **正确**（用 branches 显式路由，画布自动分叉布局）：
+```python
+build_workflow(steps=[
+    {"type": "open_page", "id": "open", "config": {"url": "..."}, "next": "check"},
+    {"type": "element_exists", "id": "check", "config": {"selector": ".btn"},
+     "branches": {"true": "click", "false": "log"}},  # ← 关键：显式分支
+    {"type": "click_element", "id": "click", "config": {...}, "next": "done"},
+    {"type": "print_log", "id": "log", "config": {"message": "未找到"}, "next": "done"},
+    {"type": "set_variable", "id": "done", ...},  # ← 两条分支合流到同一节点
+])
+```
+
+build_workflow 检测到 branches 自动启用**分叉布局**：
+- "true" / "loop" / "match" / "exists" → 节点放在**左下**
+- "false" / "done" / "miss" / "not_exists" → 节点放在**右下**
+- "error" → 节点放在**最右侧**（与主流程隔开）
+
+## 错误处理也用 branches
+
+关键 IO 节点（api_request / open_page / send_email / db_query 等）建议加 error 分支：
+
+```python
+{"type": "api_request", "id": "fetch", "config": {...},
+ "next": "process",                    # 成功走主干
+ "branches": {"error": "notify_fail"}  # 失败走 error 分支到错误处理节点
+},
+{"type": "json_parse", "id": "process", ...},
+{"type": "print_log", "id": "notify_fail", "config": {"level": "error", "message": "API 失败"}},
+```
+
+## 排版三原则
+
+### 1. 主干清晰
+主干流程（成功路径）用 `next` 串起来，从上到下垂直对齐。
+
+### 2. 分叉错开
+有 `condition` / `loop` / `foreach` 等多输出节点时**必须用 branches**，分叉的子流程会自动错开 X 坐标，不再两条线挤一起。
+
+### 3. 标注重点
+- **整体说明**：用 `title_note` 写工作流的用途/前置条件 → 顶部蓝色置顶便签
+- **关键步骤**：在 step 上加 `comment` → 节点旁黄色便签
+- **section 分段**：流程长（>8 步）时用 `section` 分成"准备阶段/执行阶段/收尾"，自动每段一行
+
 ## 高频内置模块速查（必背）
 
 | 想做什么 | 用什么模块 |

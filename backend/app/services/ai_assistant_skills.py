@@ -663,6 +663,167 @@ async def skill_build_node(
     return {"node": node}
 
 
+def _compute_branched_layout(
+    *,
+    steps: list[dict],
+    step_ids: list[str],
+    user_ids: dict[str, str],
+    START_X: float,
+    START_Y: float,
+    NODE_W: float,
+    NODE_H: float,
+    GAP_X: float,
+    GAP_Y: float,
+) -> list[tuple[float, float]]:
+    """🌳 分叉布局算法（让 condition / loop / 分支型工作流像人工搭建）
+
+    思路：
+      1. 找入口节点（被引用计数为 0 的节点）
+      2. 从入口 BFS 遍历，按"主干 → 正下方，左分支 → 左下，右分支 → 右下"放置
+      3. 同 X 坐标避让：发现位置占用就横向偏移
+      4. 兜底：BFS 漏掉的节点（断流孤儿）按顺序排到画布最右侧
+
+    分支类型识别：
+      - condition / element_exists 等：true → 左下，false → 右下
+      - loop / foreach：loop（循环体）→ 左下，done（结束后）→ 右下
+      - probability_trigger：path1 → 左下，path2 → 右下
+      - 任意 error 分支：→ 右侧偏移
+    """
+    n = len(steps)
+    positions: list[tuple[float, float] | None] = [None] * n
+
+    # 用户 id → idx 反查
+    id_to_idx: dict[str, int] = {step_ids[i]: i for i in range(n)}
+
+    def _resolve(ref: str) -> int | None:
+        if not ref:
+            return None
+        actual = user_ids.get(ref, ref)
+        return id_to_idx.get(actual)
+
+    # 找入口（没被任何 next/branches 引用的节点）
+    referenced: set[int] = set()
+    for step in steps:
+        nxt = step.get("next")
+        if nxt:
+            i = _resolve(str(nxt))
+            if i is not None:
+                referenced.add(i)
+        for v in (step.get("branches") or {}).values():
+            if v:
+                i = _resolve(str(v))
+                if i is not None:
+                    referenced.add(i)
+    # 没引用的就是入口
+    roots = [i for i in range(n) if i not in referenced]
+    if not roots:
+        roots = [0]
+
+    # 占用栅格：(col, row) → True
+    occupied_grid: dict[tuple[int, int], bool] = {}
+
+    def _grid_to_xy(col: int, row: int) -> tuple[float, float]:
+        return (
+            START_X + col * (NODE_W + GAP_X),
+            START_Y + row * (NODE_H + GAP_Y),
+        )
+
+    def _claim(col: int, row: int) -> tuple[int, int]:
+        """声明使用 (col, row)；如果占用则朝右移动直到空位"""
+        c = col
+        while (c, row) in occupied_grid:
+            c += 1
+        occupied_grid[(c, row)] = True
+        return (c, row)
+
+    # BFS：每个节点带 (idx, col_hint, row)
+    visited: set[int] = set()
+    queue: list[tuple[int, int, int]] = []
+
+    base_col = 0
+    for r in roots:
+        if r not in visited:
+            queue.append((r, base_col, 0))
+            base_col += 1  # 多入口横向错开
+
+    while queue:
+        idx, col_hint, row = queue.pop(0)
+        if idx in visited:
+            continue
+        visited.add(idx)
+
+        c, r = _claim(col_hint, row)
+        positions[idx] = _grid_to_xy(c, r)
+
+        step = steps[idx]
+        mtype = step.get("type") or ""
+        branches = step.get("branches") or {}
+        next_ref = step.get("next")
+
+        # 处理 branches 显式分支
+        if isinstance(branches, dict) and any(branches.values()):
+            # 给不同 branch 分配相对位移
+            branch_items = list(branches.items())
+            # 把"成功/真"放左，"失败/假/error"放右
+            def _branch_priority(key: str) -> int:
+                k = key.lower()
+                if k in ("true", "yes", "match", "exists", "visible", "loop", "body", "iter", "path1"):
+                    return -1  # 左
+                if k in ("false", "no", "miss", "not_exists", "invisible", "done", "after", "exit", "complete", "path2"):
+                    return 1   # 右
+                if k == "error":
+                    return 2   # 最右
+                return 0
+
+            branch_items.sort(key=lambda x: _branch_priority(x[0]))
+            offsets: dict[str, int] = {}
+            negs = sum(1 for k, _ in branch_items if _branch_priority(k) < 0)
+            poss = sum(1 for k, _ in branch_items if _branch_priority(k) > 0)
+            # 简化：固定 -1 / +1 / +2 偏移（够用）
+            left_idx = -max(1, negs)
+            right_idx = 1
+            for k, _v in branch_items:
+                p = _branch_priority(k)
+                if p < 0:
+                    offsets[k] = left_idx
+                    left_idx += 1
+                elif p == 0:
+                    offsets[k] = 0
+                else:
+                    offsets[k] = right_idx
+                    right_idx += 1
+
+            for bkey, btarget in branch_items:
+                if not btarget:
+                    continue
+                ti = _resolve(str(btarget))
+                if ti is None or ti in visited:
+                    continue
+                queue.append((ti, c + offsets[bkey], r + 1))
+        else:
+            # 主干：next 或 idx+1
+            next_idx: int | None = None
+            if next_ref:
+                next_idx = _resolve(str(next_ref))
+            elif idx + 1 < n:
+                # 仅当下一节点未被任何分支引用时才作为主干
+                if idx + 1 not in referenced:
+                    next_idx = idx + 1
+
+            if next_idx is not None and next_idx not in visited:
+                queue.append((next_idx, c, r + 1))
+
+    # 收尾：BFS 没访问到的节点（孤儿）按顺序排到画布右侧
+    if not visited or len(visited) < n:
+        max_col = max((c for c, _ in occupied_grid.keys()), default=0)
+        for i in range(n):
+            if positions[i] is None:
+                max_col += 2  # 留一点距离
+                positions[i] = _grid_to_xy(max_col, 0)
+
+    return [p if p is not None else (START_X, START_Y) for p in positions]
+
+
 async def skill_build_workflow(
     name: str,
     steps: list[dict],
@@ -671,28 +832,48 @@ async def skill_build_workflow(
     title_note: str | None = None,
     **_: Any,
 ) -> dict[str, Any]:
-    """根据有序步骤生成完整工作流（节点 + 边 + 便签 + 智能排版）
+    """根据有序步骤生成完整工作流（节点 + 边 + 便签 + 智能排版 + 分支布局）
 
     Args:
         name: 工作流名称
         steps: 有序步骤数组，每个元素：
             {
                 "type": "open_page",                     # 必填：模块 type
-                "label": "打开网页",                      # 可选：节点的业务备注（不是模块名！模块官方名按 type 自动显示）
+                "label": "打开网页",                      # 可选：节点的业务备注
                 "config": {"url": "..."},                # 可选：节点配置
                 "id": "step_open"                        # 可选：自定义 id（用于跳跃连接）
-                "next": "step_click",                    # 可选：指定连到哪个 id（默认下一条）
-                "section": "登录流程",                    # 可选：分段标题（同 section 在一行/一列）
-                "comment": "首先打开登录页面"             # 可选：在该节点旁边自动生成黄色便签
+                "next": "step_click",                    # 可选：默认下一步连到哪
+                "section": "登录流程",                    # 可选：分段标题
+                "comment": "首先打开登录页面",            # 可选：节点旁自动黄色便签
+                # 🌟 v2 新增：多分支显式连接（让画布像人工搭建一样有"分叉"）
+                "branches": {                            # 可选：本节点的多个输出分支
+                    "true": "step_click",                # condition / element_exists 等的"是"分支
+                    "false": "step_skip",                # "否"分支
+                    "loop": "step_inside",               # loop/foreach 的"循环体内"分支
+                    "done": "step_after_loop",           # loop/foreach 的"循环结束"分支
+                    "error": "step_handle_err",          # 任意模块的橙色错误分支
+                },
+                # 显式坐标（覆盖自动布局），AI 一般不需要传
+                "x": 100, "y": 200,
             }
         notes: 显式追加便签（任意位置）
             [{"content": "...", "color": "yellow|blue|green|...",
               "anchor_to": "step_open", "side": "right|top|bottom"}]
             或 [{"content": "...", "x": 100, "y": 200}]
-        layout: 'auto' / 'horizontal' / 'grid'。auto 默认按 8 个一行折回
+        layout: 'auto' / 'horizontal' / 'grid'。auto 默认按 8 个一行折回；
+                如果 steps 中有节点用了 branches，自动切换成"主干 + 分叉"二维布局。
         title_note: 顶部置顶的整体说明便签内容（不传则不生成）
 
     返回 nodes/edges 数组可被前端 load_workflow_from_data 直接消费。
+
+    🎨 排版设计建议（让 AI 生成的工作流像人工搭建）：
+    - 主干清晰：用 next 串起主线，1-3 步一行不折回
+    - 分叉明显：condition / element_exists / loop / foreach 等用 branches 显式分叉，
+      自动布局会把不同分支的节点在 X 方向错开（左侧"成功/真"、右侧"失败/假"）
+    - 错误处理：关键 IO 节点（api_request / open_page / send_email）通过 branches.error 接到
+      统一的"错误处理"分支，让画布显示出"✓ 成功路径 + ⚠ 异常路径"两条线
+    - 标注重点：用 comment / notes 给关键节点加便签，让用户一眼看懂业务意图
+    - 分段：用 section 把工作流分成"准备/执行/收尾"等阶段，每段一行
     """
     if not isinstance(steps, list) or not steps:
         return {"error": "steps 不能为空"}
@@ -749,8 +930,17 @@ async def skill_build_workflow(
         if step.get("id"):
             user_ids[step["id"]] = sid
 
-    # 2) 决定排版方式：auto = 按 section 分组 + 8 个一行折回
+    # 2) 决定排版方式：
+    #    - 显式 layout 优先
+    #    - 否则若有 branches 自动开启"分叉布局"
+    #    - 否则按 section 分组 + 8 个一行折回
     layout = (layout or "auto").lower()
+
+    # 检测是否有任何分支
+    _has_branches = any(
+        step.get("branches") and isinstance(step.get("branches"), dict)
+        for step in steps
+    )
 
     # 收集 section 顺序
     section_order: list[str] = []
@@ -779,6 +969,23 @@ async def skill_build_workflow(
             x = START_X + col * (NODE_W + GAP_X)
             y = START_Y + row * (NODE_H + GAP_Y)
             positions.append((x, y))
+
+    elif _has_branches and layout in ("auto", "branched"):
+        # 🌳 分叉布局（树形）
+        # 思路：从首节点开始 BFS，按"主干（next/done）→正下方，分支（true/loop）→左前下方，
+        #       分支（false/error）→右前下方"原则放置
+        # 不能 100% 完美但能避免直线/竖线，让画布有人工搭建的层次感
+        positions = _compute_branched_layout(
+            steps=steps,
+            step_ids=step_ids,
+            user_ids=user_ids,
+            START_X=START_X,
+            START_Y=START_Y,
+            NODE_W=NODE_W,
+            NODE_H=NODE_H,
+            GAP_X=GAP_X,
+            GAP_Y=GAP_Y,
+        )
 
     else:
         # auto：按 section 分行；同一 section 横向铺开，超 8 个换行
@@ -816,6 +1023,11 @@ async def skill_build_workflow(
                 y = START_Y + row * (NODE_H + GAP_Y)
                 positions.append((x, y))
 
+    # 用户传了显式 x/y，覆盖自动布局
+    for idx, step in enumerate(steps):
+        if "x" in step and "y" in step:
+            positions[idx] = (float(step["x"]), float(step["y"]))
+
     # 3) 生成节点
     nodes: list[dict[str, Any]] = []
     for idx, step in enumerate(steps):
@@ -849,8 +1061,41 @@ async def skill_build_workflow(
         }
         nodes.append(node)
 
-    # 4) 生成边（按 next/默认相邻）
+    # 4) 生成边（按 next/默认相邻 + branches 多分支）
     edges: list[dict[str, Any]] = []
+
+    # 哪些 module_type 的"是/否"分支用 true/false handle id
+    BOOL_BRANCH_TYPES = {
+        "condition", "element_exists", "element_visible",
+        "image_exists", "phone_image_exists", "face_recognition",
+    }
+
+    def _normalize_branch_handle(mtype: str, branch_key: str) -> str:
+        """把 branches 字典里的 key 翻译成实际 sourceHandle id"""
+        k = branch_key.lower()
+        # error 全局通用
+        if k == "error":
+            return "error"
+        # 循环类
+        if mtype in ("loop", "foreach", "foreach_dict"):
+            if k in ("loop", "body", "iter", "true", "yes"):
+                return "loop"
+            if k in ("done", "after", "exit", "false", "no", "complete"):
+                return "done"
+        # 条件/存在判定类
+        if mtype in BOOL_BRANCH_TYPES:
+            if k in ("true", "yes", "match", "exists", "visible"):
+                return "true"
+            if k in ("false", "no", "miss", "not_exists", "invisible"):
+                return "false"
+        # probability_trigger
+        if mtype == "probability_trigger":
+            if k in ("path1", "true", "yes", "a"):
+                return "path1"
+            if k in ("path2", "false", "no", "b"):
+                return "path2"
+        # 用户给了原值就直接用
+        return branch_key
 
     def _resolve_id(ref: str) -> str | None:
         """先在 user_ids 里找，再在 step_ids 里精确找"""
@@ -864,11 +1109,17 @@ async def skill_build_workflow(
 
     for idx, step in enumerate(steps):
         sid = step_ids[idx]
+        mtype = step.get("type") or ""
         next_ref = step.get("next")
+        branches = step.get("branches") or {}
+        has_branches = isinstance(branches, dict) and any(branches.values())
+
+        # 4a) 主干边
         target_id: str | None = None
         if next_ref:
             target_id = _resolve_id(next_ref)
-        elif idx < len(steps) - 1:
+        elif idx < len(steps) - 1 and not has_branches:
+            # 默认连下一条；但如果声明了 branches，则不自动连下一条，让 AI 显式声明
             target_id = step_ids[idx + 1]
 
         if target_id and target_id != sid:
@@ -876,10 +1127,27 @@ async def skill_build_workflow(
                 "id": f"e-{sid}-{target_id}",
                 "source": sid,
                 "target": target_id,
-                # 与 WebRPA 默认连线样式保持一致（流光虚线 smoothstep）
                 "type": "smoothstep",
                 "animated": True,
             })
+
+        # 4b) 显式分支边（branches 字典）
+        if has_branches:
+            for bkey, btarget_ref in branches.items():
+                if not btarget_ref:
+                    continue
+                btarget = _resolve_id(str(btarget_ref))
+                if not btarget or btarget == sid:
+                    continue
+                handle_id = _normalize_branch_handle(mtype, str(bkey))
+                edges.append({
+                    "id": f"e-{sid}-{handle_id}-{btarget}",
+                    "source": sid,
+                    "sourceHandle": handle_id,
+                    "target": btarget,
+                    "type": "smoothstep",
+                    "animated": True,
+                })
 
     # 5) 生成便签（智能排版）
     note_nodes: list[dict[str, Any]] = []
