@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronDown,
   Brain,
+  Plug,
 } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { marked } from 'marked'
@@ -134,7 +135,20 @@ const CLIENT_ACTION_LABELS: Record<string, string> = {
   show_toast: '显示提示',
 }
 
-function getToolLabel(tc: ToolCall): { label: string; sublabel?: string } {
+function getToolLabel(tc: ToolCall): { label: string; sublabel?: string; isMcp?: boolean; mcpServer?: string } {
+  // MCP 工具：命名空间 mcp__<server>__<tool>
+  if (tc.name.startsWith('mcp__')) {
+    const rest = tc.name.slice(5)  // 去掉 'mcp__'
+    const idx = rest.indexOf('__')
+    const server = idx >= 0 ? rest.slice(0, idx) : rest
+    const tool = idx >= 0 ? rest.slice(idx + 2) : ''
+    return {
+      label: `MCP·${server}`,
+      sublabel: tool || undefined,
+      isMcp: true,
+      mcpServer: server,
+    }
+  }
   const base = TOOL_NAME_LABELS[tc.name] || tc.name
   if (tc.name === 'client_action') {
     const action = (tc.arguments as any)?.action
@@ -184,7 +198,7 @@ function MarkdownContent({ content }: { content: string }) {
 
 function ToolCallCard({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false)
-  const { label, sublabel } = getToolLabel(tc)
+  const { label, sublabel, isMcp } = getToolLabel(tc)
 
   const styling = (() => {
     switch (tc.status) {
@@ -206,19 +220,23 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
         }
       case 'running':
         return {
-          border: 'border-l-[3px] border-l-[hsl(var(--brand-500))]',
-          chip: 'icon-chip icon-chip-brand',
-          status: 'badge-brand',
+          border: isMcp
+            ? 'border-l-[3px] border-l-violet-500'
+            : 'border-l-[3px] border-l-[hsl(var(--brand-500))]',
+          chip: isMcp ? 'icon-chip bg-violet-100 text-violet-700' : 'icon-chip icon-chip-brand',
+          status: isMcp ? 'badge-default bg-violet-100 text-violet-700' : 'badge-brand',
           el: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
-          dot: 'bg-[hsl(var(--brand-500))] animate-pulse',
+          dot: isMcp ? 'bg-violet-500 animate-pulse' : 'bg-[hsl(var(--brand-500))] animate-pulse',
         }
       default:
         return {
-          border: 'border-l-[3px] border-l-[hsl(var(--slate-300))]',
-          chip: 'icon-chip icon-chip-slate',
+          border: isMcp
+            ? 'border-l-[3px] border-l-violet-400'
+            : 'border-l-[3px] border-l-[hsl(var(--slate-300))]',
+          chip: isMcp ? 'icon-chip bg-violet-100 text-violet-700' : 'icon-chip icon-chip-slate',
           status: 'badge-default',
-          el: <Wrench className="w-3.5 h-3.5" />,
-          dot: 'bg-[hsl(var(--slate-400))]',
+          el: isMcp ? <Plug className="w-3.5 h-3.5" /> : <Wrench className="w-3.5 h-3.5" />,
+          dot: isMcp ? 'bg-violet-400' : 'bg-[hsl(var(--slate-400))]',
         }
     }
   })()
@@ -237,8 +255,13 @@ function ToolCallCard({ tc }: { tc: ToolCall }) {
       >
         <span className={styling.chip}>{styling.el}</span>
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="text-[12.5px] text-[hsl(var(--slate-800))] font-medium leading-tight truncate">
-            {label}
+          <div className="text-[12.5px] text-[hsl(var(--slate-800))] font-medium leading-tight truncate flex items-center gap-1.5">
+            {isMcp && (
+              <span className="text-[9px] font-bold tracking-wider px-1 py-px rounded bg-violet-100 text-violet-700 leading-none">
+                MCP
+              </span>
+            )}
+            <span className="truncate">{label}</span>
           </div>
           {sublabel && (
             <code className="font-mono text-[10.5px] text-[hsl(var(--muted-foreground))] truncate leading-tight mt-0.5">

@@ -414,41 +414,44 @@ function ServerEditModal({ name: initialName, server: initialServer, existingNam
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+        {/* Header（固定不滚动） */}
+        <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <h3 className="font-semibold text-gray-800">
             {isNew ? '添加 MCP 服务器' : `编辑：${initialName}`}
           </h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-lg leading-none">×</button>
         </div>
-        <div className="p-5 space-y-4">
+
+        {/* Body（中间区域滚动） */}
+        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
           <div>
-            <Label className="text-gray-700">服务器名称（唯一标识，不能含空格）</Label>
+            <Label className="text-gray-700 text-xs">服务器名称（唯一标识，不能含空格）</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value.replace(/\s/g, '-'))}
               placeholder="例如 filesystem / weather / github"
               disabled={!isNew}
-              className="bg-white text-black border-gray-300 mt-1"
+              className="bg-white text-black border-gray-300 mt-1 h-8 text-sm"
             />
             {nameConflict && <p className="text-xs text-red-600 mt-1">名称已存在</p>}
           </div>
           <div>
-            <Label className="text-gray-700">传输方式</Label>
+            <Label className="text-gray-700 text-xs">传输方式</Label>
             <div className="flex gap-2 mt-1">
               {(['stdio', 'sse', 'http'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTransport(t)}
-                  className={`px-3 py-1.5 text-sm rounded-md border ${transport === t ? 'border-violet-500 bg-violet-50 text-violet-700 font-medium' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-3 py-1 text-xs rounded-md border ${transport === t ? 'border-violet-500 bg-violet-50 text-violet-700 font-medium' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[11px] text-gray-500 mt-1">
               {transport === 'stdio' && '本地子进程（npx / node / python 等启动 MCP server）'}
               {transport === 'sse' && '远程 SSE 流（Server-Sent Events）'}
               {transport === 'http' && '远程 HTTP（Streamable HTTP）'}
@@ -458,83 +461,85 @@ function ServerEditModal({ name: initialName, server: initialServer, existingNam
           {transport === 'stdio' ? (
             <>
               <div>
-                <Label className="text-gray-700">启动命令 *</Label>
+                <Label className="text-gray-700 text-xs">启动命令 *</Label>
                 <Input
                   value={command}
                   onChange={(e) => setCommand(e.target.value)}
                   placeholder="例如 npx / node / python"
-                  className="bg-white text-black border-gray-300 mt-1 font-mono text-sm"
+                  className="bg-white text-black border-gray-300 mt-1 h-8 font-mono text-sm"
                 />
               </div>
               <div>
-                <Label className="text-gray-700">命令参数（每行一个）</Label>
+                <Label className="text-gray-700 text-xs">命令参数（每行一个）</Label>
                 <textarea
                   value={args}
                   onChange={(e) => setArgs(e.target.value)}
                   placeholder={'-y\n@modelcontextprotocol/server-filesystem\nD:\\Documents'}
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
+                  rows={3}
+                  className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
                 />
               </div>
               <div>
-                <Label className="text-gray-700">环境变量（KEY=VALUE，每行一个）</Label>
+                <Label className="text-gray-700 text-xs">环境变量（KEY=VALUE，每行一个）</Label>
                 <textarea
                   value={envText}
                   onChange={(e) => setEnvText(e.target.value)}
                   placeholder={'API_KEY=xxx\nDEBUG=1'}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
+                  rows={2}
+                  className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
                 />
               </div>
               <div>
-                <Label className="text-gray-700">工作目录（可选）</Label>
+                <Label className="text-gray-700 text-xs">工作目录（可选）</Label>
                 <Input
                   value={cwd}
                   onChange={(e) => setCwd(e.target.value)}
                   placeholder="留空使用 backend 当前目录"
-                  className="bg-white text-black border-gray-300 mt-1"
+                  className="bg-white text-black border-gray-300 mt-1 h-8 text-sm"
                 />
               </div>
             </>
           ) : (
             <>
               <div>
-                <Label className="text-gray-700">服务器 URL *</Label>
+                <Label className="text-gray-700 text-xs">服务器 URL *</Label>
                 <Input
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder={transport === 'sse' ? 'https://example.com/sse' : 'https://example.com/mcp'}
-                  className="bg-white text-black border-gray-300 mt-1 font-mono text-sm"
+                  className="bg-white text-black border-gray-300 mt-1 h-8 font-mono text-sm"
                 />
               </div>
               <div>
-                <Label className="text-gray-700">请求头（Key: Value，每行一个）</Label>
+                <Label className="text-gray-700 text-xs">请求头（Key: Value，每行一个）</Label>
                 <textarea
                   value={headersText}
                   onChange={(e) => setHeadersText(e.target.value)}
                   placeholder={'Authorization: Bearer xxx\nX-API-Key: yyy'}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
+                  rows={2}
+                  className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
                 />
               </div>
             </>
           )}
 
           <div>
-            <Label className="text-gray-700">自动批准的工具（可选，每行一个工具名）</Label>
+            <Label className="text-gray-700 text-xs">自动批准的工具（可选，每行一个工具名）</Label>
             <textarea
               value={autoApproveText}
               onChange={(e) => setAutoApproveText(e.target.value)}
               placeholder={'read_file\nlist_directory'}
               rows={2}
-              className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
+              className="w-full px-3 py-1.5 text-xs rounded-md border border-gray-300 bg-white text-black mt-1 font-mono"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[11px] text-gray-500 mt-1">
               这些工具调用时不会要求确认。其他工具默认需要确认。
             </p>
           </div>
         </div>
-        <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+
+        {/* Footer（固定不滚动） */}
+        <div className="px-5 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0 bg-white">
           <Button variant="outline" onClick={onClose}>取消</Button>
           <Button onClick={handleSave} disabled={!name.trim() || nameConflict || (transport === 'stdio' ? !command.trim() : !url.trim())}>
             保存
