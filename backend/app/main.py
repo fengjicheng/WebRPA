@@ -167,6 +167,16 @@ async def startup_event():
             print(f"[Startup] EasyOCR 模型预加载失败: {e}")
 
     asyncio.create_task(_preload_ocr())
+
+    # 后台初始化 MCP 服务器（用户配置的）
+    async def _init_mcp():
+        try:
+            from app.services.mcp_manager import init_mcp_at_startup
+            await init_mcp_at_startup()
+        except Exception as e:
+            print(f"[Startup] MCP 初始化失败: {e}")
+
+    asyncio.create_task(_init_mcp())
     
     # 启动剪贴板监听服务（用于检测用户截图）
     try:

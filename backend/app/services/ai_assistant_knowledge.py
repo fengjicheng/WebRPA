@@ -1849,6 +1849,70 @@ client_action(action="get_node_runtime_errors")  # 看哪些节点报错
 9. 全绿后再给用户报告
 """)
 
+    # ========== MCP（Model Context Protocol）能力章节 ==========
+    parts.append("""
+# 🔌 MCP（Model Context Protocol）扩展工具
+
+WebRPA 小助手内置完整的 MCP 客户端能力，**用户可以在「全局配置 → MCP」面板里挂载第三方 MCP 服务器**
+（标准协议，与 Claude Desktop / Kiro / VSCode 兼容），把任意外部工具接入到你这里。
+
+## 你能调用的 MCP 工具
+
+每当用户配置并连接成功一个 MCP 服务器，**所有该服务器暴露的工具都会自动注入到你的 skill registry**，
+命名空间格式为：
+
+```
+mcp__<服务器名>__<工具名>
+```
+
+例如：
+- 用户挂了官方 filesystem 服务器（名字叫 `fs`） → 你能调用 `mcp__fs__read_file`、`mcp__fs__list_directory` 等
+- 用户挂了 GitHub MCP 服务器（名字叫 `github`） → 你能调用 `mcp__github__create_issue`、`mcp__github__list_repos` 等
+- 用户挂了 SQLite 服务器（名字叫 `db`） → 你能调用 `mcp__db__query`、`mcp__db__list_tables` 等
+
+**这些 MCP 工具调用方式和普通 skill 完全一样**，直接 tool_calls 就行，参数严格按工具的 inputSchema 传。
+
+## 何时主动用 MCP 工具
+
+按以下优先级判断：
+1. **WebRPA 内置模块能解决** → 第一选择（可视化、能跑工作流）
+2. **WebRPA 没对应模块、但用户配了对应能力的 MCP 工具** → 主动用 MCP
+3. **都没有** → 用 `python_script` 兜底
+
+例如用户问"列出 D:\\Documents 下的文件"：
+- 如果用户没配 MCP → 用 `python_script(code="import os; return os.listdir('D:/Documents')")`
+- 如果用户配了 filesystem MCP → 直接调 `mcp__filesystem__list_directory(path="D:\\\\Documents")` 更专业
+
+## 怎么知道用户配了哪些 MCP 工具
+
+**不需要主动查**——所有已连接的 MCP 工具都已经在你的 tools 列表里了（描述中带 `[MCP·服务器名]` 前缀）。
+你只需要在 tools 列表里看有没有 `mcp__xxx__yyy` 形式的工具，有就能用。
+
+如果要主动告诉用户当前接入了哪些 MCP，可以让用户去「全局配置 → MCP」面板查看。
+
+## 用户问"怎么配置 MCP"时的标准答复
+
+引导用户：
+1. 点 WebRPA 编辑器右上角「全局配置」按钮
+2. 切到「MCP」标签页
+3. 点「添加」按钮
+4. 选择传输方式：
+   - **stdio**（最常用）：本地命令启动，如 `npx -y @modelcontextprotocol/server-filesystem D:\\Documents`
+   - **sse**：远程 SSE 流
+   - **http**：远程 Streamable HTTP
+5. 填好命令/URL/参数后保存，再点「重新连接」让配置生效
+6. 连接成功后该服务器的所有工具会自动注入到 AI 小助手
+
+官方 MCP 服务器列表：https://github.com/modelcontextprotocol/servers
+
+## ⚠️ MCP 工具的特点（注意事项）
+
+- **每个 MCP 工具都是用户主动挂载的第三方代码**，可能不稳定、参数不规范、网络偶发失败
+- 调用 MCP 工具失败时（返回 `{"error": "..."}` 或 `is_error=True`），先看错误信息再决定是重试还是换方案
+- MCP 工具的命名/描述/参数完全由第三方决定，不要硬编码假设——按实际 inputSchema 传参
+- 有些 MCP 工具可能跟内置 skill 重名（不同命名空间不冲突），优先级：内置 skill > MCP 工具
+""")
+
     if user_extra_prompt:
         parts.append("\n# 用户附加指令\n")
         parts.append(user_extra_prompt)

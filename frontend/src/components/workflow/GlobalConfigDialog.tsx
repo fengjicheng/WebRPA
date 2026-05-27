@@ -5,16 +5,17 @@ import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
-import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check } from 'lucide-react'
+import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug } from 'lucide-react'
 import { systemApi } from '@/services/api'
 import { getBackendBaseUrl } from '@/services/config'
+import { MCPConfigPanel } from './MCPConfigPanel'
 
 interface GlobalConfigDialogProps {
   isOpen: boolean
   onClose: () => void
 }
 
-type TabType = 'system' | 'ai' | 'aiAssistant' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu'
+type TabType = 'system' | 'ai' | 'aiAssistant' | 'mcp' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu'
 
 // 浏览器选项
 const browserOptions: { value: BrowserType; label: string; description: string }[] = [
@@ -98,6 +99,7 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
     { id: 'system',      label: '系统',     Icon: Settings,       accent: 'brand'   },
     { id: 'ai',          label: 'AI对话',   Icon: Brain,          accent: 'violet'  },
     { id: 'aiAssistant', label: '小助手',   Icon: Bot,            accent: 'brand'   },
+    { id: 'mcp',         label: 'MCP',      Icon: Plug,           accent: 'violet'  },
     { id: 'aiScraper',   label: 'AI智能',   Icon: Brain,          accent: 'violet'  },
     { id: 'email',       label: '邮件',     Icon: Mail,           accent: 'info'    },
     { id: 'workflow',    label: '存储',     Icon: Folder,         accent: 'warning' },
@@ -419,6 +421,12 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                   </div>
                 </div>
               </div>
+            </>
+          )}
+
+          {activeTab === 'mcp' && (
+            <>
+              <MCPConfigPanel />
             </>
           )}
 

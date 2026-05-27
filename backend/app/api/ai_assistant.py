@@ -173,3 +173,53 @@ async def api_add_memory(req: AddMemoryRequest):
 async def api_delete_memory(memory_id: str):
     from app.services.ai_assistant_skills import skill_forget
     return await skill_forget(memory_id=memory_id)
+
+
+# ============================================================
+# MCP（Model Context Protocol）相关 API
+# ============================================================
+
+class MCPConfigPayload(BaseModel):
+    config: dict  # {"mcpServers": {...}}
+
+
+@router.get("/mcp/config")
+async def api_get_mcp_config():
+    """读取当前 MCP 配置（mcpServers JSON）"""
+    from app.services.mcp_manager import load_mcp_config
+    return load_mcp_config()
+
+
+@router.put("/mcp/config")
+async def api_save_mcp_config(req: MCPConfigPayload):
+    """覆盖保存 MCP 配置（不会自动重连，需要再调 /mcp/reload）"""
+    from app.services.mcp_manager import save_mcp_config
+    if not isinstance(req.config, dict):
+        raise HTTPException(400, "config 必须是 JSON 对象")
+    if "mcpServers" not in req.config:
+        # 兼容用户直接传 {"server-name": {...}, ...}
+        req.config = {"mcpServers": req.config}
+    save_mcp_config(req.config)
+    return {"success": True, "saved": True}
+
+
+@router.post("/mcp/reload")
+async def api_reload_mcp():
+    """根据当前配置重新连接所有 MCP 服务器（保存配置后调一次让改动生效）"""
+    from app.services.mcp_manager import mcp_manager
+    return await mcp_manager.reload()
+
+
+@router.get("/mcp/status")
+async def api_mcp_status():
+    """查看所有 MCP 服务器的连接状态、工具列表"""
+    from app.services.mcp_manager import mcp_manager
+    return mcp_manager.status()
+
+
+@router.post("/mcp/disconnect-all")
+async def api_mcp_disconnect_all():
+    """断开所有 MCP 服务器（用于排错或临时禁用）"""
+    from app.services.mcp_manager import mcp_manager
+    await mcp_manager.shutdown_all()
+    return {"success": True, "disconnected": True}
