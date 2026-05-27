@@ -384,7 +384,7 @@ export const useGlobalConfigStore = create<GlobalConfigState>()(
           config: {
             ...defaultConfig,
             ...persisted?.config,
-            system: persisted?.config?.system || defaultConfig.system,
+            system: { ...defaultConfig.system, ...persisted?.config?.system },
             aiScraper: persisted?.config?.aiScraper || defaultConfig.aiScraper,
             aiAssistant: persisted?.config?.aiAssistant || defaultConfig.aiAssistant,
             workflow: persisted?.config?.workflow || defaultConfig.workflow,
