@@ -457,7 +457,7 @@ function ServerEditModal({ name: initialName, server: initialServer, template, e
     >
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
-        style={{ maxHeight: 'calc(100vh - 7rem)' }}
+        style={{ maxHeight: 'min(calc(100vh - 7rem), 620px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header（固定不滚动） */}
