@@ -180,7 +180,7 @@ export function MCPConfigPanel() {
             支持 <code className="px-1 bg-violet-100 rounded">stdio</code>（本地命令）、
             <code className="px-1 bg-violet-100 rounded mx-0.5">sse</code> 和
             <code className="px-1 bg-violet-100 rounded ml-0.5">http</code>（远程服务）。
-            配置格式与 Claude Desktop / Kiro 兼容。
+            配置格式与 Claude Desktop 兼容。
             <a
               className="ml-2 text-violet-700 underline inline-flex items-center gap-0.5"
               href="https://github.com/modelcontextprotocol/servers"

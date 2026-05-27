@@ -38,7 +38,7 @@ def _config_path() -> Path:
 
 
 def load_mcp_config() -> dict:
-    """读取 MCP 配置（标准 mcpServers JSON 格式，与 Claude Desktop / Kiro 兼容）。
+    """读取 MCP 配置（标准 mcpServers JSON 格式，与 Claude Desktop 兼容）。
 
     格式示例：
     {
