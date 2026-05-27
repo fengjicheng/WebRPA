@@ -31,6 +31,8 @@ from app.services.ai_assistant_skills import execute_skill, registry as skill_re
 import app.services.ai_assistant_skills_v2  # noqa: F401  # side-effect: 注册新 skill
 # v3 新增 skill：系统控制 / 一次性延时 / 自学习 / 教训 / 用户画像（对标 Hermes Agent）
 import app.services.ai_assistant_skills_v3  # noqa: F401  # side-effect: 注册新 skill
+# v4 新增 skill：超级增强通用能力（HTTP / 文件 / Excel / 二维码 / 时间 / 系统 / 正则等共 28 个）
+import app.services.ai_assistant_skills_v4  # noqa: F401  # side-effect: 注册新 skill
 
 
 # ---------- 持久化 ----------
@@ -908,42 +910,61 @@ async def chat_once(
                         # 真正执行在前端。这里同步等前端通过 socket 回传执行结果，
                         # 让 LLM 看到的是真实结果，避免「AI 说做了实际没做」。
                         if tc.name == "client_action":
-                            fut: asyncio.Future = asyncio.get_running_loop().create_future()
-                            _client_action_waiters[tc.id] = fut
+                            # 先快速检查前端是否在线，避免每个失败请求干等 30 秒
                             try:
-                                # 通知前端立即执行（给 socket 派发更明确的事件）
-                                if on_event:
-                                    try:
-                                        await _maybe_await(on_event(
-                                            "client_action_request",
-                                            {
-                                                "tool_call_id": tc.id,
-                                                "action": (tc.arguments or {}).get("action"),
-                                                "payload": (tc.arguments or {}).get("payload") or {},
-                                            },
-                                        ))
-                                    except Exception:
-                                        pass
-                                # 最多等 30 秒
-                                front_result = await asyncio.wait_for(fut, timeout=30)
-                                # front_result 是 {success, message?, error?, data?}
-                                if front_result.get("success"):
-                                    exec_result = {"success": True, "result": {
-                                        "applied": True,
-                                        "action": (tc.arguments or {}).get("action"),
-                                        "message": front_result.get("message", ""),
-                                        "data": front_result.get("data"),
-                                    }}
-                                else:
-                                    exec_result = {
-                                        "error": front_result.get("error") or "前端执行失败",
-                                    }
-                            except asyncio.TimeoutError:
-                                exec_result = {"error": "前端执行超时（30 秒），请检查 WebRPA 浏览器编辑器是否打开"}
-                            except Exception as ex:
-                                exec_result = {"error": f"前端通信异常：{ex}"}
-                            finally:
+                                from app.main import sio as _sio
+                                # default 命名空间下当前连接数（== 编辑器是否打开）
+                                _conns = list(_sio.manager.get_participants('/', None))
+                                _front_online = len(_conns) > 0
+                            except Exception:
+                                _front_online = True  # 检测失败时按在线处理（保守）
+
+                            if not _front_online:
+                                exec_result = {
+                                    "error": (
+                                        "WebRPA 浏览器编辑器未打开（前端 socket 无连接）。"
+                                        "请先点启动器中的「打开 WebRPA 编辑器」按钮，"
+                                        "或在浏览器访问 http://localhost:5173 打开编辑器，再让我重试。"
+                                    )
+                                }
                                 _client_action_waiters.pop(tc.id, None)
+                            else:
+                                fut: asyncio.Future = asyncio.get_running_loop().create_future()
+                                _client_action_waiters[tc.id] = fut
+                                try:
+                                    # 通知前端立即执行（给 socket 派发更明确的事件）
+                                    if on_event:
+                                        try:
+                                            await _maybe_await(on_event(
+                                                "client_action_request",
+                                                {
+                                                    "tool_call_id": tc.id,
+                                                    "action": (tc.arguments or {}).get("action"),
+                                                    "payload": (tc.arguments or {}).get("payload") or {},
+                                                },
+                                            ))
+                                        except Exception:
+                                            pass
+                                    # 最多等 30 秒
+                                    front_result = await asyncio.wait_for(fut, timeout=30)
+                                    # front_result 是 {success, message?, error?, data?}
+                                    if front_result.get("success"):
+                                        exec_result = {"success": True, "result": {
+                                            "applied": True,
+                                            "action": (tc.arguments or {}).get("action"),
+                                            "message": front_result.get("message", ""),
+                                            "data": front_result.get("data"),
+                                        }}
+                                    else:
+                                        exec_result = {
+                                            "error": front_result.get("error") or "前端执行失败",
+                                        }
+                                except asyncio.TimeoutError:
+                                    exec_result = {"error": "前端执行超时（30 秒），请检查 WebRPA 浏览器编辑器是否打开"}
+                                except Exception as ex:
+                                    exec_result = {"error": f"前端通信异常：{ex}"}
+                                finally:
+                                    _client_action_waiters.pop(tc.id, None)
                         else:
                             exec_result = await execute_skill(tc.name, tc.arguments)
                     except Exception as ex:

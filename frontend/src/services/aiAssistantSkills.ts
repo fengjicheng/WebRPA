@@ -920,6 +920,34 @@ export async function executeClientAction(
       // ============================================================
       // 数据表格底栏 - 行/列/单元格细粒度操作
       // ============================================================
+      case 'set_collected_data': {
+        // 一次性替换整张表（payload.rows 是数组）—— AI 批量场景首选,避免循环调 add_data_row
+        const rows = (payload.rows as Array<Record<string, unknown>>) || []
+        if (!Array.isArray(rows)) return { success: false, error: 'rows 必须是数组' }
+        useWorkflowStore.getState().setCollectedData(rows as any)
+        return { success: true, message: `已设置 ${rows.length} 行数据`, data: { rowCount: rows.length } }
+      }
+
+      case 'add_data_rows': {
+        // 批量追加多行（payload.rows 是数组）—— 比循环 add_data_row 快 N 倍
+        const rows = (payload.rows as Array<Record<string, unknown>>) || []
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return { success: false, error: 'rows 必须是非空数组' }
+        }
+        const s = useWorkflowStore.getState()
+        // 用现有列名补齐空字符串
+        if (s.collectedData.length > 0) {
+          const cols = Object.keys(s.collectedData[0])
+          for (const r of rows) for (const c of cols) if (!(c in r)) (r as any)[c] = ''
+        }
+        s.addDataRows(rows as any)
+        return {
+          success: true,
+          message: `已批量添加 ${rows.length} 行`,
+          data: { totalRows: s.collectedData.length + rows.length },
+        }
+      }
+
       case 'add_data_row': {
         // 添加一行：payload.row 是 {col1: val1, col2: val2, ...} 字典；不传则添加空行
         const row = (payload.row as Record<string, unknown>) || {}
