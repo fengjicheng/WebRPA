@@ -34,12 +34,12 @@ def load_config() -> dict:
     _config_cache = {
         'backend': {
             'host': '0.0.0.0',
-            'port': 8000,
+            'port': 5241,
             'reload': False
         },
         'frontend': {
             'host': '0.0.0.0',
-            'port': 5173
+            'port': 5921
         }
     }
     return _config_cache
@@ -50,7 +50,7 @@ def get_backend_config() -> dict:
     config = load_config()
     return config.get('backend', {
         'host': '0.0.0.0',
-        'port': 8000,
+        'port': 5241,
         'reload': False
     })
 
@@ -58,7 +58,7 @@ def get_backend_config() -> dict:
 def get_backend_port() -> int:
     """获取后端端口"""
     config = get_backend_config()
-    return config.get('port', 8000)
+    return config.get('port', 5241)
 
 
 def get_backend_url(use_localhost: bool = True) -> str:
@@ -70,10 +70,10 @@ def get_backend_url(use_localhost: bool = True) -> str:
                       False 时使用 0.0.0.0 或配置的 host
     
     Returns:
-        后端基础 URL，如 http://localhost:8000
+        后端基础 URL，如 http://localhost:5241
     """
     config = get_backend_config()
-    port = config.get('port', 8000)
+    port = config.get('port', 5241)
     
     if use_localhost:
         return f"http://localhost:{port}"

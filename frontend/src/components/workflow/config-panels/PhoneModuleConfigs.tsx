@@ -14,7 +14,7 @@ import { RefreshCw } from 'lucide-react'
 
 // 获取后端URL的辅助函数
 const getBackendUrl = () => {
-  const port = sessionStorage.getItem('backendPort') || '8000'
+  const port = sessionStorage.getItem('backendPort') || '5241'
   return `http://localhost:${port}`
 }
 

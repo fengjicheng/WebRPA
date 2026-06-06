@@ -24,7 +24,7 @@ def load_config():
     # 返回默认配置
     return {
         'host': '0.0.0.0',
-        'port': 8000,
+        'port': 5241,
         'reload': False
     }
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     # 加载配置
     config = load_config()
     host = config.get('host', '0.0.0.0')
-    port = config.get('port', 8000)
+    port = config.get('port', 5241)
     reload = config.get('reload', False)
     
     print(f"[Config] 后端服务配置: host={host}, port={port}, reload={reload}")

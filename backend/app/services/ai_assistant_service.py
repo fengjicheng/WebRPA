@@ -932,7 +932,7 @@ async def chat_once(
                                     "error": (
                                         "WebRPA 浏览器编辑器未打开（前端 socket 无连接）。"
                                         "请先点启动器中的「打开 WebRPA 编辑器」按钮，"
-                                        "或在浏览器访问 http://localhost:5173 打开编辑器，再让我重试。"
+                                        "或在浏览器访问 http://localhost:5921 打开编辑器，再让我重试。"
                                     )
                                 }
                                 _client_action_waiters.pop(tc.id, None)

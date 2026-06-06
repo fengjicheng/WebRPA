@@ -58,7 +58,7 @@ async function loadConfigFromFile(): Promise<void> {
   }
   
   // 如果都失败了，使用默认端口
-  cachedBackendPort = '8000'
+  cachedBackendPort = '5241'
   console.log('[Config] 使用默认端口:', cachedBackendPort)
 }
 
@@ -75,7 +75,7 @@ export function getBackendBaseUrl(): string {
   
   // 如果还没有缓存，使用默认值
   // 注意：这里不再触发异步加载，因为应该在App初始化时就已经加载了
-  const backendPort = cachedBackendPort || '8000'
+  const backendPort = cachedBackendPort || '5241'
   
   console.log('[Config] getBackendBaseUrl 被调用 | cachedBackendPort:', cachedBackendPort, '| 使用端口:', backendPort)
   
@@ -89,12 +89,12 @@ export function getBackendBaseUrl(): string {
 
 // 获取后端端口号
 export function getBackendPort(): string {
-  return cachedBackendPort || '8000'
+  return cachedBackendPort || '5241'
 }
 
 // 获取前端端口号
 export function getFrontendPort(): string {
-  return window.location.port || '5173'
+  return window.location.port || '5921'
 }
 
 // 设置后端端口号

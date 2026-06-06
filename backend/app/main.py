@@ -145,8 +145,8 @@ async def get_config():
     
     # 返回默认配置
     return {
-        "backend": {"host": "0.0.0.0", "port": 8000, "reload": False},
-        "frontend": {"host": "0.0.0.0", "port": 5173},
+        "backend": {"host": "0.0.0.0", "port": 5241, "reload": False},
+        "frontend": {"host": "0.0.0.0", "port": 5921},
         "frameworkHub": {"host": "0.0.0.0", "port": 3000}
     }
 
@@ -321,7 +321,7 @@ async def startup_event():
                     
                     # 读取配置文件获取前端端口
                     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'WebRPAConfig.json')
-                    frontend_port = 5173
+                    frontend_port = 5921
                     frontend_host = 'localhost'
                     
                     if os.path.exists(config_path):
@@ -329,7 +329,7 @@ async def startup_event():
                             # 使用全局导入的json
                             config = json.load(f)
                             frontend_conf = config.get('frontend', {})
-                            frontend_port = frontend_conf.get('port', 5173)
+                            frontend_port = frontend_conf.get('port', 5921)
                             # 如果host是0.0.0.0，使用localhost
                             host = frontend_conf.get('host', 'localhost')
                             frontend_host = 'localhost' if host == '0.0.0.0' else host
