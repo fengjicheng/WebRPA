@@ -15,6 +15,8 @@ import { dataAssetApi, imageAssetApi, updateApiBase } from '@/services/api'
 import { preloadConfig } from '@/services/config'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { useAIAssistantStore } from '@/store/aiAssistantStore'
+import { useLayoutStore } from '@/store/layoutStore'
 import {
   CURRENT_VERSION,
   fetchLatestVersion,
@@ -30,6 +32,10 @@ function App() {
   const setDataAssets = useWorkflowStore((state) => state.setDataAssets)
   const setImageAssets = useWorkflowStore((state) => state.setImageAssets)
   const globalConfig = useGlobalConfigStore((state) => state.config)
+
+  // AI 助手面板打开时，编辑器整体左移，避免遮挡右侧配置面板
+  const aiPanelOpen = useAIAssistantStore((s) => s.isPanelOpen)
+  const aiPanelWidth = useLayoutStore((s) => s.aiAssistantWidth)
   
   const [updateInfo, setUpdateInfo] = useState<{
     show: boolean
@@ -233,9 +239,17 @@ function App() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background">
-      <WorkflowErrorBoundary>
-        <WorkflowEditor />
-      </WorkflowErrorBoundary>
+      <div
+        className="h-full w-full"
+        style={{
+          paddingRight: aiPanelOpen ? aiPanelWidth : 0,
+          transition: 'padding-right 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+        }}
+      >
+        <WorkflowErrorBoundary>
+          <WorkflowEditor />
+        </WorkflowErrorBoundary>
+      </div>
       <InputPromptDialog />
       <MusicPlayerContainer />
       <VideoPlayerContainer />
