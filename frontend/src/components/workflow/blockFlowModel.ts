@@ -257,3 +257,35 @@ export function moveBlock(blocks: Block[], id: string, dir: -1 | 1): Block[] {
   loc.list[j] = tmp
   return [...blocks]
 }
+
+/** 收集一个块（含其分支/循环体）内的所有 block id */
+function subtreeIds(b: Block, acc: Set<string>) {
+  acc.add(b.id)
+  if (b.kind === 'if') { b.then.forEach((x) => subtreeIds(x, acc)); b.els.forEach((x) => subtreeIds(x, acc)) }
+  else if (b.kind === 'loop') { b.body.forEach((x) => subtreeIds(x, acc)) }
+}
+
+/**
+ * 把已存在的块（含子结构）移动到目标位置。
+ * target: { mode:'after', id } 移到某块之后（id 为 null 移到顶层末尾）；
+ *         { mode:'into', id, slot } 移入某容器分支/循环体末尾。
+ * 防护：不允许移入自身子树（否则会丢失结构）。
+ */
+export function moveBlockTo(
+  blocks: Block[],
+  id: string,
+  target: { mode: 'after'; id: string | null } | { mode: 'into'; id: string; slot: 'then' | 'els' | 'body' },
+): Block[] {
+  const moving = findBlock(blocks, id)
+  if (!moving) return blocks
+  // 目标不能是被移动块本身或其子孙
+  const ids = new Set<string>()
+  subtreeIds(moving, ids)
+  const targetId = target.mode === 'after' ? target.id : target.id
+  if (targetId && ids.has(targetId)) return blocks
+  // 先摘除
+  const removed = removeBlock(blocks, id)
+  // 再插入到目标
+  if (target.mode === 'after') return insertAfter(removed, target.id, moving)
+  return insertIntoContainer(removed, target.id, target.slot, moving)
+}

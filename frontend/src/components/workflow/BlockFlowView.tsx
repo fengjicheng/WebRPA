@@ -13,7 +13,7 @@ import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, CornerDownRight } from
 import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
-  insertAfter, insertIntoContainer, removeBlock, moveBlock,
+  insertAfter, insertIntoContainer, removeBlock, moveBlock, moveBlockTo,
   CONDITION_TYPES, LOOP_TYPES, type Block,
 } from './blockFlowModel'
 
@@ -126,8 +126,15 @@ export function BlockFlowView() {
   const handleDelete = (id: string) => applyEdit((tree) => removeBlock(tree, id))
   const handleMove = (id: string, dir: -1 | 1) => applyEdit((tree) => moveBlock(tree, id, dir))
 
-  // 投放到指定插入点（分支内/循环体内/任意位置都可）
+  // 投放到指定插入点（分支内/循环体内/任意位置都可）；支持新建模块 或 移动已有块
   const handleDropAt = (e: React.DragEvent, target: PickerTarget) => {
+    const moveId = e.dataTransfer.getData('application/blockmove')
+    if (moveId) {
+      e.preventDefault()
+      e.stopPropagation()
+      applyEdit((tree) => moveBlockTo(tree, moveId, target))
+      return
+    }
     const p = parseDrag(e.dataTransfer.getData('application/reactflow'))
     if (!p) return
     e.preventDefault()
@@ -135,10 +142,16 @@ export function BlockFlowView() {
     insertAt(target, p.type, p.extra)
   }
 
-  // 从左侧拖模块到空白处：追加到顶层末尾
+  // 从左侧拖模块到空白处：追加到顶层末尾；拖动已有块到空白处：移到末尾
   const handleCanvasDrop = (e: React.DragEvent) => {
-    const p = parseDrag(e.dataTransfer.getData('application/reactflow'))
     setDropActive(false)
+    const moveId = e.dataTransfer.getData('application/blockmove')
+    if (moveId) {
+      e.preventDefault()
+      applyEdit((tree) => moveBlockTo(tree, moveId, { mode: 'after', id: null }))
+      return
+    }
+    const p = parseDrag(e.dataTransfer.getData('application/reactflow'))
     if (!p) return
     e.preventDefault()
     insertAt({ mode: 'after', id: null }, p.type, p.extra)
@@ -153,7 +166,7 @@ export function BlockFlowView() {
     return (
       <div className="relative">
         <div
-          onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
+          onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
           onDragLeave={() => setOver(false)}
           onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
           className={over ? 'rounded-[7px] ring-2 ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : ''}
@@ -187,9 +200,11 @@ export function BlockFlowView() {
     const selected = node.id === selectedNodeId
     return (
       <div
+        draggable
+        onDragStart={(e) => { e.dataTransfer.setData('application/blockmove', block.id); e.dataTransfer.effectAllowed = 'move' }}
         onClick={() => selectNode(node.id)}
         className={
-          'group relative flex items-center gap-2.5 rounded-[10px] border-l-4 bg-[hsl(var(--card))] px-3 py-2.5 cursor-pointer ' +
+          'group relative flex items-center gap-2.5 rounded-[10px] border-l-4 bg-[hsl(var(--card))] px-3 py-2.5 cursor-grab active:cursor-grabbing ' +
           'shadow-soft transition-all duration-150 hover:shadow-pop ' + borderClass + ' ' +
           (selected ? 'ring-2 ring-[hsl(var(--brand-500))]' : '')
         }
@@ -251,7 +266,7 @@ export function BlockFlowView() {
   return (
     <div
       className={'h-full w-full overflow-y-auto bg-[hsl(var(--background))] py-6 px-4 ' + (dropActive ? 'ring-2 ring-inset ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : '')}
-      onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow')) { e.preventDefault(); setDropActive(true) } }}
+      onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); setDropActive(true) } }}
       onDragLeave={() => setDropActive(false)}
       onDrop={handleCanvasDrop}
     >
