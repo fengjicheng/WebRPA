@@ -150,6 +150,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     }
   }, [filteredLogs, activeTab])
 
+  // 数据预览展示控制：条数 + 顶部/底部（声明需早于使用它们的 useMemo）
+  const [dataDisplayLimit, setDataDisplayLimit] = useState(20)
+  const [dataDisplayMode, setDataDisplayMode] = useState<'tail' | 'head'>('tail')
+
   // 获取所有列名
   const columns = Array.from(
     new Set(collectedData.flatMap(row => Object.keys(row)))
@@ -251,10 +255,6 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }, [workflowName])
-
-  // 数据预览展示控制：条数 + 顶部/底部
-  const [dataDisplayLimit, setDataDisplayLimit] = useState(20)
-  const [dataDisplayMode, setDataDisplayMode] = useState<'tail' | 'head'>('tail')
 
   // 智能下载：永远优先后端完整数据；本地预览数据仅最后兜底
   const [downloading, setDownloading] = useState(false)
