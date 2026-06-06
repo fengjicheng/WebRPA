@@ -3,6 +3,7 @@ import { VariableInput } from '@/components/ui/variable-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { NumberInput } from '@/components/ui/number-input'
 import { Textarea } from '@/components/ui/textarea'
+import { PathInput } from '@/components/ui/path-input'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useEffect } from 'react'
 import type { NodeData } from '@/store/workflowStore'
@@ -180,7 +181,8 @@ export function SSHUploadFileConfig({ data, onChange }: ConfigProps) {
 
       <div className="space-y-2">
         <Label>本地文件路径</Label>
-        <VariableInput
+        <PathInput
+          type="file"
           value={(data.localPath as string) || ''}
           onChange={(v) => onChange('localPath', v)}
           placeholder="C:/data/file.txt"
@@ -223,7 +225,8 @@ export function SSHDownloadFileConfig({ data, onChange }: ConfigProps) {
 
       <div className="space-y-2">
         <Label>本地文件路径</Label>
-        <VariableInput
+        <PathInput
+          type="file"
           value={(data.localPath as string) || ''}
           onChange={(v) => onChange('localPath', v)}
           placeholder="C:/data/file.txt"
