@@ -33,6 +33,41 @@ const selectFile = async (updateConfig: (key: string, value: unknown) => void, k
   }
 }
 
+// 选择保存文件夹的辅助函数（用于输出路径，让用户可视化选择保存目录）
+const selectSaveFolder = async (updateConfig: (key: string, value: unknown) => void, key: string) => {
+  try {
+    const result = await systemApi.selectFolder('选择保存文件夹')
+    const inner = result.data as any
+    if (inner?.success && inner?.path) {
+      updateConfig(key, inner.path)
+    }
+  } catch (error) {
+    console.error('选择文件夹失败:', error)
+  }
+}
+
+/** 输出路径输入框：VariableInput + 文件夹选择按钮（统一样式） */
+function OutputPathField({
+  config,
+  updateConfig,
+  fieldKey = 'outputPath',
+  placeholder = '留空则自动生成',
+}: ConfigProps & { fieldKey?: string; placeholder?: string }) {
+  return (
+    <div className="flex gap-2">
+      <VariableInput
+        value={String(config[fieldKey] || '')}
+        onChange={(v) => updateConfig(fieldKey, v)}
+        placeholder={placeholder}
+        className="flex-1"
+      />
+      <Button type="button" variant="tonal-warning" size="icon" title="选择保存文件夹" onClick={() => selectSaveFolder(updateConfig, fieldKey)}>
+        <FolderOpen className="w-4 h-4" />
+      </Button>
+    </div>
+  )
+}
+
 // Markdown转HTML配置
 export function MarkdownToHTMLConfig({ config, updateConfig }: ConfigProps) {
   return (
@@ -53,11 +88,7 @@ export function MarkdownToHTMLConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出HTML文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -113,11 +144,7 @@ export function HTMLToMarkdownConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出Markdown文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -159,11 +186,7 @@ export function MarkdownToPDFConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出PDF文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>PDF引擎</Label>
@@ -206,11 +229,7 @@ export function MarkdownToDocxConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出Word文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>参考文档（样式模板，可选）</Label>
@@ -258,11 +277,7 @@ export function DocxToMarkdownConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出Markdown文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -304,11 +319,7 @@ export function HTMLToDocxConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出Word文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>结果变量名</Label>
@@ -342,11 +353,7 @@ export function DocxToHTMLConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出HTML文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -388,11 +395,7 @@ export function MarkdownToEPUBConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出EPUB文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>书名（可选）</Label>
@@ -450,11 +453,7 @@ export function EPUBToMarkdownConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出Markdown文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>结果变量名</Label>
@@ -488,11 +487,7 @@ export function LaTeXToPDFConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出PDF文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="space-y-2">
         <Label>PDF引擎</Label>
@@ -534,11 +529,7 @@ export function RSTToHTMLConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出HTML文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -580,11 +571,7 @@ export function OrgToHTMLConfig({ config, updateConfig }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>输出HTML文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
@@ -626,11 +613,7 @@ export function UniversalDocConvertConfig({ config, updateConfig }: ConfigProps)
       </div>
       <div className="space-y-2">
         <Label>输出文件（可选）</Label>
-        <VariableInput
-          value={String(config.outputPath || '')}
-          onChange={(v) => updateConfig('outputPath', v)}
-          placeholder="留空则自动生成"
-        />
+        <OutputPathField config={config} updateConfig={updateConfig} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
