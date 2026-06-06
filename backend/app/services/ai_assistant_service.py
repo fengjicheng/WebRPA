@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -127,17 +128,25 @@ class LLMError(Exception):
 
 
 def _normalize_api_url(api_url: str) -> str:
-    """把可能不带 chat/completions 的 base URL 补全"""
+    """把可能不带 chat/completions 的 base URL 补全为完整 endpoint。
+
+    覆盖场景：
+    - 已是完整 endpoint（.../chat/completions）→ 原样返回
+    - 以版本号段结尾（/v1 /v2 /v4 /v1beta /api/paas/v4 等）→ 追加 /chat/completions
+    - 裸域名或其它基础地址（https://api.deepseek.com）→ 追加 /v1/chat/completions
+    """
     url = (api_url or "").strip()
     if not url:
         raise LLMError("API 地址不能为空")
-    # 用户给的是 https://api.openai.com/v1 这种基础地址时，自动补
-    if not url.endswith("/chat/completions"):
-        if url.endswith("/v1") or url.endswith("/v1/"):
-            url = url.rstrip("/") + "/chat/completions"
-        elif url.endswith("/api/paas/v4") or url.endswith("/api/paas/v4/"):
-            url = url.rstrip("/") + "/chat/completions"
-    return url
+    url = url.rstrip("/")
+    # 已经是完整 endpoint
+    if url.endswith("/chat/completions"):
+        return url
+    # 以版本号段结尾：/v1 /v2 /v3 /v4 /v1beta，或智谱的 /api/paas/v4
+    if re.search(r"/v\d+[a-z]*$", url) or url.endswith("/api/paas/v4"):
+        return url + "/chat/completions"
+    # 裸域名或其它基础地址，按 OpenAI 兼容惯例补 /v1/chat/completions
+    return url + "/v1/chat/completions"
 
 
 def _convert_message_for_llm(msg: ChatMessage) -> dict[str, Any]:

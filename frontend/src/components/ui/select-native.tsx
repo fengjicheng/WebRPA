@@ -35,6 +35,10 @@ interface ParsedOption {
   group?: string
 }
 
+// Radix Select 不允许 Item 的 value 为空字符串，用哨兵值在内部替代，
+// 对外 API 仍然保持空字符串语义。
+const EMPTY_SENTINEL = '__webrpa_empty__'
+
 function flattenOptions(children: React.ReactNode): ParsedOption[] {
   const out: ParsedOption[] = []
   React.Children.forEach(children, (node) => {
@@ -99,13 +103,18 @@ const SelectNative = React.forwardRef<HTMLButtonElement, SelectProps>(
     const current = isControlled ? String(value) : internal
 
     const handleChange = (next: string) => {
-      if (!isControlled) setInternal(next)
-      onChange?.({ target: { value: next } })
+      // 把哨兵值还原成空字符串再对外暴露
+      const realNext = next === EMPTY_SENTINEL ? '' : next
+      if (!isControlled) setInternal(realNext)
+      onChange?.({ target: { value: realNext } })
     }
 
     // 计算当前显示文本
     const currentOption = options.find((o) => o.value === current)
     const displayLabel = currentOption?.label ?? placeholder ?? ''
+
+    // Radix 用的当前值：空字符串映射为哨兵值
+    const radixCurrent = current === '' ? EMPTY_SENTINEL : current
 
     // 分组渲染
     const groups = React.useMemo(() => {
@@ -120,7 +129,7 @@ const SelectNative = React.forwardRef<HTMLButtonElement, SelectProps>(
 
     return (
       <SelectPrimitive.Root
-        value={current}
+        value={radixCurrent}
         onValueChange={handleChange}
         disabled={disabled}
       >
@@ -186,7 +195,7 @@ const SelectNative = React.forwardRef<HTMLButtonElement, SelectProps>(
                   {opts.map((opt) => (
                     <SelectPrimitive.Item
                       key={opt.value}
-                      value={opt.value}
+                      value={opt.value === '' ? EMPTY_SENTINEL : opt.value}
                       disabled={opt.disabled}
                       className={cn(
                         'relative flex select-none items-center gap-2 rounded-[6px] py-1.5 pl-7 pr-2.5',
