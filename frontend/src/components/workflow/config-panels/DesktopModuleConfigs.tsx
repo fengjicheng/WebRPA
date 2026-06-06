@@ -2,6 +2,7 @@
 import { Input } from '@/components/ui/input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableInput } from '@/components/ui/variable-input'
+import { WindowTitleInput } from '@/components/ui/window-title-input'
 import type { NodeData } from '@/store/workflowStore'
 import type React from 'react'
 import { AlertCircle } from 'lucide-react'
@@ -109,11 +110,19 @@ export function DesktopAppConnectConfig({ data, onChange }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="connectValue">连接值</Label>
-        <VariableInput
-          value={(data.connectValue as string) || ''}
-          onChange={(v) => onChange('connectValue', v)}
-          placeholder="例如: 记事本"
-        />
+        {((data.connectType as string) || 'title') === 'title' ? (
+          <WindowTitleInput
+            value={(data.connectValue as string) || ''}
+            onChange={(v) => onChange('connectValue', v)}
+            placeholder="例如: 记事本（可点右侧按钮选择窗口）"
+          />
+        ) : (
+          <VariableInput
+            value={(data.connectValue as string) || ''}
+            onChange={(v) => onChange('connectValue', v)}
+            placeholder="例如: 记事本"
+          />
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="backend">后端类型</Label>
@@ -1053,7 +1062,7 @@ export function DesktopHotkeyConfig({ data, onChange }: ConfigProps) {
       </div>
       <div>
         <Label>目标窗口标题（可选）</Label>
-        <VariableInput
+        <WindowTitleInput
           value={(data.targetWindow as string) || ''}
           onChange={(v) => onChange('targetWindow', v)}
           placeholder="留空则发到当前活动窗口"
