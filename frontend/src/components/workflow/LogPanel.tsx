@@ -155,6 +155,22 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     new Set(collectedData.flatMap(row => Object.keys(row)))
   )
 
+  // 按展示条数 + 顶部/底部 截取要预览的数据（0 表示全部）
+  const displayedData = useMemo(() => {
+    if (dataDisplayLimit <= 0 || collectedData.length <= dataDisplayLimit) {
+      return collectedData
+    }
+    return dataDisplayMode === 'head'
+      ? collectedData.slice(0, dataDisplayLimit)
+      : collectedData.slice(-dataDisplayLimit)
+  }, [collectedData, dataDisplayLimit, dataDisplayMode])
+
+  // 展示数据相对原始数据的行偏移（用于编辑/删除时换算回真实索引）
+  const displayedRowOffset = useMemo(() => {
+    if (dataDisplayLimit <= 0 || collectedData.length <= dataDisplayLimit) return 0
+    return dataDisplayMode === 'head' ? 0 : collectedData.length - dataDisplayLimit
+  }, [collectedData.length, dataDisplayLimit, dataDisplayMode])
+
   const handleExportLogs = () => {
     const logText = filteredLogs
       .map((log) => `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}`)
@@ -236,6 +252,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     URL.revokeObjectURL(url)
   }, [workflowName])
 
+  // 数据预览展示控制：条数 + 顶部/底部
+  const [dataDisplayLimit, setDataDisplayLimit] = useState(20)
+  const [dataDisplayMode, setDataDisplayMode] = useState<'tail' | 'head'>('tail')
+
   // 智能下载：永远优先后端完整数据；本地预览数据仅最后兜底
   const [downloading, setDownloading] = useState(false)
   const handleDownloadData = useCallback(async () => {
@@ -292,8 +312,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
         return
       }
       const ok = await confirm(
-        `后端最近的执行数据已被清理或不可用，将使用本地 ${collectedData.length} 条预览数据。继续？`,
-        { title: '使用本地数据', type: 'warning', confirmText: '继续下载本地' },
+        `已从本地预览缓存读取到 ${collectedData.length} 条数据，将全部导出。\n（如需更完整的历史数据，请在执行结束后立即下载）`,
+        { title: '导出本地数据', type: 'info', confirmText: '导出' },
       )
       if (!ok) return
       downloadCsv(collectedData, columns)
@@ -641,13 +661,37 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 </Button>
               )}
               <Button variant="tonal-danger" size="icon" className="h-7 w-7" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
+              {/* 展示条数 + 顶部/底部 控制 */}
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-[hsl(var(--muted-foreground))] font-medium whitespace-nowrap">显示</span>
+                <Select
+                  value={dataDisplayMode}
+                  onChange={(e) => setDataDisplayMode(e.target.value as 'tail' | 'head')}
+                  className="!h-7 !text-[11px] !w-20"
+                >
+                  <option value="tail">最新</option>
+                  <option value="head">最早</option>
+                </Select>
+                <Select
+                  value={String(dataDisplayLimit)}
+                  onChange={(e) => setDataDisplayLimit(Number(e.target.value))}
+                  className="!h-7 !text-[11px] !w-20"
+                >
+                  <option value="20">20 条</option>
+                  <option value="50">50 条</option>
+                  <option value="100">100 条</option>
+                  <option value="200">200 条</option>
+                  <option value="500">500 条</option>
+                  <option value="0">全部</option>
+                </Select>
+              </div>
               <Button
                 variant="success"
                 size="sm"
                 className="h-7 text-xs"
                 onClick={handleDownloadData}
                 disabled={downloading}
-                title="下载本次收集到的全部数据（不受预览20条限制）"
+                title="下载本次收集到的全部数据（不受预览条数限制）"
               >
                 <FileDown className="w-3.5 h-3.5 mr-1" />
                 {downloading ? '下载中...' : '下载数据'}
@@ -930,17 +974,18 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   </div>
                   <div className="empty-state-title">暂无收集的数据</div>
                   <div className="empty-state-desc">
-                    执行工作流后，收集的数据将显示在这里。预览最多 20 条，完整数据请点击「下载数据」或使用「导出数据表」模块导出
+                    执行工作流后，收集的数据将显示在这里。可在底栏选择预览条数与顺序，完整数据请点击「下载数据」或使用「导出数据表」模块导出
                   </div>
                 </div>
               ) : (
                 <DataTable
-                  data={collectedData}
+                  data={displayedData}
                   columns={columns}
                   onEdit={(rowIndex, col, value) => {
-                    updateDataRow(rowIndex, { ...collectedData[rowIndex], [col]: value })
+                    const realIndex = rowIndex + displayedRowOffset
+                    updateDataRow(realIndex, { ...collectedData[realIndex], [col]: value })
                   }}
-                  onDeleteRow={(rowIndex) => deleteDataRow(rowIndex)}
+                  onDeleteRow={(rowIndex) => deleteDataRow(rowIndex + displayedRowOffset)}
                   onDeleteColumn={(col) => handleDeleteColumn(col)}
                 />
               )}
