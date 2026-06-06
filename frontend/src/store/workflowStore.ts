@@ -151,6 +151,11 @@ interface WorkflowState {
   
   // 选择节点
   selectNode: (nodeId: string | null) => void
+
+  // 模块条（影刀式线性视图）专用编辑
+  blockInsertNode: (afterNodeId: string | null, type: ModuleType) => void
+  blockDeleteNode: (nodeId: string) => void
+  blockReorder: (orderedIds: string[]) => void
   
   // 复制粘贴（支持多选）
   copyNodes: (nodeIds: string[]) => void
@@ -2266,6 +2271,102 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   selectNode: (nodeId) => {
     set({ selectedNodeId: nodeId })
+  },
+
+  // ===== 模块条（影刀式线性视图）专用编辑 =====
+  // 这些动作在「模块条」模式下使用，直接维护节点 + 线性连线，
+  // 与流程图模式共用同一份 nodes/edges 数据，可随时切回流程图。
+
+  blockInsertNode: (afterNodeId, type) => {
+    get().pushHistory()
+    const isGroup = type === 'group'
+    const isNote = type === 'note'
+    const nodes = get().nodes
+    // 计算插入位置（紧跟在 afterNode 下方，纵向排布）
+    const afterNode = afterNodeId ? nodes.find((n) => n.id === afterNodeId) : null
+    const baseX = afterNode ? afterNode.position.x : 200
+    const baseY = afterNode ? afterNode.position.y + 140 : 100
+    const defaultTimeout = getModuleDefaultTimeout(type)
+    const newId = nanoid()
+    const newNode: Node<NodeData> = {
+      id: newId,
+      type: isGroup ? 'groupNode' : isNote ? 'noteNode' : 'moduleNode',
+      position: { x: baseX, y: baseY },
+      ...(isGroup ? { style: { width: 300, height: 200 }, zIndex: -1 } : {}),
+      ...(isNote ? { style: { width: 200, height: 120 }, zIndex: -1 } : {}),
+      data: {
+        label: isGroup || isNote ? '' : moduleTypeLabels[type],
+        moduleType: type,
+        ...(defaultTimeout > 0 ? { timeout: defaultTimeout } : {}),
+        ...(isGroup ? { color: '#3b82f6', width: 300, height: 200 } : {}),
+        ...(isNote ? { color: '#fef08a', content: '' } : {}),
+      },
+    }
+
+    let edges = get().edges
+    // 把新节点插入线性链：after -> new -> (after 原后继)
+    if (afterNodeId && type !== 'group' && type !== 'note') {
+      const outgoing = edges.find((e) => e.source === afterNodeId)
+      // 断开 after 的原出边，重连为 after->new 和 new->原目标
+      edges = edges.filter((e) => !(e.source === afterNodeId && e.target === outgoing?.target))
+      edges = [
+        ...edges,
+        { id: `e-${afterNodeId}-${newId}`, source: afterNodeId, target: newId },
+        ...(outgoing ? [{ id: `e-${newId}-${outgoing.target}`, source: newId, target: outgoing.target }] : []),
+      ]
+    }
+
+    set({
+      nodes: [...nodes, newNode],
+      edges,
+      selectedNodeId: newId,
+      hasUnsavedChanges: true,
+    })
+  },
+
+  blockDeleteNode: (nodeId) => {
+    get().pushHistory()
+    const edges = get().edges
+    // 删除前把它的前驱与后继直接相连，保持链不断
+    const incoming = edges.find((e) => e.target === nodeId)
+    const outgoing = edges.find((e) => e.source === nodeId)
+    let newEdges = edges.filter((e) => e.source !== nodeId && e.target !== nodeId)
+    if (incoming && outgoing) {
+      newEdges = [
+        ...newEdges,
+        { id: `e-${incoming.source}-${outgoing.target}`, source: incoming.source, target: outgoing.target },
+      ]
+    }
+    set({
+      nodes: get().nodes.filter((n) => n.id !== nodeId),
+      edges: newEdges,
+      selectedNodeId: get().selectedNodeId === nodeId ? null : get().selectedNodeId,
+      hasUnsavedChanges: true,
+    })
+  },
+
+  blockReorder: (orderedIds) => {
+    get().pushHistory()
+    const nodes = get().nodes
+    // 按新顺序重建线性连线（仅连接普通模块节点；分组/便签不参与链）
+    const seqIds = orderedIds.filter((id) => {
+      const n = nodes.find((x) => x.id === id)
+      return n && n.type === 'moduleNode'
+    })
+    // 保留与链无关的边（连到/来自非链节点的边一并清除重建为线性）
+    const newEdges: Edge[] = []
+    for (let i = 0; i < seqIds.length - 1; i++) {
+      newEdges.push({ id: `e-${seqIds[i]}-${seqIds[i + 1]}`, source: seqIds[i], target: seqIds[i + 1] })
+    }
+    // 同步纵向位置，切回流程图时也整齐
+    const newNodes = nodes.map((n) => {
+      const idx = seqIds.indexOf(n.id)
+      if (idx >= 0) {
+        return { ...n, position: { x: 200, y: 100 + idx * 140 } }
+      }
+      return n
+    })
+    set({ nodes: newNodes, edges: newEdges, hasUnsavedChanges: true })
   },
 
   copyNodes: (nodeIds) => {

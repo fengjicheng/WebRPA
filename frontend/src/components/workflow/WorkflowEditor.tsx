@@ -12,9 +12,10 @@ import {
   type Connection,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Keyboard, ChevronDown, ChevronUp, FileJson, AlertTriangle, Boxes, Search, X } from 'lucide-react'
+import { Keyboard, ChevronDown, ChevronUp, FileJson, AlertTriangle, Boxes, Search, X, LayoutList, Workflow } from 'lucide-react'
 
 import { useWorkflowStore, type NodeData } from '@/store/workflowStore'
+import { useLayoutStore } from '@/store/layoutStore'
 import { ModuleNode } from './ModuleNode'
 import { QuickModulePicker } from './QuickModulePicker'
 import { getAllAvailableModules } from './ModuleSidebar'
@@ -24,6 +25,7 @@ import { SubflowHeaderNode } from './SubflowHeaderNode'
 import { NoteNode } from './NoteNode'
 import { ModuleSidebar } from './ModuleSidebar'
 import { ConfigPanel } from './ConfigPanel'
+import { BlockFlowView } from './BlockFlowView'
 import { LogPanel } from './LogPanel'
 import { Toolbar } from './Toolbar'
 import { RemoteCursor } from './RemoteCursor'
@@ -1520,6 +1522,10 @@ export function WorkflowEditor() {
     return true
   }, [addLog])
 
+  // 编辑器视图模式（流程图 / 模块条）
+  const editorViewMode = useLayoutStore((s) => s.editorViewMode)
+  const setEditorViewMode = useLayoutStore((s) => s.setEditorViewMode)
+
   return (
     <div className="h-full w-full flex flex-col">
       {/* 顶部工具栏 */}
@@ -1538,6 +1544,39 @@ export function WorkflowEditor() {
           <ModuleCount />
           <ModuleSearch reactFlowInstance={reactFlowInstance.current} />
           <ControlsHelp />
+
+          {/* 视图模式切换：流程图 / 模块条 */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-pop">
+            <button
+              onClick={() => setEditorViewMode('flow')}
+              className={
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[12px] font-medium transition-all ' +
+                (editorViewMode === 'flow'
+                  ? 'bg-[hsl(var(--brand-500))] text-white shadow-sm'
+                  : 'text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--brand-50))]')
+              }
+            >
+              <Workflow className="w-3.5 h-3.5" /> 流程图
+            </button>
+            <button
+              onClick={() => setEditorViewMode('block')}
+              className={
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[12px] font-medium transition-all ' +
+                (editorViewMode === 'block'
+                  ? 'bg-[hsl(var(--brand-500))] text-white shadow-sm'
+                  : 'text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--brand-50))]')
+              }
+            >
+              <LayoutList className="w-3.5 h-3.5" /> 模块条
+            </button>
+          </div>
+
+          {/* 模块条视图：覆盖在画布之上（流程图保持挂载以维持实例与状态） */}
+          {editorViewMode === 'block' && (
+            <div className="absolute inset-0 z-10 bg-[hsl(var(--background))]">
+              <BlockFlowView />
+            </div>
+          )}
           
           {/* 远程光标 */}
           {remoteConnected && reactFlowInstance.current && (

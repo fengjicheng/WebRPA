@@ -16,11 +16,14 @@ interface LayoutState {
   bottomHeight: number
   /** 小助手抽屉宽度（px），用户拖拽改变 */
   aiAssistantWidth: number
+  /** 编辑器视图模式：流程图 / 模块条（影刀式线性） */
+  editorViewMode: 'flow' | 'block'
 
   setLeftWidth: (w: number) => void
   setRightWidth: (w: number) => void
   setBottomHeight: (h: number) => void
   setAiAssistantWidth: (w: number) => void
+  setEditorViewMode: (m: 'flow' | 'block') => void
   resetLayout: () => void
 }
 
@@ -47,10 +50,12 @@ export const useLayoutStore = create<LayoutState>()(
       rightWidth: DEFAULTS.rightWidth,
       bottomHeight: DEFAULTS.bottomHeight,
       aiAssistantWidth: DEFAULTS.aiAssistantWidth,
+      editorViewMode: 'flow',
       setLeftWidth: (w) => set({ leftWidth: clamp(w, LIMITS.left.min, LIMITS.left.max) }),
       setRightWidth: (w) => set({ rightWidth: clamp(w, LIMITS.right.min, LIMITS.right.max) }),
       setBottomHeight: (h) => set({ bottomHeight: clamp(h, LIMITS.bottom.min, LIMITS.bottom.max) }),
       setAiAssistantWidth: (w) => set({ aiAssistantWidth: clamp(w, LIMITS.aiAssistant.min, LIMITS.aiAssistant.max) }),
+      setEditorViewMode: (m) => set({ editorViewMode: m }),
       resetLayout: () => set({ ...DEFAULTS }),
     }),
     {
