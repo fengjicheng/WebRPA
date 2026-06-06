@@ -156,6 +156,8 @@ interface WorkflowState {
   blockInsertNode: (afterNodeId: string | null, type: ModuleType, extraConfig?: Partial<NodeData>) => void
   blockDeleteNode: (nodeId: string) => void
   blockReorder: (orderedIds: string[]) => void
+  // 模块条结构化编辑：整体替换图（保留变量/名称，记历史）
+  setGraph: (nodes: Node<NodeData>[], edges: Edge[]) => void
   
   // 复制粘贴（支持多选）
   copyNodes: (nodeIds: string[]) => void
@@ -2373,6 +2375,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }
       return n
     })
+    set({ nodes: newNodes, edges: newEdges, hasUnsavedChanges: true })
+  },
+
+  setGraph: (newNodes, newEdges) => {
+    get().pushHistory()
     set({ nodes: newNodes, edges: newEdges, hasUnsavedChanges: true })
   },
 
