@@ -1155,13 +1155,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         
         // 如果是分组节点在移动
         if (node && node.type === 'groupNode') {
+          // 吸附开关：data.adhesion === false 时关闭吸附，拖分组不带动子节点
+          const adhesionEnabled = (node.data as any).adhesion !== false
           const oldPosition = node.position
           const newPosition = change.position
           const deltaX = newPosition.x - oldPosition.x
           const deltaY = newPosition.y - oldPosition.y
           
-          // 只有当有实际位移时才处理
-          if (deltaX !== 0 || deltaY !== 0) {
+          // 只有当有实际位移、且吸附开启时才处理
+          if (adhesionEnabled && (deltaX !== 0 || deltaY !== 0)) {
             // 获取分组的边界
             const groupWidth = (node.data.width as number) || (node.style?.width as number) || 300
             const groupHeight = (node.data.height as number) || (node.style?.height as number) || 200

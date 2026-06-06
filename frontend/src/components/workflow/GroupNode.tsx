@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react'
 import { Handle, Position, NodeResizer, type NodeProps, useReactFlow } from '@xyflow/react'
-import { MessageSquare, GripVertical, Workflow } from 'lucide-react'
+import { MessageSquare, GripVertical, Workflow, Magnet } from 'lucide-react'
 import type { NodeData } from '@/store/workflowStore'
 
 export interface GroupNodeData {
@@ -111,6 +111,19 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
     )
   }, [id, setNodes])
 
+  // 吸附开关：默认开启（adhesion !== false）
+  const adhesionEnabled = (nodeData as any).adhesion !== false
+  const toggleAdhesion = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, adhesion: !((node.data as any).adhesion !== false) } }
+          : node
+      )
+    )
+  }, [id, setNodes])
+
   return (
     <>
       <NodeResizer
@@ -163,6 +176,25 @@ export const GroupNode = memo(({ id, data, selected }: NodeProps) => {
             <span className="tracking-tight">
               {nodeData.label || (isSubflow ? '未命名子流程' : '分组')}
             </span>
+          )}
+          {/* 吸附开关：仅普通分组显示 */}
+          {!isSubflow && (
+            <button
+              onClick={toggleAdhesion}
+              onDoubleClick={(e) => e.stopPropagation()}
+              title={adhesionEnabled ? '吸附已开启：拖动分组会带动组内模块（点击关闭）' : '吸附已关闭：拖动分组不影响组内模块（点击开启）'}
+              className={
+                'relative ml-1 flex items-center justify-center w-5 h-5 rounded transition-colors ' +
+                (adhesionEnabled
+                  ? 'bg-white/25 hover:bg-white/40'
+                  : 'bg-white/5 hover:bg-white/20 opacity-60')
+              }
+            >
+              <Magnet className="w-3 h-3" strokeWidth={2.4} />
+              {!adhesionEnabled && (
+                <span className="absolute w-4 h-[1.5px] bg-white rotate-45 rounded-full" />
+              )}
+            </button>
           )}
         </div>
 
