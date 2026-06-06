@@ -1,60 +1,143 @@
 /**
- * 模块条视图（影刀式线性流程搭建）
+ * 模块条视图（影刀式结构化线性流程）
  *
  * 与流程图视图共用同一份 nodes/edges 数据，可随时双向切换。
- * - 按连线顺序把节点渲染成自上而下的「模块条」卡片
- * - 点击卡片选中并在右侧配置面板编辑（复用现有 ConfigPanel）
- * - 卡片间「+」按钮插入模块；卡片可上下拖拽重排；可删除
- * - 条件/循环等分支节点用徽标标注，复杂分支结构建议切回流程图微调
+ * 核心：把图（nodes+edges）重建成「缩进嵌套」的模块条——
+ *   - 条件(condition)：如果 → (缩进的"是"分支) → 否则 → (缩进的"否"分支) → 结束判断
+ *   - 循环(loop/foreach)：循环 → (缩进的循环体) → 结束循环
+ *   - 普通模块：顺序排列
+ * 点击卡片选中并在右侧配置面板编辑；从左侧拖模块进来追加到末尾。
  */
 import { useMemo, useState, useRef } from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
-import { Plus, Search, Trash2, GripVertical, GitBranch, X } from 'lucide-react'
+import { Plus, Search, Trash2, X, CornerDownRight, RefreshCw } from 'lucide-react'
 import type { ModuleType } from '@/types'
-import type { Node } from '@xyflow/react'
+import type { Node, Edge } from '@xyflow/react'
 
-const BRANCH_TYPES = new Set(['condition', 'loop', 'foreach', 'foreach_dict'])
+const CONDITION_TYPES = new Set(['condition'])
+const LOOP_TYPES = new Set(['loop', 'foreach', 'foreach_dict'])
 
-/** 按连线顺序对节点做最佳线性排序（跟随 source->target 链，BFS 兜底） */
-function orderNodes(nodes: Node<NodeData>[], edges: { source: string; target: string }[]): Node<NodeData>[] {
+type RowType = 'step' | 'else' | 'endif' | 'endloop'
+interface BlockRow {
+  key: string
+  type: RowType
+  node?: Node<NodeData>
+  depth: number
+}
+
+/** 取某节点指定 handle 的目标；handle 为 null 表示默认出口（无 sourceHandle 且非 error） */
+function edgeTarget(edges: Edge[], source: string, handle: string | null): string | null {
+  if (handle === null) {
+    const e = edges.find((x) => x.source === source && (!x.sourceHandle || x.sourceHandle === '') )
+    return e ? e.target : null
+  }
+  const e = edges.find((x) => x.source === source && x.sourceHandle === handle)
+  return e ? e.target : null
+}
+
+/** 把图重建成缩进嵌套的模块条行序列 */
+function buildRows(nodes: Node<NodeData>[], edges: Edge[]): BlockRow[] {
   const moduleNodes = nodes.filter((n) => n.type === 'moduleNode')
   if (moduleNodes.length === 0) return []
   const byId = new Map(moduleNodes.map((n) => [n.id, n]))
+
+  // 计算入度，找入口（无入边者，按 y 排序取最靠上的）
   const incoming = new Map<string, number>()
-  const nextOf = new Map<string, string[]>()
-  for (const n of moduleNodes) {
-    incoming.set(n.id, 0)
-    nextOf.set(n.id, [])
-  }
+  moduleNodes.forEach((n) => incoming.set(n.id, 0))
   for (const e of edges) {
     if (byId.has(e.source) && byId.has(e.target)) {
       incoming.set(e.target, (incoming.get(e.target) || 0) + 1)
-      nextOf.get(e.source)!.push(e.target)
     }
   }
-  // 入口：无入边的节点（按原始 y 排序，保证稳定）
   const entries = moduleNodes
     .filter((n) => (incoming.get(n.id) || 0) === 0)
     .sort((a, b) => a.position.y - b.position.y)
+
+  const rows: BlockRow[] = []
   const visited = new Set<string>()
-  const ordered: Node<NodeData>[] = []
-  const queue = [...entries]
-  while (queue.length) {
-    const n = queue.shift()!
-    if (visited.has(n.id)) continue
-    visited.add(n.id)
-    ordered.push(n)
-    for (const t of nextOf.get(n.id) || []) {
-      if (!visited.has(t) && byId.has(t)) queue.push(byId.get(t)!)
+
+  // 从某节点出发可达的所有节点集合（用于求分支合并点）
+  const reachable = (start: string | null): Set<string> => {
+    const s = new Set<string>()
+    if (!start) return s
+    const q = [start]
+    while (q.length) {
+      const c = q.shift()!
+      if (s.has(c) || !byId.has(c)) continue
+      s.add(c)
+      for (const e of edges) if (e.source === c) q.push(e.target)
+    }
+    return s
+  }
+  // 求条件 true/false 两分支的合并点：从 b 出发 BFS，第一个落在 a 可达集合里的节点
+  const findMerge = (a: string | null, b: string | null): string | null => {
+    if (!a || !b) return a || b || null
+    const ra = reachable(a)
+    const seen = new Set<string>()
+    const q = [b]
+    while (q.length) {
+      const c = q.shift()!
+      if (seen.has(c)) continue
+      seen.add(c)
+      if (ra.has(c)) return c
+      for (const e of edges) if (e.source === c) q.push(e.target)
+    }
+    return null
+  }
+
+  const walk = (startId: string | null, stop: Set<string>, depth: number) => {
+    let cur = startId
+    while (cur && byId.has(cur) && !stop.has(cur) && !visited.has(cur)) {
+      visited.add(cur)
+      const node = byId.get(cur)!
+      const mt = node.data.moduleType as string
+      if (CONDITION_TYPES.has(mt)) {
+        rows.push({ key: cur, type: 'step', node, depth })
+        const t = edgeTarget(edges, cur, 'true')
+        const f = edgeTarget(edges, cur, 'false')
+        const merge = findMerge(t, f)
+        const innerStop = new Set(stop)
+        if (merge) innerStop.add(merge)
+        walk(t, innerStop, depth + 1)
+        rows.push({ key: cur + '::else', type: 'else', depth })
+        walk(f, innerStop, depth + 1)
+        rows.push({ key: cur + '::endif', type: 'endif', depth })
+        cur = merge
+      } else if (LOOP_TYPES.has(mt)) {
+        rows.push({ key: cur, type: 'step', node, depth })
+        const body = edgeTarget(edges, cur, 'loop')
+        const done = edgeTarget(edges, cur, 'done')
+        const innerStop = new Set(stop)
+        innerStop.add(cur) // 循环体回边指回循环节点 → 在此停止
+        walk(body, innerStop, depth + 1)
+        rows.push({ key: cur + '::endloop', type: 'endloop', depth })
+        cur = done
+      } else {
+        rows.push({ key: cur, type: 'step', node, depth })
+        cur = edgeTarget(edges, cur, null)
+      }
     }
   }
-  // 兜底：未被链覆盖的节点按 y 追加
-  for (const n of moduleNodes.sort((a, b) => a.position.y - b.position.y)) {
-    if (!visited.has(n.id)) ordered.push(n)
+
+  for (const entry of entries) walk(entry.id, new Set(), 0)
+  // 兜底：未被遍历到的孤立节点（无连线/环）按 y 追加到末尾
+  for (const n of [...moduleNodes].sort((a, b) => a.position.y - b.position.y)) {
+    if (!visited.has(n.id)) walk(n.id, new Set(), 0)
   }
-  return ordered
+  return rows
+}
+
+function getSummary(data: NodeData): string {
+  const candidates = ['url', 'selector', 'text', 'value', 'filePath', 'inputPath', 'message', 'variableName', 'resultVariable', 'condition', 'count']
+  for (const k of candidates) {
+    const v = data[k]
+    if (v && typeof v === 'string' && v.trim()) {
+      return v.length > 40 ? v.slice(0, 40) + '…' : v
+    }
+  }
+  return ''
 }
 
 
@@ -120,17 +203,6 @@ function ModulePicker({ onPick, onClose }: { onPick: (t: ModuleType) => void; on
 }
 
 
-function getSummary(data: NodeData): string {
-  const candidates = ['url', 'selector', 'text', 'value', 'filePath', 'inputPath', 'message', 'variableName', 'resultVariable']
-  for (const k of candidates) {
-    const v = data[k]
-    if (v && typeof v === 'string' && v.trim()) {
-      return v.length > 36 ? v.slice(0, 36) + '…' : v
-    }
-  }
-  return ''
-}
-
 export function BlockFlowView() {
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
@@ -138,36 +210,22 @@ export function BlockFlowView() {
   const selectNode = useWorkflowStore((s) => s.selectNode)
   const blockInsertNode = useWorkflowStore((s) => s.blockInsertNode)
   const blockDeleteNode = useWorkflowStore((s) => s.blockDeleteNode)
-  const blockReorder = useWorkflowStore((s) => s.blockReorder)
 
-  const ordered = useMemo(() => orderNodes(nodes, edges), [nodes, edges])
-  const [pickerAfter, setPickerAfter] = useState<string | null | undefined>(undefined) // undefined=未开, null=开头
-  const dragIndex = useRef<number | null>(null)
-  const [dragOver, setDragOver] = useState<number | null>(null)
+  const rows = useMemo(() => buildRows(nodes, edges), [nodes, edges])
+  const lastStepId = useMemo(() => {
+    for (let i = rows.length - 1; i >= 0; i--) if (rows[i].type === 'step' && rows[i].node) return rows[i].node!.id
+    return null
+  }, [rows])
+
+  const [pickerAfter, setPickerAfter] = useState<string | null | undefined>(undefined) // undefined=未开, null=末尾
+  const [dropActive, setDropActive] = useState(false)
 
   const handlePick = (type: ModuleType) => {
-    blockInsertNode(pickerAfter === undefined ? null : pickerAfter, type)
+    blockInsertNode(pickerAfter === undefined ? lastStepId : pickerAfter, type)
     setPickerAfter(undefined)
   }
 
-  const handleDrop = (dropIndex: number) => {
-    const from = dragIndex.current
-    dragIndex.current = null
-    setDragOver(null)
-    if (from === null || from === dropIndex) return
-    // 含分支的工作流不允许线性重排（store 也会拒绝）；底部已常驻提示用户切换到流程图
-    const hasBranch = edges.some((e) => !!(e as { sourceHandle?: string }).sourceHandle)
-    if (hasBranch) return
-    const ids = ordered.map((n) => n.id)
-    const [moved] = ids.splice(from, 1)
-    ids.splice(dropIndex, 0, moved)
-    blockReorder(ids)
-  }
-
-  // 从左侧模块面板拖拽进来：追加到模块条末尾（与流程图模式一致的拖拽体验）
-  const [dropActive, setDropActive] = useState(false)
   const handleCanvasDragOver = (e: React.DragEvent) => {
-    // 仅当拖的是模块（不是内部排序）时接收
     if (e.dataTransfer.types.includes('application/reactflow')) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
@@ -179,19 +237,19 @@ export function BlockFlowView() {
     setDropActive(false)
     if (!dataStr) return
     e.preventDefault()
-    const lastId = ordered.length > 0 ? ordered[ordered.length - 1].id : null
-    // 自定义模块为 JSON；普通模块为类型字符串
     try {
       const parsed = JSON.parse(dataStr)
       if (parsed && parsed.type === 'custom_module' && parsed.moduleId) {
-        blockInsertNode(lastId, 'custom_module' as ModuleType, { customModuleId: parsed.moduleId } as Partial<NodeData>)
+        blockInsertNode(lastStepId, 'custom_module' as ModuleType, { customModuleId: parsed.moduleId } as Partial<NodeData>)
         return
       }
     } catch {
-      // 不是 JSON，按普通模块类型处理
+      // 普通模块类型字符串
     }
-    blockInsertNode(lastId, dataStr as ModuleType)
+    blockInsertNode(lastStepId, dataStr as ModuleType)
   }
+
+  const INDENT = 26
 
   return (
     <div
@@ -203,59 +261,62 @@ export function BlockFlowView() {
       onDragLeave={() => setDropActive(false)}
       onDrop={handleCanvasDrop}
     >
-      <div className="max-w-[640px] mx-auto">
-        {/* 顶部插入 */}
-        <AddDivider onClick={() => setPickerAfter(null)} active={pickerAfter === null} onClose={() => setPickerAfter(undefined)} onPick={handlePick} />
-
-        {ordered.length === 0 && (
+      <div className="max-w-[680px] mx-auto">
+        {rows.length === 0 && (
           <div className="text-center py-16 text-[13px] text-[hsl(var(--muted-foreground))]">
-            从左侧拖拽模块到这里，或点击上方「+」开始搭建流程
+            从左侧拖拽模块到这里，或点击下方「添加模块」开始搭建流程
           </div>
         )}
 
-        {ordered.map((node, index) => {
+        {rows.map((row) => {
+          const pad = row.depth * INDENT
+          // 结构标记行：否则 / 结束判断 / 结束循环
+          if (row.type !== 'step') {
+            const labelMap: Record<string, string> = { else: '否则', endif: '结束判断', endloop: '结束循环' }
+            return (
+              <div key={row.key} style={{ paddingLeft: pad }} className="py-0.5">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[hsl(var(--slate-100))] border border-dashed border-[hsl(var(--slate-300))]">
+                  <span className="text-[11.5px] font-semibold text-[hsl(var(--slate-500))]">{labelMap[row.type]}</span>
+                </div>
+              </div>
+            )
+          }
+          const node = row.node!
           const data = node.data as NodeData
           const type = data.moduleType as ModuleType
           const Icon = moduleIcons[type]
-          // 只取分类色的「边框」部分用作左侧色条，避免 bg 类与卡片白底冲突
           const borderClass = (moduleColors[type] || '').split(' ').find((c) => c.startsWith('border-')) || 'border-slate-400'
-          const isBranch = BRANCH_TYPES.has(type)
+          const isCond = CONDITION_TYPES.has(type)
+          const isLoop = LOOP_TYPES.has(type)
           const summary = getSummary(data)
           const selected = node.id === selectedNodeId
+          const prefix = isCond ? '如果　' : isLoop ? '循环　' : ''
           return (
-            <div key={node.id}>
+            <div key={row.key} style={{ paddingLeft: pad }} className="py-0.5">
               <div
-                draggable
-                onDragStart={() => (dragIndex.current = index)}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(index) }}
-                onDrop={() => handleDrop(index)}
                 onClick={() => selectNode(node.id)}
                 className={
                   'group relative flex items-center gap-3 rounded-[10px] border-l-4 bg-[hsl(var(--card))] px-3 py-2.5 cursor-pointer ' +
                   'shadow-soft transition-all duration-150 hover:shadow-pop ' +
                   borderClass + ' ' +
-                  (selected ? 'ring-2 ring-[hsl(var(--brand-500))]' : '') + ' ' +
-                  (dragOver === index ? 'border-t-2 border-t-[hsl(var(--brand-500))]' : '')
+                  (selected ? 'ring-2 ring-[hsl(var(--brand-500))]' : '')
                 }
               >
-                <GripVertical className="w-4 h-4 text-[hsl(var(--slate-300))] cursor-grab flex-shrink-0" />
-                <span className="flex items-center justify-center w-7 h-7 rounded-[7px] bg-white/70 flex-shrink-0">
+                {row.depth > 0 && <CornerDownRight className="w-3.5 h-3.5 text-[hsl(var(--slate-300))] flex-shrink-0" />}
+                <span className="flex items-center justify-center w-7 h-7 rounded-[7px] bg-[hsl(var(--slate-50))] flex-shrink-0">
                   {Icon && <Icon className="w-4 h-4" />}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[13px] font-semibold text-[hsl(var(--slate-800))] truncate">
-                      {(data.name as string) || moduleTypeLabels[type] || type}
-                    </span>
-                    {isBranch && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-700))] text-[9.5px] font-semibold">
-                        <GitBranch className="w-2.5 h-2.5" /> 分支
-                      </span>
-                    )}
+                  <div className="text-[13px] font-semibold text-[hsl(var(--slate-800))] truncate">
+                    {prefix}{(data.name as string) || moduleTypeLabels[type] || type}
                   </div>
                   {summary && <div className="text-[11px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">{summary}</div>}
                 </div>
-                <span className="text-[10px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0">#{index + 1}</span>
+                {(isCond || isLoop) && (
+                  <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-700))] flex-shrink-0">
+                    {isCond ? '条件' : '循环'}
+                  </span>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); blockDeleteNode(node.id) }}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-all flex-shrink-0"
@@ -264,44 +325,29 @@ export function BlockFlowView() {
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <AddDivider
-                onClick={() => setPickerAfter(node.id)}
-                active={pickerAfter === node.id}
-                onClose={() => setPickerAfter(undefined)}
-                onPick={handlePick}
-              />
             </div>
           )
         })}
 
-        {ordered.some((n) => BRANCH_TYPES.has(n.data.moduleType as string)) && (
-          <div className="mt-4 text-center text-[11px] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--warning-50))] rounded-lg py-2 px-3">
-            该流程含分支/循环，模块条按主链顺序展示；分支的精细连线请切换到「流程图」模式调整
+        {/* 末尾添加模块 */}
+        <div className="relative flex justify-center mt-3">
+          <button
+            onClick={() => setPickerAfter(null)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-[9px] border border-dashed border-[hsl(var(--brand-500)/0.4)] text-[hsl(var(--brand-600))] text-[12.5px] font-medium hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500))] transition-all"
+          >
+            <Plus className="w-4 h-4" /> 添加模块
+          </button>
+          {pickerAfter !== undefined && <ModulePicker onPick={handlePick} onClose={() => setPickerAfter(undefined)} />}
+        </div>
+
+        {/* 含分支时的提示 */}
+        {rows.some((r) => r.type === 'endif' || r.type === 'endloop') && (
+          <div className="mt-4 flex items-start gap-1.5 text-[11px] text-[hsl(var(--slate-600))] bg-[hsl(var(--brand-50))] rounded-lg py-2 px-3">
+            <RefreshCw className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            <span>条件/循环已按结构缩进展示。分支内部的连线调整、分支增删等精细操作建议切换到「流程图」模式完成。</span>
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-/** 模块条之间的「+」分隔插入按钮 */
-function AddDivider({ onClick, active, onClose, onPick }: {
-  onClick: () => void
-  active: boolean
-  onClose: () => void
-  onPick: (t: ModuleType) => void
-}) {
-  return (
-    <div className="relative flex items-center justify-center h-7 group/divider">
-      <div className="absolute inset-x-0 top-1/2 h-px bg-[hsl(var(--border))] opacity-0 group-hover/divider:opacity-100 transition-opacity" />
-      <button
-        onClick={onClick}
-        className="relative z-10 flex items-center justify-center w-5 h-5 rounded-full bg-[hsl(var(--card))] border border-[hsl(var(--border))] text-[hsl(var(--brand-600))] opacity-40 hover:opacity-100 hover:border-[hsl(var(--brand-500))] hover:scale-110 transition-all"
-        title="在此处插入模块"
-      >
-        <Plus className="w-3 h-3" />
-      </button>
-      {active && <ModulePicker onPick={onPick} onClose={onClose} />}
     </div>
   )
 }
