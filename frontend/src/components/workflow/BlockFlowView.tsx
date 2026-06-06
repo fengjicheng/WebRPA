@@ -164,15 +164,52 @@ export function BlockFlowView() {
     blockReorder(ids)
   }
 
+  // 从左侧模块面板拖拽进来：追加到模块条末尾（与流程图模式一致的拖拽体验）
+  const [dropActive, setDropActive] = useState(false)
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    // 仅当拖的是模块（不是内部排序）时接收
+    if (e.dataTransfer.types.includes('application/reactflow')) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      setDropActive(true)
+    }
+  }
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    const dataStr = e.dataTransfer.getData('application/reactflow')
+    setDropActive(false)
+    if (!dataStr) return
+    e.preventDefault()
+    const lastId = ordered.length > 0 ? ordered[ordered.length - 1].id : null
+    // 自定义模块为 JSON；普通模块为类型字符串
+    try {
+      const parsed = JSON.parse(dataStr)
+      if (parsed && parsed.type === 'custom_module' && parsed.moduleId) {
+        blockInsertNode(lastId, 'custom_module' as ModuleType, { customModuleId: parsed.moduleId } as Partial<NodeData>)
+        return
+      }
+    } catch {
+      // 不是 JSON，按普通模块类型处理
+    }
+    blockInsertNode(lastId, dataStr as ModuleType)
+  }
+
   return (
-    <div className="h-full w-full overflow-y-auto bg-[hsl(var(--background))] py-6 px-4">
+    <div
+      className={
+        'h-full w-full overflow-y-auto bg-[hsl(var(--background))] py-6 px-4 ' +
+        (dropActive ? 'ring-2 ring-inset ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : '')
+      }
+      onDragOver={handleCanvasDragOver}
+      onDragLeave={() => setDropActive(false)}
+      onDrop={handleCanvasDrop}
+    >
       <div className="max-w-[640px] mx-auto">
         {/* 顶部插入 */}
         <AddDivider onClick={() => setPickerAfter(null)} active={pickerAfter === null} onClose={() => setPickerAfter(undefined)} onPick={handlePick} />
 
         {ordered.length === 0 && (
           <div className="text-center py-16 text-[13px] text-[hsl(var(--muted-foreground))]">
-            还没有模块，点击上方「+」开始搭建流程
+            从左侧拖拽模块到这里，或点击上方「+」开始搭建流程
           </div>
         )}
 

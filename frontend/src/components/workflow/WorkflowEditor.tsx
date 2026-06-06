@@ -1545,8 +1545,8 @@ export function WorkflowEditor() {
           <ModuleSearch reactFlowInstance={reactFlowInstance.current} />
           <ControlsHelp />
 
-          {/* 视图模式切换：流程图 / 模块条 */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-pop">
+          {/* 视图模式切换：流程图 / 模块条（底部居中，避免与顶部搜索框重叠） */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-pop">
             <button
               onClick={() => setEditorViewMode('flow')}
               className={

@@ -153,7 +153,7 @@ interface WorkflowState {
   selectNode: (nodeId: string | null) => void
 
   // 模块条（影刀式线性视图）专用编辑
-  blockInsertNode: (afterNodeId: string | null, type: ModuleType) => void
+  blockInsertNode: (afterNodeId: string | null, type: ModuleType, extraConfig?: Partial<NodeData>) => void
   blockDeleteNode: (nodeId: string) => void
   blockReorder: (orderedIds: string[]) => void
   
@@ -2277,7 +2277,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   // 这些动作在「模块条」模式下使用，直接维护节点 + 线性连线，
   // 与流程图模式共用同一份 nodes/edges 数据，可随时切回流程图。
 
-  blockInsertNode: (afterNodeId, type) => {
+  blockInsertNode: (afterNodeId, type, extraConfig) => {
     get().pushHistory()
     const isGroup = type === 'group'
     const isNote = type === 'note'
@@ -2300,6 +2300,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         ...(defaultTimeout > 0 ? { timeout: defaultTimeout } : {}),
         ...(isGroup ? { color: '#3b82f6', width: 300, height: 200 } : {}),
         ...(isNote ? { color: '#fef08a', content: '' } : {}),
+        ...(extraConfig || {}),
       },
     }
 
