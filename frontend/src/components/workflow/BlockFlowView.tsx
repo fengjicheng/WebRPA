@@ -45,7 +45,7 @@ function ModulePicker({ onPick, onClose }: { onPick: (t: ModuleType) => void; on
         <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索模块…" className="flex-1 bg-transparent outline-none text-[13px]" />
         <button onClick={onClose} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"><X className="w-3.5 h-3.5" /></button>
       </div>
-      <div className="flex-1 overflow-y-auto p-1.5">
+      <div className="flex-1 overflow-y-auto p-1.5" onWheel={(e) => e.stopPropagation()}>
         {filtered.map((cat) => (
           <div key={cat.name} className="mb-1">
             <div className="px-2 py-1 text-[10.5px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">{cat.name}</div>
@@ -96,56 +96,80 @@ export function BlockFlowView() {
     setGraph([...g.nodes, ...preservedNodes], [...g.edges, ...preservedEdges])
   }
 
-  const handlePick = (type: ModuleType, extra?: Partial<NodeData>) => {
-    const t = picker
-    if (!t) return
+  // 统一插入逻辑（点击选择 / 拖拽放入 共用）
+  const insertAt = (target: PickerTarget, type: ModuleType, extra?: Partial<NodeData>) => {
     applyEdit((tree) => {
       const neu = createBlock(type, extra)
-      if (t.mode === 'after') return insertAfter(tree, t.id, neu)
-      return insertIntoContainer(tree, t.id, t.slot, neu)
+      if (target.mode === 'after') return insertAfter(tree, target.id, neu)
+      return insertIntoContainer(tree, target.id, target.slot, neu)
     })
+  }
+
+  // 解析拖拽数据 → {type, extra}
+  const parseDrag = (dataStr: string): { type: ModuleType; extra?: Partial<NodeData> } | null => {
+    if (!dataStr) return null
+    try {
+      const parsed = JSON.parse(dataStr)
+      if (parsed && parsed.type === 'custom_module' && parsed.moduleId) {
+        return { type: 'custom_module' as ModuleType, extra: { customModuleId: parsed.moduleId } as Partial<NodeData> }
+      }
+    } catch { /* 普通模块字符串 */ }
+    return { type: dataStr as ModuleType }
+  }
+
+  const handlePick = (type: ModuleType, extra?: Partial<NodeData>) => {
+    if (!picker) return
+    insertAt(picker, type, extra)
     setPicker(null)
   }
 
   const handleDelete = (id: string) => applyEdit((tree) => removeBlock(tree, id))
   const handleMove = (id: string, dir: -1 | 1) => applyEdit((tree) => moveBlock(tree, id, dir))
 
-  // 从左侧拖模块进来：追加到顶层末尾
-  const handleCanvasDrop = (e: React.DragEvent) => {
-    const dataStr = e.dataTransfer.getData('application/reactflow')
-    setDropActive(false)
-    if (!dataStr) return
+  // 投放到指定插入点（分支内/循环体内/任意位置都可）
+  const handleDropAt = (e: React.DragEvent, target: PickerTarget) => {
+    const p = parseDrag(e.dataTransfer.getData('application/reactflow'))
+    if (!p) return
     e.preventDefault()
-    let type = dataStr as ModuleType
-    let extra: Partial<NodeData> | undefined
-    try {
-      const parsed = JSON.parse(dataStr)
-      if (parsed && parsed.type === 'custom_module' && parsed.moduleId) {
-        type = 'custom_module' as ModuleType
-        extra = { customModuleId: parsed.moduleId } as Partial<NodeData>
-      }
-    } catch { /* 普通模块 */ }
-    applyEdit((tree) => insertAfter(tree, null, createBlock(type, extra)))
+    e.stopPropagation()
+    insertAt(target, p.type, p.extra)
+  }
+
+  // 从左侧拖模块到空白处：追加到顶层末尾
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    const p = parseDrag(e.dataTransfer.getData('application/reactflow'))
+    setDropActive(false)
+    if (!p) return
+    e.preventDefault()
+    insertAt({ mode: 'after', id: null }, p.type, p.extra)
   }
 
   const INDENT = 24
 
-  // 插入按钮（含弹层）。targetKey 用于唯一标识当前激活的插入点
+  // 插入点：既可点击弹出选择器，也可直接把模块拖进来（投放区）
   const InsertBtn = ({ target, label }: { target: PickerTarget; label?: string }) => {
     const active = picker && JSON.stringify(picker) === JSON.stringify(target)
+    const [over, setOver] = useState(false)
     return (
       <div className="relative">
-        <button
-          onClick={() => setPicker(active ? null : target)}
-          className={
-            'flex items-center gap-1 rounded-[7px] text-[11.5px] font-medium transition-all ' +
-            (label
-              ? 'px-2.5 py-1 border border-dashed border-[hsl(var(--brand-500)/0.4)] text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500))]'
-              : 'px-1.5 py-0.5 text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))]')
-          }
+        <div
+          onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
+          className={over ? 'rounded-[7px] ring-2 ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : ''}
         >
-          <Plus className="w-3.5 h-3.5" />{label}
-        </button>
+          <button
+            onClick={() => setPicker(active ? null : target)}
+            className={
+              'flex items-center gap-1 rounded-[7px] text-[11.5px] font-medium transition-all ' +
+              (label
+                ? 'px-2.5 py-1 border border-dashed border-[hsl(var(--brand-500)/0.4)] text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500))]'
+                : 'px-1.5 py-0.5 text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))]')
+            }
+          >
+            <Plus className="w-3.5 h-3.5" />{over ? '松手放入此处' : label}
+          </button>
+        </div>
         {active && <ModulePicker onPick={(t) => handlePick(t)} onClose={() => setPicker(null)} />}
       </div>
     )
