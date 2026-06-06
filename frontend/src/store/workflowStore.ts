@@ -2305,14 +2305,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
     let edges = get().edges
     // 把新节点插入线性链：after -> new -> (after 原后继)
+    // 仅操作「主链」边（无 sourceHandle 的普通连线），绝不动分支边（true/false/loop 等）
     if (afterNodeId && type !== 'group' && type !== 'note') {
-      const outgoing = edges.find((e) => e.source === afterNodeId)
-      // 断开 after 的原出边，重连为 after->new 和 new->原目标
-      edges = edges.filter((e) => !(e.source === afterNodeId && e.target === outgoing?.target))
+      const plainOut = edges.find((e) => e.source === afterNodeId && !e.sourceHandle)
+      // 断开 after 的原主链出边，重连为 after->new 和 new->原目标
+      edges = edges.filter((e) => !(e.source === afterNodeId && !e.sourceHandle && e.target === plainOut?.target))
       edges = [
         ...edges,
         { id: `e-${afterNodeId}-${newId}`, source: afterNodeId, target: newId },
-        ...(outgoing ? [{ id: `e-${newId}-${outgoing.target}`, source: newId, target: outgoing.target }] : []),
+        ...(plainOut ? [{ id: `e-${newId}-${plainOut.target}`, source: newId, target: plainOut.target }] : []),
       ]
     }
 
@@ -2327,9 +2328,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   blockDeleteNode: (nodeId) => {
     get().pushHistory()
     const edges = get().edges
-    // 删除前把它的前驱与后继直接相连，保持链不断
-    const incoming = edges.find((e) => e.target === nodeId)
-    const outgoing = edges.find((e) => e.source === nodeId)
+    // 删除前把它的「主链」前驱与后继直接相连，保持主链不断
+    // 与该节点相关的分支边随节点一并移除（删分支节点天然丢分支，符合预期）
+    const incoming = edges.find((e) => e.target === nodeId && !e.sourceHandle)
+    const outgoing = edges.find((e) => e.source === nodeId && !e.sourceHandle)
     let newEdges = edges.filter((e) => e.source !== nodeId && e.target !== nodeId)
     if (incoming && outgoing) {
       newEdges = [
@@ -2346,19 +2348,23 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   blockReorder: (orderedIds) => {
-    get().pushHistory()
     const nodes = get().nodes
-    // 按新顺序重建线性连线（仅连接普通模块节点；分组/便签不参与链）
+    const edges = get().edges
+    // 安全保护：含分支边（sourceHandle）的工作流，线性重排会破坏分支语义，
+    // 直接拒绝重排（块视图会提示用户切到流程图调整），绝不静默丢数据。
+    const hasBranch = edges.some((e) => !!e.sourceHandle)
+    if (hasBranch) {
+      return
+    }
+    get().pushHistory()
     const seqIds = orderedIds.filter((id) => {
       const n = nodes.find((x) => x.id === id)
       return n && n.type === 'moduleNode'
     })
-    // 保留与链无关的边（连到/来自非链节点的边一并清除重建为线性）
     const newEdges: Edge[] = []
     for (let i = 0; i < seqIds.length - 1; i++) {
       newEdges.push({ id: `e-${seqIds[i]}-${seqIds[i + 1]}`, source: seqIds[i], target: seqIds[i + 1] })
     }
-    // 同步纵向位置，切回流程图时也整齐
     const newNodes = nodes.map((n) => {
       const idx = seqIds.indexOf(n.id)
       if (idx >= 0) {

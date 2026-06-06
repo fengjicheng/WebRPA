@@ -155,6 +155,9 @@ export function BlockFlowView() {
     dragIndex.current = null
     setDragOver(null)
     if (from === null || from === dropIndex) return
+    // 含分支的工作流不允许线性重排（store 也会拒绝）；底部已常驻提示用户切换到流程图
+    const hasBranch = edges.some((e) => !!(e as { sourceHandle?: string }).sourceHandle)
+    if (hasBranch) return
     const ids = ordered.map((n) => n.id)
     const [moved] = ids.splice(from, 1)
     ids.splice(dropIndex, 0, moved)
@@ -177,7 +180,8 @@ export function BlockFlowView() {
           const data = node.data as NodeData
           const type = data.moduleType as ModuleType
           const Icon = moduleIcons[type]
-          const colorClass = moduleColors[type] || 'border-gray-400 bg-gray-50'
+          // 只取分类色的「边框」部分用作左侧色条，避免 bg 类与卡片白底冲突
+          const borderClass = (moduleColors[type] || '').split(' ').find((c) => c.startsWith('border-')) || 'border-slate-400'
           const isBranch = BRANCH_TYPES.has(type)
           const summary = getSummary(data)
           const selected = node.id === selectedNodeId
@@ -192,7 +196,7 @@ export function BlockFlowView() {
                 className={
                   'group relative flex items-center gap-3 rounded-[10px] border-l-4 bg-[hsl(var(--card))] px-3 py-2.5 cursor-pointer ' +
                   'shadow-soft transition-all duration-150 hover:shadow-pop ' +
-                  colorClass + ' ' +
+                  borderClass + ' ' +
                   (selected ? 'ring-2 ring-[hsl(var(--brand-500))]' : '') + ' ' +
                   (dragOver === index ? 'border-t-2 border-t-[hsl(var(--brand-500))]' : '')
                 }
