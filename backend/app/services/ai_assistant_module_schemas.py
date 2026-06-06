@@ -1776,6 +1776,24 @@ EXTRA_SCHEMAS: dict = {
         "combo": "",
     },
 
+    # WPS 多维表格
+    "wps_bitable_write": {
+        "required": ["ak", "sk", "fileId", "sheetId"],
+        "optional": ["baseUrl", "dataSource", "fields", "variableName"],
+        "defaults": {"dataSource": "manual"},
+        "desc": {"ak": "WPS开放平台AK", "sk": "WPS开放平台SK", "fileId": "多维表格文件ID", "sheetId": "子表ID", "fields": "手动模式的字段JSON", "variableName": "变量模式的数据变量名", "dataSource": "manual/variable"},
+        "example": {"ak": "...", "sk": "...", "fileId": "...", "sheetId": "...", "fields": {"姓名": "张三"}},
+        "combo": "",
+    },
+    "wps_bitable_read": {
+        "required": ["ak", "sk", "fileId", "sheetId"],
+        "optional": ["baseUrl", "variableName"],
+        "defaults": {"variableName": "wps_data"},
+        "desc": {"ak": "WPS开放平台AK", "sk": "WPS开放平台SK", "fileId": "多维表格文件ID", "sheetId": "子表ID", "variableName": "读取结果保存到的变量"},
+        "example": {"ak": "...", "sk": "...", "fileId": "...", "sheetId": "...", "variableName": "wps_data"},
+        "combo": "",
+    },
+
     # AI 媒体
     "ai_generate_image": {
         "required": ["prompt"],

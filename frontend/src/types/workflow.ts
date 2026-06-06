@@ -460,6 +460,9 @@ export type ModuleType =
   | 'feishu_bitable_read'
   | 'feishu_sheet_write'
   | 'feishu_sheet_read'
+  // WPS 多维表格
+  | 'wps_bitable_write'
+  | 'wps_bitable_read'
   // Oracle数据库
   | 'oracle_connect'
   | 'oracle_query'

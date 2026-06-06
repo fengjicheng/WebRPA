@@ -71,6 +71,9 @@ from . import phone_clipboard
 from . import webhook
 # 飞书自动化模块
 from . import feishu
+
+# WPS 多维表格自动化模块
+from . import wps
 # 多数据库支持模块
 from . import database_advanced
 # 关系型数据库INSERT/UPDATE/DELETE模块

@@ -485,6 +485,9 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   feishu_bitable_read: '飞书多维表格读取',
   feishu_sheet_write: '飞书电子表格写入',
   feishu_sheet_read: '飞书电子表格读取',
+  // WPS 多维表格
+  wps_bitable_write: 'WPS多维表格写入',
+  wps_bitable_read: 'WPS多维表格读取',
   // Oracle数据库
   oracle_connect: 'Oracle连接',
   oracle_query: 'Oracle查询',

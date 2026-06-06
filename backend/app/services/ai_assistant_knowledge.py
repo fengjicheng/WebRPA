@@ -403,6 +403,10 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "feishu_sheet_write": "飞书电子表格写入",
         "feishu_sheet_read": "飞书电子表格读取",
     },
+    "WPS多维表格": {
+        "wps_bitable_write": "WPS多维表格写入（金山开放平台 AK/SK）",
+        "wps_bitable_read": "WPS多维表格读取（金山开放平台 AK/SK）",
+    },
     "手机自动化": {
         "phone_tap": "手机点击坐标",
         "phone_swipe": "手机滑动",

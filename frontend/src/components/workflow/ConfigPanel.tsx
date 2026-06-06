@@ -547,6 +547,7 @@ import {
   PrinterCallConfig,
 } from './config-panels/UtilityToolsConfigs'
 import { CustomModuleConfig } from './config-panels/CustomModuleConfig'
+import { WpsBitableWriteConfig, WpsBitableReadConfig } from './config-panels/WPSModuleConfigs'
 import { PanelResizer } from './PanelResizer'
 import { useLayoutStore, LAYOUT_LIMITS } from '@/store/layoutStore'
 
@@ -1905,6 +1906,12 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <FeishuSheetWriteConfig data={nodeData} onChange={handleChange} />
       case 'feishu_sheet_read':
         return <FeishuSheetReadConfig data={nodeData} onChange={handleChange} />
+
+      // WPS 多维表格模块
+      case 'wps_bitable_write':
+        return <WpsBitableWriteConfig data={nodeData} onChange={handleChange} />
+      case 'wps_bitable_read':
+        return <WpsBitableReadConfig data={nodeData} onChange={handleChange} />
       
       // Oracle数据库模块
       case 'oracle_connect':

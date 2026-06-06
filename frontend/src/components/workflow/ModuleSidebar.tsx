@@ -661,6 +661,9 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   feishu_bitable_read: Table2,
   feishu_sheet_write: FileSpreadsheet,
   feishu_sheet_read: FileSpreadsheet,
+  // WPS 多维表格
+  wps_bitable_write: TableProperties,
+  wps_bitable_read: Table2,
   // Oracle数据库
   oracle_connect: Database,
   oracle_query: DatabaseZap,
@@ -1189,10 +1192,12 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   // Webhook请求
   webhook_request: ['webhook', 'http', '请求', 'get', 'post', 'put', 'delete', 'patch', 'api', '接口', '调用'],
   // 飞书自动化
-  feishu_bitable_write: ['飞书', '多维表格', '写入', 'feishu', 'bitable', 'write', '添加', '更新', '插入'],
-  feishu_bitable_read: ['飞书', '多维表格', '读取', 'feishu', 'bitable', 'read', '查询', '获取'],
+  feishu_bitable_write: ['飞书', '多维表格', '写入', 'feishu', 'bitable', 'write', '添加', '更新', '插入'],  feishu_bitable_read: ['飞书', '多维表格', '读取', 'feishu', 'bitable', 'read', '查询', '获取'],
   feishu_sheet_write: ['飞书', '电子表格', '写入', 'feishu', 'sheet', 'write', '添加', '更新', '插入'],
   feishu_sheet_read: ['飞书', '电子表格', '读取', 'feishu', 'sheet', 'read', '查询', '获取'],
+  // WPS 多维表格
+  wps_bitable_write: ['WPS', '多维表格', '智能表格', '写入', 'wps', 'bitable', 'dbsheet', 'write', '添加', '更新', '插入', '金山'],
+  wps_bitable_read: ['WPS', '多维表格', '智能表格', '读取', 'wps', 'bitable', 'dbsheet', 'read', '查询', '获取', '金山'],
   // Oracle数据库
   oracle_connect: ['oracle', '数据库', '连接', 'database', 'connect', 'db'],
   oracle_query: ['oracle', '数据库', '查询', 'query', 'select', 'sql'],
@@ -1497,6 +1502,11 @@ const moduleCategories = [
     name: '飞书自动化',
     color: 'bg-blue-600',
     modules: ['feishu_bitable_write', 'feishu_bitable_read', 'feishu_sheet_write', 'feishu_sheet_read'] as ModuleType[],
+  },
+  {
+    name: 'WPS多维表格',
+    color: 'bg-red-600',
+    modules: ['wps_bitable_write', 'wps_bitable_read'] as ModuleType[],
   },
   {
     name: 'SSH远程',
