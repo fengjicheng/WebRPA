@@ -16,8 +16,17 @@ export type Block =
   | { kind: 'if'; id: string; node: Node<NodeData>; then: Block[]; els: Block[] }
   | { kind: 'loop'; id: string; node: Node<NodeData>; body: Block[] }
 
-export const CONDITION_TYPES = new Set(['condition'])
+export const CONDITION_TYPES = new Set([
+  'condition', 'element_exists', 'element_visible',
+  'image_exists', 'phone_image_exists', 'face_recognition',
+  'probability_trigger',
+])
 export const LOOP_TYPES = new Set(['loop', 'foreach', 'foreach_dict'])
+
+/** 不同分支模块的两个出口 handle（与 ModuleNode/后端约定一致） */
+export function branchHandles(moduleType: string): [string, string] {
+  return moduleType === 'probability_trigger' ? ['path1', 'path2'] : ['true', 'false']
+}
 
 function edgeTarget(edges: Edge[], source: string, handle: string | null): string | null {
   if (handle === null) {
@@ -82,8 +91,9 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
       const node = byId.get(cur)!
       const mt = node.data.moduleType as string
       if (CONDITION_TYPES.has(mt)) {
-        const t = edgeTarget(edges, cur, 'true')
-        const f = edgeTarget(edges, cur, 'false')
+        const [hT, hF] = branchHandles(mt)
+        const t = edgeTarget(edges, cur, hT)
+        const f = edgeTarget(edges, cur, hF)
         const merge = findMerge(t, f)
         const innerStop = new Set(stop)
         if (merge) innerStop.add(merge)
@@ -155,8 +165,9 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
     if (b.kind === 'if') {
       const thenEntry = wireSeq(b.then, followId)
       const elseEntry = wireSeq(b.els, followId)
-      addEdge(b.id, thenEntry ?? followId, 'true')
-      addEdge(b.id, elseEntry ?? followId, 'false')
+      const [hT, hF] = branchHandles(b.node.data.moduleType as string)
+      addEdge(b.id, thenEntry ?? followId, hT)
+      addEdge(b.id, elseEntry ?? followId, hF)
       return b.id
     }
     // loop

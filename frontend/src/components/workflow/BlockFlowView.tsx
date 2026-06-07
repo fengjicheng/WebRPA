@@ -33,6 +33,15 @@ function getSummary(data: NodeData): string {
   return ''
 }
 
+/** 分支模块的两个分支显示标签 + 头部前缀（与 ModuleNode 端点标签一致） */
+function branchLabels(mt: string): { yes: string; no: string; head: string } {
+  if (mt === 'probability_trigger') return { yes: '路径1', no: '路径2', head: '概率' }
+  if (mt === 'face_recognition') return { yes: '匹配', no: '不匹配', head: '如果' }
+  if (mt === 'element_visible') return { yes: '可见', no: '不可见', head: '如果' }
+  if (mt === 'element_exists' || mt === 'image_exists' || mt === 'phone_image_exists') return { yes: '存在', no: '不存在', head: '如果' }
+  return { yes: '是', no: '否', head: '如果' }
+}
+
 /** 模块选择弹层（portal 到 body，fixed 定位，避免被滚动容器裁剪） */
 function ModulePicker({ x, y, onPick, onClose }: { x: number; y: number; onPick: (t: ModuleType) => void; onClose: () => void }) {
   const [query, setQuery] = useState('')
@@ -192,7 +201,7 @@ export function BlockFlowView() {
     const bgCls = parts.find((c) => c.startsWith('bg-')) || 'bg-slate-50'
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
-    const title = kind === 'if' ? '如果' : kind === 'loop' ? '循环' : ''
+    const title = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : ''
     const [dropPos, setDropPos] = useState<'top' | 'bottom' | null>(null)
     const onRowDragOver = (e: React.DragEvent) => {
       if (!(e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove'))) return
@@ -288,17 +297,18 @@ export function BlockFlowView() {
       if (b.kind === 'step') {
         out.push(<StepRow key={b.id} block={b} num={num} kind="step" />)
       } else if (b.kind === 'if') {
+        const lbl = branchLabels(b.node.data.moduleType as string)
         out.push(
           <div key={b.id} className="rounded-[9px] border border-[hsl(var(--brand-500)/0.25)] bg-[hsl(var(--brand-50)/0.35)] overflow-hidden">
             <StepRow block={b} num={num} kind="if" />
             <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--brand-500)/0.35)] py-1 pr-1">
               {renderSeq(b.then, counter)}
-              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'then' }} text="添加「是」分支步骤" />
+              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'then' }} text={`添加「${lbl.yes}」分支步骤`} />
             </div>
-            <div className="px-3 py-1 text-[11px] font-semibold text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50)/0.6)]">否则</div>
+            <div className="px-3 py-1 text-[11px] font-semibold text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50)/0.6)]">{lbl.no}</div>
             <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--slate-300))] py-1 pr-1">
               {renderSeq(b.els, counter)}
-              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'els' }} text="添加「否」分支步骤" />
+              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'els' }} text={`添加「${lbl.no}」分支步骤`} />
             </div>
             <div className="px-3 py-1 text-[10.5px] text-[hsl(var(--slate-400))] border-t border-[hsl(var(--brand-500)/0.15)]">结束判断</div>
           </div>
