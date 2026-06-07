@@ -24,6 +24,7 @@
     "marked": "^18.0.4",
     "mermaid": "^11.12.2",
     "nanoid": "^5.1.6",
+    "pinyin-pro": "^3.26.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-resizable-panels": "^4.0.15",
