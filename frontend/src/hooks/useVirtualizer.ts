@@ -117,10 +117,18 @@ export function useVirtualizer({
     el.scrollTop = el.scrollHeight
   }
 
+  /** 滚动到顶部 */
+  const scrollToTop = () => {
+    const el = getScrollElement()
+    if (!el) return
+    el.scrollTop = 0
+  }
+
   return {
     virtualItems,
     totalSize,
     scrollToBottom,
+    scrollToTop,
   }
 }
 

@@ -981,6 +981,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 <DataTable
                   data={displayedData}
                   columns={columns}
+                  displayMode={dataDisplayMode}
+                  displayLimit={dataDisplayLimit}
                   onEdit={(rowIndex, col, value) => {
                     const realIndex = rowIndex + displayedRowOffset
                     updateDataRow(realIndex, { ...collectedData[realIndex], [col]: value })

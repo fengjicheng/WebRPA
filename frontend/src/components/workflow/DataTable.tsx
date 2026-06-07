@@ -2,7 +2,7 @@
  * 高性能数据表格 - 用虚拟滚动渲染，无论多少行都能 60fps。
  * 仅渲染可视行 + overscan，编辑/删除/列管理保持原有行为。
  */
-import { memo, useCallback, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Edit2, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,10 @@ interface DataTableProps {
   onEdit: (rowIndex: number, col: string, value: unknown) => void
   onDeleteRow: (rowIndex: number) => void
   onDeleteColumn: (col: string) => void
+  /** 预览顺序：tail=最新（跟随底部新数据），head=最早（停在顶部） */
+  displayMode?: 'tail' | 'head'
+  /** 预览条数（变化时触发重新定位，便于用户看到改动立即生效） */
+  displayLimit?: number
 }
 
 function formatCellValue(value: unknown): string {
@@ -38,18 +42,44 @@ export const DataTable = memo(function DataTable({
   onEdit,
   onDeleteRow,
   onDeleteColumn,
+  displayMode = 'tail',
+  displayLimit = 0,
 }: DataTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const getScrollElement = useCallback(() => scrollRef.current, [])
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null)
   const [editValue, setEditValue] = useState('')
 
-  const { virtualItems, totalSize } = useVirtualizer({
+  const { virtualItems, totalSize, scrollToBottom, scrollToTop } = useVirtualizer({
     count: data.length,
     getScrollElement,
     estimateSize: ROW_HEIGHT,
     overscan: 8,
   })
+
+  // 用户切换“最新/最早”或预览条数时，立即重新定位，让改动可见：
+  // tail → 滚到底部（看最新行），head → 滚到顶部（看最早行）。
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (displayMode === 'head') scrollToTop()
+      else scrollToBottom()
+    })
+    return () => cancelAnimationFrame(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayMode, displayLimit])
+
+  // “最新”模式下执行过程中持续跟随新增数据滚到底部
+  const prevLenRef = useRef(data.length)
+  useEffect(() => {
+    if (data.length !== prevLenRef.current) {
+      prevLenRef.current = data.length
+      if (displayMode === 'tail') {
+        const id = requestAnimationFrame(() => scrollToBottom())
+        return () => cancelAnimationFrame(id)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.length, displayMode])
 
   const startEdit = (row: number, col: string, value: unknown) => {
     setEditingCell({ row, col })
