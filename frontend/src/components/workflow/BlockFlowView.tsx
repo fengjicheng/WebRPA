@@ -323,7 +323,7 @@ export function BlockFlowView() {
       onDragLeave={() => setDropActive(false)}
       onDrop={handleCanvasDrop}
     >
-      <div className="max-w-[720px] mx-auto">
+      <div className="w-full max-w-[1280px] mx-auto">
         {blocks.length === 0 && (
           <div className="text-center py-12 text-[13px] text-[hsl(var(--muted-foreground))]">从左侧拖拽模块到这里，或点击下方「添加模块」开始搭建流程</div>
         )}
