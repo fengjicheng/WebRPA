@@ -99,7 +99,7 @@ Webhook路径: /webhook/data-sync
 
 **调用方式**：
 \`\`\`bash
-curl -X POST http://localhost:8000/api/webhooks/data-sync \\
+curl -X POST http://localhost:5241/api/webhooks/data-sync \\
   -H "Content-Type: application/json" \\
   -d '{"key": "value"}'
 \`\`\`
