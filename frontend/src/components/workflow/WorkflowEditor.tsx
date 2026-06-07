@@ -649,6 +649,8 @@ export function WorkflowEditor() {
 
     const handleWheel = (event: WheelEvent) => {
       if (!reactFlowInstance.current) return
+      // 模块条模式：画布是普通可滚动浮层，放行滚轮让其原生滚动，绝不拦截
+      if (useLayoutStore.getState().editorViewMode === 'block') return
       
       // 触摸板双指滑动通常会带有 ctrlKey（捏合缩放）或者 deltaX 不为0（平移）
       // 鼠标滚轮通常只有 deltaY，且 deltaX 为 0

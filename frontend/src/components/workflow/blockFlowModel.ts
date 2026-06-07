@@ -240,6 +240,14 @@ export function insertIntoContainer(blocks: Block[], containerId: string, slot: 
   return [...blocks]
 }
 
+/** 在某 block 之前插入（同一容器列表内） */
+export function insertBefore(blocks: Block[], beforeId: string, neu: Block): Block[] {
+  const loc = locate(blocks, beforeId)
+  if (!loc) return [...blocks, neu]
+  loc.list.splice(loc.index, 0, neu)
+  return [...blocks]
+}
+
 export function removeBlock(blocks: Block[], id: string): Block[] {
   const loc = locate(blocks, id)
   if (!loc) return blocks
@@ -274,18 +282,19 @@ function subtreeIds(b: Block, acc: Set<string>) {
 export function moveBlockTo(
   blocks: Block[],
   id: string,
-  target: { mode: 'after'; id: string | null } | { mode: 'into'; id: string; slot: 'then' | 'els' | 'body' },
+  target: { mode: 'after'; id: string | null } | { mode: 'before'; id: string } | { mode: 'into'; id: string; slot: 'then' | 'els' | 'body' },
 ): Block[] {
   const moving = findBlock(blocks, id)
   if (!moving) return blocks
   // 目标不能是被移动块本身或其子孙
   const ids = new Set<string>()
   subtreeIds(moving, ids)
-  const targetId = target.mode === 'after' ? target.id : target.id
+  const targetId = target.id
   if (targetId && ids.has(targetId)) return blocks
   // 先摘除
   const removed = removeBlock(blocks, id)
   // 再插入到目标
   if (target.mode === 'after') return insertAfter(removed, target.id, moving)
+  if (target.mode === 'before') return insertBefore(removed, target.id, moving)
   return insertIntoContainer(removed, target.id, target.slot, moving)
 }

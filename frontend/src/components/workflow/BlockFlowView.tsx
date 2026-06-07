@@ -9,7 +9,7 @@ import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
-import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, CornerDownRight } from 'lucide-react'
+import { Plus, Search, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
@@ -158,10 +158,75 @@ export function BlockFlowView() {
   }
 
   const INDENT = 24
+  void INDENT
 
-  // 插入点：既可点击弹出选择器，也可直接把模块拖进来（投放区）
-  const InsertBtn = ({ target, label }: { target: PickerTarget; label?: string }) => {
-    const active = picker && JSON.stringify(picker) === JSON.stringify(target)
+  // ===== 影刀风格紧凑步骤行 =====
+  const StepRow = ({ block, num, kind }: { block: Block; num: number; kind: 'step' | 'if' | 'loop' }) => {
+    const node = block.node
+    const data = node.data as NodeData
+    const type = data.moduleType as ModuleType
+    const Icon = moduleIcons[type]
+    const accent = (moduleColors[type] || '').split(' ').find((c) => c.startsWith('border-')) || 'border-slate-400'
+    const summary = getSummary(data)
+    const selected = node.id === selectedNodeId
+    const title = kind === 'if' ? '如果' : kind === 'loop' ? '循环' : ''
+    return (
+      <div
+        draggable
+        onDragStart={(e) => { e.dataTransfer.setData('application/blockmove', block.id); e.dataTransfer.effectAllowed = 'move' }}
+        onClick={() => selectNode(node.id)}
+        className={
+          'group/row relative flex items-center gap-2 pl-1.5 pr-1.5 py-1.5 rounded-[7px] cursor-grab active:cursor-grabbing transition-colors ' +
+          (selected ? 'bg-[hsl(var(--brand-100))] ring-1 ring-[hsl(var(--brand-500)/0.5)]' : 'hover:bg-[hsl(var(--slate-100))]')
+        }
+      >
+        <span className="w-5 text-right text-[10px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0">{num}</span>
+        <span className={'flex items-center justify-center w-6 h-6 rounded-[6px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] border-l-[3px] ' + accent + ' flex-shrink-0'}>
+          {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--slate-600))]" />}
+        </span>
+        <div className="flex-1 min-w-0 flex items-baseline gap-2">
+          <span className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] whitespace-nowrap">
+            {title && <span className="text-[hsl(var(--brand-600))] font-semibold mr-1">{title}</span>}
+            {(data.name as string) || moduleTypeLabels[type] || type}
+          </span>
+          {summary && <span className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">{summary}</span>}
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity flex-shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-0.5 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, 1) }} className="p-0.5 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="下移"><ChevronDown className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(block.id) }} className="p-0.5 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))]" title="删除"><Trash2 className="w-3.5 h-3.5" /></button>
+        </div>
+      </div>
+    )
+  }
+
+  // ===== 悬停才显形的细插入线（兼作投放区）=====
+  const HoverInsert = ({ target }: { target: PickerTarget }) => {
+    const active = !!picker && JSON.stringify(picker) === JSON.stringify(target)
+    const [over, setOver] = useState(false)
+    return (
+      <div
+        className="relative group/ins flex items-center h-2.5"
+        onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
+      >
+        <div className={'flex-1 h-[2px] rounded transition-colors ' + (over || active ? 'bg-[hsl(var(--brand-500))]' : 'bg-transparent group-hover/ins:bg-[hsl(var(--brand-500)/0.25)]')} />
+        <button
+          onClick={() => setPicker(active ? null : target)}
+          className={'absolute left-3 flex items-center justify-center w-4 h-4 rounded-full bg-[hsl(var(--card))] border border-[hsl(var(--brand-500)/0.5)] text-[hsl(var(--brand-600))] transition-opacity ' + (over || active ? 'opacity-100' : 'opacity-0 group-hover/ins:opacity-100')}
+          title="在此处插入模块"
+        >
+          <Plus className="w-2.5 h-2.5" />
+        </button>
+        {active && <ModulePicker onPick={(t) => handlePick(t)} onClose={() => setPicker(null)} />}
+      </div>
+    )
+  }
+
+  // 空分支/循环体的占位（可点可拖入）
+  const EmptySlot = ({ target, text }: { target: PickerTarget; text: string }) => {
+    const active = !!picker && JSON.stringify(picker) === JSON.stringify(target)
     const [over, setOver] = useState(false)
     return (
       <div className="relative">
@@ -169,117 +234,71 @@ export function BlockFlowView() {
           onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
           onDragLeave={() => setOver(false)}
           onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
-          className={over ? 'rounded-[7px] ring-2 ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : ''}
+          onClick={() => setPicker(active ? null : target)}
+          className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-[7px] border border-dashed cursor-pointer text-[11.5px] transition-colors ' +
+            (over || active ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))]' : 'border-[hsl(var(--slate-300))] text-[hsl(var(--slate-400))] hover:border-[hsl(var(--brand-500)/0.5)] hover:text-[hsl(var(--brand-600))]')}
         >
-          <button
-            onClick={() => setPicker(active ? null : target)}
-            className={
-              'flex items-center gap-1 rounded-[7px] text-[11.5px] font-medium transition-all ' +
-              (label
-                ? 'px-2.5 py-1 border border-dashed border-[hsl(var(--brand-500)/0.4)] text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] hover:border-[hsl(var(--brand-500))]'
-                : 'px-1.5 py-0.5 text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))]')
-            }
-          >
-            <Plus className="w-3.5 h-3.5" />{over ? '松手放入此处' : label}
-          </button>
+          <Plus className="w-3.5 h-3.5" /> {over ? '松手放入此处' : text}
         </div>
         {active && <ModulePicker onPick={(t) => handlePick(t)} onClose={() => setPicker(null)} />}
       </div>
     )
   }
 
-
-  // 单个模块卡片
-  const Card = ({ block, depth, prefix, badge }: { block: Block; depth: number; prefix?: string; badge?: string }) => {
-    const node = block.node
-    const data = node.data as NodeData
-    const type = data.moduleType as ModuleType
-    const Icon = moduleIcons[type]
-    const borderClass = (moduleColors[type] || '').split(' ').find((c) => c.startsWith('border-')) || 'border-slate-400'
-    const summary = getSummary(data)
-    const selected = node.id === selectedNodeId
-    return (
-      <div
-        draggable
-        onDragStart={(e) => { e.dataTransfer.setData('application/blockmove', block.id); e.dataTransfer.effectAllowed = 'move' }}
-        onClick={() => selectNode(node.id)}
-        className={
-          'group relative flex items-center gap-2.5 rounded-[10px] border-l-4 bg-[hsl(var(--card))] px-3 py-2.5 cursor-grab active:cursor-grabbing ' +
-          'shadow-soft transition-all duration-150 hover:shadow-pop ' + borderClass + ' ' +
-          (selected ? 'ring-2 ring-[hsl(var(--brand-500))]' : '')
-        }
-      >
-        {depth > 0 && <CornerDownRight className="w-3.5 h-3.5 text-[hsl(var(--slate-300))] flex-shrink-0" />}
-        <span className="flex items-center justify-center w-7 h-7 rounded-[7px] bg-[hsl(var(--slate-50))] flex-shrink-0">
-          {Icon && <Icon className="w-4 h-4" />}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-semibold text-[hsl(var(--slate-800))] truncate">
-            {prefix}{(data.name as string) || moduleTypeLabels[type] || type}
-          </div>
-          {summary && <div className="text-[11px] text-[hsl(var(--muted-foreground))] truncate mt-0.5">{summary}</div>}
-        </div>
-        {badge && <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-[hsl(var(--warning-50))] text-[hsl(var(--warning-700))] flex-shrink-0">{badge}</span>}
-        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-1 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, 1) }} className="p-1 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="下移"><ChevronDown className="w-3.5 h-3.5" /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(block.id) }} className="p-1 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))]" title="删除"><Trash2 className="w-3.5 h-3.5" /></button>
-        </div>
-      </div>
-    )
-  }
-
-  const Marker = ({ text, depth }: { text: string; depth: number }) => (
-    <div style={{ paddingLeft: depth * INDENT }} className="py-0.5">
-      <div className="flex items-center px-3 py-1.5 rounded-[8px] bg-[hsl(var(--slate-100))] border border-dashed border-[hsl(var(--slate-300))]">
-        <span className="text-[11.5px] font-semibold text-[hsl(var(--slate-500))]">{text}</span>
-      </div>
-    </div>
-  )
-
-  const renderSeq = (seq: Block[], depth: number): React.ReactNode[] => {
+  // 渲染一个序列（counter 维护全局序号）
+  const renderSeq = (seq: Block[], counter: { n: number }): React.ReactNode[] => {
     const out: React.ReactNode[] = []
-    for (const b of seq) {
-      const pad = depth * INDENT
+    seq.forEach((b) => {
+      out.push(<HoverInsert key={b.id + '^before'} target={{ mode: 'before', id: b.id }} />)
+      const num = ++counter.n
       if (b.kind === 'step') {
-        out.push(<div key={b.id} style={{ paddingLeft: pad }} className="py-0.5"><Card block={b} depth={depth} /></div>)
+        out.push(<StepRow key={b.id} block={b} num={num} kind="step" />)
       } else if (b.kind === 'if') {
-        out.push(<div key={b.id} style={{ paddingLeft: pad }} className="py-0.5"><Card block={b} depth={depth} prefix="如果　" badge="条件" /></div>)
-        out.push(...renderSeq(b.then, depth + 1))
-        out.push(<div key={b.id + '+then'} style={{ paddingLeft: (depth + 1) * INDENT }} className="py-0.5"><InsertBtn target={{ mode: 'into', id: b.id, slot: 'then' }} label="添加「是」分支步骤" /></div>)
-        out.push(<Marker key={b.id + 'else'} text="否则" depth={depth} />)
-        out.push(...renderSeq(b.els, depth + 1))
-        out.push(<div key={b.id + '+els'} style={{ paddingLeft: (depth + 1) * INDENT }} className="py-0.5"><InsertBtn target={{ mode: 'into', id: b.id, slot: 'els' }} label="添加「否」分支步骤" /></div>)
-        out.push(<Marker key={b.id + 'endif'} text="结束判断" depth={depth} />)
+        out.push(
+          <div key={b.id} className="rounded-[9px] border border-[hsl(var(--brand-500)/0.25)] bg-[hsl(var(--brand-50)/0.35)] overflow-hidden">
+            <StepRow block={b} num={num} kind="if" />
+            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--brand-500)/0.35)] py-1 pr-1">
+              {renderSeq(b.then, counter)}
+              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'then' }} text="添加「是」分支步骤" />
+            </div>
+            <div className="px-3 py-1 text-[11px] font-semibold text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50)/0.6)]">否则</div>
+            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--slate-300))] py-1 pr-1">
+              {renderSeq(b.els, counter)}
+              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'els' }} text="添加「否」分支步骤" />
+            </div>
+            <div className="px-3 py-1 text-[10.5px] text-[hsl(var(--slate-400))] border-t border-[hsl(var(--brand-500)/0.15)]">结束判断</div>
+          </div>
+        )
       } else {
-        out.push(<div key={b.id} style={{ paddingLeft: pad }} className="py-0.5"><Card block={b} depth={depth} prefix="循环　" badge="循环" /></div>)
-        out.push(...renderSeq(b.body, depth + 1))
-        out.push(<div key={b.id + '+body'} style={{ paddingLeft: (depth + 1) * INDENT }} className="py-0.5"><InsertBtn target={{ mode: 'into', id: b.id, slot: 'body' }} label="添加循环体步骤" /></div>)
-        out.push(<Marker key={b.id + 'endloop'} text="结束循环" depth={depth} />)
+        out.push(
+          <div key={b.id} className="rounded-[9px] border border-[hsl(var(--teal-500)/0.3)] bg-[hsl(var(--teal-50)/0.4)] overflow-hidden">
+            <StepRow block={b} num={num} kind="loop" />
+            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--teal-500)/0.4)] py-1 pr-1">
+              {renderSeq(b.body, counter)}
+              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'body' }} text="添加循环体步骤" />
+            </div>
+            <div className="px-3 py-1 text-[10.5px] text-[hsl(var(--slate-400))] border-t border-[hsl(var(--teal-500)/0.15)]">结束循环</div>
+          </div>
+        )
       }
-      // 每个块之后的插入点（同层）
-      out.push(<div key={b.id + '+after'} style={{ paddingLeft: pad }} className="flex justify-start py-0.5"><InsertBtn target={{ mode: 'after', id: b.id }} /></div>)
-    }
+    })
     return out
   }
 
   return (
     <div
-      className={'h-full w-full overflow-y-auto bg-[hsl(var(--background))] py-6 px-4 ' + (dropActive ? 'ring-2 ring-inset ring-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))]' : '')}
+      className={'h-full w-full overflow-y-auto bg-[hsl(var(--background))] py-5 px-4 ' + (dropActive ? 'ring-2 ring-inset ring-[hsl(var(--brand-500))]' : '')}
       onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); setDropActive(true) } }}
       onDragLeave={() => setDropActive(false)}
       onDrop={handleCanvasDrop}
     >
-      <div className="max-w-[700px] mx-auto">
+      <div className="max-w-[720px] mx-auto">
         {blocks.length === 0 && (
           <div className="text-center py-12 text-[13px] text-[hsl(var(--muted-foreground))]">从左侧拖拽模块到这里，或点击下方「添加模块」开始搭建流程</div>
         )}
-        {renderSeq(blocks, 0)}
-        <div className="flex justify-center mt-3">
-          <InsertBtn target={{ mode: 'after', id: null }} label="添加模块" />
-        </div>
-        <div className="mt-4 text-center text-[11px] text-[hsl(var(--muted-foreground))]">
-          条件 / 循环模块会自动生成「是 / 否 / 结束判断」「循环体 / 结束循环」结构，可在各分支内继续添加步骤
+        {renderSeq(blocks, { n: 0 })}
+        <div className="mt-2">
+          <EmptySlot target={{ mode: 'after', id: null }} text="添加模块" />
         </div>
       </div>
     </div>
