@@ -82,8 +82,23 @@ export function useVirtualizer({
 
   const totalSize = count * estimateSize
 
+  // count 变化时（如切换展示条数）重新校准滚动位置：
+  // 行数变少而容器已向下滚动时，浏览器会自动夹取 DOM 的 scrollTop，
+  // 但 React 中的 scrollTop 状态仍是旧的大值，会导致可视窗口算空、表格看似“没刷新”。
+  // 这里在每次 count 变化后同步真实滚动位置，确保改动立即可见。
+  useLayoutEffect(() => {
+    const el = getScrollElement()
+    if (!el) return
+    if (el.scrollTop !== scrollTop) setScrollTop(el.scrollTop)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, getScrollElement])
+
+  // 渲染时再按当前总高度夹取一次，双保险：即使状态滞后也不会出现空白窗口
+  const maxScroll = Math.max(0, totalSize - viewportHeight)
+  const clampedScrollTop = Math.min(Math.max(0, scrollTop), maxScroll)
+
   const visibleCount = Math.max(1, Math.ceil(viewportHeight / estimateSize) + overscan * 2)
-  const startIndex = Math.max(0, Math.floor(scrollTop / estimateSize) - overscan)
+  const startIndex = Math.max(0, Math.floor(clampedScrollTop / estimateSize) - overscan)
   const endIndex = Math.min(count, startIndex + visibleCount)
 
   const virtualItems: VirtualItem[] = []
