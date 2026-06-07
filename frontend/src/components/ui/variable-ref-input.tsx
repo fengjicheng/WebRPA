@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Input } from './input'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { getModuleAllDefaultVars, VARIABLE_NAME_FIELDS } from '@/lib/moduleDefaultVars'
 import { cn } from '@/lib/utils'
 
 interface VariableRefInputProps {
@@ -11,116 +12,7 @@ interface VariableRefInputProps {
   className?: string
 }
 
-// 会创建变量的字段名
-const VAR_FIELDS = [
-  'variableName',
-  'resultVariable',
-  'itemVariable',
-  'indexVariable',
-  'dataSource',
-  'listVariable',
-  'dictVariable',
-  'sourceVariable',
-  'imageVariable',
-  'saveResult',
-  // 触发器相关变量名
-  'saveToVariable',
-  'saveNewElementSelector',
-  'saveChangeInfo',
-]
-
-// 模块类型对应的默认变量值
-const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
-  // 控制流模块
-  foreach: {
-    itemVariable: 'item',
-    indexVariable: 'index',
-  },
-  loop: {
-    indexVariable: 'index',
-  },
-  // 触发器模块
-  element_change_trigger: {
-    saveNewElementSelector: 'new_element_selector',
-    saveChangeInfo: 'element_change_info',
-  },
-  webhook_trigger: {
-    saveToVariable: 'webhook_data',
-  },
-  file_watcher_trigger: {
-    saveToVariable: 'file_event',
-  },
-  email_trigger: {
-    saveToVariable: 'email_data',
-  },
-  api_trigger: {
-    saveToVariable: 'api_response',
-  },
-  mouse_trigger: {
-    saveToVariable: 'mouse_position',
-  },
-  image_trigger: {
-    saveToVariable: 'image_position',
-  },
-  sound_trigger: {
-    saveToVariable: 'sound_volume',
-  },
-  face_trigger: {
-    saveToVariable: 'face_detected',
-  },
-  // 媒体模块
-  format_convert: {
-    resultVariable: 'converted_path',
-  },
-  compress_image: {
-    resultVariable: 'compressed_image',
-  },
-  compress_video: {
-    resultVariable: 'compressed_video',
-  },
-  extract_audio: {
-    resultVariable: 'extracted_audio',
-  },
-  trim_video: {
-    resultVariable: 'trimmed_video',
-  },
-  merge_media: {
-    resultVariable: 'merged_file',
-  },
-  add_watermark: {
-    resultVariable: 'watermarked_file',
-  },
-  face_recognition: {
-    resultVariable: 'face_match_result',
-  },
-  image_ocr: {
-    resultVariable: 'ocr_text',
-  },
-  rotate_video: {
-    resultVariable: 'rotated_video',
-  },
-  video_speed: {
-    resultVariable: 'speed_video',
-  },
-  extract_frame: {
-    resultVariable: 'frame_image',
-  },
-  add_subtitle: {
-    resultVariable: 'subtitled_video',
-  },
-  adjust_volume: {
-    resultVariable: 'adjusted_audio',
-  },
-  resize_video: {
-    resultVariable: 'resized_video',
-  },
-  camera_capture: {
-    saveToVariable: 'camera_photo',
-  },
-  camera_record: {
-    saveToVariable: 'camera_video',
-  },
-}
+// 模块类型对应的默认变量值（统一改用中央 moduleDefaultVars，避免重复维护）
 
 /**
  * 变量引用输入组件
@@ -166,9 +58,9 @@ export function VariableRefInput({
       const moduleType = data.moduleType as string
       const nodeLabel = (data.label as string) || (data.name as string) || moduleType
       
-      const defaultVars = MODULE_DEFAULT_VARS[moduleType] || {}
+      const defaultVars = getModuleAllDefaultVars(moduleType)
       
-      for (const field of VAR_FIELDS) {
+      for (const field of VARIABLE_NAME_FIELDS) {
         let varName = data[field] as string | undefined
         if (!varName && defaultVars[field]) {
           varName = defaultVars[field]

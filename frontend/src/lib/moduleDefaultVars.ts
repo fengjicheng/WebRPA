@@ -291,3 +291,33 @@ export function getModuleDefaultVar(moduleType: string, field: string): string |
 export function getModuleAllDefaultVars(moduleType: string): Record<string, string> {
   return MODULE_DEFAULT_VARS[moduleType] || {}
 }
+
+/**
+ * 权威「会产生变量的字段名」清单（唯一数据源）。
+ *
+ * 变量名输入框 / 变量引用补全 / 变量追踪等所有需要“从节点配置中提取已定义变量”
+ * 的地方都应引用此清单，确保任何模块（含创建时即内置变量的模块）的变量都能被
+ * 自动补全识别到，避免各处各自维护、出现遗漏。
+ */
+export const VARIABLE_NAME_FIELDS: string[] = [
+  // 通用
+  'variableName', 'resultVariable', 'outputVariable', 'targetVariable', 'dataVariable',
+  'saveResult', 'saveToVariable',
+  // 循环/遍历
+  'itemVariable', 'indexVariable', 'loopIndexVariable', 'keyVariable', 'valueVariable',
+  // 坐标
+  'variableNameX', 'variableNameY',
+  // 列表/字典/表格
+  'listVariable', 'dictVariable', 'tableVariable',
+  // 类型化结果
+  'imageVariable', 'textVariable', 'urlVariable', 'fileVariable', 'sourceVariable',
+  'responseVariable', 'cookieVariable', 'headerVariable', 'bodyVariable', 'statusVariable',
+  'errorVariable', 'countVariable', 'sumVariable', 'avgVariable', 'maxVariable', 'minVariable',
+  'connectionVariable', 'shareVariable',
+  // Python 脚本
+  'stdoutVariable', 'stderrVariable', 'returnCodeVariable',
+  // 桌面自动化
+  'appVariable', 'controlVariable',
+  // 触发器/元素变化
+  'saveNewElementSelector', 'saveChangeInfo', 'dataSource',
+]
