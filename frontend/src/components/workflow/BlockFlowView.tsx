@@ -187,7 +187,9 @@ export function BlockFlowView() {
     const data = node.data as NodeData
     const type = data.moduleType as ModuleType
     const Icon = moduleIcons[type]
-    const accent = (moduleColors[type] || '').split(' ').find((c) => c.startsWith('border-')) || 'border-slate-400'
+    const parts = (moduleColors[type] || '').split(' ')
+    const borderCls = parts.find((c) => c.startsWith('border-')) || 'border-slate-300'
+    const bgCls = parts.find((c) => c.startsWith('bg-')) || 'bg-slate-50'
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
     const title = kind === 'if' ? '如果' : kind === 'loop' ? '循环' : ''
@@ -212,21 +214,22 @@ export function BlockFlowView() {
         onDrop={onRowDrop}
         onClick={() => selectNode(node.id)}
         className={
-          'group/row relative flex items-center gap-2 pl-1.5 pr-1.5 py-1.5 rounded-[7px] cursor-grab active:cursor-grabbing transition-colors ' +
-          (selected ? 'bg-[hsl(var(--brand-100))] ring-1 ring-[hsl(var(--brand-500)/0.5)]' : 'hover:bg-[hsl(var(--slate-100))]')
+          'group/row relative flex items-center gap-2 pl-1.5 pr-1.5 py-1.5 rounded-[7px] border border-l-[3px] cursor-grab active:cursor-grabbing transition-all ' +
+          bgCls + ' ' + borderCls + ' ' +
+          (selected ? 'ring-2 ring-[hsl(var(--brand-500)/0.6)] shadow-sm' : 'hover:brightness-[0.97] hover:shadow-sm')
         }
       >
         {dropPos && <div className={'absolute left-1 right-1 h-[2.5px] rounded bg-[hsl(var(--brand-500))] z-10 ' + (dropPos === 'top' ? 'top-0' : 'bottom-0')} />}
-        <span className="w-5 text-right text-[10px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0">{num}</span>
-        <span className={'flex items-center justify-center w-6 h-6 rounded-[6px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] border-l-[3px] ' + accent + ' flex-shrink-0'}>
-          {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--slate-600))]" />}
+        <span className="w-5 text-right text-[10px] font-mono text-[hsl(var(--slate-500))] flex-shrink-0">{num}</span>
+        <span className={'flex items-center justify-center w-6 h-6 rounded-[6px] bg-white/85 border ' + borderCls + ' flex-shrink-0'}>
+          {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--slate-700))]" />}
         </span>
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
           <span className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] whitespace-nowrap">
-            {title && <span className="text-[hsl(var(--brand-600))] font-semibold mr-1">{title}</span>}
+            {title && <span className="text-[hsl(var(--brand-700))] font-semibold mr-1">{title}</span>}
             {(data.name as string) || moduleTypeLabels[type] || type}
           </span>
-          {summary && <span className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">{summary}</span>}
+          {summary && <span className="text-[11px] text-[hsl(var(--slate-600))] truncate">{summary}</span>}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-0.5 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
