@@ -173,3 +173,9 @@ openai>=1.12.0  # OpenAI DALL-E
 
 # AI视频生成（AI生视频模块）
 # 通过API调用各大AI视频服务，无需额外依赖
+
+# 系统右下角 Toast 通知（AI 小助手 send_notification 技能；无则回退到 msg 命令）
+win10toast>=0.9; sys_platform == 'win32'
+
+# TOML 解析回退（Python 3.11+ 已内置 tomllib，此为旧环境兜底）
+toml>=0.10.2
