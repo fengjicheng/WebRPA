@@ -5,6 +5,7 @@
  * 以「结构树」为操作对象，每次编辑后由树重新生成完整的图（自动连线）。
  */
 import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
@@ -13,12 +14,13 @@ import { Plus, Search, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react'
 import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
-  insertAfter, insertIntoContainer, removeBlock, moveBlock, moveBlockTo,
+  insertAfter, insertBefore, insertIntoContainer, removeBlock, moveBlock, moveBlockTo,
   CONDITION_TYPES, LOOP_TYPES, type Block,
 } from './blockFlowModel'
 
-// 插入目标：在某 block 之后，或插入某容器的分支/循环体
+// 插入目标：在某 block 之前/之后，或插入某容器的分支/循环体
 type PickerTarget =
+  | { mode: 'before'; id: string }
   | { mode: 'after'; id: string | null }
   | { mode: 'into'; id: string; slot: 'then' | 'els' | 'body' }
 
@@ -31,38 +33,50 @@ function getSummary(data: NodeData): string {
   return ''
 }
 
-/** 模块选择弹层 */
-function ModulePicker({ onPick, onClose }: { onPick: (t: ModuleType) => void; onClose: () => void }) {
+/** 模块选择弹层（portal 到 body，fixed 定位，避免被滚动容器裁剪） */
+function ModulePicker({ x, y, onPick, onClose }: { x: number; y: number; onPick: (t: ModuleType) => void; onClose: () => void }) {
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
   const filtered = useMemo(() => moduleCategories
     .map((cat) => ({ ...cat, modules: cat.modules.filter((m) => !q || (moduleTypeLabels[m] || m).toLowerCase().includes(q) || m.toLowerCase().includes(q)) }))
     .filter((cat) => cat.modules.length > 0), [q])
-  return (
-    <div className="absolute z-50 left-0 mt-1 w-[340px] max-h-[400px] overflow-hidden flex flex-col rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop-2xl animate-scale-in">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[hsl(var(--border))]">
-        <Search className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
-        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索模块…" className="flex-1 bg-transparent outline-none text-[13px]" />
-        <button onClick={onClose} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"><X className="w-3.5 h-3.5" /></button>
+  // 视口内夹取，避免溢出
+  const W = 340, H = 420
+  const left = Math.max(8, Math.min(x, window.innerWidth - W - 8))
+  const top = Math.max(8, Math.min(y, window.innerHeight - H - 8))
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div
+        className="fixed z-[9999] w-[340px] max-h-[420px] overflow-hidden flex flex-col rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop-2xl animate-scale-in"
+        style={{ left, top }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-[hsl(var(--border))]">
+          <Search className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索模块…" className="flex-1 bg-transparent outline-none text-[13px]" />
+          <button onClick={onClose} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"><X className="w-3.5 h-3.5" /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-1.5" onWheel={(e) => e.stopPropagation()}>
+          {filtered.map((cat) => (
+            <div key={cat.name} className="mb-1">
+              <div className="px-2 py-1 text-[10.5px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">{cat.name}</div>
+              {cat.modules.map((m) => {
+                const Icon = moduleIcons[m]
+                return (
+                  <button key={m} onClick={() => onPick(m)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[7px] text-left hover:bg-[hsl(var(--brand-50))] transition-colors">
+                    {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--brand-600))]" />}
+                    <span className="text-[12.5px] text-[hsl(var(--slate-700))]">{moduleTypeLabels[m] || m}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+          {filtered.length === 0 && <div className="py-6 text-center text-[12px] text-[hsl(var(--muted-foreground))]">无匹配模块</div>}
+        </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-1.5" onWheel={(e) => e.stopPropagation()}>
-        {filtered.map((cat) => (
-          <div key={cat.name} className="mb-1">
-            <div className="px-2 py-1 text-[10.5px] font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">{cat.name}</div>
-            {cat.modules.map((m) => {
-              const Icon = moduleIcons[m]
-              return (
-                <button key={m} onClick={() => onPick(m)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[7px] text-left hover:bg-[hsl(var(--brand-50))] transition-colors">
-                  {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--brand-600))]" />}
-                  <span className="text-[12.5px] text-[hsl(var(--slate-700))]">{moduleTypeLabels[m] || m}</span>
-                </button>
-              )
-            })}
-          </div>
-        ))}
-        {filtered.length === 0 && <div className="py-6 text-center text-[12px] text-[hsl(var(--muted-foreground))]">无匹配模块</div>}
-      </div>
-    </div>
+    </>,
+    document.body,
   )
 }
 
@@ -75,7 +89,7 @@ export function BlockFlowView() {
   const setGraph = useWorkflowStore((s) => s.setGraph)
 
   const blocks = useMemo(() => parseGraphToBlocks(nodes, edges), [nodes, edges])
-  const [picker, setPicker] = useState<PickerTarget | null>(null)
+  const [picker, setPicker] = useState<{ target: PickerTarget; x: number; y: number } | null>(null)
   const [dropActive, setDropActive] = useState(false)
 
   // 所有结构化编辑：基于当前图重新解析出可变树 → 编辑 → 重新生成图 → 提交
@@ -101,8 +115,15 @@ export function BlockFlowView() {
     applyEdit((tree) => {
       const neu = createBlock(type, extra)
       if (target.mode === 'after') return insertAfter(tree, target.id, neu)
+      if (target.mode === 'before') return insertBefore(tree, target.id, neu)
       return insertIntoContainer(tree, target.id, target.slot, neu)
     })
+  }
+
+  // 打开模块选择弹层（记录锚点坐标，portal 定位）
+  const openPicker = (target: PickerTarget, e: React.MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setPicker({ target, x: r.left, y: r.bottom + 4 })
   }
 
   // 解析拖拽数据 → {type, extra}
@@ -119,7 +140,7 @@ export function BlockFlowView() {
 
   const handlePick = (type: ModuleType, extra?: Partial<NodeData>) => {
     if (!picker) return
-    insertAt(picker, type, extra)
+    insertAt(picker.target, type, extra)
     setPicker(null)
   }
 
@@ -160,7 +181,7 @@ export function BlockFlowView() {
   const INDENT = 24
   void INDENT
 
-  // ===== 影刀风格紧凑步骤行 =====
+  // ===== 影刀风格紧凑步骤行（本身即投放区：按上/下半判断插到该行前/后）=====
   const StepRow = ({ block, num, kind }: { block: Block; num: number; kind: 'step' | 'if' | 'loop' }) => {
     const node = block.node
     const data = node.data as NodeData
@@ -170,16 +191,32 @@ export function BlockFlowView() {
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
     const title = kind === 'if' ? '如果' : kind === 'loop' ? '循环' : ''
+    const [dropPos, setDropPos] = useState<'top' | 'bottom' | null>(null)
+    const onRowDragOver = (e: React.DragEvent) => {
+      if (!(e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove'))) return
+      e.preventDefault(); e.stopPropagation()
+      const r = e.currentTarget.getBoundingClientRect()
+      setDropPos(e.clientY < r.top + r.height / 2 ? 'top' : 'bottom')
+    }
+    const onRowDrop = (e: React.DragEvent) => {
+      const pos = dropPos
+      setDropPos(null)
+      handleDropAt(e, pos === 'top' ? { mode: 'before', id: block.id } : { mode: 'after', id: block.id })
+    }
     return (
       <div
         draggable
         onDragStart={(e) => { e.dataTransfer.setData('application/blockmove', block.id); e.dataTransfer.effectAllowed = 'move' }}
+        onDragOver={onRowDragOver}
+        onDragLeave={() => setDropPos(null)}
+        onDrop={onRowDrop}
         onClick={() => selectNode(node.id)}
         className={
           'group/row relative flex items-center gap-2 pl-1.5 pr-1.5 py-1.5 rounded-[7px] cursor-grab active:cursor-grabbing transition-colors ' +
           (selected ? 'bg-[hsl(var(--brand-100))] ring-1 ring-[hsl(var(--brand-500)/0.5)]' : 'hover:bg-[hsl(var(--slate-100))]')
         }
       >
+        {dropPos && <div className={'absolute left-1 right-1 h-[2.5px] rounded bg-[hsl(var(--brand-500))] z-10 ' + (dropPos === 'top' ? 'top-0' : 'bottom-0')} />}
         <span className="w-5 text-right text-[10px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0">{num}</span>
         <span className={'flex items-center justify-center w-6 h-6 rounded-[6px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] border-l-[3px] ' + accent + ' flex-shrink-0'}>
           {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--slate-600))]" />}
@@ -200,9 +237,8 @@ export function BlockFlowView() {
     )
   }
 
-  // ===== 悬停才显形的细插入线（兼作投放区）=====
+  // ===== 悬停才显形的细插入线（点击弹选择器；兼作投放区）=====
   const HoverInsert = ({ target }: { target: PickerTarget }) => {
-    const active = !!picker && JSON.stringify(picker) === JSON.stringify(target)
     const [over, setOver] = useState(false)
     return (
       <div
@@ -211,36 +247,31 @@ export function BlockFlowView() {
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
       >
-        <div className={'flex-1 h-[2px] rounded transition-colors ' + (over || active ? 'bg-[hsl(var(--brand-500))]' : 'bg-transparent group-hover/ins:bg-[hsl(var(--brand-500)/0.25)]')} />
+        <div className={'flex-1 h-[2px] rounded transition-colors ' + (over ? 'bg-[hsl(var(--brand-500))]' : 'bg-transparent group-hover/ins:bg-[hsl(var(--brand-500)/0.25)]')} />
         <button
-          onClick={() => setPicker(active ? null : target)}
-          className={'absolute left-3 flex items-center justify-center w-4 h-4 rounded-full bg-[hsl(var(--card))] border border-[hsl(var(--brand-500)/0.5)] text-[hsl(var(--brand-600))] transition-opacity ' + (over || active ? 'opacity-100' : 'opacity-0 group-hover/ins:opacity-100')}
+          onClick={(e) => { e.stopPropagation(); openPicker(target, e) }}
+          className={'absolute left-3 flex items-center justify-center w-4 h-4 rounded-full bg-[hsl(var(--card))] border border-[hsl(var(--brand-500)/0.5)] text-[hsl(var(--brand-600))] transition-opacity ' + (over ? 'opacity-100' : 'opacity-0 group-hover/ins:opacity-100')}
           title="在此处插入模块"
         >
           <Plus className="w-2.5 h-2.5" />
         </button>
-        {active && <ModulePicker onPick={(t) => handlePick(t)} onClose={() => setPicker(null)} />}
       </div>
     )
   }
 
   // 空分支/循环体的占位（可点可拖入）
   const EmptySlot = ({ target, text }: { target: PickerTarget; text: string }) => {
-    const active = !!picker && JSON.stringify(picker) === JSON.stringify(target)
     const [over, setOver] = useState(false)
     return (
-      <div className="relative">
-        <div
-          onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
-          onDragLeave={() => setOver(false)}
-          onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
-          onClick={() => setPicker(active ? null : target)}
-          className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-[7px] border border-dashed cursor-pointer text-[11.5px] transition-colors ' +
-            (over || active ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))]' : 'border-[hsl(var(--slate-300))] text-[hsl(var(--slate-400))] hover:border-[hsl(var(--brand-500)/0.5)] hover:text-[hsl(var(--brand-600))]')}
-        >
-          <Plus className="w-3.5 h-3.5" /> {over ? '松手放入此处' : text}
-        </div>
-        {active && <ModulePicker onPick={(t) => handlePick(t)} onClose={() => setPicker(null)} />}
+      <div
+        onDragOver={(e) => { if (e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove')) { e.preventDefault(); e.stopPropagation(); setOver(true) } }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => { setOver(false); handleDropAt(e, target) }}
+        onClick={(e) => openPicker(target, e)}
+        className={'flex items-center gap-1.5 px-2.5 py-1.5 rounded-[7px] border border-dashed cursor-pointer text-[11.5px] transition-colors ' +
+          (over ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))]' : 'border-[hsl(var(--slate-300))] text-[hsl(var(--slate-400))] hover:border-[hsl(var(--brand-500)/0.5)] hover:text-[hsl(var(--brand-600))]')}
+      >
+        <Plus className="w-3.5 h-3.5" /> {over ? '松手放入此处' : text}
       </div>
     )
   }
@@ -301,6 +332,14 @@ export function BlockFlowView() {
           <EmptySlot target={{ mode: 'after', id: null }} text="添加模块" />
         </div>
       </div>
+      {picker && (
+        <ModulePicker
+          x={picker.x}
+          y={picker.y}
+          onPick={(t) => handlePick(t)}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </div>
   )
 }
