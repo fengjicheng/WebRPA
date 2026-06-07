@@ -150,9 +150,9 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     }
   }, [filteredLogs, activeTab])
 
-  // 数据预览展示控制：条数 + 顶部/底部（声明需早于使用它们的 useMemo）
-  const [dataDisplayLimit, setDataDisplayLimit] = useState(20)
-  const [dataDisplayMode, setDataDisplayMode] = useState<'tail' | 'head'>('tail')
+  // 数据预览展示控制：默认展示最多 100 条（最新）
+  const [dataDisplayLimit] = useState(100)
+  const [dataDisplayMode] = useState<'tail' | 'head'>('tail')
 
   // 获取所有列名
   const columns = Array.from(
@@ -661,30 +661,6 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                 </Button>
               )}
               <Button variant="tonal-danger" size="icon" className="h-7 w-7" onClick={clearCollectedData} title="清空数据"><Trash2 className="w-4 h-4" /></Button>
-              {/* 展示条数 + 顶部/底部 控制 */}
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-[hsl(var(--muted-foreground))] font-medium whitespace-nowrap">显示</span>
-                <Select
-                  value={dataDisplayMode}
-                  onChange={(e) => setDataDisplayMode(e.target.value as 'tail' | 'head')}
-                  className="!h-7 !text-[11px] !w-20"
-                >
-                  <option value="tail">最新</option>
-                  <option value="head">最早</option>
-                </Select>
-                <Select
-                  value={String(dataDisplayLimit)}
-                  onChange={(e) => setDataDisplayLimit(Number(e.target.value))}
-                  className="!h-7 !text-[11px] !w-20"
-                >
-                  <option value="20">20 条</option>
-                  <option value="50">50 条</option>
-                  <option value="100">100 条</option>
-                  <option value="200">200 条</option>
-                  <option value="500">500 条</option>
-                  <option value="0">全部</option>
-                </Select>
-              </div>
               <Button
                 variant="success"
                 size="sm"
