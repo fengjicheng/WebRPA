@@ -58,7 +58,9 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
     return s
   }
   const findMerge = (a: string | null, b: string | null): string | null => {
-    if (!a || !b) return a || b || null
+    // 任一分支为空（无对应出边）时不存在双路合并点：返回 null，
+    // 否则会把另一分支的首节点误判为合并点而被甩到外层同级位置。
+    if (!a || !b) return null
     const ra = reachable(a)
     const seen = new Set<string>()
     const q = [b]
