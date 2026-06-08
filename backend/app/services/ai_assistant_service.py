@@ -222,12 +222,56 @@ async def _call_llm(
     #   level 1：去掉历史里的 reasoning_content 回传 + 去掉 tool_choice（保留 tools）
     #   level 2：再去掉 tools（退化为纯对话，确保至少能问答）
     def _sanitize_messages(msgs: list[dict[str, Any]], level: int) -> list[dict[str, Any]]:
-        if level <= 0:
-            return msgs
+        # 先统计 tool_calls 声明 id 与 tool 结果 id，用于强制一致性
+        declared_ids: set[str] = set()
+        result_ids: set[str] = set()
+        for m in msgs:
+            if not isinstance(m, dict):
+                continue
+            if m.get("role") == "assistant" and m.get("tool_calls"):
+                for tc in m["tool_calls"]:
+                    if isinstance(tc, dict) and tc.get("id"):
+                        declared_ids.add(tc["id"])
+            if m.get("role") == "tool" and m.get("tool_call_id"):
+                result_ids.add(m["tool_call_id"])
+
+        drop_tools = level >= 2
         out: list[dict[str, Any]] = []
         for m in msgs:
-            if isinstance(m, dict) and "reasoning_content" in m:
-                m = {k: v for k, v in m.items() if k != "reasoning_content"}
+            if not isinstance(m, dict):
+                out.append(m)
+                continue
+            role = m.get("role")
+            m = dict(m)
+            if level >= 1:
+                m.pop("reasoning_content", None)  # 部分网关不接受回传 reasoning_content
+
+            if role == "tool":
+                # 孤儿 tool 结果（没有对应 assistant.tool_calls）必丢；level2 退化时全丢——
+                # 否则会出现“有 tool 结果但请求未声明 tools / tool_calls 不匹配”→ 网关 400
+                if drop_tools or m.get("tool_call_id") not in declared_ids:
+                    continue
+                out.append(m)
+                continue
+
+            if role == "assistant" and m.get("tool_calls"):
+                if drop_tools:
+                    m.pop("tool_calls", None)
+                    if (m.get("content") or "").strip():
+                        out.append(m)
+                    continue
+                # 仅保留“有对应 tool 结果”的 tool_calls，避免悬空 tool_calls 触发 400
+                kept = [tc for tc in m["tool_calls"]
+                        if isinstance(tc, dict) and tc.get("id") in result_ids]
+                if kept:
+                    m["tool_calls"] = kept
+                    out.append(m)
+                else:
+                    m.pop("tool_calls", None)
+                    if (m.get("content") or "").strip():
+                        out.append(m)
+                continue
+
             out.append(m)
         return out
 
@@ -332,6 +376,14 @@ async def _call_llm(
                 err = resp.json()
                 msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else None
                 msg = msg or err.get("message") or resp.text
+                # 捕获完整错误体（"Param Incorrect" 往往只是概述，真正的 param/code/type 在别处）
+                if resp.status_code == 400:
+                    try:
+                        full = json.dumps(err, ensure_ascii=False)
+                    except Exception:
+                        full = resp.text
+                    if full and full not in msg:
+                        msg = f"{msg} | 完整响应: {full[:600]}"
             except Exception:
                 msg = resp.text
 
@@ -342,6 +394,15 @@ async def _call_llm(
 
         # 走到这里说明本轮因 400 中断；尝试逐级降级重试
         if got_400 is not None:
+            # 诊断日志：打印失败请求概要，便于定位 Param Incorrect 的真实原因
+            try:
+                _roles = [m.get("role") for m in body.get("messages", []) if isinstance(m, dict)]
+                _chars = sum(len(str(m.get("content") or "")) for m in body.get("messages", []) if isinstance(m, dict))
+                print(f"[AIAssistant][400诊断] url={url} level={degrade_level} stream={cur_stream} "
+                      f"msg_count={len(_roles)} roles={_roles} total_content_chars={_chars} "
+                      f"has_tools={'tools' in body} resp={str(got_400)[:300]}")
+            except Exception:
+                pass
             if degrade_level < 2:
                 degrade_level += 1
                 print(f"[AIAssistant] LLM 返回 400（{str(got_400)[:80]}），自动降级兼容重试 level={degrade_level}")
@@ -377,6 +438,7 @@ async def _stream_llm_request(
 
     async with client.stream("POST", url, json=body, headers=headers) as resp:
         if resp.status_code != 200:
+            err_text = ""
             try:
                 err_text = (await resp.aread()).decode("utf-8", errors="ignore")
                 err = json.loads(err_text) if err_text.startswith("{") else None
@@ -387,7 +449,9 @@ async def _stream_llm_request(
             except Exception:
                 msg = f"status={resp.status_code}"
             if resp.status_code == 400:
-                raise LLMBadRequest(msg)
+                # 附带完整错误体，便于定位真正被拒的 param
+                extra = (err_text or "")[:600]
+                raise LLMBadRequest(f"{msg} | 完整响应: {extra}" if extra and extra not in msg else msg)
             raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
 
         async for line in resp.aiter_lines():
