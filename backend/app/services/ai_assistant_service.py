@@ -205,15 +205,18 @@ async def _call_llm(
     - 如果未传 on_event，用 stream=False 一次性拿响应（用于内部摘要等场景）
     返回：与非流式相同的完整 OpenAI 响应字典
     """
-    if not config.model:
+    # 容错：自动去除配置首尾空格（用户常在模型名/密钥末尾误带空格，导致网关 400 Param Incorrect）
+    model_clean = (config.model or "").strip()
+    api_key_clean = (config.api_key or "").strip()
+    if not model_clean:
         raise LLMError("模型名称不能为空")
 
     url = _normalize_api_url(config.api_url)
     use_stream = on_event is not None
 
     headers = {"Content-Type": "application/json"}
-    if config.api_key:
-        headers["Authorization"] = f"Bearer {config.api_key}"
+    if api_key_clean:
+        headers["Authorization"] = f"Bearer {api_key_clean}"
 
     # ===== 兼容性降级：部分第三方网关/转售 API（如某些 token 套餐代理）对请求体校验严格，
     # 会对 reasoning_content 回传 / tool_choice / tools 等字段直接返回 400 "Param Incorrect"。
@@ -277,7 +280,7 @@ async def _call_llm(
 
     def _build_body(level: int, stream_flag: bool) -> dict[str, Any]:
         b: dict[str, Any] = {
-            "model": config.model,
+            "model": model_clean,
             "messages": _sanitize_messages(messages, level),
             "temperature": config.temperature,
             "max_tokens": config.max_tokens,
