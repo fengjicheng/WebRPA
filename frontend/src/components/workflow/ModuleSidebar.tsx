@@ -1924,6 +1924,15 @@ function ModuleSidebarRaw() {
     })
   }
 
+  // 常用模块：用过的(usageCount>0)按 使用次数→最近使用 排序，取前 8 个，置顶展示
+  const frequentModules = useMemo(() => {
+    return (Object.entries(stats) as [ModuleType, { usageCount: number; lastUsed: number }][])
+      .filter(([, s]) => (s?.usageCount || 0) > 0)
+      .sort((a, b) => (b[1].usageCount - a[1].usageCount) || (b[1].lastUsed - a[1].lastUsed))
+      .slice(0, 8)
+      .map(([type]) => type)
+  }, [stats])
+
   // 模糊搜索过滤（支持拼音和首字母）+ 使用缓存的排序结果
   const filteredCategories = useMemo(() => {
     // 使用缓存的排序结果，而不是每次都重新排序
@@ -1952,32 +1961,40 @@ function ModuleSidebarRaw() {
       }].filter(cat => cat.modules.length > 0)
     }
 
+    // 常用模块虚拟分组（置顶）
+    const frequentGroup = frequentModules.length > 0
+      ? [{ name: '常用模块', color: 'bg-blue-500', modules: frequentModules }]
+      : []
+
     if (!searchQuery.trim()) {
-      // 没有搜索时，直接使用缓存的排序结果
-      return categories
+      // 没有搜索时，常用置顶 + 缓存排序结果
+      return [...frequentGroup, ...categories]
     }
 
     const query = searchQuery.trim()
-    
-    return categories.map(category => ({
-      ...category,
-      modules: category.modules.filter(type => {
-        const label = moduleTypeLabels[type]
-        const keywords = moduleKeywords[type] || []
-        
-        // 使用拼音匹配标签名
-        if (pinyinMatch(label, query)) return true
-        
-        // 匹配关键词（也支持拼音）
-        if (keywords.some(kw => pinyinMatch(kw, query))) return true
-        
-        // 匹配模块类型（英文）
-        if (type.toLowerCase().includes(query.toLowerCase())) return true
-        
-        return false
-      })
-    })).filter(category => category.modules.length > 0)
-  }, [searchQuery, showFavoritesOnly, favoriteModules, sortedCategoriesCache])
+    const matchType = (type: ModuleType) => {
+      const label = moduleTypeLabels[type]
+      const keywords = moduleKeywords[type] || []
+      if (pinyinMatch(label, query)) return true
+      if (keywords.some(kw => pinyinMatch(kw, query))) return true
+      if (type.toLowerCase().includes(query.toLowerCase())) return true
+      return false
+    }
+
+    // 搜索时：常用分组里命中的也置顶
+    const frequentMatched = frequentModules.filter(matchType)
+    const frequentSearchGroup = frequentMatched.length > 0
+      ? [{ name: '常用模块', color: 'bg-blue-500', modules: frequentMatched }]
+      : []
+
+    return [
+      ...frequentSearchGroup,
+      ...categories.map(category => ({
+        ...category,
+        modules: category.modules.filter(matchType),
+      })).filter(category => category.modules.length > 0),
+    ]
+  }, [searchQuery, showFavoritesOnly, favoriteModules, frequentModules, sortedCategoriesCache])
 
   // 搜索结果模块数
   const filteredModulesCount = filteredCategories.reduce((sum, cat) => sum + cat.modules.length, 0)

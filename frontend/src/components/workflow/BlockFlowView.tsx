@@ -4,7 +4,7 @@
  * 纯模块条模式即可搭建任意工作流（含条件/循环/嵌套），无需切回流程图。
  * 以「结构树」为操作对象，每次编辑后由树重新生成完整的图（自动连线）。
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
@@ -163,6 +163,71 @@ export function BlockFlowView() {
   const handleDelete = (id: string) => applyEdit((tree) => removeBlock(tree, id))
   const handleMove = (id: string, dir: -1 | 1) => applyEdit((tree) => moveBlock(tree, id, dir))
 
+  // 可见顺序的扁平块列表（键盘导航用；折叠容器的子项跳过）
+  const flatBlocks = useMemo(() => {
+    const out: { id: string; isContainer: boolean }[] = []
+    const walk = (seq: Block[]) => {
+      for (const b of seq) {
+        const isContainer = b.kind === 'if' || b.kind === 'loop' || b.kind === 'parallel'
+        out.push({ id: b.id, isContainer })
+        if (collapsed.has(b.id)) continue
+        if (b.kind === 'if') { walk(b.then); walk(b.els) }
+        else if (b.kind === 'loop') walk(b.body)
+        else if (b.kind === 'parallel') b.branches.forEach(walk)
+      }
+    }
+    walk(blocks)
+    return out
+  }, [blocks, collapsed])
+
+  const scrollRowIntoView = (id: string) => {
+    const el = document.querySelector(`[data-block-id="${id}"]`)
+    if (el) (el as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+  const openPickerAt = (target: PickerTarget, anchorId: string) => {
+    const el = document.querySelector(`[data-block-id="${anchorId}"]`) as HTMLElement | null
+    if (el) {
+      const r = el.getBoundingClientRect()
+      setPicker({ target, x: r.left, y: r.bottom + 4 })
+    } else {
+      setPicker({ target, x: 220, y: 200 })
+    }
+  }
+
+  // 键盘操作：↑/↓ 选择，Enter 在下方插入，Delete 删除，Ctrl+/ 折叠当前容器
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if (picker) return
+      const ids = flatBlocks.map((b) => b.id)
+      if (ids.length === 0) return
+      const curIdx = selectedNodeId ? ids.indexOf(selectedNodeId) : -1
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        const ni = curIdx < 0 ? 0 : Math.min(ids.length - 1, curIdx + 1)
+        selectNode(ids[ni]); scrollRowIntoView(ids[ni])
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        const pi = curIdx < 0 ? 0 : Math.max(0, curIdx - 1)
+        selectNode(ids[pi]); scrollRowIntoView(ids[pi])
+      } else if (e.key === 'Enter' && selectedNodeId && curIdx >= 0) {
+        e.preventDefault()
+        openPickerAt({ mode: 'after', id: selectedNodeId }, selectedNodeId)
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && curIdx >= 0) {
+        e.preventDefault()
+        handleDelete(selectedNodeId)
+      } else if (e.ctrlKey && (e.key === '/' || e.key === '、')) {
+        e.preventDefault()
+        const f = flatBlocks.find((b) => b.id === selectedNodeId)
+        if (f?.isContainer) toggleCollapse(selectedNodeId!)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flatBlocks, selectedNodeId, picker])
+
   // 投放到指定插入点（分支内/循环体内/任意位置都可）；支持新建模块 或 移动已有块
   const handleDropAt = (e: React.DragEvent, target: PickerTarget) => {
     const moveId = e.dataTransfer.getData('application/blockmove')
@@ -234,6 +299,7 @@ export function BlockFlowView() {
     return (
       <div
         draggable
+        data-block-id={node.id}
         onDragStart={(e) => { e.dataTransfer.setData('application/blockmove', block.id); e.dataTransfer.effectAllowed = 'move' }}
         onDragOver={onRowDragOver}
         onDragLeave={() => setDropPos(null)}
@@ -462,6 +528,7 @@ export function BlockFlowView() {
           <div className="flex items-center justify-between mb-3 px-0.5">
             <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
               共 <span className="font-semibold text-[hsl(var(--slate-700))] tabular-nums">{totalSteps}</span> 个步骤
+              <span className="hidden md:inline ml-2 text-[10.5px] text-[hsl(var(--slate-400))]">↑↓ 选择 · Enter 插入 · Delete 删除 · Ctrl+/ 折叠</span>
             </span>
             {containerIds.length > 0 && (
               <div className="flex items-center gap-1">
