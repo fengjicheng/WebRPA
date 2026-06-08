@@ -3,7 +3,7 @@
  * 仅渲染可视行 + overscan，编辑/删除/列管理保持原有行为。
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react'
+import { Edit2, Trash2, X, ArrowUp, ArrowDown, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useVirtualizer } from '@/hooks/useVirtualizer'
@@ -52,10 +52,19 @@ export const DataTable = memo(function DataTable({
   // 列排序状态（点击列头：升→降→取消）
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  // 行筛选关键词（任意单元格包含即匹配）
+  const [filterText, setFilterText] = useState('')
 
-  // 显示顺序的原始索引映射（排序只影响展示顺序，编辑/删除仍按原始索引回传，保证索引映射正确）
+  // 显示顺序的原始索引映射（筛选 + 排序只影响展示，编辑/删除仍按原始索引回传，保证索引映射正确）
   const viewIndex = useMemo(() => {
-    const idx = data.map((_, i) => i)
+    let idx = data.map((_, i) => i)
+    const q = filterText.trim().toLowerCase()
+    if (q) {
+      idx = idx.filter((i) => {
+        const row = data[i]
+        return columns.some((c) => formatCellValue(row?.[c]).toLowerCase().includes(q))
+      })
+    }
     if (!sortCol) return idx
     const num = (v: unknown) => {
       const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(/[, ]/g, ''))
@@ -71,7 +80,7 @@ export const DataTable = memo(function DataTable({
       return sortDir === 'asc' ? cmp : -cmp
     })
     return idx
-  }, [data, sortCol, sortDir])
+  }, [data, columns, filterText, sortCol, sortDir])
 
   const toggleSort = (col: string) => {
     if (sortCol !== col) { setSortCol(col); setSortDir('asc') }
@@ -80,7 +89,7 @@ export const DataTable = memo(function DataTable({
   }
 
   const { virtualItems, totalSize, scrollToBottom, scrollToTop } = useVirtualizer({
-    count: data.length,
+    count: viewIndex.length,
     getScrollElement,
     estimateSize: ROW_HEIGHT,
     overscan: 8,
@@ -135,6 +144,30 @@ export const DataTable = memo(function DataTable({
 
   return (
     <div className="flex flex-col h-full">
+      {/* 筛选工具栏 */}
+      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))] flex-shrink-0">
+        <div className="relative flex-1 max-w-[260px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" />
+          <input
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="筛选数据（任意列包含）…"
+            className="w-full pl-7 pr-7 h-7 text-[12px] rounded-[6px] border border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] focus:outline-none focus:border-[hsl(var(--brand-500))] focus:bg-[hsl(var(--card))]"
+          />
+          {filterText && (
+            <button
+              onClick={() => setFilterText('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))]"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+        <span className="text-[11px] text-[hsl(var(--muted-foreground))] tabular-nums">
+          {filterText ? `匹配 ${viewIndex.length} / ${data.length} 行` : `${data.length} 行`}
+          {sortCol && <span className="ml-2">· 按「{sortCol}」{sortDir === 'asc' ? '升序' : '降序'}</span>}
+        </span>
+      </div>
       {/* 表头 - 固定不滚动 */}
       <div
         className="flex bg-[hsl(var(--muted))] border-b border-[hsl(var(--border))] text-xs font-medium overflow-hidden flex-shrink-0"
