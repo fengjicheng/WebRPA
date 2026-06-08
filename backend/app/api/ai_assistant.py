@@ -90,7 +90,8 @@ async def api_chat(req: ChatRequest):
     if req.session_id:
         session = load_session(req.session_id)
     if session is None:
-        session = create_session()
+        # honor 前端预先生成的 session_id（便于执行期间精准取消）
+        session = create_session(session_id=req.session_id)
 
     sid_for_emit = session.id
 

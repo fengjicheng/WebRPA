@@ -451,12 +451,18 @@ export function AIAssistantPanel() {
     setAttachedImages([])
     setSending(true)
 
+    // 关键：在请求发出「之前」就确定 session_id 并登记为在途会话，
+    // 这样执行期间点「停止」能精准取消到后端正在跑的这次任务（解决新会话停不掉的问题）
+    const sidForRequest = currentSessionId || `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    inflightSessionIdRef.current = sidForRequest
+    if (!currentSessionId) setCurrentSessionId(sidForRequest)
+
     const ac = new AbortController()
     abortControllerRef.current = ac
 
     try {
       const res = await aiAssistantApi.chat({
-        session_id: currentSessionId,
+        session_id: sidForRequest,
         message: messageText,
         config: resolvedConfig,
         workflow_context: buildWorkflowContext(),

@@ -101,9 +101,16 @@ def list_sessions() -> list[SessionListItem]:
     return items
 
 
-def create_session(title: str | None = None) -> ChatSession:
+def create_session(title: str | None = None, session_id: str | None = None) -> ChatSession:
+    # 允许调用方（前端）预先指定 id：前端在发起对话前就知道 session_id，
+    # 这样"停止"按钮在请求执行期间也能精准取消到该会话（解决新会话无法停止的问题）
+    sid = (session_id or "").strip()
+    if sid:
+        # 安全校验：非法 id 退回随机生成
+        if "/" in sid or "\\" in sid or ".." in sid or len(sid) > 64:
+            sid = ""
     session = ChatSession(
-        id=uuid.uuid4().hex[:12],
+        id=sid or uuid.uuid4().hex[:12],
         title=title or "新对话",
     )
     save_session(session)
