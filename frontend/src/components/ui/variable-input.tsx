@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { useWorkflowStore } from '@/store/workflowStore'
+import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
 import { getModuleDefaultVar, VARIABLE_NAME_FIELDS } from '@/lib/moduleDefaultVars'
 import type { Variable } from '@/types'
 
@@ -106,7 +106,8 @@ const VariableInput = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, V
               name: varName,
               value: undefined,
               type: varType,
-              scope: 'local'
+              scope: 'local',
+              description: `来自「${(data.name as string) || moduleTypeLabels[moduleType] || moduleType}」`,
             })
           }
         })

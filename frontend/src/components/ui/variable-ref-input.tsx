@@ -56,7 +56,7 @@ export function VariableRefInput({
     for (const node of nodes) {
       const data = node.data as Record<string, unknown>
       const moduleType = data.moduleType as string
-      const nodeLabel = (data.label as string) || (data.name as string) || moduleType
+      const nodeLabel = (data.name as string) || (data.label as string) || moduleType
       
       const defaultVars = getModuleAllDefaultVars(moduleType)
       
