@@ -472,7 +472,20 @@ export function AIAssistantPanel() {
       inflightSessionIdRef.current = sid
       const full = await aiAssistantApi.getSession(sid)
       if (full.success && full.data) {
-        setMessages(full.data.messages || [])
+        const serverMsgs = full.data.messages || []
+        // 兜底：若本次发了图片，但服务器回传的最后一条用户消息没带回图片
+        //（例如后端未重启、旧版无 images 字段），把本地图片合并回去，避免“图片消失只剩文本”
+        if (images.length > 0) {
+          for (let i = serverMsgs.length - 1; i >= 0; i--) {
+            if (serverMsgs[i].role === 'user') {
+              if (!serverMsgs[i].images || serverMsgs[i].images!.length === 0) {
+                serverMsgs[i] = { ...serverMsgs[i], images }
+              }
+              break
+            }
+          }
+        }
+        setMessages(serverMsgs)
       } else {
         appendMessage(res.data.message)
       }
