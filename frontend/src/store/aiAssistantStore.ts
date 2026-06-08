@@ -24,6 +24,8 @@ export interface ChatMessage {
   timestamp?: string
   /** 多模态：用户消息附带的图片（data URL） */
   images?: string[]
+  /** 显示用：用户附带的文档类附件名（pdf/docx/xlsx 等，内容已并入发送文本） */
+  attachmentNames?: string[]
   /** DeepSeek-Reasoner 等思考模型的内部思考链（用于回传给 LLM，不在 UI 显示） */
   reasoning_content?: string | null
 }

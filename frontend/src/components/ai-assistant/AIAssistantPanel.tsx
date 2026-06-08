@@ -17,7 +17,8 @@ import {
   Info,
   Undo2,
   Clock,
-  ImagePlus,
+  Paperclip,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAIAssistantStore, type ChatMessage } from '@/store/aiAssistantStore'
@@ -70,6 +71,9 @@ export function AIAssistantPanel() {
   const [showSessions, setShowSessions] = useState(false)
   // 多模态：待发送的图片（data URL）
   const [attachedImages, setAttachedImages] = useState<string[]>([])
+  // 待发送的文档类附件（pdf/docx/xlsx/csv/txt/md/html 等，提取为文本）
+  const [attachedDocs, setAttachedDocs] = useState<{ id: string; name: string; text: string; status: 'loading' | 'ready' | 'error'; error?: string }[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showTimeline, setShowTimeline] = useState(false)
   const aiActions = useAiActionLogStore((s) => s.entries)
@@ -321,6 +325,7 @@ export function AIAssistantPanel() {
     setError(null)
     setInput('')
     setAttachedImages([])
+    setAttachedDocs([])
     textareaRef.current?.focus()
   }
 
@@ -381,20 +386,66 @@ export function AIAssistantPanel() {
     }
   }
 
+  // 支持的文档类扩展名（提取文本发给模型；图片走 image_url）
+  const DOC_EXTS = ['pdf', 'csv', 'doc', 'docx', 'xls', 'xlsx', 'html', 'htm', 'txt', 'md', 'markdown', 'json', 'xml', 'log', 'tsv', 'yaml', 'yml']
+  const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp']
+
+  function fileExt(name: string): string {
+    const i = name.lastIndexOf('.')
+    return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
+  }
+
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(fr.result as string)
+      fr.onerror = reject
+      fr.readAsDataURL(file)
+    })
+  }
+
+  // 添加一个文档类附件：调用后端提取为文本
+  async function addDocFile(file: File) {
+    const id = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    setAttachedDocs((prev) => [...prev, { id, name: file.name, text: '', status: 'loading' }].slice(-8))
+    try {
+      const dataUrl = await fileToBase64(file)
+      const res = await aiAssistantApi.extractFile(file.name, dataUrl)
+      if (res.success && res.data && res.data.success) {
+        setAttachedDocs((prev) => prev.map((d) => d.id === id ? { ...d, text: res.data!.text || '', status: 'ready' } : d))
+      } else {
+        const err = (res.data && res.data.error) || res.error || '解析失败'
+        setAttachedDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'error', error: err } : d))
+      }
+    } catch (e: any) {
+      setAttachedDocs((prev) => prev.map((d) => d.id === id ? { ...d, status: 'error', error: String(e?.message || e) } : d))
+    }
+    setTimeout(() => textareaRef.current?.focus(), 30)
+  }
+
+  // 统一入口：把一批文件按类型分发到图片 / 文档处理
+  async function addFiles(files: FileList | File[]) {
+    const list = Array.from(files)
+    const images = list.filter((f) => f.type.startsWith('image/') || IMAGE_EXTS.includes(fileExt(f.name)))
+    const docs = list.filter((f) => !images.includes(f) && DOC_EXTS.includes(fileExt(f.name)))
+    if (images.length > 0) await addImageFiles(images)
+    for (const d of docs.slice(0, 8)) await addDocFile(d)
+  }
+
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
     const items = e.clipboardData?.items
     if (!items) return
-    const imgFiles: File[] = []
+    const files: File[] = []
     for (let i = 0; i < items.length; i++) {
       const it = items[i]
-      if (it.kind === 'file' && it.type.startsWith('image/')) {
+      if (it.kind === 'file') {
         const f = it.getAsFile()
-        if (f) imgFiles.push(f)
+        if (f) files.push(f)
       }
     }
-    if (imgFiles.length > 0) {
+    if (files.length > 0) {
       e.preventDefault()
-      void addImageFiles(imgFiles)
+      void addFiles(files)
     }
   }
 
@@ -434,12 +485,19 @@ export function AIAssistantPanel() {
 
   async function handleSend(text?: string, imgs?: string[]) {
     const messageText = (text ?? input).trim()
-    // 手动发送（按钮 / Enter，text 为 undefined）时自动带上已上传的图片；
-    // 程序化发送（快捷指令 / 重发 / ask_ai，传了 text）默认不带图片
+    // 手动发送（按钮 / Enter，text 为 undefined）时自动带上已上传的图片/文档；
+    // 程序化发送（快捷指令 / 重发 / ask_ai，传了 text）默认不带附件
     const images = imgs ?? (text === undefined ? attachedImages : [])
-    if (!messageText && images.length === 0) return
+    const docs = text === undefined ? attachedDocs.filter((d) => d.status === 'ready' && d.text) : []
+    const docNames = text === undefined ? attachedDocs.map((d) => d.name) : []
+    if (!messageText && images.length === 0 && docs.length === 0) return
     if (!configReady) {
       setError('请先在「全局配置 → 小助手」中填写 API 地址和模型')
+      return
+    }
+    // 文档附件仍在解析中则提示等待
+    if (text === undefined && attachedDocs.some((d) => d.status === 'loading')) {
+      setError('附件正在解析中，请稍候…')
       return
     }
 
@@ -451,15 +509,23 @@ export function AIAssistantPanel() {
     setError(null)
     // 重置流式临时消息引用 - 新一轮对话开始
     streamingMsgIdRef.current = null
+    // 发给模型的实际文本 = 用户输入 + 文档附件提取出的内容
+    let enriched = messageText
+    if (docs.length > 0) {
+      enriched += '\n\n---\n【用户上传的附件内容，供你参考分析】\n' +
+        docs.map((d) => `# 附件：${d.name}\n${d.text}`).join('\n\n')
+    }
     const userMsg: ChatMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
       content: messageText,
       images: images.length > 0 ? images : undefined,
+      attachmentNames: docNames.length > 0 ? docNames : undefined,
     }
     appendMessage(userMsg)
     setInput('')
     setAttachedImages([])
+    setAttachedDocs([])
     setSending(true)
 
     // 关键：在请求发出「之前」就确定 session_id 并登记为在途会话，
@@ -474,7 +540,7 @@ export function AIAssistantPanel() {
     try {
       const res = await aiAssistantApi.chat({
         session_id: sidForRequest,
-        message: messageText,
+        message: enriched,
         config: resolvedConfig,
         workflow_context: buildWorkflowContext(),
         images: images.length > 0 ? images : undefined,
@@ -490,13 +556,16 @@ export function AIAssistantPanel() {
       const full = await aiAssistantApi.getSession(sid)
       if (full.success && full.data) {
         const serverMsgs = full.data.messages || []
-        // 兜底：若本次发了图片，但服务器回传的最后一条用户消息没带回图片
-        //（例如后端未重启、旧版无 images 字段），把本地图片合并回去，避免“图片消失只剩文本”
-        if (images.length > 0) {
+        // 兜底：服务器回传的最后一条用户消息，恢复成「原始输入 + 图片 + 附件名」用于展示，
+        // 避免把并入的附件提取文本（很长）显示在气泡里；同时防后端未重启丢 images
+        if (images.length > 0 || docNames.length > 0 || messageText) {
           for (let i = serverMsgs.length - 1; i >= 0; i--) {
             if (serverMsgs[i].role === 'user') {
-              if (!serverMsgs[i].images || serverMsgs[i].images!.length === 0) {
-                serverMsgs[i] = { ...serverMsgs[i], images }
+              serverMsgs[i] = {
+                ...serverMsgs[i],
+                content: messageText,
+                images: (serverMsgs[i].images && serverMsgs[i].images!.length > 0) ? serverMsgs[i].images : (images.length > 0 ? images : undefined),
+                attachmentNames: docNames.length > 0 ? docNames : undefined,
               }
               break
             }
@@ -896,11 +965,11 @@ export function AIAssistantPanel() {
             ))}
           </div>
         )}
-        {/* 待发送图片缩略图预览 */}
-        {attachedImages.length > 0 && (
+        {/* 待发送附件预览：图片缩略图 + 文档芯片 */}
+        {(attachedImages.length > 0 || attachedDocs.length > 0) && (
           <div className="mb-2 flex items-center gap-2 flex-wrap">
             {attachedImages.map((src, i) => (
-              <div key={i} className="relative w-14 h-14 rounded-[8px] overflow-hidden border border-[hsl(var(--border))] group/img">
+              <div key={`img-${i}`} className="relative w-14 h-14 rounded-[8px] overflow-hidden border border-[hsl(var(--border))] group/img">
                 <img src={src} alt={`附图${i + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -912,17 +981,51 @@ export function AIAssistantPanel() {
                 </button>
               </div>
             ))}
-            <span className="text-[10.5px] text-[hsl(var(--muted-foreground))]">{attachedImages.length}/6 张 · 需视觉模型</span>
+            {attachedDocs.map((d) => (
+              <div
+                key={d.id}
+                className={'relative flex items-center gap-1.5 pl-2 pr-6 py-1.5 rounded-[8px] border text-[11px] max-w-[180px] group/doc ' +
+                  (d.status === 'error' ? 'border-[hsl(var(--danger-500)/0.4)] bg-[hsl(var(--danger-50))] text-[hsl(var(--danger-700))]' : 'border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] text-[hsl(var(--slate-700))]')}
+                title={d.status === 'error' ? (d.error || '解析失败') : d.name}
+              >
+                {d.status === 'loading'
+                  ? <Square className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                  : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
+                <span className="truncate">{d.name}</span>
+                {d.status === 'loading' && <span className="text-[hsl(var(--muted-foreground))]">解析中</span>}
+                {d.status === 'error' && <span>失败</span>}
+                <button
+                  type="button"
+                  onClick={() => setAttachedDocs((prev) => prev.filter((x) => x.id !== d.id))}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover/doc:opacity-100 transition-opacity"
+                  title="移除"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+            <span className="text-[10.5px] text-[hsl(var(--muted-foreground))]">图片需视觉模型；文档将提取文字发给 AI</span>
           </div>
         )}
-        <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
+        <div
+          className={'relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] bg-[hsl(var(--card))] shadow-xs transition-[border-color,box-shadow] duration-150 ' +
+            (isDragOver ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.25)]' : 'border-[hsl(var(--border))] focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring')}
+          onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setIsDragOver(true) } }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false) }}
+          onDrop={(e) => { if (e.dataTransfer.files && e.dataTransfer.files.length > 0) { e.preventDefault(); setIsDragOver(false); void addFiles(e.dataTransfer.files) } }}
+        >
+          {isDragOver && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[10px] bg-[hsl(var(--brand-50)/0.92)] text-[hsl(var(--brand-700))] text-[12.5px] font-semibold pointer-events-none">
+              松手上传文件给小助手
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（可粘贴/上传截图，Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
+            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（可粘贴/拖拽/上传图片或文档，Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
             rows={2}
             disabled={!configReady}
             className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-3 py-2.5 leading-relaxed"
@@ -930,24 +1033,24 @@ export function AIAssistantPanel() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.gif,.svg,.webp,.bmp,.pdf,.csv,.doc,.docx,.xls,.xlsx,.html,.htm,.txt,.md,.markdown,.json,.xml,.log,.tsv,.yaml,.yml,image/*"
             multiple
             className="hidden"
-            onChange={(e) => { if (e.target.files) { void addImageFiles(e.target.files); e.target.value = '' } }}
+            onChange={(e) => { if (e.target.files) { void addFiles(e.target.files); e.target.value = '' } }}
           />
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={!configReady}
             size="icon-sm"
             variant="ghost"
-            title="上传/截图发给 AI 分析（也可直接 Ctrl+V 粘贴截图）"
+            title="上传图片或文档（pdf/word/excel/csv/txt/md/html 等）发给 AI 分析，也可直接粘贴/拖拽"
             className="!h-8 !w-8 flex-shrink-0 m-1"
           >
-            <ImagePlus className="w-3.5 h-3.5" />
+            <Paperclip className="w-3.5 h-3.5" />
           </Button>
           <Button
-            onClick={() => (isSending ? stopCurrent() : handleSend(undefined, attachedImages))}
-            disabled={!isSending && ((!input.trim() && attachedImages.length === 0) || !configReady)}
+            onClick={() => (isSending ? stopCurrent() : handleSend())}
+            disabled={!isSending && ((!input.trim() && attachedImages.length === 0 && attachedDocs.length === 0) || !configReady)}
             size="icon-sm"
             variant={isSending ? 'destructive' : 'default'}
             className="!h-8 !w-8 flex-shrink-0 m-1"

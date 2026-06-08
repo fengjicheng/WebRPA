@@ -11,6 +11,7 @@ import {
   Plug,
   Pencil,
   RotateCcw,
+  FileText,
 } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { marked } from 'marked'
@@ -410,7 +411,7 @@ export function MessageBubble({ message, onResend, onEdit }: MessageBubbleProps)
       </div>
 
       <div className={`flex-1 min-w-0 flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`group/msg ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
+        <div className={`group/msg ${isUser ? 'flex flex-col items-end gap-2 max-w-[85%]' : 'max-w-full w-full space-y-2'}`}>
           {/* 思考过程（仅 assistant 且模型返回了非空 reasoning_content 时） */}
           {!isUser && message.reasoning_content && message.reasoning_content.trim() && (
             <ReasoningCard
@@ -432,6 +433,21 @@ export function MessageBubble({ message, onResend, onEdit }: MessageBubbleProps)
               ) : (
                 <MarkdownContent content={message.content} />
               )}
+            </div>
+          )}
+          {/* 用户消息附带的文档附件芯片 */}
+          {isUser && message.attachmentNames && message.attachmentNames.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              {message.attachmentNames.map((nm, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] bg-[hsl(var(--slate-100))] border border-[hsl(var(--border))] text-[11px] text-[hsl(var(--slate-700))] max-w-[200px]"
+                  title={nm}
+                >
+                  <FileText className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{nm}</span>
+                </span>
+              ))}
             </div>
           )}
           {/* 用户消息附带的图片 */}

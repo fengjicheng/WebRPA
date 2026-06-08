@@ -199,6 +199,126 @@ async def api_test_connection(req: TestConnectionRequest):
         }
 
 
+# ---------- 附件文本提取（多模态/文档理解） ----------
+
+class ExtractFileRequest(BaseModel):
+    filename: str
+    content_base64: str  # 可为 data URL 或纯 base64
+
+
+def _decode_to_text(data: bytes) -> str:
+    for enc in ("utf-8", "utf-8-sig", "gbk", "gb18030", "utf-16", "latin-1"):
+        try:
+            return data.decode(enc)
+        except Exception:
+            continue
+    return data.decode("utf-8", errors="ignore")
+
+
+@router.post("/extract-file")
+async def api_extract_file(req: ExtractFileRequest):
+    """把用户上传的文档（pdf/docx/xls/xlsx/csv/txt/md/html 等）提取成纯文本，
+    供小助手（多模态/文档理解）分析。图片不走这里（走 chat 的 images 字段）。
+    """
+    import base64 as _b64
+    import os as _os
+    import tempfile as _tmp
+
+    name = (req.filename or "file").strip()
+    ext = _os.path.splitext(name)[1].lower()
+    raw = req.content_base64 or ""
+    if "," in raw and raw.strip().startswith("data:"):
+        raw = raw.split(",", 1)[1]
+    try:
+        data = _b64.b64decode(raw)
+    except Exception as e:
+        return {"success": False, "error": f"文件解码失败: {e}", "text": ""}
+
+    MAX_CHARS = 30000
+
+    def _clip(t: str) -> str:
+        t = t or ""
+        if len(t) > MAX_CHARS:
+            return t[:MAX_CHARS] + f"\n…（内容过长，已截断，仅保留前 {MAX_CHARS} 字）"
+        return t
+
+    try:
+        # 纯文本类：直接解码
+        if ext in (".txt", ".md", ".markdown", ".csv", ".html", ".htm", ".svg", ".json", ".log", ".xml", ".yaml", ".yml", ".ini", ".tsv"):
+            return {"success": True, "text": _clip(_decode_to_text(data)), "error": ""}
+
+        # 写临时文件供二进制解析库使用
+        fd, tmp_path = _tmp.mkstemp(suffix=ext or ".bin")
+        _os.close(fd)
+        try:
+            with open(tmp_path, "wb") as f:
+                f.write(data)
+
+            if ext == ".pdf":
+                try:
+                    import pdfplumber
+                    parts: list[str] = []
+                    with pdfplumber.open(tmp_path) as pdf:
+                        for i, page in enumerate(pdf.pages):
+                            if i >= 50:
+                                parts.append("…（页数过多，仅解析前 50 页）")
+                                break
+                            parts.append(page.extract_text() or "")
+                    return {"success": True, "text": _clip("\n".join(parts)), "error": ""}
+                except Exception:
+                    from pypdf import PdfReader
+                    reader = PdfReader(tmp_path)
+                    parts = [(p.extract_text() or "") for p in reader.pages[:50]]
+                    return {"success": True, "text": _clip("\n".join(parts)), "error": ""}
+
+            if ext == ".docx":
+                from docx import Document
+                doc = Document(tmp_path)
+                parts = [p.text for p in doc.paragraphs]
+                # 表格内容
+                for tbl in doc.tables:
+                    for row in tbl.rows:
+                        parts.append("\t".join(c.text for c in row.cells))
+                return {"success": True, "text": _clip("\n".join(parts)), "error": ""}
+
+            if ext == ".xlsx":
+                import openpyxl
+                wb = openpyxl.load_workbook(tmp_path, read_only=True, data_only=True)
+                out: list[str] = []
+                for ws in wb.worksheets:
+                    out.append(f"# 工作表: {ws.title}")
+                    for ri, row in enumerate(ws.iter_rows(values_only=True)):
+                        if ri >= 500:
+                            out.append("…（行数过多，仅解析前 500 行）")
+                            break
+                        out.append("\t".join("" if c is None else str(c) for c in row))
+                wb.close()
+                return {"success": True, "text": _clip("\n".join(out)), "error": ""}
+
+            if ext == ".xls":
+                import xlrd
+                wb = xlrd.open_workbook(tmp_path)
+                out = []
+                for ws in wb.sheets():
+                    out.append(f"# 工作表: {ws.name}")
+                    for ri in range(min(ws.nrows, 500)):
+                        out.append("\t".join(str(v) for v in ws.row_values(ri)))
+                return {"success": True, "text": _clip("\n".join(out)), "error": ""}
+
+            if ext == ".doc":
+                return {"success": False, "error": "暂不支持旧版 .doc（请另存为 .docx 后再上传）", "text": ""}
+
+            # 兜底：尝试当文本解码
+            return {"success": True, "text": _clip(_decode_to_text(data)), "error": ""}
+        finally:
+            try:
+                _os.remove(tmp_path)
+            except Exception:
+                pass
+    except Exception as e:
+        return {"success": False, "error": f"提取失败: {type(e).__name__}: {str(e)[:200]}", "text": ""}
+
+
 # ---------- Skills 元数据 ----------
 
 @router.get("/skills")

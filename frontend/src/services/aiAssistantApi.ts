@@ -70,6 +70,12 @@ export const aiAssistantApi = {
       { method: 'POST', body: JSON.stringify({ config }) }
     ),
 
+  extractFile: (filename: string, contentBase64: string) =>
+    apiRequest<{ success: boolean; text: string; error?: string }>(
+      '/ai-assistant/extract-file',
+      { method: 'POST', body: JSON.stringify({ filename, content_base64: contentBase64 }) }
+    ),
+
   listSkills: () =>
     apiRequest<{ count: number; skills: any[] }>('/ai-assistant/skills'),
 
