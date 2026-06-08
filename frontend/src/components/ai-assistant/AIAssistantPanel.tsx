@@ -263,6 +263,22 @@ export function AIAssistantPanel() {
     })
   }, [])
 
+  // 选中节点"问 AI"：打开面板并预填提示，可选自动发送（用 ref 持有最新 handleSend，避免闭包陈旧）
+  const handleSendRef = useRef<((t?: string) => void) | null>(null)
+  useEffect(() => {
+    return onAssistantUiEvent('ask_ai', (payload: any) => {
+      const prompt = (payload?.prompt as string) || ''
+      if (!prompt) return
+      setOpen(true)
+      setInput(prompt)
+      if (payload?.autoSend) {
+        setTimeout(() => { handleSendRef.current?.(prompt) }, 200)
+      } else {
+        setTimeout(() => textareaRef.current?.focus(), 120)
+      }
+    })
+  }, [setOpen])
+
   const resolvedConfig = (() => {
     const a = aiAssistantConfig
     const b = aiFallbackConfig
@@ -380,9 +396,10 @@ export function AIAssistantPanel() {
       })
     }
   }
+  // 持有最新 handleSend 供 ask_ai 事件自动发送
+  handleSendRef.current = handleSend
 
-  async function stopCurrent() {
-    const sid = inflightSessionIdRef.current || currentSessionId
+  async function stopCurrent() {    const sid = inflightSessionIdRef.current || currentSessionId
     // 1) 通知后端取消（让正在跑的工具/LLM 调用尽快退出）
     if (sid) {
       try {

@@ -166,7 +166,7 @@ export function onAssistantUiEvent(event: string, handler: (payload: any) => voi
   }
 }
 
-function emitAssistantUiEvent(event: string, payload: any) {
+export function emitAssistantUiEvent(event: string, payload: any) {
   const set = listeners.get(event)
   if (!set) return
   set.forEach((h) => {

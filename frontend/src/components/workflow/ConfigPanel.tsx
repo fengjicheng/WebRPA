@@ -2,13 +2,14 @@ import { useWorkflowStore, moduleTypeLabels, getModuleDefaultTimeout, type NodeD
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRequiredFields, getMissingRequired } from '@/lib/requiredFields'
+import { emitAssistantUiEvent } from '@/services/aiAssistantSkills'
 import { Input } from '@/components/ui/input'
 import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { Button } from '@/components/ui/button'
 import { VariableInput } from '@/components/ui/variable-input'
-import { Trash2, Crosshair, Loader2, Ban, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
+import { Trash2, Crosshair, Loader2, Ban, ChevronLeft, ChevronRight, Settings, Sparkles } from 'lucide-react'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { elementPickerApi, desktopPickerApi } from '@/services/api'
 
@@ -674,6 +675,30 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
     if (selectedNodeId) {
       deleteNode(selectedNodeId)
     }
+  }
+
+  // 选中节点"问 AI"：让小助手解释/优化/修复当前模块
+  const askAIAboutNode = () => {
+    if (!nodeData) return
+    const mt = String(nodeData.moduleType)
+    const label = String(moduleTypeLabels[mt as keyof typeof moduleTypeLabels] ?? mt)
+    // 精简配置（去掉内部字段）
+    const skip = new Set(['moduleType', 'label', 'isHighlighted', '__aiSpawning'])
+    const cfg: Record<string, unknown> = {}
+    Object.entries(nodeData as Record<string, unknown>).forEach(([k, v]) => {
+      if (skip.has(k)) return
+      if (v === '' || v === undefined || v === null) return
+      cfg[k] = v
+    })
+    let cfgStr = ''
+    try { cfgStr = JSON.stringify(cfg) } catch { cfgStr = '(无法序列化)' }
+    if (cfgStr.length > 1200) cfgStr = cfgStr.slice(0, 1200) + '…'
+    const prompt = `请帮我看下当前工作流里这个模块：\n` +
+      `模块类型：${label}（${mt}）\n` +
+      `节点备注：${(nodeData.name as string) || '无'}\n` +
+      `当前配置：${cfgStr}\n\n` +
+      `请：1) 简要说明它的作用；2) 指出配置是否有问题或可优化之处；3) 给出具体修改建议。`
+    emitAssistantUiEvent('ask_ai', { prompt, autoSend: true })
   }
 
   // 打开URL输入对话框
@@ -2184,6 +2209,14 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <Button
+                  variant="tonal"
+                  size="icon-sm"
+                  onClick={askAIAboutNode}
+                  title="问 AI（解释 / 优化 / 修复此模块）"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </Button>
                 <Button
                   variant={nodeData.disabled ? 'tonal-warning' : 'tonal'}
                   size="icon-sm"
