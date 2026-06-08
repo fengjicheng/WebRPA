@@ -251,7 +251,8 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
 
   const addEdge = (source: string, target: string | null, handle: string | null) => {
     if (!target) return
-    const e: Edge = { id: `e-${source}-${handle || 'd'}-${target}`, source, target }
+    // 与 WebRPA 默认连线一致：smoothstep + 流光虚线（animated）
+    const e: Edge = { id: `e-${source}-${handle || 'd'}-${target}`, source, target, type: 'smoothstep', animated: true }
     if (handle) (e as Edge & { sourceHandle?: string }).sourceHandle = handle
     outEdges.push(e)
   }
