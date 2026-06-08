@@ -42,29 +42,103 @@ class SystemNotificationExecutor(ModuleExecutor):
         title = context.resolve_value(config.get('notifyTitle', 'WebRPA通知')) or 'WebRPA通知'
         message = context.resolve_value(config.get('notifyMessage', ''))
         duration = to_int(config.get('duration', 5), 5, context)
-        
+        if duration <= 0:
+            duration = 5
+
         if not message:
             return ModuleResult(success=False, error="通知消息不能为空")
-        
+
         try:
-            loop = asyncio.get_running_loop()
-            
-            def show_notification():
-                try:
-                    from plyer import notification
-                    notification.notify(title=title, message=message, timeout=duration, app_name='WebRPA')
-                    return True, None
-                except Exception as e:
-                    return False, str(e)
-            
-            success, error = await loop.run_in_executor(None, show_notification)
-            
-            if not success:
-                return ModuleResult(success=False, error=f"显示通知失败: {error}")
-            
-            return ModuleResult(success=True, message=f"已显示系统通知: {title}",
-                              data={'title': title, 'message': message})
-            
+            # 用自绘的 tkinter 通知窗，精确按 duration 秒显示后自动关闭。
+            # （Windows 系统 toast/plyer 会忽略应用指定的时长，固定约 5-7 秒，无法控制。）
+            def show_custom_toast():
+                import threading
+
+                def _toast():
+                    try:
+                        import tkinter as tk
+                        root = tk.Tk()
+                        root.overrideredirect(True)
+                        root.attributes('-topmost', True)
+                        try:
+                            root.attributes('-alpha', 0.0)
+                        except Exception:
+                            pass
+
+                        W, H = 360, 104
+                        sw = root.winfo_screenwidth()
+                        sh = root.winfo_screenheight()
+                        x = sw - W - 24
+                        y = sh - H - 64
+                        root.geometry(f"{W}x{H}+{x}+{y}")
+                        root.configure(bg='#1e2024')
+
+                        # 卡片
+                        card = tk.Frame(root, bg='#ffffff')
+                        card.place(x=0, y=0, width=W, height=H)
+                        # 品牌色左侧条
+                        tk.Frame(card, bg='#2563eb').place(x=0, y=0, width=5, height=H)
+
+                        tk.Label(
+                            card, text=title, bg='#ffffff', fg='#0f172a',
+                            font=('Microsoft YaHei UI', 11, 'bold'), anchor='w', justify='left',
+                        ).place(x=18, y=14, width=W - 34)
+                        tk.Label(
+                            card, text=message, bg='#ffffff', fg='#475569',
+                            font=('Microsoft YaHei UI', 10), anchor='nw', justify='left',
+                            wraplength=W - 40,
+                        ).place(x=18, y=42, width=W - 34, height=H - 52)
+
+                        # 点击关闭
+                        def _close():
+                            try:
+                                root.destroy()
+                            except Exception:
+                                pass
+                        for w in (root, card):
+                            w.bind('<Button-1>', lambda e: _close())
+
+                        # 淡入
+                        def _fade_in(a=0.0):
+                            a = min(1.0, a + 0.12)
+                            try:
+                                root.attributes('-alpha', a)
+                            except Exception:
+                                pass
+                            if a < 1.0:
+                                root.after(16, lambda: _fade_in(a))
+                        _fade_in()
+
+                        # 到时淡出并关闭
+                        def _fade_out(a=1.0):
+                            a -= 0.12
+                            try:
+                                root.attributes('-alpha', max(0.0, a))
+                            except Exception:
+                                pass
+                            if a <= 0.0:
+                                _close()
+                            else:
+                                root.after(16, lambda: _fade_out(a))
+                        root.after(int(duration * 1000), _fade_out)
+
+                        root.mainloop()
+                    except Exception as e:
+                        # tkinter 不可用时回退到 plyer 系统通知（时长不可控）
+                        try:
+                            from plyer import notification
+                            notification.notify(title=title, message=message, timeout=duration, app_name='WebRPA')
+                        except Exception:
+                            print(f"[系统消息] 显示失败: {e}")
+
+                t = threading.Thread(target=_toast, daemon=True)
+                t.start()
+
+            show_custom_toast()
+
+            return ModuleResult(success=True, message=f"已显示系统通知: {title}（{duration}秒）",
+                              data={'title': title, 'message': message, 'duration': duration})
+
         except Exception as e:
             return ModuleResult(success=False, error=f"系统通知失败: {str(e)}")
 
