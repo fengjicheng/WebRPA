@@ -409,8 +409,8 @@ export function MessageBubble({ message, onResend, onEdit }: MessageBubbleProps)
         {isUser ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" strokeWidth={2.4} />}
       </div>
 
-      <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
-        <div className={`group/msg inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
+      <div className={`flex-1 min-w-0 flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`group/msg ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
           {/* 思考过程（仅 assistant 且模型返回了非空 reasoning_content 时） */}
           {!isUser && message.reasoning_content && message.reasoning_content.trim() && (
             <ReasoningCard

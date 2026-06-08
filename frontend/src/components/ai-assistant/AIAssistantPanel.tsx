@@ -324,7 +324,9 @@ export function AIAssistantPanel() {
     textareaRef.current?.focus()
   }
 
-  // 读取图片文件 → 缩放（最长边 1280px）→ data URL，避免超大截图把请求体撑爆
+  // 读取图片文件 → 统一经 canvas 重新编码为 PNG/JPEG（模型只认 png/jpeg/webp/gif/bmp，
+  // 原始可能是 svg/avif/ico/tiff 等不受支持的格式，直接透传会被网关判 400 "invalid image format"），
+  // 同时把最长边缩放到 1280px，避免超大截图把请求体撑爆
   async function loadImageFile(file: File): Promise<string | null> {
     if (!file.type.startsWith('image/')) return null
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -341,20 +343,27 @@ export function AIAssistantPanel() {
         img.src = dataUrl
       })
       const MAX = 1280
-      let { width, height } = img
-      if (width <= MAX && height <= MAX) return dataUrl
-      const scale = MAX / Math.max(width, height)
-      width = Math.round(width * scale)
-      height = Math.round(height * scale)
+      let width = img.naturalWidth || img.width
+      let height = img.naturalHeight || img.height
+      if (!width || !height) return dataUrl
+      if (width > MAX || height > MAX) {
+        const scale = MAX / Math.max(width, height)
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d')
       if (!ctx) return dataUrl
       ctx.drawImage(img, 0, 0, width, height)
-      return canvas.toDataURL('image/jpeg', 0.85)
+      // 含透明通道的格式（png/webp/gif/svg/ico 等 logo 常见）用 PNG 保真，
+      // 其余（jpeg/bmp 照片类）用 JPEG 压缩体积
+      const keepAlpha = !/jpe?g|bmp/i.test(file.type)
+      return keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.88)
     } catch {
-      return dataUrl
+      // canvas 失败兜底：仅当原始就是受支持格式时透传，否则放弃
+      return /image\/(png|jpe?g|webp|gif|bmp)/i.test(file.type) ? dataUrl : null
     }
   }
 
