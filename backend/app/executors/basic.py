@@ -1299,6 +1299,12 @@ class SystemNotificationExecutor(ModuleExecutor):
         if duration <= 0:
             duration = 5
 
+        # 是否播放提示音（默认开启）
+        play_sound_raw = config.get('playSound', True)
+        if isinstance(play_sound_raw, str):
+            play_sound_raw = context.resolve_value(play_sound_raw)
+        play_sound = play_sound_raw in [True, 'true', 'True', '1', 1]
+
         if not message:
             return ModuleResult(success=False, error="通知消息不能为空")
 
@@ -1312,12 +1318,47 @@ class SystemNotificationExecutor(ModuleExecutor):
 
         child_script = r'''
 import os, time, win32gui, win32con, win32api
+
 title = os.environ.get("WEBRPA_TOAST_TITLE", "WebRPA通知")
 message = os.environ.get("WEBRPA_TOAST_MSG", "")
 try:
     duration = float(os.environ.get("WEBRPA_TOAST_DURATION", "5"))
 except Exception:
     duration = 5.0
+play_sound = os.environ.get("WEBRPA_TOAST_SOUND", "1") == "1"
+
+# 跟随系统主题：读注册表 AppsUseLightTheme（1=亮色, 0=暗色）
+def _is_dark():
+    try:
+        import winreg
+        k = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                           r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        val, _ = winreg.QueryValueEx(k, "AppsUseLightTheme")
+        winreg.CloseKey(k)
+        return val == 0
+    except Exception:
+        return False
+
+dark = _is_dark()
+if dark:
+    BG = win32api.RGB(32, 33, 36)        # 卡片背景（深灰）
+    TITLE_C = win32api.RGB(241, 245, 249)
+    MSG_C = win32api.RGB(180, 190, 205)
+    BAR_C = win32api.RGB(59, 130, 246)
+else:
+    BG = win32api.RGB(255, 255, 255)
+    TITLE_C = win32api.RGB(15, 23, 42)
+    MSG_C = win32api.RGB(71, 85, 105)
+    BAR_C = win32api.RGB(37, 99, 235)
+
+# 出现时播放系统提示音
+if play_sound:
+    try:
+        import winsound
+        winsound.MessageBeep(winsound.MB_ICONASTERISK)
+    except Exception:
+        pass
+
 W, H = 360, 104
 sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
 sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
@@ -1336,17 +1377,17 @@ def wnd_proc(hwnd, msg, wparam, lparam):
     if msg == win32con.WM_PAINT:
         hdc, ps = win32gui.BeginPaint(hwnd)
         rect = win32gui.GetClientRect(hwnd)
-        wbr = win32gui.CreateSolidBrush(win32api.RGB(255, 255, 255))
+        wbr = win32gui.CreateSolidBrush(BG)
         win32gui.FillRect(hdc, rect, wbr); win32gui.DeleteObject(wbr)
-        bbr = win32gui.CreateSolidBrush(win32api.RGB(37, 99, 235))
+        bbr = win32gui.CreateSolidBrush(BAR_C)
         win32gui.FillRect(hdc, (0, 0, 5, H), bbr); win32gui.DeleteObject(bbr)
         win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
         old = win32gui.SelectObject(hdc, font_title)
-        win32gui.SetTextColor(hdc, win32api.RGB(15, 23, 42))
+        win32gui.SetTextColor(hdc, TITLE_C)
         win32gui.DrawText(hdc, title, -1, (18, 12, W - 16, 36),
                           win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_END_ELLIPSIS)
         win32gui.SelectObject(hdc, font_msg)
-        win32gui.SetTextColor(hdc, win32api.RGB(71, 85, 105))
+        win32gui.SetTextColor(hdc, MSG_C)
         win32gui.DrawText(hdc, message, -1, (18, 40, W - 16, H - 12),
                           win32con.DT_LEFT | win32con.DT_WORDBREAK)
         win32gui.SelectObject(hdc, old)
@@ -1388,6 +1429,7 @@ if not _closed["v"]:
             env['WEBRPA_TOAST_TITLE'] = str(title)
             env['WEBRPA_TOAST_MSG'] = str(message)
             env['WEBRPA_TOAST_DURATION'] = str(duration)
+            env['WEBRPA_TOAST_SOUND'] = '1' if play_sound else '0'
 
             creationflags = 0
             if sys.platform == 'win32':

@@ -682,8 +682,16 @@ export function SystemNotificationConfig({ data, onChange }: { data: NodeData; o
           max={30}
         />
       </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="playSound"
+          checked={(data.playSound as boolean) ?? true}
+          onCheckedChange={(checked) => onChange('playSound', checked === true)}
+        />
+        <Label htmlFor="playSound" className="cursor-pointer">弹窗出现时播放提示音</Label>
+      </div>
       <p className="text-xs text-muted-foreground">
-        '显示系统通知消息，支持变量引用'
+        显示系统通知消息，支持变量引用；弹窗会自动跟随系统亮色/暗色主题
       </p>
     </>
   )
