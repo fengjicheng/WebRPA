@@ -2,8 +2,6 @@
 import os
 from pathlib import Path
 from typing import Optional
-import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill
 
 from .base import (
     ModuleExecutor,
@@ -33,7 +31,9 @@ class ExtractTableDataExecutor(ModuleExecutor):
         - includeHeader: 是否包含表头
         - headerRow: 表头行索引（默认0，第一行）
         """
-        
+        import openpyxl
+        from openpyxl.styles import Font, Alignment, PatternFill
+
         table_selector = context.resolve_value(config.get('tableSelector', ''))
         variable_name = config.get('variableName', 'table_data')
         export_to_excel = config.get('exportToExcel', False)

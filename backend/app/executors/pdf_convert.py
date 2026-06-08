@@ -10,8 +10,6 @@
 import asyncio
 import os
 from typing import List
-from pypdf import PdfReader, PdfWriter
-from PIL import Image
 import io
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
@@ -105,6 +103,7 @@ class PDFToImagesExecutor(ModuleExecutor):
     
     def _convert(self, pdf_path: str, output_dir: str, dpi: int, image_format: str, page_range: str) -> dict:
         from pdf2image import convert_from_path
+        from pypdf import PdfReader
         
         reader = PdfReader(pdf_path)
         total_pages = len(reader.pages)
@@ -196,6 +195,7 @@ class ImagesToPDFExecutor(ModuleExecutor):
     
     def _convert(self, image_paths: List[str], output_path: str, page_size: str) -> dict:
         """使用 PIL 将图片转换为 PDF"""
+        from PIL import Image
         images = []
         for img_path in image_paths:
             img = Image.open(img_path)

@@ -1,6 +1,4 @@
 """数据库操作执行器"""
-import pymysql
-from pymysql.cursors import DictCursor
 from typing import Dict, Any, Optional
 
 from .base import (
@@ -13,7 +11,7 @@ from .type_utils import to_int
 
 
 # 全局数据库连接池（存储在context中）
-def get_db_connections(context: ExecutionContext) -> Dict[str, pymysql.Connection]:
+def get_db_connections(context: ExecutionContext) -> Dict[str, Any]:
     """获取数据库连接池"""
     if not hasattr(context, '_db_connections'):
         context._db_connections = {}
@@ -29,6 +27,8 @@ class DbConnectExecutor(ModuleExecutor):
         return "db_connect"
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        import pymysql
+        from pymysql.cursors import DictCursor
         host = context.resolve_value(config.get('host', 'localhost'))
         port = to_int(config.get('port', 3306), 3306, context)
         user = context.resolve_value(config.get('user', 'root'))

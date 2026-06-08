@@ -21,7 +21,6 @@ import os
 from typing import List
 from pypdf import PdfReader, PdfWriter, Transformation
 from pypdf.generic import RectangleObject
-from PIL import Image
 import io
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
@@ -312,6 +311,7 @@ class PDFExtractImagesExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"PDF提取图片失败: {str(e)}")
     
     def _extract(self, pdf_path: str, output_dir: str, min_size: int) -> dict:
+        from PIL import Image
         reader = PdfReader(pdf_path)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
         images = []
