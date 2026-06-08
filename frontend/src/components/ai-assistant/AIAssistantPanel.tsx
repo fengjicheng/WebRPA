@@ -425,7 +425,9 @@ export function AIAssistantPanel() {
 
   async function handleSend(text?: string, imgs?: string[]) {
     const messageText = (text ?? input).trim()
-    const images = imgs && imgs.length > 0 ? imgs : []
+    // 手动发送（按钮 / Enter，text 为 undefined）时自动带上已上传的图片；
+    // 程序化发送（快捷指令 / 重发 / ask_ai，传了 text）默认不带图片
+    const images = imgs ?? (text === undefined ? attachedImages : [])
     if (!messageText && images.length === 0) return
     if (!configReady) {
       setError('请先在「全局配置 → 小助手」中填写 API 地址和模型')
