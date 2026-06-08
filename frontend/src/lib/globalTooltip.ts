@@ -39,11 +39,16 @@ function ensureTipEl(): HTMLDivElement {
     'border-radius:6px',
     'font-size:11.5px',
     'font-weight:500',
-    'line-height:1.4',
+    'line-height:1.5',
     'letter-spacing:0.2px',
-    'max-width:320px',
+    // 关键：width:max-content 让浮窗按内容自适应宽度（短文本单行显示，
+    // 长文本到 max-width 才换行），彻底避免被挤成「一字一行」；
+    // max-width 同时受视口约束，保证再长也不会超出屏幕
+    'width:max-content',
+    'max-width:min(360px, calc(100vw - 24px))',
     'white-space:normal',
-    'word-break:break-word',
+    'overflow-wrap:break-word',
+    'word-break:normal',
     'text-align:center',
     'color:#fff',
     'background:linear-gradient(135deg, #12b7f5 0%, #2086e8 50%, #1a4fc4 100%)',
@@ -92,6 +97,10 @@ function show(target: Element, text: string) {
     top = rect.bottom + 8
     placement = 'bottom'
   }
+  // 垂直夹取：保证浮窗完全在可视区内（解决靠下/超长浮窗跑到屏幕外看不全）
+  const maxTop = window.innerHeight - th - 6
+  if (top > maxTop) top = Math.max(6, maxTop)
+  if (top < 6) top = 6
   let left = rect.left + rect.width / 2
 
   // 边界回收（保证 5px 安全间距）
