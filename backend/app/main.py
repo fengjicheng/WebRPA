@@ -4,10 +4,9 @@ import threading
 import uuid
 from pathlib import Path
 
-# 注意：PaddleOCR 模型不在此处同步预热！
-# 之前在模块导入时同步调用 init_paddle_ocr_models() 会阻塞 10-30 秒，
-# 严重拖慢后端启动速度。现已改为在 startup_event 的后台任务里异步预热，
-# 服务器可立即启动并接受连接，OCR 模型在后台静默加载。
+# OCR 模型采用「按需加载」策略：启动时既不同步预热也不后台预热，
+# 避免 PaddleOCR/EasyOCR/torch/paddlepaddle 一启动就常驻几百 MB 内存。
+# 仅当用户实际运行 OCR 相关模块时才懒加载并缓存模型，最大限度降低空闲内存。
 
 # Windows 上需要设置事件循环策略以支持 Playwright
 # Python 3.13 在 Windows 上的兼容性修复
@@ -158,25 +157,10 @@ async def startup_event():
     loop = asyncio.get_event_loop()
     set_main_loop(loop)
 
-    # 后台预热 OCR 模型，避免首次调用时阻塞 30+ 秒（不阻塞启动）
-    async def _preload_ocr():
-        loop = asyncio.get_event_loop()
-        # 预热 PaddleOCR（点击文本/悬停文本等模块用）
-        try:
-            from app.services.paddle_ocr_init import init_paddle_ocr_models
-            await loop.run_in_executor(None, init_paddle_ocr_models)
-            print("[Startup] PaddleOCR 模型预加载完成")
-        except Exception as e:
-            print(f"[Startup] PaddleOCR 模型预加载失败: {e}")
-        # 预热 EasyOCR
-        try:
-            from app.executors.media_recognition import get_easyocr_reader
-            await loop.run_in_executor(None, get_easyocr_reader)
-            print("[Startup] EasyOCR 模型预加载完成")
-        except Exception as e:
-            print(f"[Startup] EasyOCR 模型预加载失败: {e}")
-
-    asyncio.create_task(_preload_ocr())
+    # OCR 模型改为「按需加载」：不在启动时预热，避免 PaddleOCR/EasyOCR/torch
+    # 一启动就常驻几百 MB 内存。用户首次运行 OCR 相关模块（点击文本/悬停文本/
+    # 图像识别等）时会通过 get_ocr_instance()/get_easyocr_reader() 懒加载并缓存，
+    # 仅首次有一次性初始化延迟，之后命中缓存。极大降低空闲内存占用。
 
     # 后台初始化 MCP 服务器（用户配置的）
     async def _init_mcp():

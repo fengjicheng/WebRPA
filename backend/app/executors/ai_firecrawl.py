@@ -1,14 +1,22 @@
 """Firecrawl AI 爬虫模块执行器 - 纯 Python 实现，无需外部服务"""
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 import json
-from playwright.async_api import async_playwright
-from app.services.headless_browser import launch_headless_chromium
-from bs4 import BeautifulSoup
-import html2text
 import re
 from urllib.parse import urljoin, urlparse
 from typing import List, Set, Dict
 import asyncio
+
+# 说明：playwright / bs4 / html2text / headless_browser 均为「重/中量级」依赖，
+# 改为在各 execute 方法内按需导入，避免后端启动时（executors 包注册阶段）就把
+# Playwright 等载入内存。仅当用户真正运行 Firecrawl 抓取模块时才加载。
+
+
+def _lazy_deps():
+    """按需导入 Firecrawl 抓取所需的重/中量级依赖（playwright/bs4/html2text）。"""
+    from app.services.headless_browser import launch_headless_chromium
+    from bs4 import BeautifulSoup
+    import html2text
+    return launch_headless_chromium, BeautifulSoup, html2text
 
 
 @register_executor
@@ -28,6 +36,7 @@ class FirecrawlScrapeExecutor(ModuleExecutor):
             # 获取配置
             url = context.resolve_value(config.get('url', ''))
             variable_name = config.get('variableName', 'scrape_result')
+            launch_headless_chromium, BeautifulSoup, html2text = _lazy_deps()
             
             # 抓取选项
             formats = config.get('formats', ['markdown'])
@@ -181,6 +190,7 @@ class FirecrawlMapExecutor(ModuleExecutor):
             # 获取配置
             url = context.resolve_value(config.get('url', ''))
             variable_name = config.get('variableName', 'map_result')
+            launch_headless_chromium, BeautifulSoup, html2text = _lazy_deps()
             
             # Map 选项
             search = context.resolve_value(config.get('search', ''))
@@ -280,6 +290,7 @@ class FirecrawlCrawlExecutor(ModuleExecutor):
     
     async def _scrape_page(self, url: str, formats: List[str], only_main_content: bool, browser) -> Dict:
         """抓取单个页面"""
+        _, BeautifulSoup, html2text = _lazy_deps()
         page = await browser.new_page()
         try:
             await page.goto(url, timeout=30000, wait_until='networkidle')
@@ -333,6 +344,7 @@ class FirecrawlCrawlExecutor(ModuleExecutor):
             # 获取配置
             url = context.resolve_value(config.get('url', ''))
             variable_name = config.get('variableName', 'crawl_result')
+            launch_headless_chromium, BeautifulSoup, html2text = _lazy_deps()
             
             # Crawl 选项
             max_depth = config.get('maxDepth', 2)

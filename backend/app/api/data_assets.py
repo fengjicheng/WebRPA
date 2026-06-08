@@ -6,8 +6,29 @@ from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
-import openpyxl
-import xlrd
+
+# openpyxl / xlrd 改为按需懒加载：openpyxl 在其 compat 子模块里会连带导入 numpy，
+# 二者合计约 40MB+，但仅在用户实际操作 Excel 数据资产时才需要。
+# 因此不在模块顶层导入，避免后端一启动就常驻这部分内存。
+_openpyxl = None
+_xlrd = None
+
+
+def _get_openpyxl():
+    global _openpyxl
+    if _openpyxl is None:
+        import openpyxl as _m
+        _openpyxl = _m
+    return _openpyxl
+
+
+def _get_xlrd():
+    global _xlrd
+    if _xlrd is None:
+        import xlrd as _m
+        _xlrd = _m
+    return _xlrd
+
 
 router = APIRouter(prefix="/api/data-assets", tags=["data-assets"])
 
@@ -91,7 +112,7 @@ def _load_existing_files():
                 # 读取工作表名称
                 is_xls = ext.lower() == '.xls'
                 if is_xls:
-                    wb = xlrd.open_workbook(file_path)
+                    wb = _get_xlrd().open_workbook(file_path)
                     try:
                         sheet_names = wb.sheet_names()
                     finally:
@@ -100,7 +121,7 @@ def _load_existing_files():
                         except Exception:
                             pass
                 else:
-                    wb = openpyxl.load_workbook(file_path, read_only=True)
+                    wb = _get_openpyxl().load_workbook(file_path, read_only=True)
                     try:
                         sheet_names = wb.sheetnames
                     finally:
@@ -161,7 +182,7 @@ async def upload_excel(file: UploadFile = File(...), folder: Optional[str] = Non
         is_xls = ext.lower() == '.xls'
         if is_xls:
             # 使用xlrd读取旧版.xls文件
-            wb = xlrd.open_workbook(file_path)
+            wb = _get_xlrd().open_workbook(file_path)
             try:
                 sheet_names = wb.sheet_names()
             finally:
@@ -171,7 +192,7 @@ async def upload_excel(file: UploadFile = File(...), folder: Optional[str] = Non
                     pass
         else:
             # 使用openpyxl读取.xlsx文件
-            wb = openpyxl.load_workbook(file_path, read_only=True)
+            wb = _get_openpyxl().load_workbook(file_path, read_only=True)
             try:
                 sheet_names = wb.sheetnames
             finally:
@@ -497,6 +518,7 @@ async def read_excel(request: ReadExcelRequest):
 
 async def _read_excel_xlsx(file_path: str, request: ReadExcelRequest):
     """使用openpyxl读取.xlsx文件"""
+    openpyxl = _get_openpyxl()
     wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
     
     # 选择工作表
@@ -558,6 +580,7 @@ async def _read_excel_xlsx(file_path: str, request: ReadExcelRequest):
 
 async def _read_excel_xls(file_path: str, request: ReadExcelRequest):
     """使用xlrd读取.xls文件"""
+    xlrd = _get_xlrd()
     wb = xlrd.open_workbook(file_path)
     try:
         # 选择工作表
@@ -694,6 +717,7 @@ async def preview_excel(file_id: str, sheet: Optional[str] = None, max_rows: int
 
 def _preview_xlsx(file_path: str, sheet_name: Optional[str], max_rows: int, max_cols: int):
     """预览xlsx文件"""
+    openpyxl = _get_openpyxl()
     wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
     
     if sheet_name:
@@ -729,6 +753,7 @@ def _preview_xlsx(file_path: str, sheet_name: Optional[str], max_rows: int, max_
 
 def _preview_xls(file_path: str, sheet_name: Optional[str], max_rows: int, max_cols: int):
     """预览xls文件"""
+    xlrd = _get_xlrd()
     wb = xlrd.open_workbook(file_path)
     try:
         if sheet_name:

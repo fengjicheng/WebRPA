@@ -1,10 +1,17 @@
 """模块执行器基类和注册机制 - 异步版本"""
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, TYPE_CHECKING
 from dataclasses import dataclass, field
 from pathlib import Path
-from playwright.async_api import Page, Browser, BrowserContext
 import asyncio
+
+# playwright 仅用于类型注解。配合 `from __future__ import annotations`，
+# 注解在运行时不求值，因此无需在导入本模块时加载 playwright——
+# 这样后端启动注册全部执行器时不会把 playwright 载入内存，
+# 仅当真正运行浏览器相关模块时才会按需加载，显著降低空闲内存占用。
+if TYPE_CHECKING:
+    from playwright.async_api import Page, Browser, BrowserContext
 
 from app.models.workflow import LogLevel
 
