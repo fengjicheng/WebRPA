@@ -17,6 +17,7 @@ import { Keyboard, ChevronDown, ChevronUp, FileJson, AlertTriangle, Boxes, Searc
 import { useWorkflowStore, type NodeData } from '@/store/workflowStore'
 import { useLayoutStore } from '@/store/layoutStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { isEncryptedEnvelope, decryptWorkflow } from '@/lib/workflowCrypto'
 import { ModuleNode } from './ModuleNode'
 import { QuickModulePicker } from './QuickModulePicker'
 import { getAllAvailableModules } from './ModuleSidebar'
@@ -1142,19 +1143,33 @@ export function WorkflowEditor() {
           // 读取并导入所有JSON文件
           jsonFiles.forEach((file, index) => {
             const reader = new FileReader()
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
               const content = e.target?.result as string
-              if (content) {
-                // 每个文件在Y方向上偏移一些，避免重叠
-                const success = mergeWorkflow(content, { 
-                  x: position.x, 
-                  y: position.y + index * 150 
-                })
-                if (success) {
-                  addLog({ level: 'success', message: `已导入工作流: ${file.name}` })
-                } else {
-                  addLog({ level: 'error', message: `导入失败: ${file.name}，文件格式无效` })
+              if (!content) return
+              let payload = content
+              // 加密分享包：检测信封并提示输入密码解密
+              try {
+                const parsed = JSON.parse(content)
+                if (isEncryptedEnvelope(parsed)) {
+                  const pwd = window.prompt(`「${parsed.name || file.name}」是加密分享包，请输入密码：`)
+                  if (!pwd) { addLog({ level: 'warning', message: `已取消导入加密包: ${file.name}` }); return }
+                  try {
+                    payload = await decryptWorkflow(parsed, pwd)
+                  } catch {
+                    addLog({ level: 'error', message: `解密失败：密码错误或文件已损坏（${file.name}）` })
+                    return
+                  }
                 }
+              } catch { /* 非 JSON 信封，按原内容处理 */ }
+              // 每个文件在Y方向上偏移一些，避免重叠
+              const success = mergeWorkflow(payload, {
+                x: position.x,
+                y: position.y + index * 150
+              })
+              if (success) {
+                addLog({ level: 'success', message: `已导入工作流: ${file.name}` })
+              } else {
+                addLog({ level: 'error', message: `导入失败: ${file.name}，文件格式无效` })
               }
             }
             reader.onerror = () => {

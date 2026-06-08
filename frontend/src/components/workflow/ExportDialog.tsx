@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { X, Code2, FileJson, FileText, Download, CheckCircle2, Sparkles } from 'lucide-react'
+import { X, Code2, FileJson, FileText, Download, CheckCircle2, Sparkles, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 
@@ -11,7 +11,7 @@ interface ExportDialogProps {
   onExport: (format: ExportFormat) => Promise<void>
 }
 
-export type ExportFormat = 'playwright' | 'json' | 'markdown'
+export type ExportFormat = 'playwright' | 'json' | 'markdown' | 'encrypted'
 
 const exportFormats = [
   {
@@ -37,6 +37,14 @@ const exportFormats = [
     badge: '可读性',
     Icon: FileText,
     accent: 'violet',
+  },
+  {
+    id: 'encrypted' as ExportFormat,
+    name: '加密分享包',
+    description: '用密码加密导出（AES-256），分享给他人需输入密码才能导入',
+    badge: '安全',
+    Icon: Lock,
+    accent: 'amber',
   },
 ] as const
 
@@ -66,6 +74,15 @@ const accentMap = {
     activeRing: 'shadow-pop',
     activeText: 'text-[hsl(var(--violet-700))]',
     badge: '!bg-[hsl(var(--violet-50))] !text-[hsl(var(--violet-700))] !border-[hsl(var(--violet-500)/0.3)]',
+    btnVariant: 'default' as const,
+  },
+  amber: {
+    iconChip: 'icon-chip icon-chip-warning',
+    activeBg: 'bg-[hsl(var(--warning-50))]',
+    activeBorder: 'border-[hsl(var(--warning-500))]',
+    activeRing: 'shadow-pop',
+    activeText: 'text-[hsl(var(--warning-700))]',
+    badge: '!bg-[hsl(var(--warning-50))] !text-[hsl(var(--warning-700))] !border-[hsl(var(--warning-500)/0.3)]',
     btnVariant: 'default' as const,
   },
 } as const

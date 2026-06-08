@@ -12,6 +12,7 @@ import { GlobalConfigDialog } from './GlobalConfigDialog'
 // 教学文档体积较大（含 mermaid 等依赖），改为 lazy 引入，只有点开"教学文档"才加载
 const DocumentationDialog = lazy(() => import('./documentation').then(m => ({ default: m.DocumentationDialog })))
 import { ExportDialog, type ExportFormat } from './ExportDialog'
+import { encryptWorkflow } from '@/lib/workflowCrypto'
 import { AutoBrowserDialog } from './AutoBrowserDialog'
 import { WorkflowHubDialog } from './WorkflowHubDialog'
 import { LocalWorkflowDialog } from './LocalWorkflowDialog'
@@ -883,6 +884,43 @@ export function Toolbar() {
     addLog({ level: 'success', message: `已导出 JSON 文件: ${name}.json` })
   }, [nodes, edges, variables, name, addLog])
 
+  // 导出为加密分享包（AES-256，需密码才能导入）
+  const handleExportEncrypted = useCallback(async () => {
+    if (nodes.length === 0) {
+      addLog({ level: 'warning', message: '工作流没有任何节点，无法导出' })
+      return
+    }
+    const password = window.prompt('设置加密密码（接收方导入时需输入相同密码）：')
+    if (!password) return
+    if (password.length < 4) {
+      addLog({ level: 'warning', message: '密码太短，请至少 4 位' })
+      return
+    }
+    try {
+      const workflowData = {
+        name,
+        nodes: nodes.map(n => ({ id: n.id, type: n.data.moduleType, position: n.position, data: n.data, style: n.style, parentId: n.parentId })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle })),
+        variables: variables.map(v => ({ name: v.name, value: v.value, type: v.type, scope: v.scope })),
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+      }
+      const envelope = await encryptWorkflow(JSON.stringify(workflowData), password, name)
+      const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${name.replace(/\s+/g, '_')}.webrpa.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      addLog({ level: 'success', message: `已导出加密分享包: ${name}.webrpa.json（请把密码单独告知接收方）` })
+    } catch (e) {
+      addLog({ level: 'error', message: `加密导出失败: ${e}` })
+    }
+  }, [nodes, edges, variables, name, addLog])
+
   // 导出为 Markdown
   const handleExportMarkdown = useCallback(() => {
     if (nodes.length === 0) {
@@ -1016,8 +1054,11 @@ export function Toolbar() {
       case 'markdown':
         handleExportMarkdown()
         break
+      case 'encrypted':
+        await handleExportEncrypted()
+        break
     }
-  }, [handleExportPlaywright, handleExportJSON, handleExportMarkdown])
+  }, [handleExportPlaywright, handleExportJSON, handleExportMarkdown, handleExportEncrypted])
 
   // 同步 handleExport 到 ref，便于上方 useEffect 中订阅 AI 助手事件时访问最新版本
   useEffect(() => {
