@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Brain,
   Plug,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { marked } from 'marked'
@@ -22,6 +24,8 @@ marked.setOptions({
 
 interface MessageBubbleProps {
   message: ChatMessage
+  onResend?: (content: string) => void
+  onEdit?: (content: string) => void
 }
 
 // 工具名 → 中文显示
@@ -384,7 +388,7 @@ function ReasoningCard({
   )
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onResend, onEdit }: MessageBubbleProps) {
   if (message.role === 'tool') {
     return null
   }
@@ -406,7 +410,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       <div className={`flex-1 min-w-0 ${isUser ? 'flex justify-end' : ''}`}>
-        <div className={`inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
+        <div className={`group/msg inline-block ${isUser ? 'max-w-[85%]' : 'max-w-full w-full'} space-y-2`}>
           {/* 思考过程（仅 assistant 且模型返回了非空 reasoning_content 时） */}
           {!isUser && message.reasoning_content && message.reasoning_content.trim() && (
             <ReasoningCard
@@ -435,6 +439,31 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               {message.tool_calls.map((tc) => (
                 <ToolCallCard key={tc.id} tc={tc} />
               ))}
+            </div>
+          )}
+          {/* 用户消息：悬停显示「编辑 / 重发」 */}
+          {isUser && message.content && (onEdit || onResend) && (
+            <div className="flex justify-end gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(message.content || '')}
+                  title="编辑这条消息（放回输入框）"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] text-[10.5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors"
+                >
+                  <Pencil className="w-3 h-3" /> 编辑
+                </button>
+              )}
+              {onResend && (
+                <button
+                  type="button"
+                  onClick={() => onResend(message.content || '')}
+                  title="重新发送这条消息"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] text-[10.5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" /> 重发
+                </button>
+              )}
             </div>
           )}
         </div>
