@@ -1302,95 +1302,111 @@ class SystemNotificationExecutor(ModuleExecutor):
         if not message:
             return ModuleResult(success=False, error="通知消息不能为空")
 
+        # 关键说明：内置 Python 环境没有 tkinter；Windows 系统 toast（plyer/winotify）会忽略
+        # 应用指定时长（固定约 5-7 秒），这正是“显示时长配置不生效”的根因。
+        # 这里启动独立 Python 子进程，用纯 Win32 API(pywin32) 绘制右下角通知窗口，
+        # 通过手动消息循环精确按 duration 秒后关闭——稳定、与后端事件循环/工作流生命周期解耦。
+        import sys
+        import os
+        import subprocess
+
+        child_script = r'''
+import os, time, win32gui, win32con, win32api
+title = os.environ.get("WEBRPA_TOAST_TITLE", "WebRPA通知")
+message = os.environ.get("WEBRPA_TOAST_MSG", "")
+try:
+    duration = float(os.environ.get("WEBRPA_TOAST_DURATION", "5"))
+except Exception:
+    duration = 5.0
+W, H = 360, 104
+sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+x = sw - W - 24
+y = sh - H - 64
+def _font(size, bold):
+    lf = win32gui.LOGFONT()
+    lf.lfHeight = -size
+    lf.lfWeight = 700 if bold else 400
+    lf.lfFaceName = "Microsoft YaHei UI"
+    return win32gui.CreateFontIndirect(lf)
+font_title = _font(18, True)
+font_msg = _font(15, False)
+_closed = {"v": False}
+def wnd_proc(hwnd, msg, wparam, lparam):
+    if msg == win32con.WM_PAINT:
+        hdc, ps = win32gui.BeginPaint(hwnd)
+        rect = win32gui.GetClientRect(hwnd)
+        wbr = win32gui.CreateSolidBrush(win32api.RGB(255, 255, 255))
+        win32gui.FillRect(hdc, rect, wbr); win32gui.DeleteObject(wbr)
+        bbr = win32gui.CreateSolidBrush(win32api.RGB(37, 99, 235))
+        win32gui.FillRect(hdc, (0, 0, 5, H), bbr); win32gui.DeleteObject(bbr)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        old = win32gui.SelectObject(hdc, font_title)
+        win32gui.SetTextColor(hdc, win32api.RGB(15, 23, 42))
+        win32gui.DrawText(hdc, title, -1, (18, 12, W - 16, 36),
+                          win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_END_ELLIPSIS)
+        win32gui.SelectObject(hdc, font_msg)
+        win32gui.SetTextColor(hdc, win32api.RGB(71, 85, 105))
+        win32gui.DrawText(hdc, message, -1, (18, 40, W - 16, H - 12),
+                          win32con.DT_LEFT | win32con.DT_WORDBREAK)
+        win32gui.SelectObject(hdc, old)
+        win32gui.EndPaint(hwnd, ps)
+        return 0
+    if msg == win32con.WM_LBUTTONDOWN:
+        win32gui.DestroyWindow(hwnd); return 0
+    if msg == win32con.WM_DESTROY:
+        _closed["v"] = True; return 0
+    return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+hinst = win32api.GetModuleHandle(None)
+cls = "WebRPAToastWin"
+wc = win32gui.WNDCLASS()
+wc.hInstance = hinst
+wc.lpfnWndProc = wnd_proc
+wc.lpszClassName = cls
+wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+try:
+    win32gui.RegisterClass(wc)
+except Exception:
+    pass
+ex = win32con.WS_EX_TOPMOST | win32con.WS_EX_TOOLWINDOW
+hwnd = win32gui.CreateWindowEx(ex, cls, "", win32con.WS_POPUP, x, y, W, H, 0, 0, hinst, None)
+win32gui.ShowWindow(hwnd, win32con.SW_SHOWNOACTIVATE)
+win32gui.UpdateWindow(hwnd)
+t0 = time.time()
+while not _closed["v"] and (time.time() - t0) < duration:
+    win32gui.PumpWaitingMessages()
+    time.sleep(0.02)
+if not _closed["v"]:
+    try:
+        win32gui.DestroyWindow(hwnd); win32gui.PumpWaitingMessages()
+    except Exception:
+        pass
+'''
+
         try:
-            # 用自绘的 tkinter 通知窗，精确按 duration 秒显示后自动关闭。
-            # （plyer / Windows 系统 toast 会忽略应用指定的时长，固定约 5-7 秒，无法控制，
-            #   这正是“显示时长配置不生效”的根因，故改用自绘窗口。）
-            def show_custom_toast():
-                import threading
+            env = dict(os.environ)
+            env['WEBRPA_TOAST_TITLE'] = str(title)
+            env['WEBRPA_TOAST_MSG'] = str(message)
+            env['WEBRPA_TOAST_DURATION'] = str(duration)
 
-                def _toast():
-                    try:
-                        import tkinter as tk
-                        root = tk.Tk()
-                        root.overrideredirect(True)
-                        root.attributes('-topmost', True)
-                        try:
-                            root.attributes('-alpha', 0.0)
-                        except Exception:
-                            pass
+            creationflags = 0
+            if sys.platform == 'win32':
+                creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
-                        W, H = 360, 104
-                        sw = root.winfo_screenwidth()
-                        sh = root.winfo_screenheight()
-                        x = sw - W - 24
-                        y = sh - H - 64
-                        root.geometry(f"{W}x{H}+{x}+{y}")
-                        root.configure(bg='#1e2024')
+            python_exe = sys.executable
+            if sys.platform == 'win32':
+                pyw = os.path.join(os.path.dirname(python_exe), 'pythonw.exe')
+                if os.path.exists(pyw):
+                    python_exe = pyw
 
-                        # 卡片
-                        card = tk.Frame(root, bg='#ffffff')
-                        card.place(x=0, y=0, width=W, height=H)
-                        # 品牌色左侧条
-                        tk.Frame(card, bg='#2563eb').place(x=0, y=0, width=5, height=H)
-
-                        tk.Label(
-                            card, text=title, bg='#ffffff', fg='#0f172a',
-                            font=('Microsoft YaHei UI', 11, 'bold'), anchor='w', justify='left',
-                        ).place(x=18, y=14, width=W - 34)
-                        tk.Label(
-                            card, text=message, bg='#ffffff', fg='#475569',
-                            font=('Microsoft YaHei UI', 10), anchor='nw', justify='left',
-                            wraplength=W - 40,
-                        ).place(x=18, y=42, width=W - 34, height=H - 52)
-
-                        # 点击关闭
-                        def _close():
-                            try:
-                                root.destroy()
-                            except Exception:
-                                pass
-                        for w in (root, card):
-                            w.bind('<Button-1>', lambda e: _close())
-
-                        # 淡入
-                        def _fade_in(a=0.0):
-                            a = min(1.0, a + 0.12)
-                            try:
-                                root.attributes('-alpha', a)
-                            except Exception:
-                                pass
-                            if a < 1.0:
-                                root.after(16, lambda: _fade_in(a))
-                        _fade_in()
-
-                        # 到时淡出并关闭
-                        def _fade_out(a=1.0):
-                            a -= 0.12
-                            try:
-                                root.attributes('-alpha', max(0.0, a))
-                            except Exception:
-                                pass
-                            if a <= 0.0:
-                                _close()
-                            else:
-                                root.after(16, lambda: _fade_out(a))
-                        # 关键：按用户配置的 duration 秒后才开始淡出关闭
-                        root.after(int(duration * 1000), _fade_out)
-
-                        root.mainloop()
-                    except Exception as e:
-                        # tkinter 不可用时回退到 plyer 系统通知（时长不可控）
-                        try:
-                            from plyer import notification
-                            notification.notify(title=title, message=message, timeout=duration, app_name='WebRPA')
-                        except Exception:
-                            print(f"[系统消息] 显示失败: {e}")
-
-                t = threading.Thread(target=_toast, daemon=True)
-                t.start()
-
-            show_custom_toast()
+            subprocess.Popen(
+                [python_exe, '-c', child_script],
+                env=env,
+                creationflags=creationflags,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
             return ModuleResult(
                 success=True,
@@ -1399,7 +1415,14 @@ class SystemNotificationExecutor(ModuleExecutor):
             )
 
         except Exception as e:
-            return ModuleResult(success=False, error=f"系统通知失败: {str(e)}")
+            # 子进程方式失败时回退到 plyer（时长不可控，仅兜底）
+            try:
+                from plyer import notification
+                notification.notify(title=title, message=message, timeout=duration, app_name='WebRPA')
+                return ModuleResult(success=True, message=f"已显示系统通知(兜底): {title}",
+                                    data={'title': title, 'message': message})
+            except Exception:
+                return ModuleResult(success=False, error=f"系统通知失败: {str(e)}")
 
 
 @register_executor
