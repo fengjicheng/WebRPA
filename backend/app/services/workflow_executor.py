@@ -322,6 +322,41 @@ class WorkflowExecutor:
         
         self.context._variable_update_callback = variable_update_callback
 
+        # 设置实时日志回调：让执行器直接调用的 context.add_log(...) 也能实时推送到前端，
+        # 而不是等工作流执行结束后才一次性出现。
+        level_map_rt = {
+            'debug': LogLevel.DEBUG,
+            'info': LogLevel.INFO,
+            'warning': LogLevel.WARNING,
+            'error': LogLevel.ERROR,
+            'success': LogLevel.SUCCESS,
+        }
+
+        def realtime_log_callback(level_str, message, node_id, duration, timestamp_str):
+            if not self.on_log:
+                return
+            log_level = level_map_rt.get(str(level_str), LogLevel.INFO)
+            entry = LogEntry(
+                id=str(uuid4()),
+                timestamp=datetime.now(),
+                level=log_level,
+                node_id=node_id,
+                message=message,
+                details={'is_user_log': False, 'is_system_log': True},
+                duration=duration,
+            )
+            try:
+                loop = asyncio.get_running_loop()
+                task = loop.create_task(self.on_log(entry))
+                # 防止任务被 GC
+                self.context._pending_callback_tasks.add(task)
+                task.add_done_callback(self.context._pending_callback_tasks.discard)
+            except RuntimeError:
+                # 不在事件循环线程时无法实时推送，日志已存入 _logs 不会丢失
+                pass
+
+        self.context._realtime_log_callback = realtime_log_callback
+
     async def _log(self, level: LogLevel, message: str, node_id: Optional[str] = None, 
                    details: Optional[dict] = None, duration: Optional[float] = None,
                    is_user_log: bool = False, is_system_log: bool = False):
@@ -348,7 +383,8 @@ class WorkflowExecutor:
             message=message,
             node_id=node_id,
             duration=duration,
-            timestamp=timestamp_str
+            timestamp=timestamp_str,
+            emit_realtime=False,  # _log 自己已通过 on_log 实时推送，避免重复
         )
         
         if self.on_log:

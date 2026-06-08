@@ -114,6 +114,9 @@ class ExecutionContext:
     
     # 进度日志回调（用于媒体处理等长时间操作）
     _progress_callback: Optional[Any] = None  # Callable[[str, str], Awaitable[None]]
+
+    # 实时日志回调（让 add_log 直接产生的日志也能实时推送到前端）
+    _realtime_log_callback: Optional[Any] = None  # Callable[(level, message, node_id, duration, timestamp)] -> None
     
     # 执行日志存储（用于导出日志模块）
     _logs: list[dict[str, Any]] = field(default_factory=list)
@@ -210,17 +213,30 @@ class ExecutionContext:
                 print(f"发送进度日志失败: {e}")
     
     def add_log(self, level: str, message: str, node_id: Optional[str] = None, 
-                duration: Optional[float] = None, timestamp: Optional[str] = None):
-        """添加日志到日志列表（用于导出日志模块）"""
+                duration: Optional[float] = None, timestamp: Optional[str] = None,
+                emit_realtime: bool = True):
+        """添加日志到日志列表（用于导出日志模块），并可实时推送到前端。
+
+        emit_realtime=True 时，会通过 _realtime_log_callback 把日志即时推送到前端日志面板，
+        让模块执行过程中产生的日志实时显示，而不是等工作流结束后才一次性出现。
+        workflow_executor 内部的 _log 会以 emit_realtime=False 调用本方法（它自己已实时推送），避免重复。
+        """
         from datetime import datetime
+        ts = timestamp or datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         log_entry = {
-            'timestamp': timestamp or datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+            'timestamp': ts,
             'level': level,
             'message': message,
             'nodeId': node_id,
             'duration': duration
         }
         self._logs.append(log_entry)
+
+        if emit_realtime and self._realtime_log_callback:
+            try:
+                self._realtime_log_callback(level, message, node_id, duration, ts)
+            except Exception as e:
+                print(f"实时日志推送失败: {e}")
     
     def log(self, message: str, level: str = "info"):
         """简单的日志方法（用于模块内部日志）"""
