@@ -170,20 +170,84 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
 export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData>[]; edges: Edge[] } {
   const outNodes: Node<NodeData>[] = []
   const outEdges: Edge[] = []
-  const X0 = 220, XSTEP = 64, Y0 = 80, YSTEP = 110
-  let yi = 0
+  // 布局基准：列宽（横向并排间距）、行高（纵向间距）、起点
+  const COL_W = 300, ROW_H = 130, X0 = 140, Y0 = 80, FLOW_GAP = 1
 
-  // 布局：前序遍历分配位置（阅读顺序自上而下、按层缩进）
-  const place = (seq: Block[], depth: number) => {
-    for (const b of seq) {
-      outNodes.push({ ...b.node, position: { x: X0 + depth * XSTEP, y: Y0 + yi * YSTEP }, selected: false } as Node<NodeData>)
-      yi++
-      if (b.kind === 'if') { place(b.then, depth + 1); place(b.els, depth + 1) }
-      else if (b.kind === 'loop') { place(b.body, depth + 1) }
-      else if (b.kind === 'parallel') { b.branches.forEach((br) => place(br, depth + 1)) }
-    }
+  // ===== 智能树形布局 =====
+  // 思路：先递归测量每个块/序列占用的「列数」（lane），再居中放置：
+  //  - 条件 if：then / else 子树左右并排，节点居中在两者上方
+  //  - 并行 parallel：各分支左右并排
+  //  - 循环 loop：循环体在节点正下方（居中）
+  //  - 多条独立流程：整体横向并排，互不干扰
+  // 这样分支会真正铺开成树，而不是挤成一条直线。
+  const measureSeq = (seq: Block[]): number => {
+    let w = 1
+    for (const b of seq) w = Math.max(w, measure(b))
+    return w
   }
-  place(blocks, 0)
+  const measure = (b: Block): number => {
+    if (b.kind === 'if') return Math.max(1, measureSeq(b.then)) + Math.max(1, measureSeq(b.els))
+    if (b.kind === 'loop') return Math.max(1, measureSeq(b.body))
+    if (b.kind === 'parallel') return b.branches.reduce((s, br) => s + Math.max(1, measureSeq(br)), 0)
+    return 1
+  }
+
+  // 放置一个块：在 [laneStart, laneStart+laneWidth) 区间内居中节点，返回放置完成后的下一行号
+  const placeBlock = (b: Block, laneStart: number, laneWidth: number, row: number): number => {
+    const center = laneStart + (laneWidth - 1) / 2
+    outNodes.push({
+      ...b.node,
+      position: { x: X0 + center * COL_W, y: Y0 + row * ROW_H },
+      selected: false,
+    } as Node<NodeData>)
+
+    if (b.kind === 'if') {
+      const tW = Math.max(1, measureSeq(b.then))
+      const eW = Math.max(1, measureSeq(b.els))
+      const ownW = tW + eW
+      const off = laneStart + Math.floor((laneWidth - ownW) / 2)
+      const ty = placeSeq(b.then, off, tW, row + 1)
+      const ey = placeSeq(b.els, off + tW, eW, row + 1)
+      return Math.max(ty, ey)
+    }
+    if (b.kind === 'loop') {
+      const bW = Math.max(1, measureSeq(b.body))
+      const off = laneStart + Math.floor((laneWidth - bW) / 2)
+      return placeSeq(b.body, off, bW, row + 1)
+    }
+    if (b.kind === 'parallel') {
+      const ownW = b.branches.reduce((s, br) => s + Math.max(1, measureSeq(br)), 0)
+      let cx = laneStart + Math.floor((laneWidth - ownW) / 2)
+      let maxRow = row + 1
+      for (const br of b.branches) {
+        const bw = Math.max(1, measureSeq(br))
+        maxRow = Math.max(maxRow, placeSeq(br, cx, bw, row + 1))
+        cx += bw
+      }
+      return maxRow
+    }
+    return row + 1
+  }
+  // 放置一个纵向序列：块自上而下排列，整体占据 laneWidth 列
+  const placeSeq = (seq: Block[], laneStart: number, laneWidth: number, row: number): number => {
+    let cy = row
+    for (const b of seq) cy = placeBlock(b, laneStart, laneWidth, cy)
+    return cy
+  }
+
+  // 按 flowStart 边界拆分出多条独立流程
+  const flows: Block[][] = []
+  for (const b of blocks) {
+    if (b.flowStart || flows.length === 0) flows.push([b])
+    else flows[flows.length - 1].push(b)
+  }
+  // 多条独立流程横向并排（各自从第 0 行开始），互不重叠
+  let laneCursor = 0
+  for (const flow of flows) {
+    const w = measureSeq(flow)
+    placeSeq(flow, laneCursor, w, 0)
+    laneCursor += w + FLOW_GAP
+  }
 
   const addEdge = (source: string, target: string | null, handle: string | null) => {
     if (!target) return
@@ -224,12 +288,6 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
     const entries = b.branches.map((br) => wireSeq(br, followId))
     for (const en of entries) addEdge(b.id, en ?? followId, null)
     return b.id
-  }
-  // 按 flowStart 边界把顶层块拆成多条独立流程，各自独立连线，避免把并行/独立流程错误串联成一条链
-  const flows: Block[][] = []
-  for (const b of blocks) {
-    if (b.flowStart || flows.length === 0) flows.push([b])
-    else flows[flows.length - 1].push(b)
   }
   for (const flow of flows) wireSeq(flow, null)
 
