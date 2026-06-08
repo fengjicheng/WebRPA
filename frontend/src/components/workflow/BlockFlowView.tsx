@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
+import { useNodeRunStore } from '@/store/nodeRunStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
 import { Plus, Search, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react'
@@ -96,6 +97,7 @@ export function BlockFlowView() {
   const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId)
   const selectNode = useWorkflowStore((s) => s.selectNode)
   const setGraph = useWorkflowStore((s) => s.setGraph)
+  const runStatuses = useNodeRunStore((s) => s.statuses)
 
   const blocks = useMemo(() => parseGraphToBlocks(nodes, edges), [nodes, edges])
   const [picker, setPicker] = useState<{ target: PickerTarget; x: number; y: number } | null>(null)
@@ -307,9 +309,15 @@ export function BlockFlowView() {
         onClick={() => selectNode(node.id)}
         className={
           'group/row relative flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-[10px] bg-[hsl(var(--card))] border cursor-grab active:cursor-grabbing transition-[box-shadow,border-color,transform] duration-150 ' +
-          (selected
-            ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
-            : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
+          (runStatuses[node.id] === 'running'
+            ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.5)] shadow-brand-glow animate-pulse'
+            : runStatuses[node.id] === 'success'
+              ? 'border-[hsl(var(--success-500))] ring-1 ring-[hsl(var(--success-500)/0.4)]'
+              : runStatuses[node.id] === 'failed'
+                ? 'border-[hsl(var(--danger-500))] ring-1 ring-[hsl(var(--danger-500)/0.45)]'
+                : selected
+                  ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
+                  : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
         }
       >
         {dropPos && <div className={'absolute left-2 right-2 h-[3px] rounded-full bg-[hsl(var(--brand-500))] shadow-brand-glow z-10 ' + (dropPos === 'top' ? '-top-[2px]' : '-bottom-[2px]')} />}

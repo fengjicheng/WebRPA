@@ -6,10 +6,12 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Globe, ExternalLink } from 'lucide-react'
 import { moduleIcons } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
+import { useNodeRunStore } from '@/store/nodeRunStore'
 
-function ModuleNodeComponent({ data, selected }: NodeProps) {
+function ModuleNodeComponent({ id, data, selected }: NodeProps) {
   const nodeData = data as NodeData
   const { fitView, getNodes, setCenter } = useReactFlow()
+  const runStatus = useNodeRunStore((s) => s.statuses[id])
   const isDisabled = nodeData.disabled === true
   const isHighlighted = nodeData.isHighlighted === true
   const handleSize = useGlobalConfigStore((state) => state.config.display?.handleSize || 12)
@@ -116,6 +118,10 @@ function ModuleNodeComponent({ data, selected }: NodeProps) {
         isDisabled ? 'border-gray-300 bg-gray-100 text-gray-500 opacity-70' : (isCustomModule ? '' : colorClass),
         selected && '!border-[hsl(var(--brand-500))] !shadow-pop-lg ring-2 ring-[hsl(var(--brand-500)/0.4)]',
         isHighlighted && '!border-[hsl(var(--warning-500))] ring-2 ring-[hsl(var(--warning-500)/0.5)]',
+        // 执行态实时高亮：运行中(蓝)/成功(绿)/失败(红)
+        runStatus === 'running' && '!border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.55)] shadow-brand-glow animate-pulse',
+        runStatus === 'success' && '!border-[hsl(var(--success-500))] ring-2 ring-[hsl(var(--success-500)/0.45)]',
+        runStatus === 'failed' && '!border-[hsl(var(--danger-500))] ring-2 ring-[hsl(var(--danger-500)/0.5)]',
         isSubflow && nodeData.subflowName ? 'cursor-pointer' : '',
         // AI 助手可视化搭建时节点入场动画
         (nodeData as any).__aiSpawning && 'ai-node-spawn'

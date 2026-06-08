@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { useNodeRunStore } from '@/store/nodeRunStore'
 import type { LogLevel } from '@/types'
 import { getBackendBaseUrl } from './config'
 
@@ -364,12 +365,23 @@ class SocketService {
       isExecuting = true
       const store = useWorkflowStore.getState()
       store.setExecutionStatus('running')
+      // 清空节点运行态高亮（开始新一轮执行）
+      useNodeRunStore.getState().clear()
       // 记录当前执行的 workflowId，供"下载数据"按钮使用
       store.setCurrentExecutionWorkflowId(data.workflowId)
       // 清空之前的数据
       store.clearCollectedData()
       // 不要清空变量列表！变量应该保留，由后端的 variable_update 事件更新
       // useWorkflowStore.setState({ variables: [] })
+    })
+
+    // 节点开始执行 → 高亮"运行中"
+    this.socket.on('execution:node_start', (data: { workflowId: string; nodeId: string }) => {
+      if (data?.nodeId) useNodeRunStore.getState().setStatus(data.nodeId, 'running')
+    })
+    // 节点执行完成 → 高亮"成功/失败"
+    this.socket.on('execution:node_complete', (data: { workflowId: string; nodeId: string; success: boolean }) => {
+      if (data?.nodeId) useNodeRunStore.getState().setStatus(data.nodeId, data.success ? 'success' : 'failed')
     })
 
     // ============ 日志批处理缓冲（高性能） ============
