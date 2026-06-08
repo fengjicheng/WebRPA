@@ -112,6 +112,7 @@ export interface GlobalConfig {
   display: {
     showMouseCoordinates: boolean
     handleSize: number  // 连接点尺寸（像素），默认12
+    runStatusHighlight: boolean  // 运行状态高亮（默认关闭；大型工作流高速运行时闪烁会卡顿）
   }
   // 浏览器自动化配置
   browser: {
@@ -235,6 +236,7 @@ const defaultConfig: GlobalConfig = {
   display: {
     showMouseCoordinates: false,
     handleSize: 12,  // 默认连接点尺寸12px
+    runStatusHighlight: false,  // 默认关闭运行状态高亮
   },
   browser: {
     type: 'msedge',  // 默认使用 Edge 浏览器

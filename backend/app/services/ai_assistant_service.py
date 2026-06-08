@@ -127,6 +127,11 @@ class LLMError(Exception):
     pass
 
 
+class LLMBadRequest(LLMError):
+    """LLM 返回 400（参数/请求体被网关拒绝）。用于触发兼容性降级重试。"""
+    pass
+
+
 def _normalize_api_url(api_url: str) -> str:
     """把可能不带 chat/completions 的 base URL 补全为完整 endpoint。
 
@@ -205,104 +210,150 @@ async def _call_llm(
 
     url = _normalize_api_url(config.api_url)
     use_stream = on_event is not None
-    body: dict[str, Any] = {
-        "model": config.model,
-        "messages": messages,
-        "temperature": config.temperature,
-        "max_tokens": config.max_tokens,
-        "stream": use_stream,
-    }
-    if tools:
-        body["tools"] = tools
-        body["tool_choice"] = "auto"
 
     headers = {"Content-Type": "application/json"}
     if config.api_key:
         headers["Authorization"] = f"Bearer {config.api_key}"
+
+    # ===== 兼容性降级：部分第三方网关/转售 API（如某些 token 套餐代理）对请求体校验严格，
+    # 会对 reasoning_content 回传 / tool_choice / tools 等字段直接返回 400 "Param Incorrect"。
+    # 这里在遇到 400 时自动逐级去除这些可选字段重试，最大化兼容性：
+    #   level 0：完整请求（含 reasoning_content 回传 + tools + tool_choice）
+    #   level 1：去掉历史里的 reasoning_content 回传 + 去掉 tool_choice（保留 tools）
+    #   level 2：再去掉 tools（退化为纯对话，确保至少能问答）
+    def _sanitize_messages(msgs: list[dict[str, Any]], level: int) -> list[dict[str, Any]]:
+        if level <= 0:
+            return msgs
+        out: list[dict[str, Any]] = []
+        for m in msgs:
+            if isinstance(m, dict) and "reasoning_content" in m:
+                m = {k: v for k, v in m.items() if k != "reasoning_content"}
+            out.append(m)
+        return out
+
+    def _build_body(level: int, stream_flag: bool) -> dict[str, Any]:
+        b: dict[str, Any] = {
+            "model": config.model,
+            "messages": _sanitize_messages(messages, level),
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+            "stream": stream_flag,
+        }
+        if tools and level < 2:
+            b["tools"] = tools
+            if level == 0:
+                b["tool_choice"] = "auto"
+        return b
 
     # 退避重试参数：最多 3 次（即首次 + 2 次重试），每次延迟翻倍
     MAX_ATTEMPTS = 3
     BASE_DELAY = 1.5  # 秒
     last_err: Exception | None = None
 
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=15.0, read=300.0, write=30.0, pool=15.0),
-                http2=False,
-            ) as client:
-                if use_stream:
-                    try:
-                        return await _stream_llm_request(client, url, body, headers, on_event)
-                    except LLMError:
-                        raise
-                    except Exception as stream_err:
-                        # 流式失败（如某些代理/兼容层不支持 SSE）：自动回退到非流式
-                        print(f"[AIAssistant] 流式调用失败，回退到非流式：{stream_err}")
-                        body["stream"] = False
-                        use_stream = False
-                        resp = await client.post(url, json=body, headers=headers)
-                else:
-                    resp = await client.post(url, json=body, headers=headers)
-        except httpx.TimeoutException as e:
-            last_err = e
-            if attempt < MAX_ATTEMPTS and isinstance(e, (httpx.ConnectTimeout, httpx.PoolTimeout)):
-                await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
-                continue
-            raise LLMError(f"LLM 请求超时（{type(e).__name__}）。建议：检查网络/降低 max_tokens/精简上下文")
-        except httpx.ConnectError as e:
-            last_err = e
-            if attempt < MAX_ATTEMPTS:
-                await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
-                continue
-            raise LLMError(f"无法连接到 LLM 服务：{e}。建议：检查代理/API 地址是否正确")
-        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.NetworkError) as e:
-            last_err = e
-            if attempt < MAX_ATTEMPTS:
-                wait = BASE_DELAY * (2 ** (attempt - 1))
-                print(f"[AIAssistant] LLM 连接被对端中断，{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试：{e}")
-                await asyncio.sleep(wait)
-                continue
-            raise LLMError(
-                f"LLM 服务连接被中断（{type(e).__name__}）。"
-                f"NVIDIA NIM 免费层经常这样，已自动重试 {MAX_ATTEMPTS} 次仍失败。"
-                f"建议：①重新发送 ②换稳定的模型（DeepSeek / 智谱 GLM / 通义千问） ③开启代理"
-            )
-        except LLMError:
-            raise
-        except Exception as e:
-            last_err = e
-            raise LLMError(f"LLM 请求异常：{e}")
+    degrade_level = 0
+    while True:
+        cur_stream = use_stream
+        body = _build_body(degrade_level, cur_stream)
+        got_400: LLMBadRequest | None = None
 
-        # 非流式 200 响应处理
-        if resp.status_code == 200:
+        for attempt in range(1, MAX_ATTEMPTS + 1):
             try:
-                return resp.json()
+                async with httpx.AsyncClient(
+                    timeout=httpx.Timeout(connect=15.0, read=300.0, write=30.0, pool=15.0),
+                    http2=False,
+                ) as client:
+                    if cur_stream:
+                        try:
+                            return await _stream_llm_request(client, url, body, headers, on_event)
+                        except LLMBadRequest as bad:
+                            got_400 = bad
+                            break  # 跳出重试循环，去做兼容性降级
+                        except LLMError:
+                            raise
+                        except Exception as stream_err:
+                            # 流式失败（如某些代理/兼容层不支持 SSE）：自动回退到非流式
+                            print(f"[AIAssistant] 流式调用失败，回退到非流式：{stream_err}")
+                            cur_stream = False
+                            body = _build_body(degrade_level, False)
+                            resp = await client.post(url, json=body, headers=headers)
+                    else:
+                        resp = await client.post(url, json=body, headers=headers)
+            except httpx.TimeoutException as e:
+                last_err = e
+                if attempt < MAX_ATTEMPTS and isinstance(e, (httpx.ConnectTimeout, httpx.PoolTimeout)):
+                    await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
+                    continue
+                raise LLMError(f"LLM 请求超时（{type(e).__name__}）。建议：检查网络/降低 max_tokens/精简上下文")
+            except httpx.ConnectError as e:
+                last_err = e
+                if attempt < MAX_ATTEMPTS:
+                    await asyncio.sleep(BASE_DELAY * (2 ** (attempt - 1)))
+                    continue
+                raise LLMError(f"无法连接到 LLM 服务：{e}。建议：检查代理/API 地址是否正确")
+            except (httpx.RemoteProtocolError, httpx.ReadError, httpx.NetworkError) as e:
+                last_err = e
+                if attempt < MAX_ATTEMPTS:
+                    wait = BASE_DELAY * (2 ** (attempt - 1))
+                    print(f"[AIAssistant] LLM 连接被对端中断，{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试：{e}")
+                    await asyncio.sleep(wait)
+                    continue
+                raise LLMError(
+                    f"LLM 服务连接被中断（{type(e).__name__}）。"
+                    f"NVIDIA NIM 免费层经常这样，已自动重试 {MAX_ATTEMPTS} 次仍失败。"
+                    f"建议：①重新发送 ②换稳定的模型（DeepSeek / 智谱 GLM / 通义千问） ③开启代理"
+                )
+            except LLMError:
+                raise
             except Exception as e:
-                raise LLMError(f"无法解析 LLM 响应：{e}")
+                last_err = e
+                raise LLMError(f"LLM 请求异常：{e}")
 
-        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            # 非流式 200 响应处理
+            if resp.status_code == 200:
+                try:
+                    return resp.json()
+                except Exception as e:
+                    raise LLMError(f"无法解析 LLM 响应：{e}")
+
+            if resp.status_code == 429 or 500 <= resp.status_code < 600:
+                try:
+                    err = resp.json()
+                    msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else err.get("message") or resp.text
+                except Exception:
+                    msg = resp.text
+                if attempt < MAX_ATTEMPTS:
+                    wait = BASE_DELAY * (2 ** (attempt - 1))
+                    print(f"[AIAssistant] LLM 返回 {resp.status_code}（{msg[:80]}），{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试")
+                    await asyncio.sleep(wait)
+                    continue
+                raise LLMError(f"LLM 返回 {resp.status_code}：{msg}（已重试 {MAX_ATTEMPTS} 次）")
+
             try:
                 err = resp.json()
-                msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else err.get("message") or resp.text
+                msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else None
+                msg = msg or err.get("message") or resp.text
             except Exception:
                 msg = resp.text
-            if attempt < MAX_ATTEMPTS:
-                wait = BASE_DELAY * (2 ** (attempt - 1))
-                print(f"[AIAssistant] LLM 返回 {resp.status_code}（{msg[:80]}），{wait}s 后第 {attempt + 1}/{MAX_ATTEMPTS} 次重试")
-                await asyncio.sleep(wait)
+
+            if resp.status_code == 400:
+                got_400 = LLMBadRequest(msg)
+                break  # 去做兼容性降级
+            raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
+
+        # 走到这里说明本轮因 400 中断；尝试逐级降级重试
+        if got_400 is not None:
+            if degrade_level < 2:
+                degrade_level += 1
+                print(f"[AIAssistant] LLM 返回 400（{str(got_400)[:80]}），自动降级兼容重试 level={degrade_level}")
                 continue
-            raise LLMError(f"LLM 返回 {resp.status_code}：{msg}（已重试 {MAX_ATTEMPTS} 次）")
+            raise LLMError(
+                f"LLM 返回 400：{got_400}。已自动尝试去除 reasoning_content / tool_choice / tools 等字段仍失败。"
+                f"建议：①确认该 API（如小米 MiMo / 第三方转售网关）是否支持 OpenAI 兼容的 /chat/completions 接口与 Function Calling；"
+                f"②检查 API 额度/套餐是否正常；③换用 DeepSeek / 智谱 GLM / 通义千问 等稳定模型"
+            )
 
-        try:
-            err = resp.json()
-            msg = err.get("error", {}).get("message") if isinstance(err.get("error"), dict) else None
-            msg = msg or err.get("message") or resp.text
-        except Exception:
-            msg = resp.text
-        raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
-
-    raise LLMError(f"LLM 请求失败：{last_err}")
+        # 理论上不会到这里（200 已 return、5xx 已 raise）
+        raise LLMError(f"LLM 请求失败：{last_err}")
 
 
 async def _stream_llm_request(
@@ -335,6 +386,8 @@ async def _stream_llm_request(
                     msg = err_text
             except Exception:
                 msg = f"status={resp.status_code}"
+            if resp.status_code == 400:
+                raise LLMBadRequest(msg)
             raise LLMError(f"LLM 返回 {resp.status_code}：{msg}")
 
         async for line in resp.aiter_lines():

@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useNodeRunStore } from '@/store/nodeRunStore'
+import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import type { LogLevel } from '@/types'
 import { getBackendBaseUrl } from './config'
 
@@ -377,10 +378,13 @@ class SocketService {
 
     // 节点开始执行 → 高亮"运行中"
     this.socket.on('execution:node_start', (data: { workflowId: string; nodeId: string }) => {
+      // 运行状态高亮开关（默认关闭）：关闭时不写入运行态，画布不闪烁，避免大型工作流高速运行卡顿
+      if (!useGlobalConfigStore.getState().config.display?.runStatusHighlight) return
       if (data?.nodeId) useNodeRunStore.getState().setStatus(data.nodeId, 'running')
     })
     // 节点执行完成 → 高亮"成功/失败"
     this.socket.on('execution:node_complete', (data: { workflowId: string; nodeId: string; success: boolean }) => {
+      if (!useGlobalConfigStore.getState().config.display?.runStatusHighlight) return
       if (data?.nodeId) useNodeRunStore.getState().setStatus(data.nodeId, data.success ? 'success' : 'failed')
     })
 

@@ -863,6 +863,25 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+
+                {/* 运行状态高亮开关（默认关闭） */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div>
+                    <Label className="text-gray-700 font-medium">运行状态高亮</Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      工作流运行时实时高亮“运行中/成功/失败”的模块。默认关闭：大型工作流高速运行时方块闪烁会导致页面卡顿
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.display?.runStatusHighlight || false}
+                      onChange={(e) => updateDisplayConfig({ runStatusHighlight: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
                 
                 {/* 连接点尺寸滑条 */}
                 <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
