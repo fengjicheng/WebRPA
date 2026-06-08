@@ -63,6 +63,12 @@ export const aiAssistantApi = {
       { method: 'POST' }
     ),
 
+  testConnection: (config: AssistantConfigPayload) =>
+    apiRequest<{ success: boolean; message: string; detail?: string; latency_ms?: number }>(
+      '/ai-assistant/test-connection',
+      { method: 'POST', body: JSON.stringify({ config }) }
+    ),
+
   listSkills: () =>
     apiRequest<{ count: number; skills: any[] }>('/ai-assistant/skills'),
 

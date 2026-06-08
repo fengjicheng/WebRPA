@@ -7,6 +7,7 @@ import { DialogPortal } from '@/components/ui/dialog-portal'
 import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
 import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug } from 'lucide-react'
 import { systemApi } from '@/services/api'
+import { aiAssistantApi } from '@/services/aiAssistantApi'
 import { getBackendBaseUrl } from '@/services/config'
 import { MCPConfigPanel } from './MCPConfigPanel'
 
@@ -49,6 +50,8 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
   const [isSelectingFolder, setIsSelectingFolder] = useState(false)
   const [isSelectingBrowser, setIsSelectingBrowser] = useState(false)
   const [showBrowserConfigTip, setShowBrowserConfigTip] = useState(false)
+  // 小助手「测试连接」状态
+  const [assistantTest, setAssistantTest] = useState<{ status: 'idle' | 'testing' | 'ok' | 'fail'; message: string; detail?: string; latency?: number }>({ status: 'idle', message: '' })
   const { confirm, ConfirmDialog } = useConfirm()
   const browserConfigTipRef = useRef<HTMLDivElement>(null)
 
@@ -399,6 +402,76 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     建议使用支持 Function Calling 的模型，例如 gpt-4o-mini、glm-4-plus、deepseek-chat、qwen-plus
                   </p>
                 </div>
+
+                {/* 测试连接：发一条极简请求，当场校验 地址/密钥/模型 是否正确 */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={assistantTest.status === 'testing'}
+                      onClick={async () => {
+                        const a = config.aiAssistant
+                        const b = config.ai
+                        const payload = {
+                          api_url: (a?.apiUrl || b?.apiUrl || '').trim(),
+                          api_key: (a?.apiKey || b?.apiKey || '').trim(),
+                          model: (a?.model || b?.model || '').trim(),
+                          temperature: a?.temperature ?? 0.7,
+                          max_tokens: a?.maxTokens ?? 4000,
+                          system_prompt: '',
+                          enable_tools: false,
+                          auto_approve: false,
+                        }
+                        if (!payload.api_url || !payload.model) {
+                          setAssistantTest({ status: 'fail', message: '请先填写 API 地址和模型名称' })
+                          return
+                        }
+                        setAssistantTest({ status: 'testing', message: '正在测试连接…' })
+                        const res = await aiAssistantApi.testConnection(payload)
+                        if (res.success && res.data) {
+                          const d = res.data
+                          setAssistantTest({
+                            status: d.success ? 'ok' : 'fail',
+                            message: d.message,
+                            detail: d.detail,
+                            latency: d.latency_ms,
+                          })
+                        } else {
+                          setAssistantTest({ status: 'fail', message: res.error || '测试请求失败' })
+                        }
+                      }}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                    >
+                      {assistantTest.status === 'testing' ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-1.5" />测试中…</>
+                      ) : (
+                        <><Zap className="w-4 h-4 mr-1.5" />测试连接</>
+                      )}
+                    </Button>
+                    <span className="text-xs text-gray-500">发一条极简请求，立即验证 地址/密钥/模型 是否正确</span>
+                  </div>
+                  {assistantTest.status === 'ok' && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-md bg-green-50 border border-green-200 text-green-700 text-xs">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold">{assistantTest.message}{typeof assistantTest.latency === 'number' ? `（${assistantTest.latency}ms）` : ''}</div>
+                        {assistantTest.detail && <div className="mt-0.5 text-green-600 break-all">{assistantTest.detail}</div>}
+                      </div>
+                    </div>
+                  )}
+                  {assistantTest.status === 'fail' && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs">
+                      <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-semibold break-all">{assistantTest.message}</div>
+                        {assistantTest.detail && <div className="mt-0.5 text-red-500 break-all">{assistantTest.detail}</div>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-gray-700">温度</Label>

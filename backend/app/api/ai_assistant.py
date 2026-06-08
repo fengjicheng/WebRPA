@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.models.ai_assistant import (
+    AssistantConfig,
     ChatRequest,
     ChatResponse,
     CreateSessionRequest,
@@ -129,6 +130,71 @@ async def api_cancel_session(session_id: str):
     """中断当前会话正在跑的对话/工具任务"""
     ok = cancel_session(session_id)
     return {"success": ok, "session_id": session_id}
+
+
+# ---------- 连通性测试 ----------
+
+class TestConnectionRequest(BaseModel):
+    config: AssistantConfig
+
+
+@router.post("/test-connection")
+async def api_test_connection(req: TestConnectionRequest):
+    """用极简请求测试 模型/密钥/地址 是否正确可用。
+
+    返回 {success, message, detail, latency_ms}。不写会话、不带工具，
+    只发一条最短消息，快速验证配置（能当场发现填错的地址/模型/密钥/多余空格等）。
+    """
+    import time as _time
+    from app.services.ai_assistant_service import _call_llm, LLMError, _normalize_api_url
+
+    cfg = req.config
+    # 基础校验
+    if not (cfg.api_url or "").strip():
+        return {"success": False, "message": "API 地址不能为空", "detail": ""}
+    if not (cfg.model or "").strip():
+        return {"success": False, "message": "模型名称不能为空", "detail": ""}
+
+    try:
+        resolved_url = _normalize_api_url(cfg.api_url)
+    except Exception as e:
+        return {"success": False, "message": f"API 地址无效：{e}", "detail": ""}
+
+    t0 = _time.time()
+    try:
+        # 非流式（on_event=None）、不带工具、最短消息，快速探活
+        data = await _call_llm(
+            config=cfg,
+            messages=[{"role": "user", "content": "ping"}],
+            tools=None,
+            on_event=None,
+        )
+        latency = int((_time.time() - t0) * 1000)
+        # 解析返回的模型名/内容做轻量校验
+        model_echo = ""
+        try:
+            model_echo = data.get("model") or ""
+        except Exception:
+            pass
+        return {
+            "success": True,
+            "message": "连接成功，配置可用",
+            "detail": f"实际请求地址：{resolved_url}" + (f"；返回模型：{model_echo}" if model_echo else ""),
+            "latency_ms": latency,
+        }
+    except LLMError as e:
+        return {
+            "success": False,
+            "message": str(e)[:500],
+            "detail": f"实际请求地址：{resolved_url}",
+            "latency_ms": int((_time.time() - t0) * 1000),
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"测试失败：{type(e).__name__}: {str(e)[:400]}",
+            "detail": f"实际请求地址：{resolved_url}",
+        }
 
 
 # ---------- Skills 元数据 ----------
