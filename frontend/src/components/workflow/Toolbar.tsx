@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { usePasswordPrompt } from '@/components/ui/password-prompt'
 import { cn } from '@/lib/utils'
 import { workflowApi } from '@/services/api'
 import { socketService } from '@/services/socket'
@@ -84,6 +85,7 @@ export function Toolbar() {
   const [editingCustomModuleId, setEditingCustomModuleId] = useState<string | null>(null)
   const [editingCustomModuleName, setEditingCustomModuleName] = useState<string>('')
   const { confirm, ConfirmDialog } = useConfirm()
+  const { promptPassword, passwordDialog } = usePasswordPrompt()
   
   // 用于记录输入框聚焦时的初始名称
   const nameOnFocusRef = useRef<string>('')
@@ -890,7 +892,12 @@ export function Toolbar() {
       addLog({ level: 'warning', message: '工作流没有任何节点，无法导出' })
       return
     }
-    const password = window.prompt('设置加密密码（接收方导入时需输入相同密码）：')
+    const password = await promptPassword({
+      title: '设置加密密码',
+      message: '接收方导入时需输入相同密码（至少 4 位）',
+      confirmText: '加密导出',
+      minLength: 4,
+    })
     if (!password) return
     if (password.length < 4) {
       addLog({ level: 'warning', message: '密码太短，请至少 4 位' })
@@ -919,7 +926,7 @@ export function Toolbar() {
     } catch (e) {
       addLog({ level: 'error', message: `加密导出失败: ${e}` })
     }
-  }, [nodes, edges, variables, name, addLog])
+  }, [nodes, edges, variables, name, addLog, promptPassword])
 
   // 导出为 Markdown
   const handleExportMarkdown = useCallback(() => {
@@ -1543,6 +1550,8 @@ export function Toolbar() {
       
       {/* 确认对话框 */}
       <ConfirmDialog />
+      {/* 加密密码输入弹窗 */}
+      {passwordDialog}
       
       {/* 截图命名对话框 */}
       {showScreenshotNameDialog && screenshotAsset && (

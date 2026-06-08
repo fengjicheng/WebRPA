@@ -1924,14 +1924,16 @@ function ModuleSidebarRaw() {
     })
   }
 
-  // 常用模块：用过的(usageCount>0)按 使用次数→最近使用 排序，取前 8 个，置顶展示
-  const frequentModules = useMemo(() => {
-    return (Object.entries(stats) as [ModuleType, { usageCount: number; lastUsed: number }][])
-      .filter(([, s]) => (s?.usageCount || 0) > 0)
+  // 常用模块：用过的(usageCount>0)按 使用次数→最近使用 排序，取前 8 个，置顶展示。
+  // 关键：挂载时快照一次，整个会话内顺序固定，避免拖拽(会 incrementUsage)时实时重排导致拖不住。
+  const [frequentModules] = useState<ModuleType[]>(() => {
+    const s = useModuleStatsStore.getState().stats
+    return (Object.entries(s) as [ModuleType, { usageCount: number; lastUsed: number }][])
+      .filter(([, st]) => (st?.usageCount || 0) > 0)
       .sort((a, b) => (b[1].usageCount - a[1].usageCount) || (b[1].lastUsed - a[1].lastUsed))
       .slice(0, 8)
       .map(([type]) => type)
-  }, [stats])
+  })
 
   // 模糊搜索过滤（支持拼音和首字母）+ 使用缓存的排序结果
   const filteredCategories = useMemo(() => {

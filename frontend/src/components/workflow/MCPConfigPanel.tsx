@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getBackendBaseUrl } from '@/services/config'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { MCP_TEMPLATES, TEMPLATE_CATEGORIES, type MCPTemplate } from './mcpTemplates'
 
 /**
@@ -65,6 +66,7 @@ export function MCPConfigPanel() {
   const [expandedServers, setExpandedServers] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   // 拉取当前配置 + 状态
   const refresh = useCallback(async () => {
@@ -145,7 +147,8 @@ export function MCPConfigPanel() {
   }
 
   const deleteServer = async (name: string) => {
-    if (!confirm(`确认删除 MCP 服务器 "${name}"？`)) return
+    const ok = await confirm(`确认删除 MCP 服务器 "${name}"？`, { type: 'warning', title: '删除 MCP 服务器', confirmText: '删除', cancelText: '取消' })
+    if (!ok) return
     const next = { ...config }
     delete next.mcpServers[name]
     setConfig(next)
@@ -359,6 +362,7 @@ export function MCPConfigPanel() {
           }}
         />
       )}
+      <ConfirmDialog />
     </div>
   )
 }

@@ -18,6 +18,8 @@ import { useWorkflowStore, type NodeData } from '@/store/workflowStore'
 import { useLayoutStore } from '@/store/layoutStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { isEncryptedEnvelope, decryptWorkflow } from '@/lib/workflowCrypto'
+import { useConfirm } from '@/components/ui/confirm-dialog'
+import { usePasswordPrompt } from '@/components/ui/password-prompt'
 import { ModuleNode } from './ModuleNode'
 import { QuickModulePicker } from './QuickModulePicker'
 import { getAllAvailableModules } from './ModuleSidebar'
@@ -342,6 +344,8 @@ const nodeTypes = {
 export function WorkflowEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const reactFlowInstance = useRef<ReactFlowInstance<Node<NodeData>> | null>(null)
+  const { alert: alertDialog, ConfirmDialog } = useConfirm()
+  const { promptPassword, passwordDialog } = usePasswordPrompt()
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
   const [showBrowserBusyDialog, setShowBrowserBusyDialog] = useState(false)
@@ -1151,12 +1155,20 @@ export function WorkflowEditor() {
               try {
                 const parsed = JSON.parse(content)
                 if (isEncryptedEnvelope(parsed)) {
-                  const pwd = window.prompt(`「${parsed.name || file.name}」是加密分享包，请输入密码：`)
+                  const pwd = await promptPassword({
+                    title: '导入加密分享包',
+                    message: `「${parsed.name || file.name}」是加密分享包，请输入密码`,
+                    confirmText: '解密导入',
+                  })
                   if (!pwd) { addLog({ level: 'warning', message: `已取消导入加密包: ${file.name}` }); return }
                   try {
                     payload = await decryptWorkflow(parsed, pwd)
                   } catch {
                     addLog({ level: 'error', message: `解密失败：密码错误或文件已损坏（${file.name}）` })
+                    alertDialog(`无法解密「${file.name}」。\n密码错误或文件已损坏，请确认密码后重试。`, {
+                      title: '解密失败',
+                      confirmText: '我知道了',
+                    })
                     return
                   }
                 }
@@ -1795,6 +1807,11 @@ export function WorkflowEditor() {
           </div>
         </div>
       )}
+      
+      {/* 主题化确认/提示弹窗 */}
+      <ConfirmDialog />
+      {/* 加密包导入密码弹窗 */}
+      {passwordDialog}
     </div>
   )
 }

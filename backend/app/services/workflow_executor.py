@@ -390,12 +390,15 @@ class WorkflowExecutor:
         if self.on_log:
             try:
                 await self.on_log(entry)
+                # 让出事件循环，强制 socket 立即把这批日志冲刷到前端，
+                # 避免密集同步步骤占满循环导致日志积压到工作流结束才一次性出现。
+                await asyncio.sleep(0)
             except Exception as e:
                 print(f"发送日志失败: {e}")
     
     async def _send_data_row(self, row_data: dict):
-        """发送数据行到前端"""
-        MAX_PREVIEW_ROWS = 20
+        """发送数据行到前端（实时预览上限，与前端数据表格展示上限保持一致）"""
+        MAX_PREVIEW_ROWS = 100
         if self._sent_data_rows_count >= MAX_PREVIEW_ROWS:
             return
         if self.on_data_row:

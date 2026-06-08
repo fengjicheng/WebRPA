@@ -4,14 +4,14 @@
  * 纯模块条模式即可搭建任意工作流（含条件/循环/嵌套），无需切回流程图。
  * 以「结构树」为操作对象，每次编辑后由树重新生成完整的图（自动连线）。
  */
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workflowStore'
 import { useNodeRunStore } from '@/store/nodeRunStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
-import { Plus, Search, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, Ban } from 'lucide-react'
 import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
@@ -97,7 +97,12 @@ export function BlockFlowView() {
   const selectedNodeId = useWorkflowStore((s) => s.selectedNodeId)
   const selectNode = useWorkflowStore((s) => s.selectNode)
   const setGraph = useWorkflowStore((s) => s.setGraph)
+  const toggleNodesDisabled = useWorkflowStore((s) => s.toggleNodesDisabled)
   const runStatuses = useNodeRunStore((s) => s.statuses)
+
+  // 多选（像资源管理器：单击单选 / Ctrl 切换 / Shift 范围 / Ctrl+A 全选）
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const lastClickedRef = useRef<string | null>(null)
 
   const blocks = useMemo(() => parseGraphToBlocks(nodes, edges), [nodes, edges])
   const [picker, setPicker] = useState<{ target: PickerTarget; x: number; y: number } | null>(null)
@@ -165,6 +170,13 @@ export function BlockFlowView() {
   const handleDelete = (id: string) => applyEdit((tree) => removeBlock(tree, id))
   const handleMove = (id: string, dir: -1 | 1) => applyEdit((tree) => moveBlock(tree, id, dir))
 
+  // 批量删除选中块
+  const handleDeleteMany = (ids: string[]) => {
+    if (ids.length === 0) return
+    applyEdit((tree) => ids.reduce((t, id) => removeBlock(t, id), tree))
+    setSelectedIds(new Set())
+  }
+
   // 可见顺序的扁平块列表（键盘导航用；折叠容器的子项跳过）
   const flatBlocks = useMemo(() => {
     const out: { id: string; isContainer: boolean }[] = []
@@ -186,6 +198,30 @@ export function BlockFlowView() {
     const el = document.querySelector(`[data-block-id="${id}"]`)
     if (el) (el as HTMLElement).scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }
+
+  // 行点击：支持单选 / Ctrl 切换 / Shift 范围选（按可见顺序）
+  const handleRowClick = (e: React.MouseEvent, id: string) => {
+    const ids = flatBlocks.map((b) => b.id)
+    if (e.shiftKey && lastClickedRef.current && ids.includes(lastClickedRef.current)) {
+      const a = ids.indexOf(lastClickedRef.current)
+      const b = ids.indexOf(id)
+      const [lo, hi] = a < b ? [a, b] : [b, a]
+      setSelectedIds(new Set(ids.slice(lo, hi + 1)))
+      selectNode(id)
+    } else if (e.ctrlKey || e.metaKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id); else next.add(id)
+        return next
+      })
+      lastClickedRef.current = id
+      selectNode(id)
+    } else {
+      setSelectedIds(new Set([id]))
+      lastClickedRef.current = id
+      selectNode(id)
+    }
+  }
   const openPickerAt = (target: PickerTarget, anchorId: string) => {
     const el = document.querySelector(`[data-block-id="${anchorId}"]`) as HTMLElement | null
     if (el) {
@@ -205,20 +241,34 @@ export function BlockFlowView() {
       const ids = flatBlocks.map((b) => b.id)
       if (ids.length === 0) return
       const curIdx = selectedNodeId ? ids.indexOf(selectedNodeId) : -1
+      // Ctrl+A 全选
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        setSelectedIds(new Set(ids))
+        return
+      }
+      // Ctrl+D 禁用/启用选中模块
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        const targets = selectedIds.size > 0 ? Array.from(selectedIds) : (selectedNodeId ? [selectedNodeId] : [])
+        if (targets.length > 0) toggleNodesDisabled(targets)
+        return
+      }
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         const ni = curIdx < 0 ? 0 : Math.min(ids.length - 1, curIdx + 1)
-        selectNode(ids[ni]); scrollRowIntoView(ids[ni])
+        selectNode(ids[ni]); setSelectedIds(new Set([ids[ni]])); lastClickedRef.current = ids[ni]; scrollRowIntoView(ids[ni])
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         const pi = curIdx < 0 ? 0 : Math.max(0, curIdx - 1)
-        selectNode(ids[pi]); scrollRowIntoView(ids[pi])
+        selectNode(ids[pi]); setSelectedIds(new Set([ids[pi]])); lastClickedRef.current = ids[pi]; scrollRowIntoView(ids[pi])
       } else if (e.key === 'Enter' && selectedNodeId && curIdx >= 0) {
         e.preventDefault()
         openPickerAt({ mode: 'after', id: selectedNodeId }, selectedNodeId)
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && curIdx >= 0) {
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && (selectedIds.size > 0 || selectedNodeId)) {
         e.preventDefault()
-        handleDelete(selectedNodeId)
+        if (selectedIds.size > 1) handleDeleteMany(Array.from(selectedIds))
+        else if (selectedNodeId) handleDelete(selectedNodeId)
       } else if (e.ctrlKey && (e.key === '/' || e.key === '、')) {
         e.preventDefault()
         const f = flatBlocks.find((b) => b.id === selectedNodeId)
@@ -228,7 +278,7 @@ export function BlockFlowView() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flatBlocks, selectedNodeId, picker])
+  }, [flatBlocks, selectedNodeId, selectedIds, picker])
 
   // 投放到指定插入点（分支内/循环体内/任意位置都可）；支持新建模块 或 移动已有块
   const handleDropAt = (e: React.DragEvent, target: PickerTarget) => {
@@ -278,6 +328,8 @@ export function BlockFlowView() {
     const accentText = borderCls.replace('border-', 'text-').replace(/-500$/, '-600')
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
+    const multiSelected = selectedIds.has(node.id)
+    const disabled = !!data.disabled
     // 容器块（如果/循环/并行）用语义标签作主名，不再叠加模块名，避免“循环 循环”这类重复
     const semanticTag = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : kind === 'parallel' ? '并行' : ''
     const customName = (data.name as string) || ''
@@ -306,18 +358,21 @@ export function BlockFlowView() {
         onDragOver={onRowDragOver}
         onDragLeave={() => setDropPos(null)}
         onDrop={onRowDrop}
-        onClick={() => selectNode(node.id)}
+        onClick={(e) => handleRowClick(e, node.id)}
         className={
           'group/row relative flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-[10px] bg-[hsl(var(--card))] border cursor-grab active:cursor-grabbing transition-[box-shadow,border-color,transform] duration-150 ' +
+          (disabled ? 'opacity-55 grayscale-[0.4] ' : '') +
           (runStatuses[node.id] === 'running'
             ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.5)] shadow-brand-glow animate-pulse'
             : runStatuses[node.id] === 'success'
               ? 'border-[hsl(var(--success-500))] ring-1 ring-[hsl(var(--success-500)/0.4)]'
               : runStatuses[node.id] === 'failed'
                 ? 'border-[hsl(var(--danger-500))] ring-1 ring-[hsl(var(--danger-500)/0.45)]'
-                : selected
-                  ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
-                  : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
+                : multiSelected
+                  ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50)/0.6)] ring-2 ring-[hsl(var(--brand-500)/0.28)] shadow-pop'
+                  : selected
+                    ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
+                    : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
         }
       >
         {dropPos && <div className={'absolute left-2 right-2 h-[3px] rounded-full bg-[hsl(var(--brand-500))] shadow-brand-glow z-10 ' + (dropPos === 'top' ? '-top-[2px]' : '-bottom-[2px]')} />}
@@ -350,11 +405,15 @@ export function BlockFlowView() {
             </span>
           )}
           {summary && <span className="text-[11px] text-[hsl(var(--slate-500))] truncate font-mono">{summary}</span>}
+          {disabled && (
+            <span className="flex-shrink-0 px-1.5 py-0.5 rounded-[5px] text-[10px] font-bold bg-[hsl(var(--slate-200))] text-[hsl(var(--slate-500))] border border-[hsl(var(--slate-300))]">已禁用</span>
+          )}
           {isCollapsed && childCount ? <span className="text-[10.5px] text-[hsl(var(--slate-400))] flex-shrink-0">· 已折叠 {childCount} 步</span> : null}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
           <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, 1) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors" title="下移"><ChevronDown className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); toggleNodesDisabled([node.id]) }} className={'p-1 rounded-[6px] transition-colors hover:bg-[hsl(var(--slate-100))] ' + (disabled ? 'text-[hsl(var(--brand-600))]' : 'text-[hsl(var(--slate-400))] hover:text-[hsl(var(--slate-700))]')} title={disabled ? '启用 (Ctrl+D)' : '禁用 (Ctrl+D)'}><Ban className="w-3.5 h-3.5" /></button>
           <button onClick={(e) => { e.stopPropagation(); handleDelete(block.id) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-colors" title="删除"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       </div>
@@ -536,9 +595,27 @@ export function BlockFlowView() {
           <div className="flex items-center justify-between mb-3 px-0.5">
             <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
               共 <span className="font-semibold text-[hsl(var(--slate-700))] tabular-nums">{totalSteps}</span> 个步骤
-              <span className="hidden md:inline ml-2 text-[10.5px] text-[hsl(var(--slate-400))]">↑↓ 选择 · Enter 插入 · Delete 删除 · Ctrl+/ 折叠</span>
+              {selectedIds.size > 0 && (
+                <span className="ml-2 text-[11px] font-semibold text-[hsl(var(--brand-600))]">已选 {selectedIds.size}</span>
+              )}
+              <span className="hidden lg:inline ml-2 text-[10.5px] text-[hsl(var(--slate-400))]">↑↓ 选择 · Enter 插入 · Ctrl+A 全选 · Ctrl 点选/Shift 范围 · Ctrl+D 禁用 · Delete 删除 · Ctrl+/ 折叠</span>
             </span>
-            {containerIds.length > 0 && (
+            {selectedIds.size > 0 ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => toggleNodesDisabled(Array.from(selectedIds))}
+                  className="px-2 py-1 rounded-[6px] text-[11.5px] text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--slate-100))] transition-colors inline-flex items-center gap-1"
+                ><Ban className="w-3 h-3" /> 禁用/启用</button>
+                <button
+                  onClick={() => handleDeleteMany(Array.from(selectedIds))}
+                  className="px-2 py-1 rounded-[6px] text-[11.5px] text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-colors inline-flex items-center gap-1"
+                ><Trash2 className="w-3 h-3" /> 删除选中</button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-2 py-1 rounded-[6px] text-[11.5px] text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--slate-100))] transition-colors"
+                >取消选择</button>
+              </div>
+            ) : containerIds.length > 0 && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setCollapsed(new Set())}

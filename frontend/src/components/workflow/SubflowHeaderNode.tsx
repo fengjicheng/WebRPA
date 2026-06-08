@@ -2,6 +2,7 @@ import { memo, useState, useCallback } from 'react'
 import { Handle, Position, type NodeProps, useReactFlow } from '@xyflow/react'
 import { Workflow, GripVertical, ChevronDown, ChevronUp } from 'lucide-react'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 export interface SubflowHeaderNodeData {
   label: string
@@ -16,6 +17,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
   const { setNodes, getNodes, getEdges } = useReactFlow()
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(nodeData.label || '')
+  const { alert: alertDialog, ConfirmDialog } = useConfirm()
   
   const isCollapsed = nodeData.collapsed === true
   
@@ -112,7 +114,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
       })
       
       if (duplicates.length > 0) {
-        alert(`警告：已存在名为「${newName}」的子流程！\n\n这会导致调用时无法确定执行哪一个，请使用唯一的名称。`)
+        alertDialog(`已存在名为「${newName}」的子流程！\n\n这会导致调用时无法确定执行哪一个，请使用唯一的名称。`, { title: '名称重复' })
         setEditValue(oldName)
         return
       }
@@ -153,6 +155,7 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
   }, [handleBlur, nodeData.label])
 
   return (
+    <>
     <div
       className={`relative px-4 py-3 rounded-lg border-2 transition-all cursor-move ${
         selected 
@@ -238,6 +241,8 @@ export const SubflowHeaderNode = memo(({ id, data, selected }: NodeProps) => {
         />
       )}
     </div>
+    <ConfirmDialog />
+    </>
   )
 })
 

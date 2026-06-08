@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 interface ScreenshotSelectorProps {
   screenshot: string
@@ -21,6 +22,7 @@ export function ScreenshotSelector({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [endPos, setEndPos] = useState({ x: 0, y: 0 })
   const [img, setImg] = useState<HTMLImageElement | null>(null)
+  const { alert: alertDialog, ConfirmDialog } = useConfirm()
 
   // 加载图片
   useEffect(() => {
@@ -125,7 +127,7 @@ export function ScreenshotSelector({
 
     // 检查选择区域是否有效
     if (selWidth < 10 || selHeight < 10) {
-      alert('选择区域太小，请重新选择')
+      alertDialog('选择区域太小，请重新选择', { title: '提示' })
       return
     }
 
@@ -159,6 +161,7 @@ export function ScreenshotSelector({
   }, [startPos, endPos, img])
 
   return (
+    <>
     <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center">
       <div className="relative w-full h-full flex flex-col">
         {/* 顶部提示栏 */}
@@ -206,5 +209,7 @@ export function ScreenshotSelector({
         </div>
       </div>
     </div>
+    <ConfirmDialog />
+    </>
   )
 }
