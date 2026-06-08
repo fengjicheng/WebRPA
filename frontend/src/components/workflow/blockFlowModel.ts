@@ -15,6 +15,7 @@ export type Block =
   | { kind: 'step'; id: string; node: Node<NodeData>; flowStart?: boolean }
   | { kind: 'if'; id: string; node: Node<NodeData>; then: Block[]; els: Block[]; flowStart?: boolean }
   | { kind: 'loop'; id: string; node: Node<NodeData>; body: Block[]; flowStart?: boolean }
+  | { kind: 'parallel'; id: string; node: Node<NodeData>; branches: Block[][]; flowStart?: boolean }
 
 export const CONDITION_TYPES = new Set([
   'condition', 'element_exists', 'element_visible',
@@ -83,6 +84,23 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
     return null
   }
 
+  // 多路并行扇出的公共合并点：从所有分支入口都可达的、最近的那个节点
+  const findCommonMerge = (targets: string[]): string | null => {
+    if (targets.length < 2) return null
+    const sets = targets.map((t) => reachable(t))
+    const seen = new Set<string>()
+    const q = [...targets]
+    while (q.length) {
+      const c = q.shift()!
+      if (seen.has(c)) continue
+      seen.add(c)
+      // c 必须从每一条分支都可达，且本身不是任何分支的入口（避免把某分支首节点当合并点）
+      if (!targets.includes(c) && sets.every((s) => s.has(c))) return c
+      for (const e of edges) if (e.source === c) q.push(e.target)
+    }
+    return null
+  }
+
   const parseSeq = (startId: string | null, stop: Set<string>): Block[] => {
     const seq: Block[] = []
     let cur = startId
@@ -110,8 +128,25 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
         seq.push({ kind: 'loop', id: cur, node, body: bodySeq })
         cur = done
       } else {
-        seq.push({ kind: 'step', id: cur, node })
-        cur = edgeTarget(edges, cur, null)
+        // 普通步骤：检查是否有多条顺序出边（并行扇出 / 多路执行）
+        const outs = edges
+          .filter((e) => e.source === cur && (!e.sourceHandle || e.sourceHandle === ''))
+          .map((e) => e.target)
+          .filter((t) => byId.has(t))
+        // 去重
+        const uniqueOuts = Array.from(new Set(outs))
+        if (uniqueOuts.length > 1) {
+          // 并行扇出：本步骤之后同时分出多条分支，最后汇合到合并点
+          const merge = findCommonMerge(uniqueOuts)
+          const innerStop = new Set(stop)
+          if (merge) innerStop.add(merge)
+          const branches = uniqueOuts.map((t) => parseSeq(t, innerStop))
+          seq.push({ kind: 'parallel', id: cur, node, branches })
+          cur = merge
+        } else {
+          seq.push({ kind: 'step', id: cur, node })
+          cur = uniqueOuts[0] || null
+        }
       }
     }
     return seq
@@ -145,6 +180,7 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
       yi++
       if (b.kind === 'if') { place(b.then, depth + 1); place(b.els, depth + 1) }
       else if (b.kind === 'loop') { place(b.body, depth + 1) }
+      else if (b.kind === 'parallel') { b.branches.forEach((br) => place(br, depth + 1)) }
     }
   }
   place(blocks, 0)
@@ -176,11 +212,17 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
       return b.id
     }
     // loop
-    if (b.body.length > 0) {
-      const bodyEntry = wireSeq(b.body, b.id) // 循环体最后回到循环节点
-      addEdge(b.id, bodyEntry, 'loop')
+    if (b.kind === 'loop') {
+      if (b.body.length > 0) {
+        const bodyEntry = wireSeq(b.body, b.id) // 循环体最后回到循环节点
+        addEdge(b.id, bodyEntry, 'loop')
+      }
+      addEdge(b.id, followId, 'done')
+      return b.id
     }
-    addEdge(b.id, followId, 'done')
+    // parallel：本步骤之后并行扇出到各分支，各分支末尾汇合到 followId
+    const entries = b.branches.map((br) => wireSeq(br, followId))
+    for (const en of entries) addEdge(b.id, en ?? followId, null)
     return b.id
   }
   // 按 flowStart 边界把顶层块拆成多条独立流程，各自独立连线，避免把并行/独立流程错误串联成一条链
@@ -224,6 +266,11 @@ function locate(blocks: Block[], id: string): Found {
     } else if (b.kind === 'loop') {
       const inBody = locate(b.body, id)
       if (inBody) return inBody
+    } else if (b.kind === 'parallel') {
+      for (const br of b.branches) {
+        const inBr = locate(br, id)
+        if (inBr) return inBr
+      }
     }
   }
   return null
@@ -238,6 +285,11 @@ function findBlock(blocks: Block[], id: string): Block | null {
     } else if (b.kind === 'loop') {
       const r = findBlock(b.body, id)
       if (r) return r
+    } else if (b.kind === 'parallel') {
+      for (const br of b.branches) {
+        const r = findBlock(br, id)
+        if (r) return r
+      }
     }
   }
   return null
@@ -295,6 +347,7 @@ function subtreeIds(b: Block, acc: Set<string>) {
   acc.add(b.id)
   if (b.kind === 'if') { b.then.forEach((x) => subtreeIds(x, acc)); b.els.forEach((x) => subtreeIds(x, acc)) }
   else if (b.kind === 'loop') { b.body.forEach((x) => subtreeIds(x, acc)) }
+  else if (b.kind === 'parallel') { b.branches.forEach((br) => br.forEach((x) => subtreeIds(x, acc))) }
 }
 
 /**

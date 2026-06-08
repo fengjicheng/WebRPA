@@ -100,6 +100,13 @@ export function BlockFlowView() {
   const blocks = useMemo(() => parseGraphToBlocks(nodes, edges), [nodes, edges])
   const [picker, setPicker] = useState<{ target: PickerTarget; x: number; y: number } | null>(null)
   const [dropActive, setDropActive] = useState(false)
+  // 折叠的容器块 id 集合（循环体/条件分支/并行分支可点击收起，提升可读性）
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const toggleCollapse = (id: string) => setCollapsed((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
 
   // 所有结构化编辑：基于当前图重新解析出可变树 → 编辑 → 重新生成图 → 提交
   // 关键：重新生成只管 moduleNode；分组/便签/子流程头等非模块节点及其相关连线原样保留，避免数据丢失
@@ -191,7 +198,7 @@ export function BlockFlowView() {
   void INDENT
 
   // ===== 影刀风格紧凑步骤行（本身即投放区：按上/下半判断插到该行前/后）=====
-  const StepRow = ({ block, num, kind }: { block: Block; num: number; kind: 'step' | 'if' | 'loop' }) => {
+  const StepRow = ({ block, num, kind, collapsible, isCollapsed, onToggle, childCount }: { block: Block; num: number; kind: 'step' | 'if' | 'loop' | 'parallel'; collapsible?: boolean; isCollapsed?: boolean; onToggle?: () => void; childCount?: number }) => {
     const node = block.node
     const data = node.data as NodeData
     const type = data.moduleType as ModuleType
@@ -204,7 +211,14 @@ export function BlockFlowView() {
     const accentText = borderCls.replace('border-', 'text-').replace(/-500$/, '-600')
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
-    const title = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : ''
+    // 容器块（如果/循环/并行）用语义标签作主名，不再叠加模块名，避免“循环 循环”这类重复
+    const semanticTag = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : kind === 'parallel' ? '并行' : ''
+    const customName = (data.name as string) || ''
+    const primaryName = kind === 'step'
+      ? (customName || moduleTypeLabels[type] || type)
+      : kind === 'parallel'
+        ? (customName || moduleTypeLabels[type] || type)  // 并行头本身是真实步骤，正常显示模块名
+        : customName                                       // 如果/循环：语义由左侧标签承载，仅在有自定义名时再显示
     const [dropPos, setDropPos] = useState<'top' | 'bottom' | null>(null)
     const onRowDragOver = (e: React.DragEvent) => {
       if (!(e.dataTransfer.types.includes('application/reactflow') || e.dataTransfer.types.includes('application/blockmove'))) return
@@ -235,16 +249,34 @@ export function BlockFlowView() {
         {dropPos && <div className={'absolute left-2 right-2 h-[3px] rounded-full bg-[hsl(var(--brand-500))] shadow-brand-glow z-10 ' + (dropPos === 'top' ? '-top-[2px]' : '-bottom-[2px]')} />}
         {/* 分类色左强调条 */}
         <span className={'absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full ' + accentBar} />
+        {/* 折叠箭头（容器块） */}
+        {collapsible ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+            className="flex items-center justify-center w-4 h-4 flex-shrink-0 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] transition-transform"
+            title={isCollapsed ? '展开' : '收起'}
+          >
+            <ChevronDown className={'w-3.5 h-3.5 transition-transform duration-150 ' + (isCollapsed ? '-rotate-90' : '')} />
+          </button>
+        ) : null}
         <span className="w-4 text-right text-[10.5px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0 tabular-nums">{num}</span>
         <span className={'flex items-center justify-center w-7 h-7 rounded-[8px] flex-shrink-0 ' + bgCls}>
           {Icon && <Icon className={'w-4 h-4 ' + accentText} strokeWidth={2} />}
         </span>
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          <span className="text-[13px] font-semibold text-[hsl(var(--slate-800))] whitespace-nowrap tracking-tight">
-            {title && <span className="text-[hsl(var(--brand-600))] mr-1">{title}</span>}
-            {(data.name as string) || moduleTypeLabels[type] || type}
-          </span>
+          {(kind === 'if' || kind === 'loop' || kind === 'parallel') && (
+            <span className={'flex-shrink-0 px-1.5 py-0.5 rounded-[5px] text-[10.5px] font-bold ' +
+              (kind === 'loop' ? 'bg-[hsl(var(--teal-50))] text-[hsl(var(--teal-700))]'
+                : kind === 'parallel' ? 'bg-[hsl(var(--violet-50))] text-[hsl(var(--violet-700))]'
+                : 'bg-[hsl(var(--brand-50))] text-[hsl(var(--brand-700))]')}>{semanticTag}</span>
+          )}
+          {primaryName && (
+            <span className="text-[13px] font-semibold text-[hsl(var(--slate-800))] whitespace-nowrap tracking-tight">
+              {primaryName}
+            </span>
+          )}
           {summary && <span className="text-[11px] text-[hsl(var(--slate-500))] truncate font-mono">{summary}</span>}
+          {isCollapsed && childCount ? <span className="text-[10.5px] text-[hsl(var(--slate-400))] flex-shrink-0">· 已折叠 {childCount} 步</span> : null}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
@@ -294,6 +326,14 @@ export function BlockFlowView() {
     )
   }
 
+  // 统计一个序列内的步骤总数（用于折叠时显示“已折叠 N 步”、并保持序号稳定）
+  const countSteps = (seq: Block[]): number => seq.reduce((n, b) => {
+    if (b.kind === 'if') return n + 1 + countSteps(b.then) + countSteps(b.els)
+    if (b.kind === 'loop') return n + 1 + countSteps(b.body)
+    if (b.kind === 'parallel') return n + 1 + b.branches.reduce((m, br) => m + countSteps(br), 0)
+    return n + 1
+  }, 0)
+
   // 渲染一个序列（counter 维护全局序号）
   const renderSeq = (seq: Block[], counter: { n: number }): React.ReactNode[] => {
     const out: React.ReactNode[] = []
@@ -314,11 +354,15 @@ export function BlockFlowView() {
         out.push(<StepRow key={b.id} block={b} num={num} kind="step" />)
       } else if (b.kind === 'if') {
         const lbl = branchLabels(b.node.data.moduleType as string)
+        const isCol = collapsed.has(b.id)
+        const cc = countSteps(b.then) + countSteps(b.els)
+        if (isCol) counter.n += cc
         out.push(
           <div key={b.id} className="rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop overflow-hidden">
             <div className="bg-[hsl(var(--brand-50)/0.5)] border-b border-[hsl(var(--border))]">
-              <StepRow block={b} num={num} kind="if" />
+              <StepRow block={b} num={num} kind="if" collapsible isCollapsed={isCol} onToggle={() => toggleCollapse(b.id)} childCount={cc} />
             </div>
+            {!isCol && (<>
             <div className="pl-4 pr-2.5 py-2">
               <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--success-50))] text-[hsl(var(--success-700))] text-[10.5px] font-bold border border-[hsl(var(--success-500)/0.25)]">{lbl.yes}</div>
               <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--success-500)/0.3)] space-y-0.5">
@@ -336,14 +380,19 @@ export function BlockFlowView() {
             <div className="px-3 py-1.5 text-[10.5px] font-medium text-[hsl(var(--slate-400))] bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))] flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--slate-300))]" /> 结束判断
             </div>
+            </>)}
           </div>
         )
-      } else {
+      } else if (b.kind === 'loop') {
+        const isCol = collapsed.has(b.id)
+        const cc = countSteps(b.body)
+        if (isCol) counter.n += cc
         out.push(
           <div key={b.id} className="rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop overflow-hidden">
             <div className="bg-[hsl(var(--teal-50)/0.5)] border-b border-[hsl(var(--border))]">
-              <StepRow block={b} num={num} kind="loop" />
+              <StepRow block={b} num={num} kind="loop" collapsible isCollapsed={isCol} onToggle={() => toggleCollapse(b.id)} childCount={cc} />
             </div>
+            {!isCol && (<>
             <div className="pl-4 pr-2.5 py-2">
               <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--teal-50))] text-[hsl(var(--teal-700))] text-[10.5px] font-bold border border-[hsl(var(--teal-500)/0.25)]">循环体</div>
               <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--teal-500)/0.35)] space-y-0.5">
@@ -354,12 +403,52 @@ export function BlockFlowView() {
             <div className="px-3 py-1.5 text-[10.5px] font-medium text-[hsl(var(--slate-400))] bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))] flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--teal-400))]" /> 结束循环
             </div>
+            </>)}
+          </div>
+        )
+      } else {
+        // 并行：本步骤之后并行分出多条分支
+        const isCol = collapsed.has(b.id)
+        const cc = b.branches.reduce((m, br) => m + countSteps(br), 0)
+        if (isCol) counter.n += cc
+        out.push(
+          <div key={b.id} className="rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop overflow-hidden">
+            <div className="bg-[hsl(var(--violet-50)/0.5)] border-b border-[hsl(var(--border))]">
+              <StepRow block={b} num={num} kind="parallel" collapsible isCollapsed={isCol} onToggle={() => toggleCollapse(b.id)} childCount={cc} />
+            </div>
+            {!isCol && (
+              <div className="pl-4 pr-2.5 py-2 space-y-2">
+                {b.branches.map((br, bi) => (
+                  <div key={b.id + '^b' + bi}>
+                    <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--violet-50))] text-[hsl(var(--violet-700))] text-[10.5px] font-bold border border-[hsl(var(--violet-500)/0.25)]">分支 {bi + 1}</div>
+                    <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--violet-500)/0.35)] space-y-0.5">
+                      {renderSeq(br, counter)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="px-3 py-1.5 text-[10.5px] font-medium text-[hsl(var(--slate-400))] bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--violet-400))]" /> 分支汇合
+            </div>
           </div>
         )
       }
     })
     return out
   }
+
+  // 收集所有可折叠容器块 id（用于一键展开/折叠）
+  const collectContainerIds = (seq: Block[], acc: string[] = []): string[] => {
+    seq.forEach((b) => {
+      if (b.kind === 'if') { acc.push(b.id); collectContainerIds(b.then, acc); collectContainerIds(b.els, acc) }
+      else if (b.kind === 'loop') { acc.push(b.id); collectContainerIds(b.body, acc) }
+      else if (b.kind === 'parallel') { acc.push(b.id); b.branches.forEach((br) => collectContainerIds(br, acc)) }
+    })
+    return acc
+  }
+  const containerIds = collectContainerIds(blocks)
+  const totalSteps = countSteps(blocks)
 
   return (
     <div
@@ -369,6 +458,25 @@ export function BlockFlowView() {
       onDrop={handleCanvasDrop}
     >
       <div className="w-full max-w-[1280px] mx-auto">
+        {blocks.length > 0 && (
+          <div className="flex items-center justify-between mb-3 px-0.5">
+            <span className="text-[12px] text-[hsl(var(--muted-foreground))]">
+              共 <span className="font-semibold text-[hsl(var(--slate-700))] tabular-nums">{totalSteps}</span> 个步骤
+            </span>
+            {containerIds.length > 0 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCollapsed(new Set())}
+                  className="px-2 py-1 rounded-[6px] text-[11.5px] text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--slate-100))] transition-colors"
+                >展开全部</button>
+                <button
+                  onClick={() => setCollapsed(new Set(containerIds))}
+                  className="px-2 py-1 rounded-[6px] text-[11.5px] text-[hsl(var(--slate-600))] hover:bg-[hsl(var(--slate-100))] transition-colors"
+                >折叠全部</button>
+              </div>
+            )}
+          </div>
+        )}
         {blocks.length === 0 && (
           <div className="text-center py-12 text-[13px] text-[hsl(var(--muted-foreground))]">从左侧拖拽模块到这里，或点击下方「添加模块」开始搭建流程</div>
         )}
