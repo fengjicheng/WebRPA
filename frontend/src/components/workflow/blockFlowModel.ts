@@ -12,9 +12,9 @@ import { moduleTypeLabels } from '@/store/workflowStore'
 import type { ModuleType } from '@/types'
 
 export type Block =
-  | { kind: 'step'; id: string; node: Node<NodeData> }
-  | { kind: 'if'; id: string; node: Node<NodeData>; then: Block[]; els: Block[] }
-  | { kind: 'loop'; id: string; node: Node<NodeData>; body: Block[] }
+  | { kind: 'step'; id: string; node: Node<NodeData>; flowStart?: boolean }
+  | { kind: 'if'; id: string; node: Node<NodeData>; then: Block[]; els: Block[]; flowStart?: boolean }
+  | { kind: 'loop'; id: string; node: Node<NodeData>; body: Block[]; flowStart?: boolean }
 
 export const CONDITION_TYPES = new Set([
   'condition', 'element_exists', 'element_visible',
@@ -118,9 +118,14 @@ export function parseGraphToBlocks(nodes: Node<NodeData>[], edges: Edge[]): Bloc
   }
 
   const result: Block[] = []
-  for (const entry of entries) result.push(...parseSeq(entry.id, new Set()))
+  // 标记每条独立流程的起始块（多入口/多路并行执行时用于区分、避免被错误串联合并）
+  const pushFlow = (seq: Block[]) => {
+    if (seq.length > 0) seq[0] = { ...seq[0], flowStart: true }
+    result.push(...seq)
+  }
+  for (const entry of entries) pushFlow(parseSeq(entry.id, new Set()))
   for (const n of [...moduleNodes].sort((a, b) => a.position.y - b.position.y)) {
-    if (!visited.has(n.id)) result.push(...parseSeq(n.id, new Set()))
+    if (!visited.has(n.id)) pushFlow(parseSeq(n.id, new Set()))
   }
   return result
 }
@@ -178,7 +183,13 @@ export function generateGraphFromBlocks(blocks: Block[]): { nodes: Node<NodeData
     addEdge(b.id, followId, 'done')
     return b.id
   }
-  wireSeq(blocks, null)
+  // 按 flowStart 边界把顶层块拆成多条独立流程，各自独立连线，避免把并行/独立流程错误串联成一条链
+  const flows: Block[][] = []
+  for (const b of blocks) {
+    if (b.flowStart || flows.length === 0) flows.push([b])
+    else flows[flows.length - 1].push(b)
+  }
+  for (const flow of flows) wireSeq(flow, null)
 
   return { nodes: outNodes, edges: outEdges }
 }

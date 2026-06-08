@@ -198,7 +198,10 @@ export function BlockFlowView() {
     const Icon = moduleIcons[type]
     const parts = (moduleColors[type] || '').split(' ')
     const borderCls = parts.find((c) => c.startsWith('border-')) || 'border-slate-300'
-    const bgCls = parts.find((c) => c.startsWith('bg-')) || 'bg-slate-50'
+    const bgCls = parts.find((c) => c.startsWith('bg-')) || 'bg-slate-100'
+    // 由分类描边色派生：强调条(bg-xxx-500) 与图标色(text-xxx-600)
+    const accentBar = borderCls.replace('border-', 'bg-')
+    const accentText = borderCls.replace('border-', 'text-').replace(/-500$/, '-600')
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
     const title = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : ''
@@ -223,27 +226,30 @@ export function BlockFlowView() {
         onDrop={onRowDrop}
         onClick={() => selectNode(node.id)}
         className={
-          'group/row relative flex items-center gap-2 pl-1.5 pr-1.5 py-1.5 rounded-[7px] border border-l-[3px] cursor-grab active:cursor-grabbing transition-all ' +
-          bgCls + ' ' + borderCls + ' ' +
-          (selected ? 'ring-2 ring-[hsl(var(--brand-500)/0.6)] shadow-sm' : 'hover:brightness-[0.97] hover:shadow-sm')
+          'group/row relative flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-[10px] bg-[hsl(var(--card))] border cursor-grab active:cursor-grabbing transition-[box-shadow,border-color,transform] duration-150 ' +
+          (selected
+            ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
+            : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
         }
       >
-        {dropPos && <div className={'absolute left-1 right-1 h-[2.5px] rounded bg-[hsl(var(--brand-500))] z-10 ' + (dropPos === 'top' ? 'top-0' : 'bottom-0')} />}
-        <span className="w-5 text-right text-[10px] font-mono text-[hsl(var(--slate-500))] flex-shrink-0">{num}</span>
-        <span className={'flex items-center justify-center w-6 h-6 rounded-[6px] bg-white/85 border ' + borderCls + ' flex-shrink-0'}>
-          {Icon && <Icon className="w-3.5 h-3.5 text-[hsl(var(--slate-700))]" />}
+        {dropPos && <div className={'absolute left-2 right-2 h-[3px] rounded-full bg-[hsl(var(--brand-500))] shadow-brand-glow z-10 ' + (dropPos === 'top' ? '-top-[2px]' : '-bottom-[2px]')} />}
+        {/* 分类色左强调条 */}
+        <span className={'absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full ' + accentBar} />
+        <span className="w-4 text-right text-[10.5px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0 tabular-nums">{num}</span>
+        <span className={'flex items-center justify-center w-7 h-7 rounded-[8px] flex-shrink-0 ' + bgCls}>
+          {Icon && <Icon className={'w-4 h-4 ' + accentText} strokeWidth={2} />}
         </span>
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
-          <span className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] whitespace-nowrap">
-            {title && <span className="text-[hsl(var(--brand-700))] font-semibold mr-1">{title}</span>}
+          <span className="text-[13px] font-semibold text-[hsl(var(--slate-800))] whitespace-nowrap tracking-tight">
+            {title && <span className="text-[hsl(var(--brand-600))] mr-1">{title}</span>}
             {(data.name as string) || moduleTypeLabels[type] || type}
           </span>
-          {summary && <span className="text-[11px] text-[hsl(var(--slate-600))] truncate">{summary}</span>}
+          {summary && <span className="text-[11px] text-[hsl(var(--slate-500))] truncate font-mono">{summary}</span>}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-0.5 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, 1) }} className="p-0.5 rounded text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))]" title="下移"><ChevronDown className="w-3.5 h-3.5" /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(block.id) }} className="p-0.5 rounded text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))]" title="删除"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, -1) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors" title="上移"><ChevronUp className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleMove(block.id, 1) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--brand-600))] hover:bg-[hsl(var(--brand-50))] transition-colors" title="下移"><ChevronDown className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(block.id) }} className="p-1 rounded-[6px] text-[hsl(var(--slate-400))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-colors" title="删除"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       </div>
     )
@@ -291,7 +297,17 @@ export function BlockFlowView() {
   // 渲染一个序列（counter 维护全局序号）
   const renderSeq = (seq: Block[], counter: { n: number }): React.ReactNode[] => {
     const out: React.ReactNode[] = []
-    seq.forEach((b) => {
+    seq.forEach((b, i) => {
+      // 顶层独立流程（多路/并行执行）之间插入分隔标识
+      if (b.flowStart && i > 0) {
+        out.push(
+          <div key={b.id + '^flow'} className="flex items-center gap-2 my-3 px-1">
+            <span className="h-px flex-1 bg-[hsl(var(--border))]" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[hsl(var(--violet-50))] text-[hsl(var(--violet-700))] text-[10.5px] font-bold border border-[hsl(var(--violet-500)/0.25)]">独立流程</span>
+            <span className="h-px flex-1 bg-[hsl(var(--border))]" />
+          </div>
+        )
+      }
       out.push(<HoverInsert key={b.id + '^before'} target={{ mode: 'before', id: b.id }} />)
       const num = ++counter.n
       if (b.kind === 'step') {
@@ -299,29 +315,45 @@ export function BlockFlowView() {
       } else if (b.kind === 'if') {
         const lbl = branchLabels(b.node.data.moduleType as string)
         out.push(
-          <div key={b.id} className="rounded-[9px] border border-[hsl(var(--brand-500)/0.25)] bg-[hsl(var(--brand-50)/0.35)] overflow-hidden">
-            <StepRow block={b} num={num} kind="if" />
-            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--brand-500)/0.35)] py-1 pr-1">
-              {renderSeq(b.then, counter)}
-              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'then' }} text={`添加「${lbl.yes}」分支步骤`} />
+          <div key={b.id} className="rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop overflow-hidden">
+            <div className="bg-[hsl(var(--brand-50)/0.5)] border-b border-[hsl(var(--border))]">
+              <StepRow block={b} num={num} kind="if" />
             </div>
-            <div className="px-3 py-1 text-[11px] font-semibold text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50)/0.6)]">{lbl.no}</div>
-            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--slate-300))] py-1 pr-1">
-              {renderSeq(b.els, counter)}
-              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'els' }} text={`添加「${lbl.no}」分支步骤`} />
+            <div className="pl-4 pr-2.5 py-2">
+              <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--success-50))] text-[hsl(var(--success-700))] text-[10.5px] font-bold border border-[hsl(var(--success-500)/0.25)]">{lbl.yes}</div>
+              <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--success-500)/0.3)] space-y-0.5">
+                {renderSeq(b.then, counter)}
+                <EmptySlot target={{ mode: 'into', id: b.id, slot: 'then' }} text={`添加「${lbl.yes}」分支步骤`} />
+              </div>
             </div>
-            <div className="px-3 py-1 text-[10.5px] text-[hsl(var(--slate-400))] border-t border-[hsl(var(--brand-500)/0.15)]">结束判断</div>
+            <div className="pl-4 pr-2.5 pb-2">
+              <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--slate-100))] text-[hsl(var(--slate-600))] text-[10.5px] font-bold border border-[hsl(var(--slate-300))]">{lbl.no}</div>
+              <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--slate-300))] space-y-0.5">
+                {renderSeq(b.els, counter)}
+                <EmptySlot target={{ mode: 'into', id: b.id, slot: 'els' }} text={`添加「${lbl.no}」分支步骤`} />
+              </div>
+            </div>
+            <div className="px-3 py-1.5 text-[10.5px] font-medium text-[hsl(var(--slate-400))] bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--slate-300))]" /> 结束判断
+            </div>
           </div>
         )
       } else {
         out.push(
-          <div key={b.id} className="rounded-[9px] border border-[hsl(var(--teal-500)/0.3)] bg-[hsl(var(--teal-50)/0.4)] overflow-hidden">
-            <StepRow block={b} num={num} kind="loop" />
-            <div className="ml-3 pl-2 border-l-2 border-[hsl(var(--teal-500)/0.4)] py-1 pr-1">
-              {renderSeq(b.body, counter)}
-              <EmptySlot target={{ mode: 'into', id: b.id, slot: 'body' }} text="添加循环体步骤" />
+          <div key={b.id} className="rounded-[12px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop overflow-hidden">
+            <div className="bg-[hsl(var(--teal-50)/0.5)] border-b border-[hsl(var(--border))]">
+              <StepRow block={b} num={num} kind="loop" />
             </div>
-            <div className="px-3 py-1 text-[10.5px] text-[hsl(var(--slate-400))] border-t border-[hsl(var(--teal-500)/0.15)]">结束循环</div>
+            <div className="pl-4 pr-2.5 py-2">
+              <div className="mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[hsl(var(--teal-50))] text-[hsl(var(--teal-700))] text-[10.5px] font-bold border border-[hsl(var(--teal-500)/0.25)]">循环体</div>
+              <div className="ml-1 pl-3 border-l-2 border-[hsl(var(--teal-500)/0.35)] space-y-0.5">
+                {renderSeq(b.body, counter)}
+                <EmptySlot target={{ mode: 'into', id: b.id, slot: 'body' }} text="添加循环体步骤" />
+              </div>
+            </div>
+            <div className="px-3 py-1.5 text-[10.5px] font-medium text-[hsl(var(--slate-400))] bg-[hsl(var(--slate-50))] border-t border-[hsl(var(--border))] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--teal-400))]" /> 结束循环
+            </div>
           </div>
         )
       }
