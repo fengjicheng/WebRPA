@@ -15,10 +15,15 @@ import {
   ListTree,
   Layers,
   Info,
+  Undo2,
+  Clock,
+  ImagePlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAIAssistantStore, type ChatMessage } from '@/store/aiAssistantStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { useAiActionLogStore } from '@/store/aiActionLogStore'
+import { useWorkflowStore } from '@/store/workflowStore'
 import { aiAssistantApi } from '@/services/aiAssistantApi'
 import {
   bindAssistantSocketEvents,
@@ -63,6 +68,12 @@ export function AIAssistantPanel() {
 
   const [input, setInput] = useState('')
   const [showSessions, setShowSessions] = useState(false)
+  // 多模态：待发送的图片（data URL）
+  const [attachedImages, setAttachedImages] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showTimeline, setShowTimeline] = useState(false)
+  const aiActions = useAiActionLogStore((s) => s.entries)
+  const clearAiActions = useAiActionLogStore((s) => s.clear)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -309,7 +320,84 @@ export function AIAssistantPanel() {
     setCurrentSessionId(null)
     setError(null)
     setInput('')
+    setAttachedImages([])
     textareaRef.current?.focus()
+  }
+
+  // 读取图片文件 → 缩放（最长边 1280px）→ data URL，避免超大截图把请求体撑爆
+  async function loadImageFile(file: File): Promise<string | null> {
+    if (!file.type.startsWith('image/')) return null
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(fr.result as string)
+      fr.onerror = reject
+      fr.readAsDataURL(file)
+    })
+    try {
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = reject
+        img.src = dataUrl
+      })
+      const MAX = 1280
+      let { width, height } = img
+      if (width <= MAX && height <= MAX) return dataUrl
+      const scale = MAX / Math.max(width, height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return dataUrl
+      ctx.drawImage(img, 0, 0, width, height)
+      return canvas.toDataURL('image/jpeg', 0.85)
+    } catch {
+      return dataUrl
+    }
+  }
+
+  async function addImageFiles(files: FileList | File[]) {
+    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (arr.length === 0) return
+    const loaded: string[] = []
+    for (const f of arr.slice(0, 6)) {
+      const u = await loadImageFile(f)
+      if (u) loaded.push(u)
+    }
+    if (loaded.length > 0) {
+      setAttachedImages((prev) => [...prev, ...loaded].slice(0, 6))
+      setTimeout(() => textareaRef.current?.focus(), 30)
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    const imgFiles: File[] = []
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i]
+      if (it.kind === 'file' && it.type.startsWith('image/')) {
+        const f = it.getAsFile()
+        if (f) imgFiles.push(f)
+      }
+    }
+    if (imgFiles.length > 0) {
+      e.preventDefault()
+      void addImageFiles(imgFiles)
+    }
+  }
+
+  // 回退到某条 AI 操作「之前」的画布状态
+  function handleRevertTo(entryId: string) {
+    const list = useAiActionLogStore.getState().entries
+    const entry = list.find((e) => e.id === entryId)
+    if (!entry) return
+    const ws = useWorkflowStore.getState()
+    ws.pushHistory()
+    ws.setGraph(entry.before.nodes as any, entry.before.edges as any)
+    ws.setWorkflowName(entry.before.name)
   }
 
   async function handleSelectSession(id: string) {
@@ -335,9 +423,10 @@ export function AIAssistantPanel() {
     }
   }
 
-  async function handleSend(text?: string) {
+  async function handleSend(text?: string, imgs?: string[]) {
     const messageText = (text ?? input).trim()
-    if (!messageText) return
+    const images = imgs && imgs.length > 0 ? imgs : []
+    if (!messageText && images.length === 0) return
     if (!configReady) {
       setError('请先在「全局配置 → 小助手」中填写 API 地址和模型')
       return
@@ -355,9 +444,11 @@ export function AIAssistantPanel() {
       id: `local-${Date.now()}`,
       role: 'user',
       content: messageText,
+      images: images.length > 0 ? images : undefined,
     }
     appendMessage(userMsg)
     setInput('')
+    setAttachedImages([])
     setSending(true)
 
     const ac = new AbortController()
@@ -369,6 +460,7 @@ export function AIAssistantPanel() {
         message: messageText,
         config: resolvedConfig,
         workflow_context: buildWorkflowContext(),
+        images: images.length > 0 ? images : undefined,
       } as any, ac.signal)
       if (!res.success || !res.data) {
         if (ac.signal.aborted) return
@@ -527,9 +619,17 @@ export function AIAssistantPanel() {
             variant={showSessions ? 'tonal' : 'ghost'}
             size="icon-sm"
             title="历史对话"
-            onClick={() => setShowSessions((v) => !v)}
+            onClick={() => { setShowSessions((v) => !v); setShowTimeline(false) }}
           >
             <History className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant={showTimeline ? 'tonal' : 'ghost'}
+            size="icon-sm"
+            title="AI 操作时间线（可一键回退）"
+            onClick={() => { setShowTimeline((v) => !v); setShowSessions(false) }}
+          >
+            <Clock className="w-3.5 h-3.5" />
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
             <X className="w-3.5 h-3.5" />
@@ -576,6 +676,58 @@ export function AIAssistantPanel() {
                     className="opacity-0 group-hover:opacity-100 p-1 rounded-[5px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] hover:bg-[hsl(var(--danger-50))] transition-all"
                   >
                     <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI 操作时间线抽屉：列出小助手改动画布的操作，可一键回退到某步之前 */}
+      {showTimeline && (
+        <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--slate-50))] max-h-72 overflow-y-auto animate-fade-in-down flex-shrink-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-[hsl(var(--border))] sticky top-0 bg-[hsl(var(--slate-50))]">
+            <span className="text-[11.5px] font-semibold text-[hsl(var(--slate-700))] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> AI 操作时间线（{aiActions.length}）
+            </span>
+            {aiActions.length > 0 && (
+              <button
+                onClick={() => clearAiActions()}
+                className="text-[11px] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--danger-600))] px-1.5 py-0.5 rounded hover:bg-[hsl(var(--danger-50))] transition-colors"
+              >清空记录</button>
+            )}
+          </div>
+          {aiActions.length === 0 ? (
+            <div className="empty-state py-8">
+              <div className="empty-state-icon w-12 h-12 mb-2"><Clock className="w-5 h-5" /></div>
+              <div className="empty-state-title text-[13px]">暂无 AI 画布操作</div>
+              <div className="text-[11px] text-[hsl(var(--muted-foreground))] mt-1 px-4 text-center">
+                小助手对画布的每次改动都会记录在这里，可一键回退到任意一步之前
+              </div>
+            </div>
+          ) : (
+            <div className="py-1.5 space-y-0.5 px-2">
+              {[...aiActions].reverse().map((a) => (
+                <div
+                  key={a.id}
+                  className="group flex items-center gap-2 px-2.5 py-2 rounded-[8px] border border-transparent hover:bg-[hsl(var(--card))] hover:border-[hsl(var(--border))] transition-all"
+                >
+                  <div className="icon-chip icon-chip-brand w-7 h-7 flex-shrink-0">
+                    <Undo2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12.5px] font-medium text-[hsl(var(--slate-800))] truncate">{a.label}</div>
+                    <div className="text-[10.5px] text-[hsl(var(--muted-foreground))] mt-0.5">
+                      {new Date(a.ts).toLocaleTimeString()} · {a.before.nodes.length} 节点
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRevertTo(a.id)}
+                    title="回退到这一步操作之前的画布状态"
+                    className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-medium text-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))] hover:bg-[hsl(var(--brand-100))] transition-all flex-shrink-0"
+                  >
+                    <Undo2 className="w-3 h-3" /> 回退到此前
                   </button>
                 </div>
               ))}
@@ -714,20 +866,58 @@ export function AIAssistantPanel() {
             ))}
           </div>
         )}
+        {/* 待发送图片缩略图预览 */}
+        {attachedImages.length > 0 && (
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
+            {attachedImages.map((src, i) => (
+              <div key={i} className="relative w-14 h-14 rounded-[8px] overflow-hidden border border-[hsl(var(--border))] group/img">
+                <img src={src} alt={`附图${i + 1}`} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setAttachedImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                  title="移除"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+            <span className="text-[10.5px] text-[hsl(var(--muted-foreground))]">{attachedImages.length}/6 张 · 需视觉模型</span>
+          </div>
+        )}
         <div className="relative flex items-end gap-1.5 rounded-[10px] border-[1.5px] border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-xs focus-within:border-[hsl(var(--brand-500))] focus-within:shadow-ring transition-[border-color,box-shadow] duration-150">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
+            onPaste={handlePaste}
+            placeholder={configReady ? (isSending ? '小助手正在工作中…再次发送会先停止它' : '告诉我你想做什么…（可粘贴/上传截图，Enter 发送，Shift+Enter 换行）') : '请先在全局配置中配置模型'}
             rows={2}
             disabled={!configReady}
             className="flex-1 bg-transparent text-[13px] resize-none outline-none placeholder:text-[hsl(var(--muted-foreground))] disabled:opacity-60 max-h-32 px-3 py-2.5 leading-relaxed"
           />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => { if (e.target.files) { void addImageFiles(e.target.files); e.target.value = '' } }}
+          />
           <Button
-            onClick={() => (isSending ? stopCurrent() : handleSend())}
-            disabled={!isSending && (!input.trim() || !configReady)}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!configReady}
+            size="icon-sm"
+            variant="ghost"
+            title="上传/截图发给 AI 分析（也可直接 Ctrl+V 粘贴截图）"
+            className="!h-8 !w-8 flex-shrink-0 m-1"
+          >
+            <ImagePlus className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            onClick={() => (isSending ? stopCurrent() : handleSend(undefined, attachedImages))}
+            disabled={!isSending && ((!input.trim() && attachedImages.length === 0) || !configReady)}
             size="icon-sm"
             variant={isSending ? 'destructive' : 'default'}
             className="!h-8 !w-8 flex-shrink-0 m-1"

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { workflowApi } from '@/services/api'
-import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
+import { onAssistantUiEvent, emitAssistantUiEvent } from '@/services/aiAssistantSkills'
 import { 
   Trash2, 
   Download, 
@@ -25,6 +25,7 @@ import {
   Database,
   Upload,
   FileDown,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
@@ -174,6 +175,16 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     if (dataDisplayLimit <= 0 || collectedData.length <= dataDisplayLimit) return 0
     return dataDisplayMode === 'head' ? 0 : collectedData.length - dataDisplayLimit
   }, [collectedData.length, dataDisplayLimit, dataDisplayMode])
+
+  // 让 AI 诊断：收集最近错误/警告日志，喂给小助手自动分析修复
+  const handleAIDiagnose = () => {
+    const bad = logs.filter((l) => l.level === 'error' || l.level === 'warning').slice(-20)
+    const lines = bad.map((l) => `[${l.level.toUpperCase()}] ${l.message}`).join('\n')
+    const prompt = bad.length > 0
+      ? `我的工作流运行出现了问题，请帮我诊断并给出修复方案。\n\n最近的错误/警告日志（共 ${bad.length} 条）：\n${lines}\n\n请：1) 分析失败的根本原因；2) 定位到具体是哪个模块/配置导致的；3) 给出可操作的修复步骤，必要时直接帮我修改对应节点的配置。`
+      : `请读取我最近的执行日志（可调用 get_recent_logs），分析工作流是否存在问题或可优化之处，并给出建议。`
+    emitAssistantUiEvent('ask_ai', { prompt, autoSend: true })
+  }
 
   const handleExportLogs = () => {
     const logText = filteredLogs
@@ -637,6 +648,16 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
               <Button variant="tonal-info" size="sm" className="h-7 text-xs" onClick={handleExportLogs} title="下载日志">
                 <Download className="w-3.5 h-3.5 mr-1" />
                 下载
+              </Button>
+              <Button
+                variant="tonal"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleAIDiagnose}
+                title="让 AI 小助手分析最近的错误日志并给出修复方案"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                AI诊断
               </Button>
               <Button variant="tonal-danger" size="icon" className="h-7 w-7" onClick={clearLogs} title="清空日志">
                 <Trash2 className="w-4 h-4" />

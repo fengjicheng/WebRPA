@@ -182,6 +182,17 @@ def _convert_message_for_llm(msg: ChatMessage) -> dict[str, Any]:
         return base
 
     base["content"] = msg.content or ""
+    # 多模态：user 消息携带图片时，content 改为 OpenAI 视觉格式数组
+    if msg.role == MessageRole.USER and getattr(msg, "images", None):
+        parts: list[dict[str, Any]] = []
+        text = msg.content or ""
+        if text.strip():
+            parts.append({"type": "text", "text": text})
+        for img in (msg.images or []):
+            if isinstance(img, str) and img.strip():
+                parts.append({"type": "image_url", "image_url": {"url": img}})
+        if parts:
+            base["content"] = parts
     # 思考模型的 assistant 消息（即使没有 tool_calls）也要带回 reasoning_content
     if msg.role == MessageRole.ASSISTANT and getattr(msg, "reasoning_content", None):
         base["reasoning_content"] = msg.reasoning_content
@@ -720,6 +731,7 @@ async def chat_once(
     user_message_text: str,
     config: AssistantConfig,
     workflow_context: dict[str, Any] | None = None,
+    images: list[str] | None = None,
     on_event: Optional[callable] = None,
 ) -> ChatSession:
     """处理一次用户消息（含多轮工具调用）。
@@ -744,6 +756,7 @@ async def chat_once(
         id=uuid.uuid4().hex[:12],
         role=MessageRole.USER,
         content=user_message_text,
+        images=images or None,
     )
     session.messages.append(user_msg)
 

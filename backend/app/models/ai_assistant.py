@@ -45,6 +45,8 @@ class ChatMessage(BaseModel):
     tool_calls: list[ToolCall] = Field(default_factory=list)
     tool_call_id: Optional[str] = None  # 当 role=tool 时指向源调用
     timestamp: datetime = Field(default_factory=datetime.now)
+    # 多模态：用户消息附带的图片（data URL，base64）。仅 user 消息使用，发给视觉模型分析
+    images: Optional[list[str]] = None
     # DeepSeek-Reasoner / Qwen-Reasoner 等思考模型在响应中返回的内部思考链
     # 这些模型要求下一轮调用时把它原样回传，否则会报 400: reasoning_content must be passed back
     reasoning_content: Optional[str] = None
@@ -80,6 +82,8 @@ class ChatRequest(BaseModel):
     config: AssistantConfig
     # 前端可选地附带当前工作流状态作为上下文
     workflow_context: Optional[dict[str, Any]] = None
+    # 多模态：用户附带的图片（data URL / http URL）。发给视觉模型分析
+    images: Optional[list[str]] = None
 
 
 class ChatResponse(BaseModel):

@@ -17,6 +17,7 @@ export interface ChatRequestPayload {
   message: string
   config: AssistantConfigPayload
   workflow_context?: Record<string, any>
+  images?: string[]
 }
 
 export interface ChatResponsePayload {

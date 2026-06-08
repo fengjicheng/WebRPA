@@ -107,6 +107,7 @@ async def api_chat(req: ChatRequest):
         user_message_text=req.message,
         config=req.config,
         workflow_context=req.workflow_context,
+        images=req.images,
         on_event=on_event,
     )
 

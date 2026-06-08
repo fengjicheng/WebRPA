@@ -434,6 +434,20 @@ export function MessageBubble({ message, onResend, onEdit }: MessageBubbleProps)
               )}
             </div>
           )}
+          {/* 用户消息附带的图片 */}
+          {isUser && message.images && message.images.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              {message.images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`附图${i + 1}`}
+                  className="max-w-[160px] max-h-[160px] rounded-[10px] border border-[hsl(var(--border))] object-cover cursor-zoom-in"
+                  onClick={() => window.open(src, '_blank')}
+                />
+              ))}
+            </div>
+          )}
           {!isUser && message.tool_calls && message.tool_calls.length > 0 && (
             <div className="space-y-1.5 max-w-[440px]">
               {message.tool_calls.map((tc) => (

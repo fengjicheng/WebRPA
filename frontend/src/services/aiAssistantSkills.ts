@@ -12,6 +12,21 @@ import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useDialogRegistry, getDialogInfoForAI } from '@/store/dialogRegistry'
 import { localWorkflowApi, workflowApi, screensaverApi, dataAssetApi, imageAssetApi, scheduledTaskApi } from '@/services/api'
 import { socketService } from '@/services/socket'
+import { useAiActionLogStore } from '@/store/aiActionLogStore'
+
+// 会改动画布、需要记入「AI 操作时间线」并可一键回退的 client_action
+const MUTATING_ACTIONS = new Set<string>([
+  'new_workflow', 'load_workflow_from_data', 'add_nodes', 'delete_node', 'delete_nodes',
+  'update_node_config', 'toggle_node_disabled', 'align_nodes', 'paste_nodes', 'move_node',
+  'rename_node', 'connect_nodes', 'disconnect_edge', 'rename_workflow',
+])
+const AI_ACTION_LABELS: Record<string, string> = {
+  new_workflow: '新建工作流', load_workflow_from_data: '装载工作流到画布', add_nodes: '添加节点',
+  delete_node: '删除节点', delete_nodes: '批量删除节点', update_node_config: '修改节点配置',
+  toggle_node_disabled: '启用/禁用节点', align_nodes: '对齐节点', paste_nodes: '粘贴节点',
+  move_node: '移动节点', rename_node: '重命名节点', connect_nodes: '连接节点',
+  disconnect_edge: '删除连线', rename_workflow: '重命名工作流',
+}
 
 /**
  * 把 AI 助手生成的节点（type 是 module_type 例如 'open_page'/'note'/'group'）
@@ -186,6 +201,23 @@ export async function executeClientAction(
   payload: Record<string, any> = {}
 ): Promise<ClientActionResult> {
   try {
+    // 记录「AI 操作时间线」：会改动画布的操作，先存一份操作前快照，供一键回退
+    if (MUTATING_ACTIONS.has(action)) {
+      try {
+        const ws = useWorkflowStore.getState()
+        useAiActionLogStore.getState().record({
+          id: `aiact-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          ts: Date.now(),
+          action,
+          label: AI_ACTION_LABELS[action] || action,
+          before: {
+            nodes: JSON.parse(JSON.stringify(ws.nodes)),
+            edges: JSON.parse(JSON.stringify(ws.edges)),
+            name: ws.name,
+          },
+        })
+      } catch { /* 快照失败不影响主流程 */ }
+    }
     switch (action) {
       // ============================================================
       // 画布操作
