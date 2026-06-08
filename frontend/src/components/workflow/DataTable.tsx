@@ -2,8 +2,8 @@
  * 高性能数据表格 - 用虚拟滚动渲染，无论多少行都能 60fps。
  * 仅渲染可视行 + overscan，编辑/删除/列管理保持原有行为。
  */
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { Edit2, Trash2, X } from 'lucide-react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Edit2, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useVirtualizer } from '@/hooks/useVirtualizer'
@@ -49,6 +49,35 @@ export const DataTable = memo(function DataTable({
   const getScrollElement = useCallback(() => scrollRef.current, [])
   const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null)
   const [editValue, setEditValue] = useState('')
+  // 列排序状态（点击列头：升→降→取消）
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  // 显示顺序的原始索引映射（排序只影响展示顺序，编辑/删除仍按原始索引回传，保证索引映射正确）
+  const viewIndex = useMemo(() => {
+    const idx = data.map((_, i) => i)
+    if (!sortCol) return idx
+    const num = (v: unknown) => {
+      const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(/[, ]/g, ''))
+      return Number.isFinite(n) ? n : null
+    }
+    idx.sort((a, b) => {
+      const va = data[a]?.[sortCol]
+      const vb = data[b]?.[sortCol]
+      const na = num(va), nb = num(vb)
+      let cmp: number
+      if (na !== null && nb !== null) cmp = na - nb
+      else cmp = String(va ?? '').localeCompare(String(vb ?? ''), 'zh')
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return idx
+  }, [data, sortCol, sortDir])
+
+  const toggleSort = (col: string) => {
+    if (sortCol !== col) { setSortCol(col); setSortDir('asc') }
+    else if (sortDir === 'asc') setSortDir('desc')
+    else { setSortCol(null); setSortDir('asc') }
+  }
 
   const { virtualItems, totalSize, scrollToBottom, scrollToTop } = useVirtualizer({
     count: data.length,
@@ -120,10 +149,19 @@ export const DataTable = memo(function DataTable({
         {columns.map((col) => (
           <div
             key={col}
-            className="flex items-center justify-between px-2 border-r border-[hsl(var(--border))] flex-shrink-0"
+            className="flex items-center justify-between px-2 border-r border-[hsl(var(--border))] flex-shrink-0 group/col"
             style={{ width: columnWidth }}
           >
-            <span className="truncate" title={col}>{col}</span>
+            <button
+              className="flex items-center gap-1 min-w-0 flex-1 text-left hover:text-[hsl(var(--brand-600))] transition-colors"
+              onClick={() => toggleSort(col)}
+              title="点击排序（升序 / 降序 / 取消）"
+            >
+              <span className="truncate">{col}</span>
+              {sortCol === col && (sortDir === 'asc'
+                ? <ArrowUp className="w-3 h-3 flex-shrink-0 text-[hsl(var(--brand-600))]" />
+                : <ArrowDown className="w-3 h-3 flex-shrink-0 text-[hsl(var(--brand-600))]" />)}
+            </button>
             <Button
               variant="ghost"
               size="icon"
@@ -146,9 +184,10 @@ export const DataTable = memo(function DataTable({
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <div style={{ height: totalSize, position: 'relative', minWidth: tableWidth }}>
           {virtualItems.map((v) => {
-            const row = data[v.index]
+            const origIndex = viewIndex[v.index]
+            const row = data[origIndex]
             if (!row) return null
-            const rowIndex = v.index
+            const rowIndex = origIndex
             return (
               <div
                 key={rowIndex}
