@@ -11,6 +11,15 @@ export interface GlobalConfig {
     checkUpdateOnStartup: boolean  // 启动时是否检查更新
     autoDetectClipboardScreenshot: boolean  // 自动识别剪贴板截图
     showAIAssistantButton: boolean  // 显示右下角AI小助手入口按钮
+    // 画布周围小组件显示开关（默认全部显示）
+    canvasWidgets: {
+      moduleCount: boolean   // 模块数量
+      moduleSearch: boolean  // 画布模块搜索
+      controlsHelp: boolean  // 操作说明
+      minimap: boolean       // 画布概览（缩略图）
+      controls: boolean      // 画布操作（缩放控制）
+      viewSwitch: boolean    // 流程图/模块条视图切换
+    }
   }
   // AI大脑模块默认配置
   ai: {
@@ -147,6 +156,14 @@ const defaultConfig: GlobalConfig = {
     checkUpdateOnStartup: true,  // 默认开启启动时检查更新
     autoDetectClipboardScreenshot: true,  // 默认开启自动识别剪贴板截图
     showAIAssistantButton: true,  // 默认显示AI小助手入口按钮
+    canvasWidgets: {
+      moduleCount: true,
+      moduleSearch: true,
+      controlsHelp: true,
+      minimap: true,
+      controls: true,
+      viewSwitch: true,
+    },
   },
   ai: {
     apiUrl: '',
@@ -384,7 +401,14 @@ export const useGlobalConfigStore = create<GlobalConfigState>()(
           config: {
             ...defaultConfig,
             ...persisted?.config,
-            system: { ...defaultConfig.system, ...persisted?.config?.system },
+            system: {
+              ...defaultConfig.system,
+              ...persisted?.config?.system,
+              canvasWidgets: {
+                ...defaultConfig.system.canvasWidgets,
+                ...(persisted?.config?.system?.canvasWidgets || {}),
+              },
+            },
             aiScraper: persisted?.config?.aiScraper || defaultConfig.aiScraper,
             aiAssistant: persisted?.config?.aiAssistant || defaultConfig.aiAssistant,
             workflow: persisted?.config?.workflow || defaultConfig.workflow,

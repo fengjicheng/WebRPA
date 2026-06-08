@@ -16,6 +16,7 @@ import { Keyboard, ChevronDown, ChevronUp, FileJson, AlertTriangle, Boxes, Searc
 
 import { useWorkflowStore, type NodeData } from '@/store/workflowStore'
 import { useLayoutStore } from '@/store/layoutStore'
+import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { ModuleNode } from './ModuleNode'
 import { QuickModulePicker } from './QuickModulePicker'
 import { getAllAvailableModules } from './ModuleSidebar'
@@ -1540,6 +1541,9 @@ export function WorkflowEditor() {
   const editorViewMode = useLayoutStore((s) => s.editorViewMode)
   const setEditorViewMode = useLayoutStore((s) => s.setEditorViewMode)
 
+  // 画布周围小组件显示开关（全局配置，默认全部显示）
+  const canvasWidgets = useGlobalConfigStore((s) => s.config.system.canvasWidgets)
+
   return (
     <div className="h-full w-full flex flex-col">
       {/* 顶部工具栏 */}
@@ -1555,11 +1559,12 @@ export function WorkflowEditor() {
           className="flex-1 relative gradient-mesh min-h-0 min-w-0"
           ref={reactFlowWrapper}
         >
-          <ModuleCount />
-          <ModuleSearch reactFlowInstance={reactFlowInstance.current} />
-          <ControlsHelp />
+          {canvasWidgets?.moduleCount !== false && <ModuleCount />}
+          {canvasWidgets?.moduleSearch !== false && <ModuleSearch reactFlowInstance={reactFlowInstance.current} />}
+          {canvasWidgets?.controlsHelp !== false && <ControlsHelp />}
 
           {/* 视图模式切换：流程图 / 模块条（底部居中，避免与顶部搜索框重叠） */}
+          {canvasWidgets?.viewSwitch !== false && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-pop">
             <button
               onClick={() => setEditorViewMode('flow')}
@@ -1584,6 +1589,7 @@ export function WorkflowEditor() {
               <LayoutList className="w-3.5 h-3.5" /> 模块条
             </button>
           </div>
+          )}
 
           {/* 模块条视图：覆盖在画布之上（流程图保持挂载以维持实例与状态） */}
           {editorViewMode === 'block' && (
@@ -1661,8 +1667,8 @@ export function WorkflowEditor() {
             proOptions={{ hideAttribution: true }}
           >
             <Background gap={20} size={1.2} color="hsl(var(--slate-300))" />
-            <Controls />
-            <MiniMap 
+            {canvasWidgets?.controls !== false && <Controls />}
+            {canvasWidgets?.minimap !== false && <MiniMap 
               nodeColor={(node) => {
                 const data = node.data as NodeData
                 if (data.moduleType?.startsWith('condition') || data.moduleType?.startsWith('loop') || data.moduleType?.startsWith('foreach')) {
@@ -1687,7 +1693,7 @@ export function WorkflowEditor() {
                 cursor: 'pointer',
                 overflow: 'hidden',
               }}
-            />
+            />}
           </ReactFlow>
         </main>
         

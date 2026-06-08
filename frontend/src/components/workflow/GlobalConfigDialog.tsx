@@ -239,6 +239,37 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+
+                {/* 画布小组件显示开关 */}
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="mb-3">
+                    <Label className="text-sm font-medium text-gray-700">画布小组件</Label>
+                    <p className="text-xs text-gray-500 mt-1">控制画布周围辅助小组件的显示与隐藏（默认全部显示）</p>
+                  </div>
+                  <div className="space-y-2.5">
+                    {([
+                      ['moduleCount', '模块数量'],
+                      ['moduleSearch', '画布模块搜索'],
+                      ['controlsHelp', '操作说明'],
+                      ['minimap', '画布概览（缩略图）'],
+                      ['controls', '画布操作（缩放控制）'],
+                      ['viewSwitch', '流程图 / 模块条切换'],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-[13px] text-gray-600">{label}</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={config.system.canvasWidgets?.[key] !== false}
+                            onChange={(e) => updateSystemConfig({ canvasWidgets: { ...config.system.canvasWidgets, [key]: e.target.checked } })}
+                          />
+                          <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </>
           )}
