@@ -1644,6 +1644,8 @@ export function WorkflowEditor() {
             })) as Node<NodeData>[]}
             edges={edges.map(e => ({
               ...e,
+              // 大工作流（>200节点）关闭连线流动动画，显著降低渲染开销
+              animated: nodes.length > 200 ? false : (e as typeof e & { animated?: boolean }).animated,
               selected: selectedEdgeIds.includes(e.id),
               style: selectedEdgeIds.includes(e.id) ? { stroke: '#ef4444', strokeWidth: 3 } : e.style
             })) as typeof edges}
@@ -1674,9 +1676,10 @@ export function WorkflowEditor() {
             zoomOnPinch={false}
             zoomOnDoubleClick={false}
             elevateNodesOnSelect={false}
+            onlyRenderVisibleElements={nodes.length > 200}
             defaultEdgeOptions={{
               type: 'smoothstep',
-              animated: true,
+              animated: nodes.length <= 200,
               selectable: true,
             }}
             proOptions={{ hideAttribution: true }}
