@@ -1108,6 +1108,18 @@ export function WorkflowEditor() {
     }
   }, [])
 
+  // 拖拽离开画布时取消"释放以导入"提示。
+  // 用坐标判断是否真的离开了画布容器，避免经过子元素时 dragleave 误触发导致提示闪烁/残留。
+  const onDragLeave = useCallback((event: React.DragEvent) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    if (
+      event.clientX <= rect.left || event.clientX >= rect.right ||
+      event.clientY <= rect.top || event.clientY >= rect.bottom
+    ) {
+      setIsDraggingFile(false)
+    }
+  }, [])
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       console.log('[WorkflowEditor] ========== onDrop 被调用 ==========')
@@ -1591,7 +1603,7 @@ export function WorkflowEditor() {
           {isDraggingFile && (
             <div className="absolute inset-0 z-50 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none animate-fade-in">
               <div className="glass-strong rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 animate-scale-in">
-                <div className="bg-[hsl(var(--card))] p-4 rounded-full shadow-lg">
+                <div className="bg-[hsl(var(--brand-600))] p-4 rounded-full shadow-lg">
                   <FileJson className="w-10 h-10 text-white" />
                 </div>
                 <div className="text-center">
@@ -1621,6 +1633,7 @@ export function WorkflowEditor() {
             onInit={onInit}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             onPaneClick={onPaneClick}
