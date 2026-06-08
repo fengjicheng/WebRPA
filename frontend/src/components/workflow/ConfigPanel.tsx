@@ -1,6 +1,7 @@
 import { useWorkflowStore, moduleTypeLabels, getModuleDefaultTimeout, type NodeData } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useRequiredFields, getMissingRequired } from '@/lib/requiredFields'
 import { Input } from '@/components/ui/input'
 import { NumberInput } from '@/components/ui/number-input'
 import { Label } from '@/components/ui/label'
@@ -561,6 +562,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   const selectedNodeId = propSelectedNodeId ?? storeSelectedNodeId
   
   const nodes = useWorkflowStore((state) => state.nodes)
+  const requiredFieldsMap = useRequiredFields()
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData)
   const deleteNode = useWorkflowStore((state) => state.deleteNode)
   const addLog = useWorkflowStore((state) => state.addLog)
@@ -2214,6 +2216,22 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4 animate-fade-in">
+                {/* 必填校验提示 */}
+                {(() => {
+                  const missing = getMissingRequired(String(nodeData.moduleType), nodeData as Record<string, unknown>, requiredFieldsMap)
+                  if (missing.length === 0) return null
+                  return (
+                    <div className="flex items-start gap-2 px-3 py-2 rounded-[8px] bg-[hsl(var(--warning-50))] border border-[hsl(var(--warning-500)/0.3)] text-[hsl(var(--warning-700))]">
+                      <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-[hsl(var(--warning-500))] text-white flex items-center justify-center text-[10px] font-bold">!</span>
+                      <div className="text-[12px] leading-relaxed">
+                        <span className="font-semibold">有 {missing.length} 个必填项未填写：</span>
+                        <span>{missing.join('、')}</span>
+                        <div className="text-[11px] text-[hsl(var(--warning-600))] mt-0.5">未填写可能导致该模块执行失败</div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* 通用配置 */}
                 <div className="space-y-2">
                   <Label htmlFor="name">节点备注</Label>
