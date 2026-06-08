@@ -11,7 +11,7 @@ import { useWorkflowStore, moduleTypeLabels, type NodeData } from '@/store/workf
 import { useNodeRunStore } from '@/store/nodeRunStore'
 import { moduleIcons, moduleCategories } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
-import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, Ban } from 'lucide-react'
+import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, Ban, CheckCircle2 } from 'lucide-react'
 import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
@@ -329,6 +329,8 @@ export function BlockFlowView() {
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
     const multiSelected = selectedIds.has(node.id)
+    const isSel = selected || multiSelected
+    const isRun = runStatuses[node.id] === 'running' || runStatuses[node.id] === 'success' || runStatuses[node.id] === 'failed'
     const disabled = !!data.disabled
     // 容器块（如果/循环/并行）用语义标签作主名，不再叠加模块名，避免“循环 循环”这类重复
     const semanticTag = kind === 'if' ? branchLabels(type).head : kind === 'loop' ? '循环' : kind === 'parallel' ? '并行' : ''
@@ -360,24 +362,22 @@ export function BlockFlowView() {
         onDrop={onRowDrop}
         onClick={(e) => handleRowClick(e, node.id)}
         className={
-          'group/row relative flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-[10px] bg-[hsl(var(--card))] border cursor-grab active:cursor-grabbing transition-[box-shadow,border-color,transform] duration-150 ' +
+          'group/row relative flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-[10px] border cursor-grab active:cursor-grabbing transition-[box-shadow,border-color,background-color,transform] duration-150 ' +
           (disabled ? 'opacity-55 grayscale-[0.4] ' : '') +
           (runStatuses[node.id] === 'running'
-            ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.5)] shadow-brand-glow animate-pulse'
+            ? 'bg-[hsl(var(--card))] border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.5)] shadow-brand-glow animate-pulse'
             : runStatuses[node.id] === 'success'
-              ? 'border-[hsl(var(--success-500))] ring-1 ring-[hsl(var(--success-500)/0.4)]'
+              ? 'bg-[hsl(var(--card))] border-[hsl(var(--success-500))] ring-1 ring-[hsl(var(--success-500)/0.4)]'
               : runStatuses[node.id] === 'failed'
-                ? 'border-[hsl(var(--danger-500))] ring-1 ring-[hsl(var(--danger-500)/0.45)]'
-                : multiSelected
-                  ? 'border-[hsl(var(--brand-500))] bg-[hsl(var(--brand-50)/0.6)] ring-2 ring-[hsl(var(--brand-500)/0.28)] shadow-pop'
-                  : selected
-                    ? 'border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.18)] shadow-pop'
-                    : 'border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
+                ? 'bg-[hsl(var(--card))] border-[hsl(var(--danger-500))] ring-1 ring-[hsl(var(--danger-500)/0.45)]'
+                : isSel
+                  ? '!bg-[hsl(var(--brand-100))] border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.55)] shadow-pop -translate-y-[1px]'
+                  : 'bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:border-[hsl(var(--brand-500)/0.4)] hover:shadow-pop hover:-translate-y-[1px]')
         }
       >
         {dropPos && <div className={'absolute left-2 right-2 h-[3px] rounded-full bg-[hsl(var(--brand-500))] shadow-brand-glow z-10 ' + (dropPos === 'top' ? '-top-[2px]' : '-bottom-[2px]')} />}
-        {/* 分类色左强调条 */}
-        <span className={'absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full ' + accentBar} />
+        {/* 左强调条：选中时变为品牌色并加粗，强化选中可见性 */}
+        <span className={'absolute left-0 top-1 bottom-1 rounded-full transition-all ' + (isSel && !isRun ? 'w-[4px] bg-[hsl(var(--brand-500))]' : 'w-[3px] top-1.5 bottom-1.5 ' + accentBar)} />
         {/* 折叠箭头（容器块） */}
         {collapsible ? (
           <button
@@ -388,9 +388,14 @@ export function BlockFlowView() {
             <ChevronDown className={'w-3.5 h-3.5 transition-transform duration-150 ' + (isCollapsed ? '-rotate-90' : '')} />
           </button>
         ) : null}
-        <span className="w-4 text-right text-[10.5px] font-mono text-[hsl(var(--slate-400))] flex-shrink-0 tabular-nums">{num}</span>
-        <span className={'flex items-center justify-center w-7 h-7 rounded-[8px] flex-shrink-0 ' + bgCls}>
+        <span className={'w-4 text-right text-[10.5px] font-mono flex-shrink-0 tabular-nums ' + (isSel && !isRun ? 'font-bold text-[hsl(var(--brand-600))]' : 'text-[hsl(var(--slate-400))]')}>{num}</span>
+        <span className={'relative flex items-center justify-center w-7 h-7 rounded-[8px] flex-shrink-0 ' + bgCls}>
           {Icon && <Icon className={'w-4 h-4 ' + accentText} strokeWidth={2} />}
+          {multiSelected && !isRun && (
+            <span className="absolute -top-1.5 -right-1.5 bg-[hsl(var(--card))] rounded-full">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(var(--brand-600))] fill-[hsl(var(--brand-100))]" strokeWidth={2.5} />
+            </span>
+          )}
         </span>
         <div className="flex-1 min-w-0 flex items-baseline gap-2">
           {(kind === 'if' || kind === 'loop' || kind === 'parallel') && (
