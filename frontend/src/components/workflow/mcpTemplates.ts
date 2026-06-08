@@ -185,6 +185,52 @@ export const MCP_TEMPLATES: MCPTemplate[] = [
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-everything'],
   },
+
+  // ============ 数据库（补充） ============
+  {
+    id: 'postgres',
+    name: 'postgres',
+    title: 'PostgreSQL 数据库',
+    description: '让 AI 连接 PostgreSQL，进行只读查询与表结构检视',
+    icon: '🐘',
+    category: 'data',
+    needsConfig: ['命令参数最后一项填数据库连接串 postgresql://user:pwd@host/db'],
+    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/postgres',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-postgres', '<填入 postgresql://用户:密码@主机:5432/库名>'],
+  },
+
+  // ============ 网络 / 浏览器（补充） ============
+  {
+    id: 'puppeteer',
+    name: 'puppeteer',
+    title: '浏览器自动化(Puppeteer)',
+    description: '让 AI 控制无头浏览器：打开页面、点击、填表、截图、执行 JS',
+    icon: '🕹️',
+    category: 'web',
+    needsConfig: [],
+    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-puppeteer'],
+  },
+
+  // ============ AI 增强（补充） ============
+  {
+    id: 'time',
+    name: 'time',
+    title: '时间 / 时区',
+    description: '让 AI 获取当前时间、做时区换算（避免模型对“现在”判断错误）',
+    icon: '🕐',
+    category: 'ai',
+    needsConfig: [],
+    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/time',
+    transport: 'stdio',
+    command: 'uvx',
+    args: ['mcp-server-time'],
+    autoApprove: ['get_current_time', 'convert_time'],
+  },
 ]
 
 export const TEMPLATE_CATEGORIES: Record<string, string> = {
