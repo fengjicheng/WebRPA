@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useEffect } from 'react'
 import type { NodeData } from '@/store/workflowStore'
 import { Label } from '@/components/ui/label'
 import { NumberInput } from '@/components/ui/number-input'
@@ -6,14 +7,65 @@ import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableInput } from '@/components/ui/variable-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { VariableRefInput } from '@/components/ui/variable-ref-input'
-import { Bot } from 'lucide-react'
+import { Bot, Cpu } from 'lucide-react'
+import { useGlobalConfigStore } from '@/store/globalConfigStore'
 
 type RenderSelectorInput = (id: string, label: string, placeholder: string) => React.ReactNode
+
+// 已配置 AI 对话模型的一键选择下拉：选中即把该模型的 地址/密钥/模型名 填入当前模块
+function AIModelPicker({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const models = useGlobalConfigStore((s) => s.config.ai?.models) || []
+  const autoFallback = useGlobalConfigStore((s) => s.config.ai?.autoFallback) ?? false
+
+  // 全局开启「失败自动切换」时，自动把其它已配置模型注入本模块的 fallbackModels（运行时按序回退）；
+  // 关闭时清空。用序列化对比避免无限渲染。
+  useEffect(() => {
+    const curUrl = (data.apiUrl as string) || ''
+    const curModel = (data.model as string) || ''
+    const desired = (autoFallback && models.length > 0)
+      ? models
+          .filter((m) => m.apiUrl && m.model && !(m.apiUrl === curUrl && m.model === curModel))
+          .map((m) => ({ apiUrl: m.apiUrl, apiKey: m.apiKey, model: m.model, temperature: m.temperature, maxTokens: m.maxTokens }))
+      : []
+    const prev = (data.fallbackModels as any[]) || []
+    if (JSON.stringify(prev) !== JSON.stringify(desired)) {
+      onChange('fallbackModels', desired.length > 0 ? desired : undefined)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFallback, JSON.stringify(models), data.apiUrl, data.model])
+
+  if (models.length === 0) return null
+  const current = models.find((m) => (m.model || '') === (data.model as string) && (m.apiUrl || '') === (data.apiUrl as string))
+  return (
+    <div className="space-y-2">
+      <Label className="flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5 text-violet-600" />从已配置模型选择</Label>
+      <Select
+        value={current?.id || ''}
+        onChange={(e) => {
+          const m = models.find((x) => x.id === e.target.value)
+          if (!m) return
+          onChange('apiUrl', m.apiUrl || '')
+          onChange('apiKey', m.apiKey || '')
+          onChange('model', m.model || '')
+          if (m.temperature != null) onChange('temperature', m.temperature)
+          if (m.maxTokens != null) onChange('maxTokens', m.maxTokens)
+        }}
+      >
+        <option value="">手动填写 / 选择一个已配置模型…</option>
+        {models.map((m) => (
+          <option key={m.id} value={m.id}>{m.label || m.model}（{m.model}）</option>
+        ))}
+      </Select>
+      <p className="text-xs text-muted-foreground">在「全局配置 → AI对话 → 多模型」中维护模型；选择后会自动填入下方地址/密钥/模型。</p>
+    </div>
+  )
+}
 
 // AI大脑配置
 export function AIChatConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <>
+      <AIModelPicker data={data} onChange={onChange} />
       <div className="space-y-2">
         <Label htmlFor="apiUrl">API地址</Label>
         <VariableInput
@@ -109,6 +161,7 @@ export function AIVisionConfig({
   
   return (
     <>
+      <AIModelPicker data={data} onChange={onChange} />
       <div className="space-y-2">
         <Label htmlFor="apiUrl">API地址</Label>
         <VariableInput

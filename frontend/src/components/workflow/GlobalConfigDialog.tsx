@@ -428,6 +428,32 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                     className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-gray-300 bg-white text-black"
                   />
                 </div>
+
+                {/* ===== AI对话 多模型 ===== */}
+                <div className="space-y-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-violet-600" />
+                    <Label className="text-sm font-semibold text-gray-700">多模型（自动切换 / 模块内手动选择）</Label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    配置多个 AI 对话模型后：开启「失败自动切换」则某模型失败时自动换其它重试；在「AI 对话」类模块的配置项里也会出现下拉框，可手动一键选用某个模型。顶部单模型字段为未配置多模型时的兜底。
+                  </p>
+                  <ModelProfilesManager
+                    models={config.ai?.models || []}
+                    activeModelId={config.ai?.activeModelId}
+                    onChange={(patch) => updateAIConfig(patch)}
+                  />
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium text-gray-700">失败自动切换</Label>
+                      <p className="text-xs text-gray-500 mt-1">AI 对话模块运行时，某模型请求失败自动换其它已配置模型重试，全部失败才报错。</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={config.ai?.autoFallback ?? false} onChange={(e) => updateAIConfig({ autoFallback: e.target.checked })} />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
             </>
           )}

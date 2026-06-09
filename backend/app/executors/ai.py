@@ -24,6 +24,30 @@ class AIChatExecutor(ModuleExecutor):
         return "ai_chat"
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        # 多模型自动切换：依次尝试 主模型 + fallbackModels（前端在开启「失败自动切换」时注入）
+        fallbacks = config.get('fallbackModels') or []
+        if not isinstance(fallbacks, list) or len(fallbacks) == 0:
+            return await self._execute_once(config, context)
+        candidates = [config] + [
+            {**config, 'apiUrl': fb.get('apiUrl', ''), 'apiKey': fb.get('apiKey', ''), 'model': fb.get('model', ''),
+             **({'temperature': fb['temperature']} if fb.get('temperature') is not None else {}),
+             **({'maxTokens': fb['maxTokens']} if fb.get('maxTokens') is not None else {})}
+            for fb in fallbacks if isinstance(fb, dict) and fb.get('apiUrl') and fb.get('model')
+        ]
+        last: ModuleResult | None = None
+        for i, cand in enumerate(candidates):
+            res = await self._execute_once(cand, context)
+            if res.success:
+                return res
+            last = res
+            try:
+                mdl = context.resolve_value(cand.get('model', ''))
+                await context.send_progress(f"模型[{i+1}/{len(candidates)}] {mdl} 调用失败，尝试切换下一个…", 'warning')
+            except Exception:
+                pass
+        return last or ModuleResult(success=False, error="所有候选模型均调用失败")
+
+    async def _execute_once(self, config: dict, context: ExecutionContext) -> ModuleResult:
         api_url = context.resolve_value(config.get('apiUrl', ''))
         api_key = context.resolve_value(config.get('apiKey', ''))
         model = context.resolve_value(config.get('model', ''))
