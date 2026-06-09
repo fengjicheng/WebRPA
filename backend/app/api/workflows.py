@@ -47,6 +47,73 @@ execution_results: dict[str, ExecutionResult] = {}
 execution_data: dict[str, list[dict]] = {}
 variable_tracking_store: dict[str, list[dict]] = {}  # 存储变量追踪记录
 
+# ===== 完整收集数据的磁盘持久化 =====
+# 内存里的 execution_data 只保留最近 10 次执行（LRU），且服务重启后会丢失。
+# 为保证“下载完整数据”任何时候都能拿到全部行（即使内存已清/已重启），
+# 每次执行完成时把全量数据落盘为 JSON，full 接口在内存缺失时回退读磁盘。
+import json as _json_full
+_FULL_DATA_DIR = Path("./data/_full_data")
+
+
+def _persist_full_data(workflow_id: str, rows: list[dict]) -> None:
+    """把本次执行的完整数据落盘（JSON），并更新 latest 指针。"""
+    try:
+        _FULL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        # 文件名用 workflow_id 的安全化形式
+        safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in str(workflow_id))
+        payload = {"workflow_id": workflow_id, "rows": rows, "saved_at": datetime.now().isoformat()}
+        target = _FULL_DATA_DIR / f"{safe}.json"
+        with open(target, "w", encoding="utf-8") as f:
+            _json_full.dump(payload, f, ensure_ascii=False)
+        # 更新 latest 指针
+        with open(_FULL_DATA_DIR / "_latest.json", "w", encoding="utf-8") as f:
+            _json_full.dump({"workflow_id": workflow_id, "file": f"{safe}.json"}, f, ensure_ascii=False)
+    except Exception as e:
+        print(f"[_persist_full_data] 落盘失败: {e}")
+
+
+def _load_persisted_full_data(workflow_id: str) -> Optional[list[dict]]:
+    """从磁盘读取指定执行的完整数据。"""
+    try:
+        safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in str(workflow_id))
+        target = _FULL_DATA_DIR / f"{safe}.json"
+        if not target.exists():
+            return None
+        with open(target, "r", encoding="utf-8") as f:
+            payload = _json_full.load(f)
+        rows = payload.get("rows")
+        return rows if isinstance(rows, list) else None
+    except Exception as e:
+        print(f"[_load_persisted_full_data] 读取失败: {e}")
+        return None
+
+
+def _load_latest_persisted_full_data() -> Optional[tuple[str, list[dict]]]:
+    """从磁盘读取最近一次执行的完整数据，返回 (workflow_id, rows)。"""
+    try:
+        pointer = _FULL_DATA_DIR / "_latest.json"
+        if not pointer.exists():
+            return None
+        with open(pointer, "r", encoding="utf-8") as f:
+            info = _json_full.load(f)
+        wid = info.get("workflow_id")
+        fname = info.get("file")
+        if not fname:
+            return None
+        target = _FULL_DATA_DIR / fname
+        if not target.exists():
+            return None
+        with open(target, "r", encoding="utf-8") as f:
+            payload = _json_full.load(f)
+        rows = payload.get("rows")
+        if isinstance(rows, list):
+            return (wid, rows)
+        return None
+    except Exception as e:
+        print(f"[_load_latest_persisted_full_data] 读取失败: {e}")
+        return None
+
+
 # 全局变量存储（在工作流执行之间持久化）
 
 # 🔥 超高速批量日志发送 - 累积后批量发送，减少WebSocket传输次数
@@ -411,6 +478,8 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
                 exporter = DataExporter()
                 data_file = exporter.export_to_excel(execution_data[workflow_id])
                 result.data_file = data_file
+                # 全量数据落盘，保证内存被 LRU 清理/服务重启后仍能下载完整数据
+                _persist_full_data(workflow_id, execution_data[workflow_id])
             
             # 如果配置了自动关闭浏览器，则关闭
             print(f"[run_execution] browserConfig: {options.browserConfig}")
@@ -614,6 +683,18 @@ async def get_latest_full_collected_data():
                     return {"workflow_id": wid, "rows": rows, "columns": cols, "total": len(rows)}
             except Exception:
                 continue
+        # 内存里都没有：回退磁盘持久化的最近一次完整数据
+        persisted = _load_latest_persisted_full_data()
+        if persisted:
+            wid, rows = persisted
+            cols2: list[str] = []
+            seen2 = set()
+            for r in rows:
+                for k in r.keys():
+                    if k not in seen2:
+                        seen2.add(k)
+                        cols2.append(k)
+            return {"workflow_id": wid, "rows": rows, "columns": cols2, "total": len(rows)}
         raise HTTPException(status_code=404, detail="没有可下载的数据")
 
     # execution_data 是普通 dict，py3.7+ 保留插入顺序，最后插入的就是最近的
@@ -656,6 +737,10 @@ async def get_full_collected_data(workflow_id: str):
                 rows = executor.get_collected_data()
             except Exception:
                 rows = None
+    
+    # 内存里都没有：回退磁盘持久化的完整数据
+    if rows is None:
+        rows = _load_persisted_full_data(workflow_id)
     
     if rows is None:
         raise HTTPException(status_code=404, detail="没有可下载的数据")
