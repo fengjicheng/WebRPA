@@ -739,6 +739,7 @@ async def chat_once(
     config: AssistantConfig,
     workflow_context: dict[str, Any] | None = None,
     images: list[str] | None = None,
+    fallback_configs: list[AssistantConfig] | None = None,
     on_event: Optional[callable] = None,
 ) -> ChatSession:
     """处理一次用户消息（含多轮工具调用）。
@@ -991,6 +992,32 @@ async def chat_once(
     # 5. 多轮工具调用编排
     tools = skill_registry.to_openai_tools() if config.enable_tools else None
 
+    # 多模型候选：主模型 + 备用模型（前端已按 场景路由/手动选择/自动回退 排好序）
+    _candidates: list[AssistantConfig] = [config] + list(fallback_configs or [])
+
+    async def _call_llm_with_fallback(messages, _tools, _on_event):
+        """按候选顺序调用 LLM，遇 LLMError 自动切下一个模型，全失败才抛最后错误。"""
+        last_err: Exception | None = None
+        for idx, cand in enumerate(_candidates):
+            if idx > 0 and _on_event:
+                try:
+                    await _maybe_await(_on_event("model_switch", {
+                        "index": idx,
+                        "model": cand.model,
+                        "reason": str(last_err)[:160] if last_err else "",
+                    }))
+                except Exception:
+                    pass
+            try:
+                return await _call_llm(config=cand, messages=messages, tools=_tools, on_event=_on_event)
+            except _Cancelled:
+                raise
+            except LLMError as e:
+                last_err = e
+                print(f"[AIAssistant] 模型[{idx}] {cand.model} 调用失败：{str(e)[:120]}，尝试下一个候选")
+                continue
+        raise last_err or LLMError("所有候选模型均不可用")
+
     final_assistant_msg: ChatMessage | None = None
 
     try:
@@ -1005,7 +1032,7 @@ async def chat_once(
             # LLM 调用与取消监听同时跑（流式：传 on_event 让 reasoning/content 实时下发）
             try:
                 llm_task = asyncio.create_task(
-                    _call_llm(config=config, messages=llm_messages, tools=tools, on_event=on_event)
+                    _call_llm_with_fallback(llm_messages, tools, on_event)
                 )
                 cancel_wait = asyncio.create_task(cancel_token.wait())
                 done, pending = await asyncio.wait(

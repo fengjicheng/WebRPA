@@ -18,6 +18,7 @@ export interface ChatRequestPayload {
   config: AssistantConfigPayload
   workflow_context?: Record<string, any>
   images?: string[]
+  fallback_configs?: AssistantConfigPayload[]
 }
 
 export interface ChatResponsePayload {

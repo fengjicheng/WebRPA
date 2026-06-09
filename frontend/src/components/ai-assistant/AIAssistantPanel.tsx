@@ -19,6 +19,9 @@ import {
   Clock,
   Paperclip,
   FileText,
+  Cpu,
+  ChevronUp,
+  Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAIAssistantStore, type ChatMessage } from '@/store/aiAssistantStore'
@@ -66,6 +69,8 @@ export function AIAssistantPanel() {
 
   const aiAssistantConfig = useGlobalConfigStore((s) => s.config.aiAssistant)
   const aiFallbackConfig = useGlobalConfigStore((s) => s.config.ai)
+  const updateAIAssistantConfig = useGlobalConfigStore((s) => s.updateAIAssistantConfig)
+  const [showModelMenu, setShowModelMenu] = useState(false)
 
   const [input, setInput] = useState('')
   const [showSessions, setShowSessions] = useState(false)
@@ -319,6 +324,53 @@ export function AIAssistantPanel() {
 
   const configReady = !!(resolvedConfig.api_url && resolvedConfig.model)
 
+  // ===== 多模型：模型档案列表（聊天处上拉栏 + 候选排序用） =====
+  const assistantModels = (aiAssistantConfig?.models || []).filter((m) => m.apiUrl && m.model)
+  const activeModelId = aiAssistantConfig?.activeModelId
+  const autoSceneRoute = aiAssistantConfig?.autoSceneRoute ?? false
+  const autoFallback = aiAssistantConfig?.autoFallback ?? false
+  const activeModel = assistantModels.find((m) => m.id === activeModelId) || assistantModels[0]
+
+  function modelToCfg(m: typeof assistantModels[number]) {
+    const a = aiAssistantConfig
+    return {
+      api_url: (m.apiUrl || '').trim(),
+      api_key: (m.apiKey || '').trim(),
+      model: (m.model || '').trim(),
+      temperature: m.temperature ?? a?.temperature ?? 0.7,
+      max_tokens: m.maxTokens ?? a?.maxTokens ?? 4000,
+      system_prompt: a?.systemPrompt || '',
+      enable_tools: a?.enableTools ?? true,
+      auto_approve: a?.autoApprove ?? false,
+    }
+  }
+
+  function isThinkingQuery(text: string): boolean {
+    if (text.length > 80) return true
+    return /分析|为什么|原因|设计|规划|方案|推理|优化|排查|诊断|比较|对比|架构|算法|证明|论证|思考/i.test(text)
+  }
+
+  // 构建候选模型列表（已排序）：第一个是主模型，其余是备用
+  function buildCandidates(hasImages: boolean, messageText: string): any[] {
+    if (assistantModels.length === 0) return [resolvedConfig]
+    let ordered = [...assistantModels]
+    if (autoSceneRoute) {
+      const scene: 'vision' | 'thinking' | 'chat' = hasImages ? 'vision' : (isThinkingQuery(messageText) ? 'thinking' : 'chat')
+      const inScene = assistantModels.filter((m) => (m.scenes || []).includes(scene))
+      const rest = assistantModels.filter((m) => !inScene.includes(m))
+      ordered = [...inScene, ...rest]
+    } else {
+      const primary = activeModel ? [activeModel] : []
+      const rest = assistantModels.filter((m) => m.id !== activeModel?.id)
+      ordered = [...primary, ...rest]
+      if (!autoFallback) ordered = ordered.slice(0, 1)
+    }
+    const cfgs = ordered.map(modelToCfg).filter((c) => c.api_url && c.model)
+    return cfgs.length > 0 ? cfgs : [resolvedConfig]
+  }
+
+
+
   function handleNewSession() {
     setMessages([])
     setCurrentSessionId(null)
@@ -538,12 +590,17 @@ export function AIAssistantPanel() {
     abortControllerRef.current = ac
 
     try {
+      // 多模型：构建候选（场景路由/手动选择/自动回退），首个为主模型，其余为备用
+      const candidates = buildCandidates(images.length > 0, messageText)
+      const primaryCfg = candidates[0]
+      const fallbackCfgs = candidates.slice(1)
       const res = await aiAssistantApi.chat({
         session_id: sidForRequest,
         message: enriched,
-        config: resolvedConfig,
+        config: primaryCfg,
         workflow_context: buildWorkflowContext(),
         images: images.length > 0 ? images : undefined,
+        fallback_configs: fallbackCfgs.length > 0 ? fallbackCfgs : undefined,
       } as any, ac.signal)
       if (!res.success || !res.data) {
         if (ac.signal.aborted) return
@@ -1068,7 +1125,69 @@ export function AIAssistantPanel() {
             <Wrench className="w-2.5 h-2.5" />
             <span className="font-medium">{resolvedConfig.enable_tools ? 'Skills 已启用' : 'Skills 已关闭'}</span>
           </div>
-          <span className="font-mono">WebRPA AI</span>
+          {/* 模型一键切换上拉栏 */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowModelMenu((v) => !v)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full hover:bg-[hsl(var(--slate-100))] transition-colors max-w-[200px]"
+              title="切换模型"
+            >
+              <Cpu className="w-3 h-3 flex-shrink-0" />
+              <span className="font-medium truncate">
+                {autoSceneRoute && assistantModels.length > 0
+                  ? '场景自动选模型'
+                  : (activeModel ? (activeModel.label || activeModel.model) : (resolvedConfig.model || '未配置'))}
+              </span>
+              <ChevronUp className={'w-3 h-3 flex-shrink-0 transition-transform ' + (showModelMenu ? 'rotate-180' : '')} />
+            </button>
+            {showModelMenu && (
+              <>
+                <div className="fixed inset-0 z-[100]" onClick={() => setShowModelMenu(false)} />
+                <div className="absolute bottom-full right-0 mb-1.5 z-[101] w-60 max-h-72 overflow-y-auto rounded-[10px] border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-pop-2xl p-1.5 animate-fade-in-up">
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">选择模型</div>
+                  {assistantModels.length === 0 ? (
+                    <div className="px-2 py-2 text-[11.5px] text-[hsl(var(--muted-foreground))]">
+                      未配置多模型，当前用：{resolvedConfig.model || '（无）'}
+                    </div>
+                  ) : (
+                    assistantModels.map((m) => {
+                      const on = !autoSceneRoute && (activeModel?.id === m.id)
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            updateAIAssistantConfig({ activeModelId: m.id, autoSceneRoute: false })
+                            setShowModelMenu(false)
+                          }}
+                          className={'w-full flex items-center gap-2 px-2 py-1.5 rounded-[7px] text-left transition-colors ' + (on ? 'bg-[hsl(var(--brand-100))]' : 'hover:bg-[hsl(var(--slate-100))]')}
+                        >
+                          <Cpu className="w-3.5 h-3.5 flex-shrink-0 text-[hsl(var(--brand-600))]" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] font-medium text-[hsl(var(--slate-800))] truncate">{m.label || m.model}</div>
+                            <div className="text-[10px] text-[hsl(var(--muted-foreground))] truncate">{m.model}{m.scenes && m.scenes.length > 0 ? ' · ' + m.scenes.map((s) => s === 'vision' ? '多模态' : s === 'thinking' ? '深度思考' : '普通').join('/') : ''}</div>
+                          </div>
+                          {on && <Check className="w-3.5 h-3.5 text-[hsl(var(--brand-600))] flex-shrink-0" />}
+                        </button>
+                      )
+                    })
+                  )}
+                  {assistantModels.length > 0 && (
+                    <button
+                      onClick={() => {
+                        updateAIAssistantConfig({ autoSceneRoute: !autoSceneRoute })
+                      }}
+                      className={'w-full flex items-center gap-2 px-2 py-1.5 mt-1 rounded-[7px] text-left transition-colors border-t border-[hsl(var(--border))] ' + (autoSceneRoute ? 'bg-[hsl(var(--brand-100))]' : 'hover:bg-[hsl(var(--slate-100))]')}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-[hsl(var(--brand-600))]" />
+                      <span className="flex-1 text-[12px] text-[hsl(var(--slate-800))]">按场景自动选模型</span>
+                      {autoSceneRoute && <Check className="w-3.5 h-3.5 text-[hsl(var(--brand-600))]" />}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

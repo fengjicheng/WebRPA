@@ -84,6 +84,8 @@ class ChatRequest(BaseModel):
     workflow_context: Optional[dict[str, Any]] = None
     # 多模态：用户附带的图片（data URL / http URL）。发给视觉模型分析
     images: Optional[list[str]] = None
+    # 多模型：主模型失败时按顺序尝试的备用模型（自动切换/场景路由由前端排好序）
+    fallback_configs: Optional[list[AssistantConfig]] = None
 
 
 class ChatResponse(BaseModel):

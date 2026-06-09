@@ -4,12 +4,92 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DialogPortal } from '@/components/ui/dialog-portal'
-import { useGlobalConfigStore, type BrowserType } from '@/store/globalConfigStore'
-import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug } from 'lucide-react'
+import { useGlobalConfigStore, type BrowserType, type AIModelProfile, type AssistantScene } from '@/store/globalConfigStore'
+import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug, Cpu } from 'lucide-react'
 import { systemApi } from '@/services/api'
 import { aiAssistantApi } from '@/services/aiAssistantApi'
 import { getBackendBaseUrl } from '@/services/config'
 import { MCPConfigPanel } from './MCPConfigPanel'
+
+const SCENE_LABELS: { key: AssistantScene; label: string }[] = [
+  { key: 'vision', label: '多模态' },
+  { key: 'thinking', label: '深度思考' },
+  { key: 'chat', label: '普通对话' },
+]
+
+function genModelId() {
+  return `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+/** 多模型档案管理器（小助手 / AI对话 共用）。showScenes=true 时显示场景分组 */
+function ModelProfilesManager({
+  models, activeModelId, showScenes, onChange,
+}: {
+  models: AIModelProfile[]
+  activeModelId?: string
+  showScenes?: boolean
+  onChange: (patch: { models?: AIModelProfile[]; activeModelId?: string }) => void
+}) {
+  const list = models || []
+  const update = (id: string, patch: Partial<AIModelProfile>) => {
+    onChange({ models: list.map((m) => m.id === id ? { ...m, ...patch } : m) })
+  }
+  const remove = (id: string) => {
+    const next = list.filter((m) => m.id !== id)
+    onChange({ models: next, activeModelId: activeModelId === id ? next[0]?.id : activeModelId })
+  }
+  const add = () => {
+    const m: AIModelProfile = { id: genModelId(), label: '', apiUrl: '', apiKey: '', model: '', scenes: showScenes ? ['chat'] : undefined }
+    onChange({ models: [...list, m], activeModelId: activeModelId || m.id })
+  }
+  const toggleScene = (id: string, s: AssistantScene) => {
+    const m = list.find((x) => x.id === id)
+    if (!m) return
+    const cur = new Set(m.scenes || [])
+    if (cur.has(s)) cur.delete(s); else cur.add(s)
+    update(id, { scenes: Array.from(cur) })
+  }
+  return (
+    <div className="space-y-3">
+      {list.length === 0 && (
+        <p className="text-xs text-gray-500">还没有添加模型。点下方「添加模型」可配置多个模型（同/不同厂商均可），聊天时一键切换或自动切换。</p>
+      )}
+      {list.map((m, idx) => (
+        <div key={m.id} className="p-3 rounded-lg border border-gray-200 bg-gray-50 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-100 text-blue-700 text-xs font-bold flex-shrink-0">{idx + 1}</span>
+            <Input value={m.label} onChange={(e) => update(m.id, { label: e.target.value })} placeholder="显示名（如 GPT-4o / DeepSeek）" className="bg-white text-black border-gray-300 h-8 text-sm" />
+            <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap cursor-pointer">
+              <input type="radio" name="active-model-radio" checked={activeModelId === m.id} onChange={() => onChange({ activeModelId: m.id })} />
+              默认
+            </label>
+            <button onClick={() => remove(m.id)} className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50" title="删除"><Trash2 className="w-4 h-4" /></button>
+          </div>
+          <Input value={m.apiUrl} onChange={(e) => update(m.id, { apiUrl: e.target.value })} placeholder="API 地址 https://api.openai.com/v1" className="bg-white text-black border-gray-300 h-8 text-sm" />
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="password" value={m.apiKey} onChange={(e) => update(m.id, { apiKey: e.target.value })} placeholder="API 密钥 sk-xxx" className="bg-white text-black border-gray-300 h-8 text-sm" />
+            <Input value={m.model} onChange={(e) => update(m.id, { model: e.target.value })} placeholder="模型名 gpt-4o-mini" className="bg-white text-black border-gray-300 h-8 text-sm" />
+          </div>
+          {showScenes && (
+            <div className="flex items-center gap-3 pt-0.5">
+              <span className="text-xs text-gray-500">适用场景：</span>
+              {SCENE_LABELS.map((s) => (
+                <label key={s.key} className="flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                  <input type="checkbox" checked={(m.scenes || []).includes(s.key)} onChange={() => toggleScene(m.id, s.key)} />
+                  {s.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={add} className="border-gray-300 text-gray-700 hover:bg-gray-100">
+        <Plus className="w-4 h-4 mr-1" /> 添加模型
+      </Button>
+    </div>
+  )
+}
+
 
 interface GlobalConfigDialogProps {
   isOpen: boolean
@@ -538,6 +618,43 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                         checked={config.aiAssistant?.autoApprove ?? false}
                         onChange={(e) => updateAIAssistantConfig({ autoApprove: e.target.checked })}
                       />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* ===== 多模型管理 ===== */}
+                <div className="space-y-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-blue-600" />
+                    <Label className="text-sm font-semibold text-gray-700">多模型（一键切换 / 自动切换 / 场景路由）</Label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    配置多个模型后，可在聊天框右下角一键切换；也可开启下方自动切换/场景路由。顶部单模型字段作为未配置多模型时的兜底。
+                  </p>
+                  <ModelProfilesManager
+                    models={config.aiAssistant?.models || []}
+                    activeModelId={config.aiAssistant?.activeModelId}
+                    showScenes
+                    onChange={(patch) => updateAIAssistantConfig(patch)}
+                  />
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium text-gray-700">失败自动切换</Label>
+                      <p className="text-xs text-gray-500 mt-1">某模型请求失败时，自动换其它已配置模型重试，全部失败才报错。</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={config.aiAssistant?.autoFallback ?? false} onChange={(e) => updateAIAssistantConfig({ autoFallback: e.target.checked })} />
+                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium text-gray-700">场景自动选模型</Label>
+                      <p className="text-xs text-gray-500 mt-1">按问答场景自动挑选模型：发图片→多模态组、复杂分析→深度思考组、其余→普通对话组（需给模型勾选场景）。</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={config.aiAssistant?.autoSceneRoute ?? false} onChange={(e) => updateAIAssistantConfig({ autoSceneRoute: e.target.checked })} />
                       <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>

@@ -4,6 +4,21 @@ import { persist } from 'zustand/middleware'
 // 浏览器类型
 export type BrowserType = 'msedge' | 'chrome' | 'chromium' | 'firefox'
 
+// 小助手适用场景标签：多模态/深度思考/普通对话
+export type AssistantScene = 'vision' | 'thinking' | 'chat'
+
+// 一个 AI 模型档案（小助手 / AI对话 通用）
+export interface AIModelProfile {
+  id: string
+  label: string          // 显示名（用户自起，如 "GPT-4o"、"DeepSeek-Chat"）
+  apiUrl: string
+  apiKey: string
+  model: string
+  temperature?: number
+  maxTokens?: number
+  scenes?: AssistantScene[]  // 适用场景分组（仅小助手用；多模态/深度思考/普通）
+}
+
 // 全局默认配置
 export interface GlobalConfig {
   // 系统设置
@@ -33,6 +48,10 @@ export interface GlobalConfig {
     imageApiBase?: string
     videoApiKey?: string
     videoApiBase?: string
+    // ===== 多模型支持 =====
+    models?: AIModelProfile[]  // 多模型档案
+    activeModelId?: string     // 默认选用的模型 id
+    autoFallback?: boolean     // 请求失败自动切换其它模型重试
   }
   // AI智能爬虫模块默认配置
   aiScraper: {
@@ -52,6 +71,11 @@ export interface GlobalConfig {
     systemPrompt: string   // 用户追加的系统提示词
     enableTools: boolean   // 启用 Skills 工具调用
     autoApprove: boolean   // 自动批准工具调用（不弹确认）
+    // ===== 多模型支持 =====
+    models?: AIModelProfile[]   // 多模型档案（同/不同厂商均可）
+    activeModelId?: string      // 当前手动选中的模型 id（聊天处上拉栏切换）
+    autoFallback?: boolean      // 某模型请求失败时自动切换其它模型重试
+    autoSceneRoute?: boolean    // 按问答场景（多模态/深度思考/普通）自动选模型
   }
   // 发送邮件模块默认配置
   email: {
