@@ -55,6 +55,8 @@ from . import desktop_advanced  # 影刀级桌面增强(智能查找/批量抓�
 from . import format_factory
 from . import python_script
 from . import table_extract
+from . import advanced_openpyxl  # Excel 自动化模块（openpyxl）
+from . import advanced_openpyxl_pro  # Excel 自动化高级增强模块（openpyxl）
 from . import switch_tab
 # 手机自动化模块
 from . import phone_device

@@ -15,6 +15,7 @@ import { elementPickerApi, desktopPickerApi } from '@/services/api'
 
 // 导入拆分的配置组件
 import { ReadExcelConfig } from './config-panels/ReadExcelConfig'
+import { ExcelModuleConfig } from './config-panels/ExcelModuleConfig'
 import { SimilarSelectorDialog } from './config-panels/SimilarSelectorDialog'
 import { UrlInputDialog } from './config-panels/UrlInputDialog'
 import {
@@ -1074,7 +1075,13 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   // 渲染模块配置
   const renderModuleConfig = () => {
     const props = { data: nodeData, onChange: handleChange, renderSelectorInput }
-    
+
+    // Excel 自动化模块（openpyxl）统一走 schema 驱动的通用配置面板
+    const mt = String(nodeData.moduleType)
+    if (mt.startsWith('excel_')) {
+      return <ExcelModuleConfig moduleType={mt} data={nodeData} onChange={handleChange} />
+    }
+
     switch (nodeData.moduleType) {
       case 'open_page':
         return <OpenPageConfig data={nodeData} onChange={handleChange} />

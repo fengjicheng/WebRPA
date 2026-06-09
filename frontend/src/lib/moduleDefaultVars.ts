@@ -47,6 +47,13 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   api_request: { resultVariable: 'api_response' },
   send_email: { resultVariable: 'email_sent' },
   read_excel: { resultVariable: 'excel_data' },
+  // Excel 自动化（openpyxl）读取类模块
+  excel_read_cell: { resultVariable: 'cell_value' },
+  excel_read_range: { resultVariable: 'range_data' },
+  excel_read_dicts: { resultVariable: 'records' },
+  excel_read_formula: { resultVariable: 'cell_value' },
+  excel_list_sheets: { resultVariable: 'sheet_list' },
+  excel_get_info: { resultVariable: 'sheet_info' },
   screenshot: { resultVariable: 'screenshot_path' },
   get_element_info: { resultVariable: 'element_info' },
   download_file: { resultVariable: 'file_downloaded' },
