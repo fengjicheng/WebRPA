@@ -287,6 +287,9 @@ class WorkflowExecutor:
         self._last_data_rows_count = 0
         self._sent_data_rows_count = 0
         self._running_tasks: set[asyncio.Task] = set()  # 跟踪所有运行中的任务
+        # 上次"真实让出事件循环"的时间戳（用于让 socket.io 的 WebSocket 发送协程
+        # 有机会把积压的日志/数据包实时写出，避免高速执行时日志全堆到结束才出现）
+        self._last_loop_yield = 0.0
 
     def _try_bind_global_browser(self):
         """尝试绑定全局已启动的浏览器会话"""
@@ -390,11 +393,27 @@ class WorkflowExecutor:
         if self.on_log:
             try:
                 await self.on_log(entry)
-                # 让出事件循环，强制 socket 立即把这批日志冲刷到前端，
-                # 避免密集同步步骤占满循环导致日志积压到工作流结束才一次性出现。
-                await asyncio.sleep(0)
+                # 让 socket.io 的 WebSocket 发送协程有机会把这条日志真正写出到前端。
+                # 注意：单纯的 await asyncio.sleep(0) 在高速执行时会被繁忙的工作流任务
+                # 持续插队，发送协程拿不到真正的时间片，导致日志积压到工作流结束才一次性
+                # 出现。这里做“节流的真实让出”：最多每 ~25ms 真正 sleep 一小段，既保证
+                # 日志近实时滚动，又不会给大型工作流增加明显耗时。
+                await self._yield_to_event_loop()
             except Exception as e:
                 print(f"发送日志失败: {e}")
+
+    async def _yield_to_event_loop(self):
+        """节流地把控制权真正交还事件循环，确保实时日志/数据能被即时发送到前端。"""
+        try:
+            now = time.monotonic()
+            if now - self._last_loop_yield >= 0.025:
+                self._last_loop_yield = now
+                # 真实 sleep 一小段，触发事件循环的 I/O 轮询，冲刷 WebSocket 发送队列
+                await asyncio.sleep(0.003)
+            else:
+                await asyncio.sleep(0)
+        except Exception:
+            await asyncio.sleep(0)
     
     async def _send_data_row(self, row_data: dict):
         """发送数据行到前端（实时预览上限，与前端数据表格展示上限保持一致）"""
@@ -404,6 +423,7 @@ class WorkflowExecutor:
         if self.on_data_row:
             try:
                 await self.on_data_row(row_data)
+                await self._yield_to_event_loop()
             except Exception as e:
                 print(f"发送数据行失败: {e}")
         self._sent_data_rows_count += 1
@@ -413,6 +433,7 @@ class WorkflowExecutor:
         if self.on_node_start:
             try:
                 await self.on_node_start(node_id)
+                await self._yield_to_event_loop()
             except Exception as e:
                 print(f"通知节点开始失败: {e}")
     
