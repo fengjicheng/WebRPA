@@ -33,7 +33,7 @@ from . import string_convert  # 字符串转换执行器
 from . import captcha
 from . import data_structure
 from . import ai
-from . import ai_scraper
+from . import ai_tasks  # AI 数据处理任务模块（抽取/分类/摘要/翻译/情感）from . import ai_scraper
 from . import ai_firecrawl
 from . import table
 from . import subflow

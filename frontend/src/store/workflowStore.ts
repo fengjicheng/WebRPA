@@ -638,6 +638,11 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   ai_chat: 'AI对话',
   ai_vision: '图像识别',
   ai_smart_scraper: 'AI智能爬虫 (实验性)',
+  ai_extract: 'AI信息抽取',
+  ai_classify: 'AI文本分类',
+  ai_summarize: 'AI文本摘要',
+  ai_translate: 'AI翻译',
+  ai_sentiment: 'AI情感分析',
   ai_element_selector: 'AI元素选择器 (实验性)',
   firecrawl_scrape: 'AI单页数据抓取',
   firecrawl_map: 'AI网站链接抓取',
@@ -938,6 +943,11 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   // AI能力 - 需要较长时间
   ai_chat: 180,         // 3分钟，AI响应可能慢
   ai_vision: 180,       // 3分钟
+  ai_extract: 120,
+  ai_classify: 90,
+  ai_summarize: 180,
+  ai_translate: 180,
+  ai_sentiment: 90,
   ai_smart_scraper: 300,    // 5分钟，AI智能爬虫需要更长时间
   ai_element_selector: 120, // 2分钟，AI元素选择器
   firecrawl_scrape: 60,     // 1分钟
@@ -1361,6 +1371,28 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         maxTokens: globalConfig.ai.maxTokens,
         systemPrompt: globalConfig.ai.systemPrompt,
         resultVariable: 'ai_response',
+      }
+    } else if (type === 'ai_extract' || type === 'ai_classify' || type === 'ai_summarize' || type === 'ai_translate' || type === 'ai_sentiment') {
+      // AI 数据处理任务：复用全局 AI 配置（接口/密钥/模型）
+      const varName = {
+        ai_extract: 'extracted_data',
+        ai_classify: 'category',
+        ai_summarize: 'summary',
+        ai_translate: 'translation',
+        ai_sentiment: 'sentiment',
+      }[type] || 'ai_result'
+      defaultData = {
+        apiUrl: globalConfig.ai.apiUrl,
+        apiKey: globalConfig.ai.apiKey,
+        model: globalConfig.ai.model,
+        temperature: type === 'ai_extract' || type === 'ai_classify' || type === 'ai_sentiment' ? 0.2 : 0.5,
+        maxTokens: globalConfig.ai.maxTokens,
+        inputText: '',
+        variableName: varName,
+        ...(type === 'ai_classify' ? { categories: '' } : {}),
+        ...(type === 'ai_extract' ? { fields: '' } : {}),
+        ...(type === 'ai_summarize' ? { maxWords: 200, style: '' } : {}),
+        ...(type === 'ai_translate' ? { targetLang: '英文' } : {}),
       }
     } else if (type === 'ai_smart_scraper') {
       // AI智能爬虫模块默认配置

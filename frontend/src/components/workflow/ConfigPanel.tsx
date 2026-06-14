@@ -95,6 +95,7 @@ import {
 } from './config-panels/AdvancedModuleConfigs'
 import {
   AIChatConfig,
+  AITaskConfig,
   AIVisionConfig,
   ApiRequestConfig,
   AISmartScraperConfig,
@@ -1219,6 +1220,12 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <MacroRecorderConfig data={nodeData} onChange={handleChange} />
       case 'ai_chat':
         return <AIChatConfig data={nodeData} onChange={handleChange} />
+      case 'ai_extract':
+      case 'ai_classify':
+      case 'ai_summarize':
+      case 'ai_translate':
+      case 'ai_sentiment':
+        return <AITaskConfig moduleType={String(nodeData.moduleType)} data={nodeData} onChange={handleChange} />
       case 'ai_vision':
         return <AIVisionConfig {...props} />
       case 'ai_smart_scraper':

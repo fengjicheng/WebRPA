@@ -255,6 +255,11 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
     "AI": {
         "ai_chat": "AI 对话（OpenAI 兼容协议）",
         "ai_vision": "AI 视觉理解（多模态）",
+        "ai_extract": "AI 结构化抽取（文本→JSON，按字段抽取）",
+        "ai_classify": "AI 文本分类（归入给定类别之一）",
+        "ai_summarize": "AI 文本摘要（长文压缩）",
+        "ai_translate": "AI 翻译（任意目标语言）",
+        "ai_sentiment": "AI 情感分析（正面/负面/中性+置信度）",
         "ai_smart_scraper": "AI 智能爬虫（自然语言提取网页数据）",
         "ai_element_selector": "AI 自动定位网页元素",
         "ai_generate_image": "AI 生成图片",

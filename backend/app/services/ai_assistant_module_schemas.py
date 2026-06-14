@@ -5358,3 +5358,55 @@ EXCEL_SCHEMAS_YINGDAO: dict = {
 }
 
 _ALL_SCHEMAS.update(EXCEL_SCHEMAS_YINGDAO)
+
+
+# ============================================================
+# AI 数据处理任务模块 —— ai_tasks.py（抽取/分类/摘要/翻译/情感）
+# 这些模块复用全局 AI 配置（apiUrl/apiKey/model），前端会自动注入默认值，
+# AI 搭建工作流时通常只需填 inputText + 任务专属字段 + variableName。
+# ============================================================
+
+AI_TASK_SCHEMAS: dict = {
+    "ai_extract": {
+        "required": ["inputText", "fields"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"variableName": "extracted_data"},
+        "desc": {"inputText": "待抽取文本（支持{变量}）", "fields": "要抽取的字段：逗号分隔或JSON描述", "variableName": "存储抽取出的JSON对象"},
+        "example": {"inputText": "{page_text}", "fields": "标题,作者,日期,正文", "variableName": "article"},
+        "combo": "常接在 get_element_info/read_text_file/api_request 后，把非结构化文本变成结构化JSON；后接 foreach/table_add_row",
+    },
+    "ai_classify": {
+        "required": ["inputText", "categories"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"variableName": "category"},
+        "desc": {"inputText": "待分类文本", "categories": "候选类别，逗号分隔(≥2个)", "variableName": "存储命中的类别名"},
+        "example": {"inputText": "{comment}", "categories": "投诉,咨询,好评,其他", "variableName": "intent"},
+        "combo": "后接 condition 按类别分支处理",
+    },
+    "ai_summarize": {
+        "required": ["inputText"],
+        "optional": ["maxWords", "style", "variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"maxWords": 200, "variableName": "summary"},
+        "desc": {"inputText": "待摘要长文本", "maxWords": "摘要最大字数", "style": "风格(可选,如 要点列表/一句话)"},
+        "example": {"inputText": "{article}", "maxWords": 150, "variableName": "summary"},
+        "combo": "把长文/网页正文压缩；后接 send_email/print_log/table_add_row",
+    },
+    "ai_translate": {
+        "required": ["inputText", "targetLang"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"targetLang": "英文", "variableName": "translation"},
+        "desc": {"inputText": "待翻译文本", "targetLang": "目标语言，如 英文/日文/中文"},
+        "example": {"inputText": "{content}", "targetLang": "英文", "variableName": "en_text"},
+        "combo": "",
+    },
+    "ai_sentiment": {
+        "required": ["inputText"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"variableName": "sentiment"},
+        "desc": {"inputText": "待分析文本", "variableName": "存储 {sentiment,score,confidence,reason}"},
+        "example": {"inputText": "{review}", "variableName": "sentiment"},
+        "combo": "舆情/评论分析；后接 condition 按 {sentiment.sentiment} 分支",
+    },
+}
+
+_ALL_SCHEMAS.update(AI_TASK_SCHEMAS)

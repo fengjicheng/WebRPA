@@ -1103,3 +1103,132 @@ export function FirecrawlCrawlConfig({ data, onChange }: { data: NodeData; onCha
     </>
   )
 }
+
+
+// ============================================================
+// AI 数据处理任务（抽取/分类/摘要/翻译/情感）通用配置面板
+// 复用全局 AI 模型选择 + API 字段，按 moduleType 渲染任务专属字段。
+// ============================================================
+function AITaskApiBlock({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  return (
+    <>
+      <AIModelPicker data={data} onChange={onChange} />
+      <div className="space-y-2">
+        <Label htmlFor="apiUrl">API地址</Label>
+        <VariableInput
+          value={(data.apiUrl as string) || ''}
+          onChange={(v) => onChange('apiUrl', v)}
+          placeholder="https://api.openai.com/v1/chat/completions，支持 {变量名}"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="apiKey">API密钥</Label>
+        <VariableInput
+          value={(data.apiKey as string) || ''}
+          onChange={(v) => onChange('apiKey', v)}
+          placeholder="sk-xxx，支持 {变量名}"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="model">模型名称</Label>
+        <VariableInput
+          value={(data.model as string) || ''}
+          onChange={(v) => onChange('model', v)}
+          placeholder="gpt-3.5-turbo / glm-4 / deepseek-chat，支持 {变量名}"
+        />
+      </div>
+    </>
+  )
+}
+
+export function AITaskConfig({ moduleType, data, onChange }: { moduleType: string; data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="inputText">输入文本</Label>
+        <VariableInput
+          multiline
+          rows={4}
+          value={(data.inputText as string) || ''}
+          onChange={(v) => onChange('inputText', v)}
+          placeholder="要处理的文本，支持 {变量名}（如 {data}、{ai_response}）"
+        />
+      </div>
+
+      {moduleType === 'ai_extract' && (
+        <div className="space-y-2">
+          <Label htmlFor="fields">要抽取的字段</Label>
+          <VariableInput
+            value={(data.fields as string) || ''}
+            onChange={(v) => onChange('fields', v)}
+            placeholder='如 姓名,电话,地址  或  {"name":"姓名","price":"价格(数字)"}'
+          />
+          <p className="text-xs text-muted-foreground">逗号分隔字段名，或用 JSON 描述每个字段含义。结果为 JSON 对象。</p>
+        </div>
+      )}
+
+      {moduleType === 'ai_classify' && (
+        <div className="space-y-2">
+          <Label htmlFor="categories">候选类别</Label>
+          <VariableInput
+            value={(data.categories as string) || ''}
+            onChange={(v) => onChange('categories', v)}
+            placeholder="如 投诉,咨询,好评,其他（逗号分隔，至少两个）"
+          />
+          <p className="text-xs text-muted-foreground">结果为命中的类别名（字符串）。</p>
+        </div>
+      )}
+
+      {moduleType === 'ai_summarize' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="maxWords">摘要最大字数</Label>
+            <NumberInput
+              id="maxWords"
+              value={(data.maxWords as number) ?? 200}
+              onChange={(v) => onChange('maxWords', v)}
+              defaultValue={200}
+              min={20}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="style">风格要求（可选）</Label>
+            <VariableInput
+              value={(data.style as string) || ''}
+              onChange={(v) => onChange('style', v)}
+              placeholder="如 要点列表 / 一句话 / 商务正式"
+            />
+          </div>
+        </>
+      )}
+
+      {moduleType === 'ai_translate' && (
+        <div className="space-y-2">
+          <Label htmlFor="targetLang">目标语言</Label>
+          <VariableInput
+            value={(data.targetLang as string) || ''}
+            onChange={(v) => onChange('targetLang', v)}
+            placeholder="如 英文 / 日文 / 法文 / 中文"
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="variableName">存储到变量</Label>
+        <VariableNameInput
+          value={(data.variableName as string) || ''}
+          onChange={(v) => onChange('variableName', v)}
+          placeholder="结果变量名"
+          isStorageVariable={true}
+        />
+      </div>
+
+      <details className="rounded-lg border border-[hsl(var(--border))] p-2">
+        <summary className="text-sm cursor-pointer select-none text-[hsl(var(--muted-foreground))]">AI 接口设置（默认取全局 AI 配置）</summary>
+        <div className="space-y-2 mt-2">
+          <AITaskApiBlock data={data} onChange={onChange} />
+        </div>
+      </details>
+    </div>
+  )
+}

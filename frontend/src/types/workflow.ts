@@ -222,6 +222,12 @@ export type ModuleType =
   | 'ai_chat'
   | 'ai_vision'
   | 'ai_smart_scraper'
+  // AI 数据处理任务
+  | 'ai_extract'
+  | 'ai_classify'
+  | 'ai_summarize'
+  | 'ai_translate'
+  | 'ai_sentiment'
   | 'ai_element_selector'
   | 'firecrawl_scrape'
   | 'firecrawl_map'
