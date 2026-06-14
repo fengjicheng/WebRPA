@@ -124,25 +124,27 @@ BATCH_SIZE = 50  # 累积50条或5ms后发送
 BATCH_INTERVAL = 0.005  # 5ms
 
 async def batch_emit_log(workflow_id: str, log_data: dict):
-    """批量发送日志 - 累积后批量发送"""
+    """发送日志到前端。
+
+    早期为减少 WebSocket 次数采用 5ms 定时器批量发送，但当节点执行器跑同步阻塞
+    代码时，事件循环被占满、5ms 定时器迟迟无法触发，导致日志被攒到工作流结束才
+    一次性出现（非实时）。这里改为：先把同一“同步突发”里积压的日志连同当前这条
+    一起立即冲刷，保证每次事件循环有空隙（如节点间的 await asyncio.sleep(0)）时
+    日志就即时到达前端，实现实时滚动。
+    """
+    if sio is None:
+        return
     async with log_batch_lock:
-        if workflow_id not in log_batch_queue:
-            log_batch_queue[workflow_id] = []
-        
-        log_batch_queue[workflow_id].append(log_data)
-        
-        # 如果累积够了，立即发送
-        if len(log_batch_queue[workflow_id]) >= BATCH_SIZE:
-            logs = log_batch_queue[workflow_id]
-            log_batch_queue[workflow_id] = []
-            await sio.emit('execution:log_batch', {
-                'workflowId': workflow_id,
-                'logs': logs
-            })
-        else:
-            # 启动定时发送任务
-            if workflow_id not in log_batch_tasks or log_batch_tasks[workflow_id].done():
-                log_batch_tasks[workflow_id] = asyncio.create_task(flush_log_batch_for_workflow(workflow_id))
+        queue = log_batch_queue.setdefault(workflow_id, [])
+        queue.append(log_data)
+        logs = queue
+        log_batch_queue[workflow_id] = []
+    if logs:
+        await sio.emit('execution:log_batch', {
+            'workflowId': workflow_id,
+            'logs': logs
+        })
+
 
 async def flush_log_batch_for_workflow(workflow_id: str):
     """定时发送指定工作流的日志"""

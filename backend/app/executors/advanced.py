@@ -2160,13 +2160,14 @@ class RunCommandExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"命令执行失败: {str(e)}")
 
 
-@register_executor
-class ClickImageExecutor(ModuleExecutor):
-    """点击图像模块执行器 - 在屏幕上查找指定图像并点击"""
+# 注意：click_image 的正式实现在 advanced_image.py（支持 offsetX/offsetY 偏移）。
+# 此处旧版不读取偏移量，已取消注册以避免按导入顺序意外覆盖正确实现。
+class _DeprecatedClickImageExecutor(ModuleExecutor):
+    """[已弃用] 旧版点击图像执行器，保留仅为兼容历史引用，不再注册。"""
 
     @property
     def module_type(self) -> str:
-        return "click_image"
+        return "click_image_deprecated"
 
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import ctypes

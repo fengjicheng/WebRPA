@@ -2524,6 +2524,12 @@ class WorkflowExecutor:
                 # 清理上下文中的数据，防止内存泄漏
                 # ⚠️ 注意：不要清空 variables，因为外部需要保存全局变量
                 # self.context.variables.clear()  # ❌ 不要清空！
+                # ⚠️ 先把收集到的完整数据快照下来，再清空。
+                # 否则 run_execution 在 execute() 返回后调用 get_collected_data()
+                # 时 data_rows 已被清空，导致"下载完整数据"只剩前端实时预览的那部分。
+                if self.context.current_row:
+                    self.context.commit_row()
+                self._collected_snapshot = list(self.context.data_rows)
                 self.context.data_rows.clear()
                 self.context.current_row.clear()
                 self.context.loop_stack.clear()
@@ -2605,6 +2611,11 @@ class WorkflowExecutor:
 
     def get_collected_data(self) -> list[dict]:
         """获取收集的数据"""
+        # 优先返回执行结束时的快照（execute() 的 finally 会在清空 data_rows 前快照），
+        # 保证 run_execution 在 execute() 返回后仍能拿到本次执行的全部数据行。
+        snapshot = getattr(self, "_collected_snapshot", None)
+        if snapshot is not None:
+            return list(snapshot)
         if self.context.current_row:
             self.context.commit_row()
         return self.context.data_rows.copy()
