@@ -5252,3 +5252,109 @@ EXCEL_SCHEMAS_3: dict = {
 }
 
 _ALL_SCHEMAS.update(EXCEL_SCHEMAS_3)
+
+
+# ============================================================
+# Excel 自动化影刀对标补全模块 —— advanced_excel_yingdao.py
+# ============================================================
+
+EXCEL_SCHEMAS_YINGDAO: dict = {
+    "excel_count_rows": {
+        "required": ["filePath"],
+        "optional": ["sheetName", "resultVariable"],
+        "defaults": {"resultVariable": "row_count"},
+        "desc": {"resultVariable": "存储总行数"},
+        "example": {"filePath": "D:\\\\data.xlsx", "resultVariable": "total"},
+        "combo": "常用于循环前确定行数",
+    },
+    "excel_find_empty_row": {
+        "required": ["filePath"],
+        "optional": ["sheetName", "column", "direction", "resultVariable"],
+        "defaults": {"column": "A", "direction": "down", "resultVariable": "empty_row"},
+        "desc": {"column": "按此列判断空行", "direction": "down 从上往下/up 末尾追加位置"},
+        "example": {"filePath": "D:\\\\data.xlsx", "column": "A", "resultVariable": "row"},
+        "combo": "配合 excel_write_cell 往第一个空行追加数据",
+    },
+    "excel_find_empty_col": {
+        "required": ["filePath"],
+        "optional": ["sheetName", "row", "resultVariable"],
+        "defaults": {"row": 1, "resultVariable": "empty_col"},
+        "desc": {"row": "按此行判断空列", "resultVariable": "存储列字母"},
+        "example": {"filePath": "D:\\\\data.xlsx", "row": 1, "resultVariable": "col"},
+        "combo": "",
+    },
+    "excel_find_empty_cell": {
+        "required": ["filePath"],
+        "optional": ["sheetName", "column", "startRow", "resultVariable"],
+        "defaults": {"column": "A", "startRow": 1, "resultVariable": "empty_cell"},
+        "desc": {"column": "列", "startRow": "起始行", "resultVariable": "存储单元格地址如 A6"},
+        "example": {"filePath": "D:\\\\data.xlsx", "column": "A", "resultVariable": "cell"},
+        "combo": "",
+    },
+    "excel_fill_range": {
+        "required": ["filePath", "range", "value"],
+        "optional": ["sheetName"],
+        "defaults": {},
+        "desc": {"range": "填充区域", "value": "填充值（可为公式）"},
+        "example": {"filePath": "D:\\\\data.xlsx", "range": "C2:C100", "value": "待处理"},
+        "combo": "",
+    },
+    "excel_clear_style": {
+        "required": ["filePath", "range"],
+        "optional": ["sheetName"],
+        "defaults": {},
+        "desc": {"range": "清除样式的区域（保留内容）"},
+        "example": {"filePath": "D:\\\\data.xlsx", "range": "A1:Z100"},
+        "combo": "",
+    },
+    "excel_activate_sheet": {
+        "required": ["filePath", "sheetName"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"sheetName": "要设为活动的工作表"},
+        "example": {"filePath": "D:\\\\data.xlsx", "sheetName": "汇总"},
+        "combo": "",
+    },
+    "excel_save_as": {
+        "required": ["filePath", "newPath"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"filePath": "源文件", "newPath": "另存路径"},
+        "example": {"filePath": "D:\\\\data.xlsx", "newPath": "D:\\\\backup.xlsx"},
+        "combo": "",
+    },
+    "excel_pivot_table": {
+        "required": ["filePath", "groupBy"],
+        "optional": ["sheetName", "sourceRange", "valueColumn", "aggregation", "destSheet", "destCell"],
+        "defaults": {"aggregation": "sum", "destCell": "A1"},
+        "desc": {"groupBy": "分组列名(表头,逗号分隔)", "valueColumn": "聚合列名", "aggregation": "sum/count/average/max/min", "destCell": "结果起始位置"},
+        "example": {"filePath": "D:\\\\sales.xlsx", "groupBy": "部门", "valueColumn": "业绩", "aggregation": "sum", "destSheet": "汇总", "destCell": "A1"},
+        "combo": "按分组聚合生成汇总表（不依赖 Excel 应用）",
+    },
+    "excel_to_pdf": {
+        "required": ["filePath"],
+        "optional": ["sheetName", "pdfPath"],
+        "defaults": {},
+        "desc": {"sheetName": "留空导出整个工作簿", "pdfPath": "PDF 输出路径(留空同名)"},
+        "example": {"filePath": "D:\\\\report.xlsx", "pdfPath": "D:\\\\report.pdf"},
+        "combo": "基于 Excel/WPS COM，需安装 Office/WPS（仅 Windows）",
+    },
+    "excel_run_macro": {
+        "required": ["filePath", "macroName"],
+        "optional": ["saveAfter", "resultVariable"],
+        "defaults": {"saveAfter": False, "resultVariable": "macro_result"},
+        "desc": {"macroName": "宏名，如 Module1.MyMacro", "saveAfter": "运行后是否保存"},
+        "example": {"filePath": "D:\\\\book.xlsm", "macroName": "Module1.Run"},
+        "combo": "基于 COM，需 .xlsm 含宏并允许宏（仅 Windows）",
+    },
+    "excel_refresh_data": {
+        "required": ["filePath"],
+        "optional": [],
+        "defaults": {},
+        "desc": {"filePath": "要刷新数据透视表/外部数据连接的 Excel"},
+        "example": {"filePath": "D:\\\\report.xlsx"},
+        "combo": "基于 COM，刷新后自动保存（仅 Windows）",
+    },
+}
+
+_ALL_SCHEMAS.update(EXCEL_SCHEMAS_YINGDAO)

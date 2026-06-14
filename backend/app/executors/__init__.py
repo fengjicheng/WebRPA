@@ -57,6 +57,7 @@ from . import python_script
 from . import table_extract
 from . import advanced_openpyxl  # Excel 自动化模块（openpyxl）
 from . import advanced_openpyxl_pro  # Excel 自动化高级增强模块（openpyxl）
+from . import advanced_excel_yingdao  # Excel 自动化影刀对标补全（openpyxl + win32com）
 from . import switch_tab
 # 手机自动化模块
 from . import phone_device

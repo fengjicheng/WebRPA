@@ -425,3 +425,71 @@ Object.assign(EXCEL_FIELD_SCHEMAS, {
     { key: 'showGridLines', label: '显示网格线', type: 'switch', default: true },
   ],
 })
+
+
+// ===== 影刀对标补全模块 =====
+Object.assign(EXCEL_FIELD_SCHEMAS, {
+  excel_count_rows: [
+    F_FILE, F_SHEET,
+    { key: 'resultVariable', label: '存储到变量（总行数）', type: 'varname', placeholder: 'row_count' },
+  ],
+  excel_find_empty_row: [
+    F_FILE, F_SHEET,
+    { key: 'column', label: '判断列（按此列找空行）', type: 'text', placeholder: '如 A', default: 'A' },
+    { key: 'direction', label: '方向', type: 'select', default: 'down', options: [{ value: 'down', label: '从上往下' }, { value: 'up', label: '从下往上(末尾追加位置)' }] },
+    { key: 'resultVariable', label: '存储到变量（行号）', type: 'varname', placeholder: 'empty_row' },
+  ],
+  excel_find_empty_col: [
+    F_FILE, F_SHEET,
+    { key: 'row', label: '判断行（按此行找空列）', type: 'number', default: 1 },
+    { key: 'resultVariable', label: '存储到变量（列字母）', type: 'varname', placeholder: 'empty_col' },
+  ],
+  excel_find_empty_cell: [
+    F_FILE, F_SHEET,
+    { key: 'column', label: '列', type: 'text', placeholder: '如 A', default: 'A' },
+    { key: 'startRow', label: '起始行', type: 'number', default: 1 },
+    { key: 'resultVariable', label: '存储到变量（单元格地址）', type: 'varname', placeholder: 'empty_cell' },
+  ],
+  excel_fill_range: [
+    F_FILE, F_SHEET,
+    { key: 'range', label: '填充区域', type: 'text', placeholder: '如 A1:C10' },
+    { key: 'value', label: '填充值（支持 {变量}/公式）', type: 'text' },
+  ],
+  excel_clear_style: [
+    F_FILE, F_SHEET,
+    { key: 'range', label: '区域（清除样式保留内容）', type: 'text', placeholder: '如 A1:C10' },
+  ],
+  excel_activate_sheet: [
+    F_FILE,
+    { key: 'sheetName', label: '要激活的工作表名', type: 'text', placeholder: '如 Sheet2' },
+  ],
+  excel_save_as: [
+    F_FILE,
+    { key: 'newPath', label: '另存为路径', type: 'path', placeholder: '如 D:\\副本.xlsx' },
+  ],
+  excel_pivot_table: [
+    F_FILE, F_SHEET,
+    { key: 'sourceRange', label: '源数据区域（含表头，留空整表）', type: 'text', placeholder: '如 A1:D100' },
+    { key: 'groupBy', label: '分组列名（表头，逗号分隔多列）', type: 'text', placeholder: '如 部门' },
+    { key: 'valueColumn', label: '聚合列名（表头）', type: 'text', placeholder: '如 业绩' },
+    { key: 'aggregation', label: '聚合方式', type: 'select', default: 'sum', options: [
+      { value: 'sum', label: '求和' }, { value: 'count', label: '计数' }, { value: 'average', label: '平均' }, { value: 'max', label: '最大' }, { value: 'min', label: '最小' },
+    ] },
+    { key: 'destSheet', label: '结果工作表（留空当前表）', type: 'text' },
+    { key: 'destCell', label: '结果起始单元格', type: 'text', placeholder: 'A1', default: 'A1' },
+  ],
+  excel_to_pdf: [
+    F_FILE,
+    { key: 'sheetName', label: '工作表（留空导出整个工作簿）', type: 'text' },
+    { key: 'pdfPath', label: 'PDF 输出路径（留空同名）', type: 'path', placeholder: '如 D:\\out.pdf' },
+  ],
+  excel_run_macro: [
+    F_FILE,
+    { key: 'macroName', label: '宏名称', type: 'text', placeholder: '如 Module1.MyMacro' },
+    { key: 'saveAfter', label: '运行后保存', type: 'switch', default: false },
+    { key: 'resultVariable', label: '存储宏返回值（可选）', type: 'varname', placeholder: 'macro_result' },
+  ],
+  excel_refresh_data: [
+    F_FILE,
+  ],
+})
