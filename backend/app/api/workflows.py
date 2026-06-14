@@ -31,6 +31,15 @@ def is_log_enabled() -> bool:
     """检查是否有客户端连接需要日志"""
     return len(log_enabled_by_client) > 0
 
+def is_verbose_enabled() -> bool:
+    """是否有客户端开启了“详细日志”。
+
+    log_enabled_by_client[sid] 存的是该客户端的 verbose 开关：
+    连接时默认 True，前端通过 set_verbose_log 切换。简洁模式（全部为 False）下，
+    后端在 on_log 里就跳过前端会过滤掉的普通日志，避免海量无用日志灌满 WebSocket。
+    """
+    return any(bool(v) for v in log_enabled_by_client.values())
+
 def set_log_enabled(sid: str, enabled: bool):
     """设置客户端的日志开关状态"""
     log_enabled_by_client[sid] = enabled
@@ -46,6 +55,8 @@ executions_store: dict[str, WorkflowExecutor] = {}
 execution_results: dict[str, ExecutionResult] = {}
 execution_data: dict[str, list[dict]] = {}
 variable_tracking_store: dict[str, list[dict]] = {}  # 存储变量追踪记录
+# 变量更新事件节流时间戳（每个工作流最近一次 emit 的单调时钟），避免高频变量更新灌满 WebSocket
+_var_update_last_emit: dict[str, float] = {}
 
 # ===== 完整收集数据的磁盘持久化 =====
 # 内存里的 execution_data 只保留最近 10 次执行（LRU），且服务重启后会丢失。
@@ -378,6 +389,15 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
         # 判断是否是用户日志（打印日志模块）或系统日志（流程开始/结束）
         is_user_log = log.details.get('is_user_log', False) if log.details else False
         is_system_log = log.details.get('is_system_log', False) if log.details else False
+
+        # ⚠️ 性能关键：简洁模式（未开启详细日志）下，前端只显示 用户日志/系统日志/错误/警告，
+        # 其余普通 INFO 节点日志会被前端直接丢弃。若后端仍把它们全部 emit，密集循环工作流
+        # 会产生成千上万条无用日志灌满 WebSocket 发送队列，导致真正要显示的日志被挤到结束
+        # 才送达。这里在源头就按与前端一致的规则过滤，大幅降低 WebSocket 流量，实现实时日志。
+        if not is_verbose_enabled():
+            lvl = log.level.value if hasattr(log.level, 'value') else str(log.level)
+            if not is_user_log and not is_system_log and lvl not in ('error', 'warning'):
+                return
         
         # 将日志添加到批处理队列
         log_data = {
@@ -411,7 +431,18 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
         })
     
     async def on_variable_update(name: str, value):
-        # 发送变量更新事件到前端
+        # ⚠️ 性能关键：前端并不消费 execution:variable_update 事件（仅执行结束后保存全局变量）。
+        # 在密集循环工作流中，每次 set_variable 都 emit 会产生成千上万条无人接收的消息，
+        # 把 WebSocket 通道和后端发送队列灌满，导致真正有用的日志/数据行被挤到工作流结束
+        # 才一次性送达（日志不实时的根因）。这里做节流：每个工作流最多每 200ms 发一条，
+        # 其余直接丢弃（不影响功能，执行结束会统一保存全局变量）。
+        import time as _t
+        now = _t.monotonic()
+        last = _var_update_last_emit.get(workflow_id, 0.0)
+        if now - last < 0.2:
+            return
+        _var_update_last_emit[workflow_id] = now
+
         # 获取变量类型
         var_type = 'null'
         if value is not None:
