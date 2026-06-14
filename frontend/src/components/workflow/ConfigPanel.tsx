@@ -1225,6 +1225,9 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
       case 'ai_summarize':
       case 'ai_translate':
       case 'ai_sentiment':
+      case 'ai_normalize':
+      case 'ai_dedup_semantic':
+      case 'ai_route':
         return <AITaskConfig moduleType={String(nodeData.moduleType)} data={nodeData} onChange={handleChange} />
       case 'ai_vision':
         return <AIVisionConfig {...props} />

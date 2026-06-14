@@ -260,6 +260,9 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
         "ai_summarize": "AI 文本摘要（长文压缩）",
         "ai_translate": "AI 翻译（任意目标语言）",
         "ai_sentiment": "AI 情感分析（正面/负面/中性+置信度）",
+        "ai_normalize": "AI 数据规整（日期/金额/电话/地址统一格式）",
+        "ai_dedup_semantic": "AI 语义去重（合并含义相同的项）",
+        "ai_route": "AI 智能路由（按内容选择分支，给工作流判断力）",
         "ai_smart_scraper": "AI 智能爬虫（自然语言提取网页数据）",
         "ai_element_selector": "AI 自动定位网页元素",
         "ai_generate_image": "AI 生成图片",
@@ -1894,6 +1897,32 @@ client_action(action="get_node_runtime_errors")  # 看哪些节点报错
 - 重新自测，直到全绿
 
 只有日志显示**所有节点都成功执行**才算搭建完成。
+
+#### 🔁 自愈循环协议（Self-Healing Loop —— 必须自动执行，别把报错甩给用户）
+运行失败时，**自己进入下面的有界循环，自动诊断并修复，不要一报错就停下来问用户**：
+
+```
+attempt = 1
+while attempt <= 3:
+    run_workflow            # client_action 运行
+    sleep(seconds=5~10)     # 用 sleep skill 真实等待跑完
+    heal = auto_heal_workflow()         # 【一键诊断】聚合失败节点 + 生成可执行修复清单
+    if heal.healthy:  →  全绿，跳出循环，向用户报成功
+    else:
+        对 heal.fixes 里的每个失败节点，按它的 fix_actions 逐条执行：
+          - selector_not_found → probe_page / suggest_selector 重探，再 update_node_config 换 selector
+          - timeout            → update_node_config 调大 timeout，或前面插 wait_element；或 apply_robustness_to_node 加重试
+          - missing_key        → get_node_io_snapshot 看真实产出结构，修正取值路径
+          - 必填字段缺失       → get_module_schema 拿默认值后 update_node_config 补上
+          - auth_failed/文件不存在 → 这类需要用户提供信息的，才向用户精准反问
+        attempt += 1
+# 循环 3 轮仍未全绿 → 把 auto_heal_workflow 的诊断结论 + 已尝试的修复，清晰报告给用户
+```
+
+**要点**：
+- 失败后**默认自己修**（selector 重探、超时/重试、字段补全、取值路径修正这些都能自动搞定），只有"需要用户才知道的信息"（账号密码、下载到哪、用哪个文件）才反问。
+- 每轮修复后**必须重跑验证**，不要改完就宣布成功。
+- `auto_heal_workflow` 是自愈核心：一次调用就拿到所有失败节点的结构化修复计划，照着做即可。
 
 ### 3.8 给用户结果（标准报告格式）
 

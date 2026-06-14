@@ -643,6 +643,9 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   ai_summarize: 'AI文本摘要',
   ai_translate: 'AI翻译',
   ai_sentiment: 'AI情感分析',
+  ai_normalize: 'AI数据规整',
+  ai_dedup_semantic: 'AI语义去重',
+  ai_route: 'AI智能路由',
   ai_element_selector: 'AI元素选择器 (实验性)',
   firecrawl_scrape: 'AI单页数据抓取',
   firecrawl_map: 'AI网站链接抓取',
@@ -948,6 +951,9 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   ai_summarize: 180,
   ai_translate: 180,
   ai_sentiment: 90,
+  ai_normalize: 90,
+  ai_dedup_semantic: 180,
+  ai_route: 90,
   ai_smart_scraper: 300,    // 5分钟，AI智能爬虫需要更长时间
   ai_element_selector: 120, // 2分钟，AI元素选择器
   firecrawl_scrape: 60,     // 1分钟
@@ -1372,7 +1378,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         systemPrompt: globalConfig.ai.systemPrompt,
         resultVariable: 'ai_response',
       }
-    } else if (type === 'ai_extract' || type === 'ai_classify' || type === 'ai_summarize' || type === 'ai_translate' || type === 'ai_sentiment') {
+    } else if (type === 'ai_extract' || type === 'ai_classify' || type === 'ai_summarize' || type === 'ai_translate' || type === 'ai_sentiment' || type === 'ai_normalize' || type === 'ai_dedup_semantic' || type === 'ai_route') {
       // AI 数据处理任务：复用全局 AI 配置（接口/密钥/模型）
       const varName = {
         ai_extract: 'extracted_data',
@@ -1380,19 +1386,25 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         ai_summarize: 'summary',
         ai_translate: 'translation',
         ai_sentiment: 'sentiment',
+        ai_normalize: 'normalized',
+        ai_dedup_semantic: 'deduped_list',
+        ai_route: 'route',
       }[type] || 'ai_result'
+      const lowTemp = ['ai_extract', 'ai_classify', 'ai_sentiment', 'ai_normalize', 'ai_dedup_semantic', 'ai_route']
       defaultData = {
         apiUrl: globalConfig.ai.apiUrl,
         apiKey: globalConfig.ai.apiKey,
         model: globalConfig.ai.model,
-        temperature: type === 'ai_extract' || type === 'ai_classify' || type === 'ai_sentiment' ? 0.2 : 0.5,
+        temperature: lowTemp.includes(type) ? 0.2 : 0.5,
         maxTokens: globalConfig.ai.maxTokens,
-        inputText: '',
         variableName: varName,
+        ...(type === 'ai_dedup_semantic' ? { inputList: '' } : { inputText: '' }),
         ...(type === 'ai_classify' ? { categories: '' } : {}),
         ...(type === 'ai_extract' ? { fields: '' } : {}),
         ...(type === 'ai_summarize' ? { maxWords: 200, style: '' } : {}),
         ...(type === 'ai_translate' ? { targetLang: '英文' } : {}),
+        ...(type === 'ai_normalize' ? { normalizeType: 'date', targetFormat: '' } : {}),
+        ...(type === 'ai_route' ? { routes: '' } : {}),
       }
     } else if (type === 'ai_smart_scraper') {
       // AI智能爬虫模块默认配置

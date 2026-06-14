@@ -5407,6 +5407,30 @@ AI_TASK_SCHEMAS: dict = {
         "example": {"inputText": "{review}", "variableName": "sentiment"},
         "combo": "舆情/评论分析；后接 condition 按 {sentiment.sentiment} 分支",
     },
+    "ai_normalize": {
+        "required": ["inputText", "normalizeType"],
+        "optional": ["targetFormat", "variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"normalizeType": "date", "variableName": "normalized"},
+        "desc": {"inputText": "待规整的杂乱值", "normalizeType": "date/money/phone/number/name/address", "targetFormat": "自定义目标格式(可选)"},
+        "example": {"inputText": "{raw_date}", "normalizeType": "date", "variableName": "clean_date"},
+        "combo": "数据清洗：放在 foreach 里逐条规整后 table_add_row",
+    },
+    "ai_dedup_semantic": {
+        "required": ["inputList"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"variableName": "deduped_list"},
+        "desc": {"inputList": "待去重列表(数组变量或JSON数组,≤300项)", "variableName": "存储去重后数组"},
+        "example": {"inputList": "{items}", "variableName": "unique_items"},
+        "combo": "合并语义重复项；前接采集/读取产生的列表",
+    },
+    "ai_route": {
+        "required": ["inputText", "routes"],
+        "optional": ["variableName", "apiUrl", "apiKey", "model", "temperature", "maxTokens"],
+        "defaults": {"variableName": "route"},
+        "desc": {"inputText": "待判断内容", "routes": "分支选项：每行 名称:说明，或JSON {名称:说明}", "variableName": "存储命中的分支名"},
+        "example": {"inputText": "{user_msg}", "routes": "退款:要求退钱\\n咨询:询问信息\\n投诉:表达不满", "variableName": "route"},
+        "combo": "AI 判断力：后接 condition(leftValue={route}, operator=equals, rightValue=退款) 分流到不同处理分支",
+    },
 }
 
 _ALL_SCHEMAS.update(AI_TASK_SCHEMAS)

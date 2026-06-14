@@ -1144,16 +1144,30 @@ function AITaskApiBlock({ data, onChange }: { data: NodeData; onChange: (key: st
 export function AITaskConfig({ moduleType, data, onChange }: { moduleType: string; data: NodeData; onChange: (key: string, value: unknown) => void }) {
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
-        <Label htmlFor="inputText">输入文本</Label>
-        <VariableInput
-          multiline
-          rows={4}
-          value={(data.inputText as string) || ''}
-          onChange={(v) => onChange('inputText', v)}
-          placeholder="要处理的文本，支持 {变量名}（如 {data}、{ai_response}）"
-        />
-      </div>
+      {moduleType === 'ai_dedup_semantic' ? (
+        <div className="space-y-2">
+          <Label htmlFor="inputList">待去重列表</Label>
+          <VariableInput
+            multiline
+            rows={4}
+            value={(data.inputList as string) || ''}
+            onChange={(v) => onChange('inputList', v)}
+            placeholder='数组变量 {list} 或 JSON 数组 ["苹果手机","iPhone",...]（建议≤300项）'
+          />
+          <p className="text-xs text-muted-foreground">会合并语义相同但表达不同的项，保留首个；结果为去重后数组。</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="inputText">输入文本</Label>
+          <VariableInput
+            multiline
+            rows={4}
+            value={(data.inputText as string) || ''}
+            onChange={(v) => onChange('inputText', v)}
+            placeholder="要处理的文本，支持 {变量名}（如 {data}、{ai_response}）"
+          />
+        </div>
+      )}
 
       {moduleType === 'ai_extract' && (
         <div className="space-y-2">
@@ -1210,6 +1224,47 @@ export function AITaskConfig({ moduleType, data, onChange }: { moduleType: strin
             onChange={(v) => onChange('targetLang', v)}
             placeholder="如 英文 / 日文 / 法文 / 中文"
           />
+        </div>
+      )}
+
+      {moduleType === 'ai_normalize' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="normalizeType">规整类型</Label>
+            <Select
+              value={(data.normalizeType as string) || 'date'}
+              onChange={(e) => onChange('normalizeType', e.target.value)}
+            >
+              <option value="date">日期/时间 → 标准格式</option>
+              <option value="money">金额 → 纯数字</option>
+              <option value="phone">电话 → 标准格式</option>
+              <option value="number">数值 → 纯数字</option>
+              <option value="name">人名规整</option>
+              <option value="address">地址规整</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="targetFormat">自定义目标格式（可选）</Label>
+            <VariableInput
+              value={(data.targetFormat as string) || ''}
+              onChange={(v) => onChange('targetFormat', v)}
+              placeholder="如 YYYY-MM-DD HH:mm:ss；留空用该类型默认格式"
+            />
+          </div>
+        </>
+      )}
+
+      {moduleType === 'ai_route' && (
+        <div className="space-y-2">
+          <Label htmlFor="routes">分支选项</Label>
+          <VariableInput
+            multiline
+            rows={4}
+            value={(data.routes as string) || ''}
+            onChange={(v) => onChange('routes', v)}
+            placeholder={'每行一个，名称:说明，例如\n退款:用户要求退钱\n咨询:用户询问信息\n投诉:用户表达不满'}
+          />
+          <p className="text-xs text-muted-foreground">结果为命中的分支名（字符串）；后接「条件分支」按它路由。</p>
         </div>
       )}
 

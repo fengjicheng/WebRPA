@@ -838,3 +838,95 @@ def _register_v2() -> None:
 
 
 _register_v2()
+
+
+# =============================================================================
+# 工作流自愈：一次性诊断 + 生成可执行的修复计划（配合知识库中的"自愈循环协议"）
+# =============================================================================
+
+async def skill_auto_heal_workflow(workflow_id: str | None = None, **_: Any) -> dict[str, Any]:
+    """聚合最近一次执行的失败诊断，并为每个失败节点生成"可直接执行的修复动作清单"。
+
+    返回结构（AI 拿到后按 fix_actions 逐条执行，再重跑）：
+    {
+      healthy: bool,            # True 表示没有失败，无需修复
+      failed_count: int,
+      attempts_hint: "最多自动重试 3 轮",
+      fixes: [
+        { node_id, module_type, error, kind, suggestion,
+          required_fields: [...],        # 该模块必填字段（来自 schema）
+          fix_actions: [ "具体该做什么" ] }
+      ]
+    }
+    """
+    diag = await skill_find_failed_nodes_with_reason(workflow_id=workflow_id)
+    if diag.get('error'):
+        return diag
+    failures = diag.get('failures', []) or []
+    if not failures:
+        return {
+            'healthy': True,
+            'failed_count': 0,
+            'message': '最近一次执行没有失败节点，无需修复。',
+        }
+
+    fixes: list[dict[str, Any]] = []
+    for f in failures:
+        mtype = f.get('module_type') or ''
+        kind = f.get('kind') or 'unknown'
+        schema = get_module_schema(mtype) or {}
+        required = schema.get('required', []) if isinstance(schema, dict) else []
+        actions: list[str] = []
+        if kind == 'selector_not_found':
+            actions.append("调 probe_page(url=该页面) 或 suggest_selector(target_description=...) 拿到真实 selector")
+            actions.append(f"client_action(update_node_config, node_id={f.get('node_id')}, config={{'selector': '<真实selector>'}})")
+        elif kind == 'timeout':
+            actions.append(f"client_action(update_node_config, node_id={f.get('node_id')}, config={{'timeout': 60}})，或在该节点前插入 wait_element/wait_page_load")
+            actions.append(f"或 apply_robustness_to_node(node_id={f.get('node_id')}) 加重试+超时后用 update_node_config 应用")
+        elif kind == 'auth_failed':
+            actions.append("提醒用户去全局配置补 API Key/Token/Cookie；或检查节点里的密钥字段")
+        elif kind == 'file_not_found':
+            actions.append("确认文件路径是否正确；必要时先创建/上传文件，再 update_node_config 修正路径字段")
+        elif kind == 'url_not_found':
+            actions.append("核对 URL 是否正确/资源是否还在；用 fetch_page_html 或 http_get 验证可达性")
+        elif kind == 'missing_key':
+            actions.append("用 get_node_io_snapshot 看上一步真实产出结构，修正取值路径（如 {data.items} → {data.list}）")
+        elif kind == 'encoding':
+            actions.append(f"client_action(update_node_config, node_id={f.get('node_id')}, config={{'encoding': 'utf-8'}})")
+        else:
+            actions.append(f"用 get_node_io_snapshot(node_id={f.get('node_id')}) 看输入输出定位原因，再针对性 update_node_config")
+        if required:
+            actions.append(f"确认必填字段已填：{', '.join(required)}（可 get_module_schema 看默认值）")
+        fixes.append({
+            'node_id': f.get('node_id'),
+            'module_type': mtype,
+            'error': f.get('error'),
+            'kind': kind,
+            'suggestion': f.get('suggestion'),
+            'required_fields': required,
+            'fix_actions': actions,
+        })
+
+    return {
+        'healthy': False,
+        'failed_count': len(fixes),
+        'attempts_hint': '按 fix_actions 逐条修复后重跑；最多自动重试 3 轮，仍失败再向用户报告。',
+        'fixes': fixes,
+    }
+
+
+registry.register(Skill(
+    name='auto_heal_workflow',
+    description=(
+        '【工作流自愈】聚合最近一次运行的失败诊断，为每个失败节点生成"可直接执行的修复动作清单"'
+        '（含 selector 重探、超时/重试、必填字段补全、取值路径修正等）。'
+        '运行工作流失败后调用本技能拿到修复计划，逐条执行后重跑——这是自愈循环的核心。'
+    ),
+    parameters={
+        'type': 'object',
+        'properties': {
+            'workflow_id': {'type': 'string', 'description': '可选，默认用最近一次执行'},
+        },
+    },
+    handler=skill_auto_heal_workflow,
+))

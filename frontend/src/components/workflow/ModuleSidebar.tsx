@@ -365,6 +365,9 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   ai_summarize: FileText,
   ai_translate: Type,
   ai_sentiment: Sparkles,
+  ai_normalize: Eraser,
+  ai_dedup_semantic: Filter,
+  ai_route: GitBranch,
   ai_smart_scraper: Bot,
   ai_element_selector: Crosshair,
   firecrawl_scrape: Globe,
@@ -1102,6 +1105,9 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   ai_summarize: ['ai', '摘要', '总结', '概括', 'summary', 'summarize', '提炼'],
   ai_translate: ['ai', '翻译', 'translate', '中译英', '英译中', '多语言', '语言'],
   ai_sentiment: ['ai', '情感', '情绪', '舆情', 'sentiment', '正面', '负面', '好评', '差评'],
+  ai_normalize: ['ai', '规整', '清洗', '标准化', 'normalize', '日期', '金额', '电话', '格式', '统一'],
+  ai_dedup_semantic: ['ai', '去重', '语义去重', 'dedup', '重复', '合并', '相似'],
+  ai_route: ['ai', '路由', '分流', '判断', 'route', '决策', '分支', '意图', '智能'],
   ai_smart_scraper: ['ai', '智能', '爬虫', '抓取', '提取', 'scraper', '数据', '网页', '自然语言', '自适应', '结构变化', 'scrapegraph'],
   ai_element_selector: ['ai', '智能', '元素', '选择器', 'selector', '查找', '定位', '自然语言', '自适应', '结构变化', 'scrapegraph'],
   firecrawl_scrape: ['ai', '单页', '抓取', '数据', 'firecrawl', 'scrape', '网页', '智能', '提取', '爬虫', '采集'],
@@ -1614,7 +1620,7 @@ const moduleCategories = [
   {
     name: 'AI数据处理',
     color: 'bg-indigo-700',
-    modules: ['ai_extract', 'ai_classify', 'ai_summarize', 'ai_translate', 'ai_sentiment'] as ModuleType[],
+    modules: ['ai_extract', 'ai_classify', 'ai_summarize', 'ai_translate', 'ai_sentiment', 'ai_normalize', 'ai_dedup_semantic', 'ai_route'] as ModuleType[],
   },
   {
     name: 'AI生成',
