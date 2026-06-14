@@ -12,6 +12,7 @@ const colorClassMap: Record<string, string> = {
   'bg-blue-800': 'border-blue-800 bg-blue-100 text-blue-900',
   'bg-indigo-500': 'border-indigo-500 bg-indigo-100 text-indigo-900',
   'bg-indigo-600': 'border-indigo-600 bg-indigo-100 text-indigo-900',
+  'bg-indigo-700': 'border-indigo-700 bg-indigo-100 text-indigo-900',
   'bg-indigo-800': 'border-indigo-800 bg-indigo-100 text-indigo-900',
   'bg-purple-500': 'border-purple-500 bg-purple-100 text-purple-900',
   'bg-purple-600': 'border-purple-600 bg-purple-100 text-purple-900',

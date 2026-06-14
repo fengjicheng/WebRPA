@@ -1,39 +1,8 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { getModuleDefaultVar, VARIABLE_NAME_FIELDS } from '@/lib/moduleDefaultVars'
 import type { Variable } from '@/types'
-
-// 从节点配置中提取变量名的字段列表
-const VARIABLE_NAME_FIELDS = [
-  'variableName',      // 通用存储变量名
-  'itemVariable',      // 遍历列表的项变量
-  'indexVariable',     // 循环索引变量
-  'resultVariable',    // 结果变量
-  'outputVariable',    // 输出变量
-  'variableNameX',     // X坐标变量名
-  'variableNameY',     // Y坐标变量名
-  'listVariable',      // 列表变量名
-  'dictVariable',      // 字典变量名
-  'tableVariable',     // 表格变量名
-  'imageVariable',     // 图片变量名
-  'textVariable',      // 文本变量名
-  'urlVariable',       // URL变量名
-  'fileVariable',      // 文件变量名
-  'dataVariable',      // 数据变量名
-  'responseVariable',  // 响应变量名
-  'cookieVariable',    // Cookie变量名
-  'headerVariable',    // Header变量名
-  'bodyVariable',      // Body变量名
-  'statusVariable',    // 状态变量名
-  'errorVariable',     // 错误变量名
-  'countVariable',     // 计数变量名
-  'sumVariable',       // 求和变量名
-  'avgVariable',       // 平均值变量名
-  'maxVariable',       // 最大值变量名
-  'minVariable',       // 最小值变量名
-  'connectionVariable', // 数据库连接变量名
-  'shareVariable',     // 共享变量名
-]
 
 export interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
   value: number | string
@@ -86,12 +55,16 @@ const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       nodes.forEach(node => {
         const data = node.data as Record<string, unknown>
         
+        const moduleType = data.moduleType as string
         VARIABLE_NAME_FIELDS.forEach(field => {
-          const varName = data[field]
+          let varName = data[field] as string | undefined
+          // 如果字段没有值，尝试用集中表里的默认变量名（识别模块创建时即内置的变量）
+          if (!varName || !varName.trim()) {
+            varName = getModuleDefaultVar(moduleType, field)
+          }
           if (typeof varName === 'string' && varName.trim() && !variableMap.has(varName)) {
             // 根据模块类型推断变量类型
             let varType: Variable['type'] = 'string'
-            const moduleType = data.moduleType as string
             
             // 推断变量类型
             if (moduleType === 'foreach' && field === 'indexVariable') {
