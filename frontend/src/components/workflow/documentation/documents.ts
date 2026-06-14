@@ -82,7 +82,7 @@ export const documents: DocumentItem[] = [
     id: 'excel-guide',
     title: '📑 Excel与数据表格',
     icon: FileSpreadsheet,
-    description: 'Excel读取与数据采集',
+    description: 'Excel读写、openpyxl全套自动化、WPS操作',
   },
   {
     id: 'database-guide',
