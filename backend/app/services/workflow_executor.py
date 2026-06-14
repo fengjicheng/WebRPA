@@ -416,8 +416,8 @@ class WorkflowExecutor:
             await asyncio.sleep(0)
     
     async def _send_data_row(self, row_data: dict):
-        """发送数据行到前端（实时预览上限，与前端数据表格展示上限保持一致）"""
-        MAX_PREVIEW_ROWS = 100
+        """发送数据行到前端（实时推送，全量；上限仅作内存安全阀）"""
+        MAX_PREVIEW_ROWS = 100000
         if self._sent_data_rows_count >= MAX_PREVIEW_ROWS:
             return
         if self.on_data_row:

@@ -57,6 +57,11 @@ execution_data: dict[str, list[dict]] = {}
 variable_tracking_store: dict[str, list[dict]] = {}  # 存储变量追踪记录
 # 变量更新事件节流时间戳（每个工作流最近一次 emit 的单调时钟），避免高频变量更新灌满 WebSocket
 _var_update_last_emit: dict[str, float] = {}
+# 数据行批量推送队列：密集工作流可能每秒产生大量数据行，逐条 emit 会灌满 WebSocket，
+# 这里合并成批（每满 N 条或定时）一次性推送，前端用虚拟滚动渲染，全量且不卡顿。
+data_row_batch_queue: dict[str, list[dict]] = {}
+data_row_batch_lock = asyncio.Lock()
+DATA_ROW_BATCH_SIZE = 100
 
 # ===== 完整收集数据的磁盘持久化 =====
 # 内存里的 execution_data 只保留最近 10 次执行（LRU），且服务重启后会丢失。
@@ -173,6 +178,21 @@ async def flush_log_batch_for_workflow(workflow_id: str):
         # 清理任务
         if workflow_id in log_batch_tasks:
             del log_batch_tasks[workflow_id]
+
+
+async def flush_data_rows(workflow_id: str):
+    """把累积的数据行一次性批量推送到前端（execution:data_row_batch）。"""
+    if sio is None:
+        return
+    async with data_row_batch_lock:
+        rows = data_row_batch_queue.get(workflow_id)
+        if not rows:
+            return
+        data_row_batch_queue[workflow_id] = []
+    await sio.emit('execution:data_row_batch', {
+        'workflowId': workflow_id,
+        'rows': rows,
+    })
 global_variables: dict[str, Any] = {}
 
 
@@ -467,10 +487,14 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
         })
     
     async def on_data_row(row: dict):
-        await sio.emit('execution:data_row', {
-            'workflowId': workflow_id,
-            'row': row,
-        })
+        # 批量推送：累积到 DATA_ROW_BATCH_SIZE 条就发一批，避免逐条 emit 灌满 WebSocket。
+        # 不足一批的尾部行会在节点推进/工作流结束时被 flush（见 run_execution）。
+        async with data_row_batch_lock:
+            q = data_row_batch_queue.setdefault(workflow_id, [])
+            q.append(row)
+            should_flush = len(q) >= DATA_ROW_BATCH_SIZE
+        if should_flush:
+            await flush_data_rows(workflow_id)
     
     executor = WorkflowExecutor(
         workflow=workflow,
@@ -496,6 +520,16 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
     
     # 在后台执行
     async def run_execution():
+        # 数据行定时冲刷任务：每 200ms 把累积的数据行批量推送一次，
+        # 让数据表格在执行过程中平滑、实时地填充（配合前端虚拟滚动，上万条也不卡）。
+        async def _periodic_data_flush():
+            try:
+                while True:
+                    await asyncio.sleep(0.2)
+                    await flush_data_rows(workflow_id)
+            except asyncio.CancelledError:
+                return
+        data_flush_task = asyncio.create_task(_periodic_data_flush())
         try:
             await sio.emit('execution:started', {'workflowId': workflow_id})
             
@@ -529,10 +563,17 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
                 print(f"[run_execution] 保持浏览器打开（配置已禁用或未配置）")
             
             print(f"[run_execution] 发送 execution:completed 事件")
-            # 推送给前端用于"下载/预览"。把上限提到 5000，让前端能直接展示
-            # 实际写入的全部数据（绝大多数工作流都不超过这个量级）。
-            # 超出时仍然截断，避免单条 socket 消息过大被传输层丢弃；
-            # 用户依旧可通过 /workflows/{id}/data/full 接口拿到完整数据。
+            # 先把剩余未满一批的数据行冲刷干净，并停止定时冲刷任务，
+            # 保证前端在收到 completed 前已经流式拿到全部数据行。
+            try:
+                data_flush_task.cancel()
+            except Exception:
+                pass
+            await flush_data_rows(workflow_id)
+            # completed 仅作兜底同步：前端已通过 data_row_batch 流式收齐全部数据，
+            # 这里附带一份预览（封顶 5000，避免单条 socket 消息过大）；前端若已流式收到
+            # 更多行则不会被它截断（见前端 execution:completed 处理）。完整数据始终可通过
+            # /workflows/{id}/data/full 接口或落盘文件获取。
             collected_data_to_send = execution_data.get(workflow_id, [])
             full_total = len(collected_data_to_send)
             if full_total > 5000:
@@ -578,6 +619,18 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
             print(f"[run_execution] execution:completed 事件已发送（异常情况）")
         
         finally:
+            # 停止数据行定时冲刷任务并清理其队列（防止异常路径残留）
+            try:
+                data_flush_task.cancel()
+            except Exception:
+                pass
+            try:
+                async with data_row_batch_lock:
+                    data_row_batch_queue.pop(workflow_id, None)
+            except Exception:
+                pass
+            # 清理变量更新节流时间戳
+            _var_update_last_emit.pop(workflow_id, None)
             # 强制刷新本工作流剩余的批量日志（防止批量发送丢失）
             try:
                 async with log_batch_lock:

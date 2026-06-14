@@ -2719,10 +2719,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   addDataRow: (row) => {
-    // 实时预览上限。提升到 5000，覆盖绝大多数日常工作流，
-    // 让用户在底栏看到的条数 = 实际写入条数。
-    // 超过这个量级时再做截断，避免单页 DOM 过大。
-    const MAX_PREVIEW_ROWS = 5000
+    // 不再限制展示条数（全量交给虚拟滚动表格渲染）。
+    // 仅保留一个很高的安全上限，防止异常工作流（如死循环）生成天量数据撑爆浏览器内存。
+    const MAX_PREVIEW_ROWS = 100000
     const currentData = get().collectedData
     if (currentData.length < MAX_PREVIEW_ROWS) {
       set({ collectedData: [...currentData, row] })
@@ -2731,7 +2730,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   addDataRows: (rows) => {
     if (rows.length === 0) return
-    const MAX_PREVIEW_ROWS = 5000
+    const MAX_PREVIEW_ROWS = 100000
     const currentData = get().collectedData
     if (currentData.length >= MAX_PREVIEW_ROWS) return
     const remaining = MAX_PREVIEW_ROWS - currentData.length

@@ -151,8 +151,8 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     }
   }, [filteredLogs, activeTab])
 
-  // 数据预览展示控制：默认展示最多 100 条（最新）
-  const [dataDisplayLimit] = useState(100)
+  // 数据预览顺序：tail=跟随最新（自动滚到底部），head=停在最早
+  // 不再限制展示条数——全量交给虚拟滚动表格（DataTable 仅渲染可视行，上万条也不卡）
   const [dataDisplayMode] = useState<'tail' | 'head'>('tail')
 
   // 获取所有列名
@@ -160,21 +160,10 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
     new Set(collectedData.flatMap(row => Object.keys(row)))
   )
 
-  // 按展示条数 + 顶部/底部 截取要预览的数据（0 表示全部）
-  const displayedData = useMemo(() => {
-    if (dataDisplayLimit <= 0 || collectedData.length <= dataDisplayLimit) {
-      return collectedData
-    }
-    return dataDisplayMode === 'head'
-      ? collectedData.slice(0, dataDisplayLimit)
-      : collectedData.slice(-dataDisplayLimit)
-  }, [collectedData, dataDisplayLimit, dataDisplayMode])
-
-  // 展示数据相对原始数据的行偏移（用于编辑/删除时换算回真实索引）
-  const displayedRowOffset = useMemo(() => {
-    if (dataDisplayLimit <= 0 || collectedData.length <= dataDisplayLimit) return 0
-    return dataDisplayMode === 'head' ? 0 : collectedData.length - dataDisplayLimit
-  }, [collectedData.length, dataDisplayLimit, dataDisplayMode])
+  // 全量展示：直接把所有收集数据交给虚拟滚动表格，不再切片
+  const displayedData = collectedData
+  // 不再有偏移（展示索引 = 真实索引）
+  const displayedRowOffset = 0
 
   // 让 AI 诊断：收集最近错误/警告日志，喂给小助手自动分析修复
   const handleAIDiagnose = () => {
@@ -979,7 +968,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
                   data={displayedData}
                   columns={columns}
                   displayMode={dataDisplayMode}
-                  displayLimit={dataDisplayLimit}
+                  displayLimit={0}
                   onEdit={(rowIndex, col, value) => {
                     const realIndex = rowIndex + displayedRowOffset
                     updateDataRow(realIndex, { ...collectedData[realIndex], [col]: value })

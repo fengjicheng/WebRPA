@@ -608,10 +608,18 @@ class SocketService {
         store.setCurrentExecutionWorkflowId(data.workflowId)
       }
       
-      // 处理收集的数据（如果有）
+      // 处理收集的数据（兜底同步）
+      // 前端在执行期间已通过 execution:data_row / data_row_batch 流式收齐全部数据；
+      // completed 附带的 collectedData 仅作兜底（且后端封顶 5000）。若它的条数不超过
+      // 前端已有的，就不覆盖，避免把流式收到的更多数据截断。
       if (data.collectedData && data.collectedData.length > 0) {
-        console.log('[Socket] 收到收集的数据:', data.collectedData.length, '条')
-        store.setCollectedData(data.collectedData)
+        const current = store.collectedData?.length || 0
+        if (data.collectedData.length > current) {
+          console.log('[Socket] completed 同步数据:', data.collectedData.length, '条（当前', current, '）')
+          store.setCollectedData(data.collectedData)
+        } else {
+          console.log('[Socket] completed 数据(', data.collectedData.length, ')不多于已流式接收(', current, ')，保留现有不覆盖')
+        }
       }
       
       // 触发全局事件，通知所有组件执行已完成
@@ -631,16 +639,26 @@ class SocketService {
       console.log('[Socket] 前端状态已全部更新完成！')
     })
 
-    // 数据行收集 - 实时显示
+    // 数据行收集 - 实时显示（单条，兼容旧路径）
     this.socket.on('execution:data_row', (data: {
       workflowId: string
       row: Record<string, unknown>
     }) => {
       if (!isExecuting) return
       
-      console.log('[Socket] 收到数据行:', data.row)
       const store = useWorkflowStore.getState()
       store.addDataRow(data.row)
+    })
+
+    // 数据行收集 - 批量实时显示（高性能：后端合批推送，前端一次性入库，配合虚拟滚动表格）
+    this.socket.on('execution:data_row_batch', (data: {
+      workflowId: string
+      rows: Array<Record<string, unknown>>
+    }) => {
+      if (!isExecuting) return
+      if (!Array.isArray(data.rows) || data.rows.length === 0) return
+      const store = useWorkflowStore.getState()
+      store.addDataRows(data.rows)
     })
 
     // 执行停止
