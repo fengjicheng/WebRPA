@@ -206,7 +206,9 @@ export function AIAssistantPanel() {
                     nodes: built.nodes,
                     edges: built.edges,
                     animate: true,  // 启用可视化逐步搭建
-                  }).then(() => executeClientAction('fit_view', {}))
+                  })
+                    .then(() => executeClientAction('auto_layout', {}))  // ELKJS 分层布局
+                    .then(() => executeClientAction('fit_view', {}))
                 }
               }
             }
@@ -690,6 +692,7 @@ export function AIAssistantPanel() {
               nodes: built.nodes,
               edges: built.edges,
             })
+            await executeClientAction('auto_layout', {})  // ELKJS 分层布局
             await executeClientAction('fit_view', {})
           }
         }

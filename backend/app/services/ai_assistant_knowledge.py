@@ -1160,7 +1160,7 @@ run_workflow
    - 流程过长（>8 步）时把步骤分到不同 `section`（例如「准备阶段」「数据采集」「数据处理」「输出」），配合分组使用，避免一长串
    - 一行最多 8 个节点，超过会自动折回；优先靠 section 分行而不是堆在一起
    - 节点 `name` 务必用中文动词短语（例如「打开登录页」、「输入账号」），让用户一看就懂
-   - 生成完成后若发现画布凌乱，调 `client_action(auto_layout)` 一键拓扑重排，确保整洁规整
+   - 生成完成后系统会自动调用 ELKJS 分层布局整理画布；若仍觉得凌乱，可调 `client_action(auto_layout)` 基于 ELKJS 一键重排，确保整洁规整
    - **核心原则：宁可少便签 + 清晰分组，也不要满屏便签。布局必须规整、有呼吸感、一眼能看懂流程走向**
 4.5 **严禁虚构模块（极其重要）**：build_workflow 前必须确认每个 `module_type` 都真实存在于 WebRPA 内置模块清单中。
    - 不确定模块是否存在时，先调 `search_modules(...)` 或 `get_module_schema(module_types=[...])` 验证；schema 查不到就是不存在
@@ -1208,7 +1208,7 @@ client_action(action="get_workflow_detail")  # 拿到 nodes/edges/variables
 - 若是单点修复：`client_action(update_node_config, {node_id, config: {...}})`
 - 若是结构问题（缺节点/缺连线）：`client_action(add_nodes, ...)` 或 `connect_nodes` / `auto_connect_chain` / `connect_branches`
 - 若是用错模块（如该用 click_element 用成了 click_image）：`client_action(replace_module_type, {node_id, new_type})`
-- 若是画布乱了：`client_action(auto_layout)` 一键拓扑重排
+- 若是画布乱了：`client_action(auto_layout)` 基于 ELKJS 一键分层重排
 
 **修完一定要把改动总结给用户**：哪些字段补了什么默认值、哪个变量名拼错改成了什么。
 
