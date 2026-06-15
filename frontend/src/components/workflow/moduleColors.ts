@@ -2,7 +2,6 @@
  * 模块颜色映射 - 自动从 moduleCategories 派生
  * 确保画布中模块节点的颜色与其所在分类颜色一致
  */
-import type { ModuleType } from '@/types/modules'
 
 // Tailwind bg-xxx-500 类名 → 对应的 border + bg + text 类名映射
 // 分类的 color 字段格式为 'bg-{color}-{shade}'，我们从中提取颜色名和色阶

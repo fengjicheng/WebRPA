@@ -16,7 +16,7 @@ import type { ModuleType } from '@/types'
 import {
   parseGraphToBlocks, generateGraphFromBlocks, createBlock,
   insertAfter, insertBefore, insertIntoContainer, removeBlock, moveBlock, moveBlockTo,
-  CONDITION_TYPES, LOOP_TYPES, type Block,
+  type Block,
 } from './blockFlowModel'
 
 // 插入目标：在某 block 之前/之后，或插入某容器的分支/循环体

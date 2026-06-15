@@ -107,7 +107,7 @@ const VariableInput = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, V
               value: undefined,
               type: varType,
               scope: 'local',
-              description: `来自「${(data.name as string) || moduleTypeLabels[moduleType] || moduleType}」`,
+              description: `来自「${(data.name as string) || moduleTypeLabels[moduleType as keyof typeof moduleTypeLabels] || moduleType}」`,
             })
           }
         })

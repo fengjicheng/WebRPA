@@ -461,7 +461,7 @@ export function AIAssistantPanel() {
   // 添加一个文档类附件：调用后端提取为文本
   async function addDocFile(file: File) {
     const id = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    setAttachedDocs((prev) => [...prev, { id, name: file.name, text: '', status: 'loading' }].slice(-8))
+    setAttachedDocs((prev) => [...prev, { id, name: file.name, text: '', status: 'loading' as const }].slice(-8))
     try {
       const dataUrl = await fileToBase64(file)
       const res = await aiAssistantApi.extractFile(file.name, dataUrl)

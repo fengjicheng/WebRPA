@@ -313,7 +313,7 @@ export function LogPanel({ onLogClick }: LogPanelProps) {
       }
       const ok = await confirm(
         `已从本地预览缓存读取到 ${collectedData.length} 条数据，将全部导出。\n（如需更完整的历史数据，请在执行结束后立即下载）`,
-        { title: '导出本地数据', type: 'info', confirmText: '导出' },
+        { title: '导出本地数据', type: 'confirm', confirmText: '导出' },
       )
       if (!ok) return
       downloadCsv(collectedData, columns)

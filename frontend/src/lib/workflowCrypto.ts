@@ -32,7 +32,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   const enc = new TextEncoder()
   const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: 150000, hash: 'SHA-256' },
     baseKey,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -46,7 +46,7 @@ export async function encryptWorkflow(jsonStr: string, password: string, name?: 
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const key = await deriveKey(password, salt)
   const enc = new TextEncoder()
-  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(jsonStr))
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv as BufferSource }, key, enc.encode(jsonStr) as BufferSource)
   return {
     __webrpa_encrypted: ENC_MAGIC,
     version: ENC_VERSION,
@@ -67,6 +67,6 @@ export async function decryptWorkflow(env: EncryptedEnvelope, password: string):
   const salt = b64ToBuf(env.salt)
   const iv = b64ToBuf(env.iv)
   const key = await deriveKey(password, salt)
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, b64ToBuf(env.data))
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as BufferSource }, key, b64ToBuf(env.data) as BufferSource)
   return new TextDecoder().decode(plain)
 }
