@@ -5,8 +5,8 @@
 WebRPA - 网页机器人流程自动化工具
 </h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/版本-2.0.0-blue.svg" alt="版本">
-  <img src="https://img.shields.io/badge/模块数量-544个-brightgreen.svg" alt="模块数量">
+  <img src="https://img.shields.io/badge/版本-2.1.0-blue.svg" alt="版本">
+  <img src="https://img.shields.io/badge/模块数量-540个-brightgreen.svg" alt="模块数量">
   <img src="https://img.shields.io/badge/协议-AGPL--3.0%20%2B%20商业授权-green.svg" alt="协议">
   <img src="https://img.shields.io/badge/作者-青云制作__彭明航-orange.svg" alt="作者">
   <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python">
@@ -157,7 +157,7 @@ WebRPA/
 ├── backend/                 # 后端服务 (Python FastAPI)
 │   ├── app/
 │   │   ├── api/            # API 路由（浏览器、系统、触发器等）
-│   │   ├── executors/      # 模块执行器（544个模块的核心逻辑）
+│   │   ├── executors/      # 模块执行器（540个模块的核心逻辑）
 │   │   ├── models/         # 数据模型（工作流、变量、配置等）
 │   │   └── services/       # 核心服务（浏览器管理、任务调度等）
 │   ├── data/               # 数据文件（AI模型、配置等）
