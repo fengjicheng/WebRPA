@@ -4,6 +4,7 @@ import type { Node, Edge, Connection, NodeChange, EdgeChange } from '@xyflow/rea
 import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
 import type { ModuleType, Variable, LogEntry, ExecutionStatus, ModuleConfig, DataAsset, ImageAsset } from '@/types'
 import { useGlobalConfigStore } from './globalConfigStore'
+import { layoutGraph } from '@/lib/elkLayout'
 
 // ============================================================================
 // 全局节点/边 sanitizer：保证写入 react-flow 的数据永远不会让 react-flow 崩
@@ -240,6 +241,8 @@ interface WorkflowState {
   
   // 节点对齐
   alignNodes: (type: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom' | 'distribute-horizontal' | 'distribute-vertical') => void
+  // 基于 ELKJS 的整体智能排版（自动布局）
+  autoLayoutNodes: (options?: { direction?: 'DOWN' | 'RIGHT' }) => Promise<{ ok: boolean; error?: string }>
 }
 
 // 模块类型到标签的映射
@@ -3353,5 +3356,39 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     
     set({ nodes: updatedNodes })
     get().markAsUnsaved()
+  },
+
+  autoLayoutNodes: async (options) => {
+    const nodes = get().nodes
+    const edges = get().edges
+    if (!nodes.length) {
+      return { ok: false, error: '画布上没有节点' }
+    }
+    try {
+      const { positions } = await layoutGraph(
+        nodes.map((n) => ({
+          id: n.id,
+          // react-flow 量测到的真实尺寸（缺失时由布局服务回退默认值）
+          width: (n as any).width || (n as any).measured?.width,
+          height: (n as any).height || (n as any).measured?.height,
+        })),
+        edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+        { direction: options?.direction || 'DOWN' },
+      )
+      if (!positions || Object.keys(positions).length === 0) {
+        return { ok: false, error: '自动排版失败：未得到有效布局' }
+      }
+      // 先存历史（布局之前），使 Ctrl+Z 可撤销
+      get().pushHistory()
+      const updated = get().nodes.map((n) =>
+        positions[n.id] ? { ...n, position: { x: positions[n.id].x, y: positions[n.id].y } } : n,
+      )
+      set({ nodes: updated })
+      get().markAsUnsaved()
+      return { ok: true }
+    } catch (e: any) {
+      // 失败/超时：不改动 nodes，交由调用方提示
+      return { ok: false, error: e?.message || '自动排版失败' }
+    }
   },
 }))

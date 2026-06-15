@@ -24,7 +24,7 @@ import { ScreensaverDialog } from './ScreensaverDialog'
 import { ScreenshotNameDialog, ScreenshotErrorDialog } from './ScreenshotNameDialog'
 import { useClipboardImageMonitor } from '@/hooks/useClipboardImageMonitor'
 import { customModulesApi } from '@/services/api'
-import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
+import { onAssistantUiEvent, emitAssistantUiEvent } from '@/services/aiAssistantSkills'
 import {
   Play,
   Square,
@@ -84,6 +84,7 @@ export function Toolbar() {
   const [clipboardImageInfo, setClipboardImageInfo] = useState<{width: number, height: number} | null>(null)
   const [editingCustomModuleId, setEditingCustomModuleId] = useState<string | null>(null)
   const [editingCustomModuleName, setEditingCustomModuleName] = useState<string>('')
+  const [isAutoLayouting, setIsAutoLayouting] = useState(false)
   const { confirm, ConfirmDialog } = useConfirm()
   const { promptPassword, passwordDialog } = usePasswordPrompt()
   
@@ -119,6 +120,7 @@ export function Toolbar() {
   const setBottomPanelTab = useWorkflowStore((state) => state.setBottomPanelTab)
   const markAsSaved = useWorkflowStore((state) => state.markAsSaved)
   const alignNodes = useWorkflowStore((state) => state.alignNodes)
+  const autoLayoutNodes = useWorkflowStore((state) => state.autoLayoutNodes)
 
   const isRunning = executionStatus === 'running'
 
@@ -422,6 +424,29 @@ export function Toolbar() {
     setWorkflowId(null)
     addLog({ level: 'info', message: '已创建新工作流' })
   }, [clearWorkflow, addLog])
+
+  // 智能整理（基于 ELKJS 的自动排版）
+  const handleAutoLayout = useCallback(async () => {
+    if (nodes.length === 0) {
+      addLog({ level: 'warning', message: '画布上没有节点' })
+      return
+    }
+    if (isAutoLayouting) return
+    setIsAutoLayouting(true)
+    try {
+      const res = await autoLayoutNodes({ direction: 'DOWN' })
+      if (res.ok) {
+        emitAssistantUiEvent('fit_view', {})
+        addLog({ level: 'success', message: '已智能整理画布布局' })
+      } else {
+        addLog({ level: 'error', message: `自动排版失败：${res.error || '未知错误'}` })
+      }
+    } catch (e) {
+      addLog({ level: 'error', message: `自动排版失败：${e}` })
+    } finally {
+      setIsAutoLayouting(false)
+    }
+  }, [nodes.length, isAutoLayouting, autoLayoutNodes, addLog])
 
   // 自动保存逻辑
   useEffect(() => {
@@ -1359,6 +1384,11 @@ export function Toolbar() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-40">
           <DropdownMenuLabel>节点对齐</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleAutoLayout} disabled={isAutoLayouting}>
+            <Sparkles className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
+            {isAutoLayouting ? '整理中…' : '智能整理'}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => alignNodes('left')}>
             <AlignLeft className="w-4 h-4 mr-2" />

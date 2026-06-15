@@ -514,73 +514,19 @@ export async function executeClientAction(
       }
 
       case 'auto_layout': {
-        // 自动重排画布：按依赖顺序拓扑排序，从左到右，每行最多 8 个
+        // 自动重排画布：改用统一的 ELKJS 布局服务（分层、无重叠、走线清晰）
         const s = useWorkflowStore.getState()
-        const nodes = s.nodes
-        const edges = s.edges
-        if (!nodes.length) return { success: false, error: '画布上没有节点' }
-
-        // 拓扑排序（Kahn）
-        const inDegree: Record<string, number> = {}
-        const adj: Record<string, string[]> = {}
-        for (const n of nodes) {
-          inDegree[n.id] = 0
-          adj[n.id] = []
+        const nodeCount = s.nodes.length
+        if (!nodeCount) return { success: false, error: '画布上没有节点' }
+        const res = await s.autoLayoutNodes({ direction: 'DOWN' })
+        if (!res.ok) {
+          return { success: false, error: res.error || '自动排版失败' }
         }
-        for (const e of edges) {
-          if (inDegree[e.target] != null) inDegree[e.target]++
-          adj[e.source]?.push(e.target)
-        }
-        const layers: string[][] = []
-        let queue = nodes.filter((n: any) => inDegree[n.id] === 0).map((n: any) => n.id)
-        while (queue.length > 0) {
-          layers.push(queue)
-          const next: string[] = []
-          for (const id of queue) {
-            for (const t of adj[id] || []) {
-              inDegree[t]--
-              if (inDegree[t] === 0) next.push(t)
-            }
-          }
-          queue = next
-        }
-        // 把没排上的节点（环）放到最后一层
-        const placed = new Set<string>(layers.flat())
-        const orphans = nodes.filter((n: any) => !placed.has(n.id)).map((n: any) => n.id)
-        if (orphans.length) layers.push(orphans)
-
-        // 计算每个节点的位置
-        const NODE_W = 220
-        const NODE_H = 80
-        const GAP_X = 40
-        const GAP_Y = 60
-        const MAX_PER_ROW = 8
-        const positions: Record<string, { x: number; y: number }> = {}
-        let curY = 80
-        for (const layer of layers) {
-          // 一层超过 8 个分多行
-          for (let i = 0; i < layer.length; i++) {
-            const id = layer[i]
-            const col = i % MAX_PER_ROW
-            const row = Math.floor(i / MAX_PER_ROW)
-            positions[id] = {
-              x: 80 + col * (NODE_W + GAP_X),
-              y: curY + row * (NODE_H + GAP_Y),
-            }
-          }
-          const rowsInLayer = Math.ceil(layer.length / MAX_PER_ROW)
-          curY += rowsInLayer * (NODE_H + GAP_Y) + 40
-        }
-
-        // 应用新位置
-        useWorkflowStore.setState({
-          nodes: nodes.map((n: any) => (positions[n.id] ? { ...n, position: positions[n.id] } : n)),
-        } as any)
         emitAssistantUiEvent('fit_view', {})
         return {
           success: true,
-          message: `已自动排版：${layers.length} 层，${nodes.length} 个节点`,
-          data: { layers: layers.length, nodes: nodes.length },
+          message: `已自动排版：${nodeCount} 个节点`,
+          data: { nodes: nodeCount },
         }
       }
 

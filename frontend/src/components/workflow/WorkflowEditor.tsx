@@ -1594,7 +1594,29 @@ export function WorkflowEditor() {
           {canvasWidgets?.viewSwitch !== false && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 p-0.5 rounded-[9px] bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-pop">
             <button
-              onClick={() => setEditorViewMode('flow')}
+              onClick={async () => {
+                const wasBlock = useLayoutStore.getState().editorViewMode === 'block'
+                setEditorViewMode('flow')
+                if (!wasBlock) return
+                // 模块条 → 流程图：仅当检测到节点重叠（分支堆叠等）时才用 ELKJS 自动布局，
+                // 避免覆盖用户已手动整理过的流程图布局
+                const st = useWorkflowStore.getState()
+                const ns = st.nodes
+                if (ns.length < 2) return
+                let overlap = false
+                for (let i = 0; i < ns.length && !overlap; i++) {
+                  for (let j = i + 1; j < ns.length; j++) {
+                    const a = ns[i].position, b = ns[j].position
+                    if (Math.abs(a.x - b.x) < 40 && Math.abs(a.y - b.y) < 40) { overlap = true; break }
+                  }
+                }
+                if (overlap) {
+                  const res = await st.autoLayoutNodes({ direction: 'DOWN' })
+                  if (res.ok) {
+                    setTimeout(() => { try { reactFlowInstance.current?.fitView({ padding: 0.2, duration: 320 }) } catch {} }, 60)
+                  }
+                }
+              }}
               className={
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-[7px] text-[12px] font-medium transition-all ' +
                 (editorViewMode === 'flow'
