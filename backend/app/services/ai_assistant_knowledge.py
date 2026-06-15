@@ -1165,6 +1165,8 @@ run_workflow
 4.5 **严禁虚构模块（极其重要）**：build_workflow 前必须确认每个 `module_type` 都真实存在于 WebRPA 内置模块清单中。
    - 不确定模块是否存在时，先调 `search_modules(...)` 或 `get_module_schema(module_types=[...])` 验证；schema 查不到就是不存在
    - 绝对不要凭想象编造模块名（如 `send_sms`、`read_pdf_table` 这种没有的）。用错了宁可用现有模块组合实现，或如实告知用户该能力暂不支持
+   - **强制流程：每次 build_workflow / build_node 之前，必须先用 `get_module_schema(module_types=[本次要用到的全部 type])` 把所有模块核对一遍，确认全部返回 schema 再创建。**
+   - **硬约束（系统级）：后端 build_workflow / build_node 会逐个校验 module_type，凡是不在内置清单里的会直接被拒绝并返回 `module_not_exist` + `invalid_types`；前端装载时也会把不存在的模块节点丢弃。一旦收到 `module_not_exist`，必须先 `search_modules` 找到正确模块名，改正后重试，绝不重复提交虚构模块。**
    - build_workflow 返回后，复查每个节点 type 是否都被正确识别，发现"未知模块"立即用 `replace_module_type` 改成正确的
 5. 涉及具体修改时尽量用 `client_action` 的细粒度动作（add_nodes/update_node_config/connect_nodes 等），让用户能在画布上实时看到变化
 6. 操作前先用 `client_action(action="get_workflow_detail")` 拿到画布的精确状态，避免猜测

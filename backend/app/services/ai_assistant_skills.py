@@ -646,6 +646,16 @@ async def skill_build_node(
     AI 不应该改 label。如果想给节点起业务名，请用 name 字段（节点备注，画布会显示成
     「<官方模块名> (<name>)」）。
     """
+    # 🛡️ 硬校验：严禁创建不存在的模块
+    if _validate_module_types([module_type]):
+        return {
+            "error": "module_not_exist",
+            "invalid_types": [module_type],
+            "message": (
+                f"模块类型「{module_type}」不存在于 WebRPA 内置模块清单，已拒绝创建。"
+                "请先调用 search_modules / get_module_schema 确认正确的 module_type。绝不要虚构模块名。"
+            ),
+        }
     node_data: dict[str, Any] = {
         "moduleType": module_type,
         "config": apply_default_config(module_type, config or {}),
@@ -824,6 +834,48 @@ def _compute_branched_layout(
     return [p if p is not None else (START_X, START_Y) for p in positions]
 
 
+# 画布专用伪类型（非执行器，但合法存在于画布）
+_CANVAS_PSEUDO_TYPES = {"group", "note", "subflow", "subflow_header"}
+
+
+def _get_valid_module_types() -> set[str]:
+    """返回当前 WebRPA 真实存在、可被创建到画布的全部模块类型集合（权威清单）。
+
+    来源：① 已注册执行器 registry.get_all_types() ② 画布伪类型 ③ 本地自定义模块 id。
+    用于在"创建节点"前硬校验，杜绝 AI 虚构不存在的模块。
+    """
+    valid: set[str] = set(_CANVAS_PSEUDO_TYPES)
+    try:
+        from app.executors.base import registry as exec_registry
+        valid |= set(exec_registry.get_all_types())
+    except Exception:
+        pass
+    # 自定义模块（其 type 即模块 id / custom_module）
+    valid.add("custom_module")
+    try:
+        folder = _get_data_folder() / "custom_modules"
+        if folder.exists():
+            for fp in folder.glob("*.json"):
+                valid.add(fp.stem)
+    except Exception:
+        pass
+    return valid
+
+
+def _validate_module_types(types: list[str]) -> list[str]:
+    """返回 types 中不存在于权威清单的非法模块类型（去重保序）。"""
+    valid = _get_valid_module_types()
+    seen: set[str] = set()
+    invalid: list[str] = []
+    for t in types:
+        if not t or not isinstance(t, str):
+            continue
+        if t not in valid and t not in seen:
+            seen.add(t)
+            invalid.append(t)
+    return invalid
+
+
 async def skill_build_workflow(
     name: str,
     steps: list[dict],
@@ -877,6 +929,20 @@ async def skill_build_workflow(
     """
     if not isinstance(steps, list) or not steps:
         return {"error": "steps 不能为空"}
+
+    # 🛡️ 硬校验：严禁创建不存在的模块。逐个核对 step.type 是否真实注册，
+    #    只要有一个非法模块类型，整个工作流拒绝生成（不会把虚构模块放进画布）。
+    _invalid = _validate_module_types([str(s.get("type") or "") for s in steps])
+    if _invalid:
+        return {
+            "error": "module_not_exist",
+            "invalid_types": _invalid,
+            "message": (
+                f"以下模块类型不存在于 WebRPA 内置模块清单，已拒绝创建：{', '.join(_invalid)}。"
+                "请先调用 search_modules / get_module_schema 确认正确的 module_type，再重新 build_workflow。"
+                "绝不要虚构或臆测模块名。"
+            ),
+        }
 
     # 节点尺寸常量（与前端默认一致）
     NODE_W = 220

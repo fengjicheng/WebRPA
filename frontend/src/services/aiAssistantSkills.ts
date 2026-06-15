@@ -181,6 +181,30 @@ export function onAssistantUiEvent(event: string, handler: (payload: any) => voi
   }
 }
 
+// 画布伪类型（非执行器，但合法存在）
+const CANVAS_PSEUDO_TYPES = new Set(['group', 'note', 'subflow', 'subflow_header'])
+
+/**
+ * 🛡️ 前端最后一道防线：把 AI 节点按"是否真实存在的模块"分流。
+ * 合法判定：moduleType 在 moduleTypeLabels（权威 ModuleType 全集）中、或画布伪类型、或自定义模块。
+ * 不存在的模块一律丢弃，杜绝把虚构模块放进画布。
+ */
+function partitionValidAiNodes(nodes: any[]): { valid: any[]; invalidTypes: string[] } {
+  const labelKeys = moduleTypeLabels as Record<string, string>
+  const valid: any[] = []
+  const invalidTypes: string[] = []
+  for (const n of nodes) {
+    const mt = (n?.data?.moduleType ?? n?.type) as string
+    if (mt && (mt in labelKeys || CANVAS_PSEUDO_TYPES.has(mt) || mt.startsWith('custom'))) {
+      valid.push(n)
+    } else {
+      const key = mt || '(空类型)'
+      if (!invalidTypes.includes(key)) invalidTypes.push(key)
+    }
+  }
+  return { valid, invalidTypes }
+}
+
 export function emitAssistantUiEvent(event: string, payload: any) {
   const set = listeners.get(event)
   if (!set) return
@@ -233,9 +257,16 @@ export async function executeClientAction(
         if (!Array.isArray(nodes) || nodes.length === 0) {
           return { success: false, error: '没有可添加的节点' }
         }
+        // 🛡️ 过滤掉不存在的模块，绝不把虚构模块放进画布
+        const { valid: validNodes, invalidTypes } = partitionValidAiNodes(nodes)
+        if (validNodes.length === 0) {
+          return { success: false, error: `全部模块都不存在，已拒绝创建：${invalidTypes.join(', ')}。请用 search_modules 核对正确的 module_type` }
+        }
+        const validIds = new Set(validNodes.map((n: any) => n.id))
+        const safeEdges = edges.filter((e: any) => validIds.has(e.source) && validIds.has(e.target))
         const store = useWorkflowStore.getState()
-        const xyNodes = nodes.map(convertAiNodeToReactFlow)
-        const xyEdges = edges.map((e: any) => ({
+        const xyNodes = validNodes.map(convertAiNodeToReactFlow)
+        const xyEdges = safeEdges.map((e: any) => ({
           id: e.id,
           source: e.source,
           target: e.target,
@@ -247,14 +278,24 @@ export async function executeClientAction(
           edges: [...store.edges, ...xyEdges] as any,
           name: store.name,
         })
-        return { success: true, message: `已添加 ${xyNodes.length} 个节点` }
+        const warn = invalidTypes.length ? `（已丢弃 ${invalidTypes.length} 个不存在的模块：${invalidTypes.join(', ')}）` : ''
+        return { success: true, message: `已添加 ${xyNodes.length} 个节点${warn}` }
       }
 
       case 'load_workflow_from_data': {
-        const nodes = (payload.nodes as any[]) || []
-        const edges = (payload.edges as any[]) || []
+        const rawNodes = (payload.nodes as any[]) || []
+        let edges = (payload.edges as any[]) || []
         const name = (payload.name as string) || '未命名工作流'
         const animate = payload.animate !== false  // 默认开启可视化逐步搭建动画
+        // 🛡️ 过滤掉不存在的模块，绝不把虚构模块装入画布
+        const { valid: nodes, invalidTypes } = partitionValidAiNodes(rawNodes)
+        if (nodes.length === 0) {
+          return { success: false, error: `全部模块都不存在，已拒绝装载：${invalidTypes.join(', ')}。请用 search_modules 核对正确的 module_type` }
+        }
+        if (invalidTypes.length) {
+          const keepIds = new Set(nodes.map((n: any) => n.id))
+          edges = edges.filter((e: any) => keepIds.has(e.source) && keepIds.has(e.target))
+        }
         const xyNodes = nodes.map(convertAiNodeToReactFlow)
 
         const store = useWorkflowStore.getState()
