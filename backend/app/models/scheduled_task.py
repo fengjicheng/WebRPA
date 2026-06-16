@@ -78,6 +78,11 @@ class ScheduledTask(BaseModel):
     open_monitor: bool = False  # 是否打开监控页面
     headless: bool = False  # 是否无头运行（后台运行）
 
+    # 失败/成功通知（任务级主动外发）
+    notify_on_failure: bool = False  # 执行失败时是否发送通知
+    notify_on_success: bool = False  # 执行成功时是否发送通知
+    notify_channels: List[dict] = Field(default_factory=list)  # 通知渠道列表 [{type, enabled, ...}]
+
 
 class ScheduledTaskCreate(BaseModel):
     """创建计划任务请求"""
@@ -89,6 +94,9 @@ class ScheduledTaskCreate(BaseModel):
     enabled: bool = True
     open_monitor: bool = False
     headless: bool = False
+    notify_on_failure: bool = False
+    notify_on_success: bool = False
+    notify_channels: List[dict] = Field(default_factory=list)
 
 
 class ScheduledTaskUpdate(BaseModel):
@@ -101,6 +109,9 @@ class ScheduledTaskUpdate(BaseModel):
     enabled: Optional[bool] = None
     open_monitor: Optional[bool] = None
     headless: Optional[bool] = None
+    notify_on_failure: Optional[bool] = None
+    notify_on_success: Optional[bool] = None
+    notify_channels: Optional[List[dict]] = None
 
 
 class ScheduledTaskExecutionLog(BaseModel):

@@ -253,6 +253,25 @@ CONTROL_SCHEMAS: dict = {
         "example": {"leftValue": "{count}", "operator": "greater", "rightValue": "10"},
         "combo": "有 2 个出口：true 走「是」分支，false 走「否」分支",
     },
+    "assert_checkpoint": {
+        "required": ["checkType"],
+        "optional": ["operator", "actualValue", "expectedValue", "selector", "elementCheck", "expectedText", "expression", "onFail", "message", "variableName"],
+        "defaults": {"checkType": "variable", "operator": "==", "onFail": "stop"},
+        "desc": {
+            "checkType": "variable(变量比较)/element(页面元素)/expression(表达式真值)",
+            "operator": "checkType=variable 时：==/!=/contains/not_contains/startswith/endswith/matches/>/</>=/<=/isEmpty/isNotEmpty",
+            "actualValue": "checkType=variable 的实际值（可用 {变量}）",
+            "expectedValue": "checkType=variable 的期望值",
+            "selector": "checkType=element 的元素选择器",
+            "elementCheck": "checkType=element 时：exists/not_exists/visible/hidden/text_contains/text_equals",
+            "expectedText": "elementCheck 为文本检查时的期望文本",
+            "expression": "checkType=expression 的表达式（解析后判断真值）",
+            "onFail": "失败处理：stop(中断)/warn(警告继续)/continue(静默跳过)",
+            "variableName": "存储断言结果布尔值",
+        },
+        "example": {"checkType": "variable", "actualValue": "{order_no}", "operator": "isNotEmpty", "onFail": "stop", "message": "订单号必须存在"},
+        "combo": "流程稳定性：关键步骤后插入断言；onFail=stop 失败即中断，配合 variableName 存结果后接 condition 分流",
+    },
     "loop": {
         "required": ["loopType"],
         "optional": ["loopCount", "indexVariable"],
@@ -703,6 +722,47 @@ def get_module_schema(module_type: str) -> dict | None:
 def get_all_module_schemas() -> dict[str, dict]:
     """返回所有内置 schema"""
     return dict(_ALL_SCHEMAS)
+
+
+def effective_required(module_type: str, data: dict | None = None) -> list[str]:
+    """计算某模块在「当前配置」下真正生效的必填字段。
+
+    支持多模式模块（如 real_keyboard：inputType=text 才需要 text，=key 才需要 key）：
+    schema 里可定义 conditional_required = {field, default, map}，根据判别字段的取值
+    追加该模式下才必填的字段。data 为空时按 default 取值。
+    """
+    schema = _ALL_SCHEMAS.get(module_type)
+    if not schema:
+        return []
+    req = list(schema.get("required") or [])
+    cond = schema.get("conditional_required")
+    if isinstance(cond, dict):
+        field = cond.get("field")
+        cmap = cond.get("map") or {}
+        default = cond.get("default")
+        val = None
+        if data is not None and field:
+            val = data.get(field)
+        if val in (None, ""):
+            val = default
+        for f in (cmap.get(val) or []):
+            if f not in req:
+                req.append(f)
+    return req
+
+
+def conditional_required_map() -> dict[str, dict]:
+    """导出所有带「条件必填」的模块规则，供前端按当前配置评估。"""
+    out: dict[str, dict] = {}
+    for mtype, schema in _ALL_SCHEMAS.items():
+        cond = schema.get("conditional_required") if isinstance(schema, dict) else None
+        if isinstance(cond, dict) and cond.get("map"):
+            out[mtype] = {
+                "field": cond.get("field"),
+                "default": cond.get("default"),
+                "map": cond.get("map"),
+            }
+    return out
 
 
 def apply_default_config(module_type: str, user_config: dict | None = None) -> dict:
@@ -2562,16 +2622,32 @@ IMAGE_DOC_NET_SCHEMAS: dict = {
         "combo": "",
     },
     "real_keyboard": {
-        "required": ["text"],
-        "optional": ["delay"],
-        "defaults": {},
-        "desc": {"text": "要键盘输入的文本", "delay": "字符间隔秒"},
-        "example": {"text": "Hello {name}"},
+        "required": [],
+        "optional": ["inputType", "text", "key", "hotkey", "pressMode", "interval", "holdDuration", "windowTitle"],
+        "conditional_required": {
+            "field": "inputType",
+            "default": "text",
+            "map": {"text": ["text"], "key": ["key"], "hotkey": ["hotkey"]},
+        },
+        "defaults": {"inputType": "text"},
+        "desc": {
+            "inputType": "输入方式：text 文本 / key 单个按键 / hotkey 组合键",
+            "text": "要输入的文本（inputType=text 时）",
+            "key": "按键名如 enter/backspace（inputType=key 时）",
+            "hotkey": "组合键如 ctrl+c（inputType=hotkey 时）",
+            "interval": "字符间隔秒",
+        },
+        "example": {"inputType": "key", "key": "backspace"},
         "combo": "",
     },
     "keyboard_action": {
         "required": ["action"],
         "optional": ["keys"],
+        "conditional_required": {
+            "field": "action",
+            "default": "press",
+            "map": {"hotkey": ["keys"], "press": ["keys"], "down": ["keys"], "up": ["keys"]},
+        },
         "defaults": {"action": "press"},
         "desc": {"action": "press/down/up/hotkey", "keys": "组合键如 ctrl+c"},
         "example": {"action": "hotkey", "keys": "ctrl+a"},
@@ -5430,6 +5506,19 @@ AI_TASK_SCHEMAS: dict = {
         "desc": {"inputText": "待判断内容", "routes": "分支选项：每行 名称:说明，或JSON {名称:说明}", "variableName": "存储命中的分支名"},
         "example": {"inputText": "{user_msg}", "routes": "退款:要求退钱\\n咨询:询问信息\\n投诉:表达不满", "variableName": "route"},
         "combo": "AI 判断力：后接 condition(leftValue={route}, operator=equals, rightValue=退款) 分流到不同处理分支",
+    },
+    "ai_vision_act": {
+        "required": ["instruction"],
+        "optional": ["action", "button", "apiUrl", "apiKey", "model", "variableName", "maxTokens"],
+        "defaults": {"action": "click", "button": "left", "variableName": "vision_target", "maxTokens": 300},
+        "desc": {
+            "instruction": "自然语言描述要操作的屏幕目标，如：右上角的登录按钮",
+            "action": "click(单击)/double(双击)/right(右键)/move(仅移动)/locate(仅定位返回坐标)",
+            "button": "action=click/double 时的鼠标按键：left/right/middle",
+            "variableName": "存储定位坐标 {x,y}",
+        },
+        "example": {"instruction": "页面中的提交按钮", "action": "click", "variableName": "vision_target"},
+        "combo": "看屏点选，不依赖选择器；适合 Canvas/图片按钮/防自动化页面，操作物理鼠标需目标窗口在前台",
     },
 }
 

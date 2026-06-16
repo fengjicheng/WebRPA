@@ -444,3 +444,154 @@ export function SubflowConfig({ data, onChange }: ConfigProps) {
     </div>
   )
 }
+
+
+// 断言/检查点配置（流程稳定性工程）
+export function AssertCheckpointConfig({ data, onChange }: ConfigProps) {
+  const checkType = (data.checkType as string) || 'variable'
+  const operator = (data.operator as string) || '=='
+  const elementCheck = (data.elementCheck as string) || 'exists'
+  const onFail = (data.onFail as string) || 'stop'
+  const noRightValue = ['isEmpty', 'isNotEmpty'].includes(operator)
+  const needExpectedText = ['text_contains', 'text_equals'].includes(elementCheck)
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="checkType">检查类型</Label>
+        <Select
+          id="checkType"
+          value={checkType}
+          onChange={(e) => onChange('checkType', e.target.value)}
+        >
+          <option value="variable">变量 / 值比较</option>
+          <option value="element">页面元素状态</option>
+          <option value="expression">表达式真值</option>
+        </Select>
+      </div>
+
+      {checkType === 'variable' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="actualValue">实际值</Label>
+            <VariableInput
+              value={(data.actualValue as string) || ''}
+              onChange={(v) => onChange('actualValue', v)}
+              placeholder="要校验的值，支持 {变量名}"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="operator">运算符</Label>
+            <Select id="operator" value={operator} onChange={(e) => onChange('operator', e.target.value)}>
+              <option value="==">等于</option>
+              <option value="!=">不等于</option>
+              <option value="contains">包含</option>
+              <option value="not_contains">不包含</option>
+              <option value="startswith">以…开头</option>
+              <option value="endswith">以…结尾</option>
+              <option value="matches">匹配正则</option>
+              <option value=">">大于</option>
+              <option value="<">小于</option>
+              <option value=">=">大于等于</option>
+              <option value="<=">小于等于</option>
+              <option value="isEmpty">为空</option>
+              <option value="isNotEmpty">不为空</option>
+            </Select>
+          </div>
+          {!noRightValue && (
+            <div className="space-y-2">
+              <Label htmlFor="expectedValue">期望值</Label>
+              <VariableInput
+                value={(data.expectedValue as string) || ''}
+                onChange={(v) => onChange('expectedValue', v)}
+                placeholder={operator === 'matches' ? '正则表达式，如 ^\\d+$' : '期望对照的值，支持 {变量名}'}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {checkType === 'element' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="selector">元素选择器</Label>
+            <VariableInput
+              value={(data.selector as string) || ''}
+              onChange={(v) => onChange('selector', v)}
+              placeholder="#id / .class / xpath，支持 {变量名}"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="elementCheck">元素检查</Label>
+            <Select id="elementCheck" value={elementCheck} onChange={(e) => onChange('elementCheck', e.target.value)}>
+              <option value="exists">存在</option>
+              <option value="not_exists">不存在</option>
+              <option value="visible">可见</option>
+              <option value="hidden">隐藏</option>
+              <option value="text_contains">文本包含</option>
+              <option value="text_equals">文本等于</option>
+            </Select>
+          </div>
+          {needExpectedText && (
+            <div className="space-y-2">
+              <Label htmlFor="expectedText">期望文本</Label>
+              <VariableInput
+                value={(data.expectedText as string) || ''}
+                onChange={(v) => onChange('expectedText', v)}
+                placeholder="期望的文本内容，支持 {变量名}"
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {checkType === 'expression' && (
+        <div className="space-y-2">
+          <Label htmlFor="expression">表达式</Label>
+          <VariableInput
+            value={(data.expression as string) || ''}
+            onChange={(v) => onChange('expression', v)}
+            placeholder="解析后判断真值，如 {count} 或 {is_done}"
+            multiline
+            rows={2}
+          />
+          <p className="text-xs text-muted-foreground">空 / 0 / false / none 视为不通过，其余为通过。</p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="message">断言说明（可选）</Label>
+        <VariableInput
+          value={(data.message as string) || ''}
+          onChange={(v) => onChange('message', v)}
+          placeholder="如：订单号必须存在"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="onFail">断言失败时</Label>
+        <Select id="onFail" value={onFail} onChange={(e) => onChange('onFail', e.target.value)}>
+          <option value="stop">中断流程（标记失败）</option>
+          <option value="warn">记录警告并继续</option>
+          <option value="continue">静默跳过本节点</option>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="variableName">存储结果到变量（可选）</Label>
+        <VariableInput
+          value={(data.variableName as string) || ''}
+          onChange={(v) => onChange('variableName', v)}
+          placeholder="存储断言结果布尔值，如 assert_passed"
+        />
+      </div>
+
+      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+        <p className="text-xs text-emerald-800">
+          <strong>断言/检查点</strong>用于流程稳定性：在关键步骤校验数据或页面状态是否符合预期。<br/>
+          失败时可中断流程、仅警告或静默跳过，结果布尔值可存入变量供后续条件分支使用。
+        </p>
+      </div>
+    </div>
+  )
+}

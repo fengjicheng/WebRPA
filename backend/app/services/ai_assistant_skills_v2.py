@@ -126,7 +126,8 @@ async def skill_dry_run_workflow(
             schema = get_module_schema(mtype) or {}
         except Exception:
             schema = {}
-        required = schema.get('required', []) or []
+        from app.services.ai_assistant_module_schemas import effective_required as _eff_req2
+        required = _eff_req2(mtype, n.get('data') or {}) if schema else []
         for req in required:
             val = cfg.get(req)
             if val is None or val == '' or val == []:

@@ -222,6 +222,9 @@ class BrowserConfig(BaseModel):
 class ExecuteOptions(BaseModel):
     headless: bool = False
     browserConfig: Optional[BrowserConfig] = None
+    # 可视化调试：断点节点 id 列表 + 是否单步模式
+    breakpoints: Optional[list[str]] = None
+    stepMode: bool = False
 
 
 @router.post("", response_model=dict)
@@ -515,9 +518,31 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
     
     # 从全局变量存储中恢复变量
     executor.context.variables.update(global_variables)
-    
+
+    # ===== 可视化调试接入：暂停/恢复事件推送 + 断点配置 =====
+    async def on_paused(info: dict):
+        if sio:
+            try:
+                await sio.emit('execution:paused', {'workflowId': workflow_id, **info})
+            except Exception:
+                pass
+
+    async def on_resumed(info: dict):
+        if sio:
+            try:
+                await sio.emit('execution:resumed', {'workflowId': workflow_id, **info})
+            except Exception:
+                pass
+
+    executor.on_paused = on_paused
+    executor.on_resumed = on_resumed
+    try:
+        executor.configure_debug(breakpoints=options.breakpoints, step_mode=options.stepMode)
+    except Exception:
+        pass
+
     executions_store[workflow_id] = executor
-    
+
     # 在后台执行
     async def run_execution():
         # 数据行定时冲刷任务：每 200ms 把累积的数据行批量推送一次，
@@ -578,7 +603,15 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
             full_total = len(collected_data_to_send)
             if full_total > 5000:
                 collected_data_to_send = collected_data_to_send[:5000]
-            
+
+            # 选择器自愈记录（供前端询问是否写回工作流）
+            healed_selectors = []
+            try:
+                ex = executions_store.get(workflow_id)
+                healed_selectors = list(getattr(ex.context, '_healed_selectors', []) or []) if ex else []
+            except Exception:
+                healed_selectors = []
+
             await sio.emit('execution:completed', {
                 'workflowId': workflow_id,
                 'result': {
@@ -589,6 +622,7 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
                 },
                 'collectedData': collected_data_to_send,
                 'collectedDataTotal': full_total,
+                'healedSelectors': healed_selectors,
             })
             print(f"[run_execution] execution:completed 事件已发送")
             
@@ -705,8 +739,39 @@ async def stop_workflow(workflow_id: str):
     return {"message": "工作流已停止"}
 
 
-@router.get("/{workflow_id}/status")
-async def get_execution_status(workflow_id: str):
+class DebugControl(BaseModel):
+    breakpoints: Optional[list[str]] = None
+
+
+@router.post("/{workflow_id}/debug/resume")
+async def debug_resume(workflow_id: str):
+    """调试：从断点/单步暂停处继续运行到下一个断点"""
+    executor = executions_store.get(workflow_id)
+    if not executor:
+        raise HTTPException(status_code=404, detail="没有正在执行的工作流")
+    executor.debug_resume(step=False)
+    return {"message": "已继续"}
+
+
+@router.post("/{workflow_id}/debug/step")
+async def debug_step(workflow_id: str):
+    """调试：单步执行（走到下一个节点再次暂停）"""
+    executor = executions_store.get(workflow_id)
+    if not executor:
+        raise HTTPException(status_code=404, detail="没有正在执行的工作流")
+    executor.debug_resume(step=True)
+    return {"message": "已单步"}
+
+
+@router.post("/{workflow_id}/debug/breakpoints")
+async def debug_set_breakpoints(workflow_id: str, ctrl: DebugControl):
+    """调试：运行中动态更新断点集合"""
+    executor = executions_store.get(workflow_id)
+    if not executor:
+        raise HTTPException(status_code=404, detail="没有正在执行的工作流")
+    executor.set_breakpoints(ctrl.breakpoints or [])
+    return {"message": "断点已更新", "breakpoints": list(executor.breakpoints)}
+
     """获取执行状态"""
     executor = executions_store.get(workflow_id)
     result = execution_results.get(workflow_id)
@@ -994,6 +1059,57 @@ async def export_workflow_playwright(workflow_id: str):
     return {
         "code": python_code,
         "filename": f"{workflow.name.replace(' ', '_')}_playwright.py",
+    }
+
+
+def _build_workflow_data_for_export(workflow):
+    """把 Workflow 对象转为导出器所需的 dict 结构"""
+    return {
+        "id": workflow.id,
+        "name": workflow.name,
+        "nodes": [
+            {
+                "id": n.id,
+                "type": n.type,
+                "position": {"x": n.position.x, "y": n.position.y},
+                "data": n.data,
+            }
+            for n in workflow.nodes
+        ],
+        "edges": [
+            {
+                "id": e.id,
+                "source": e.source,
+                "target": e.target,
+                "sourceHandle": e.sourceHandle,
+                "targetHandle": e.targetHandle,
+            }
+            for e in workflow.edges
+        ],
+        "variables": [
+            {"name": v.name, "value": v.value, "type": v.type.value}
+            for v in workflow.variables
+        ],
+    }
+
+
+@router.get("/{workflow_id}/export-script")
+async def export_workflow_script(workflow_id: str, target: str = "selenium"):
+    """导出工作流为脚本。target: 'selenium' | 'playwright-js'"""
+    workflow = workflows_store.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail="工作流不存在")
+
+    from app.services.script_exporters import export_workflow_to_script
+
+    workflow_data = _build_workflow_data_for_export(workflow)
+    code = export_workflow_to_script(workflow_data, target)
+    ext = "js" if target.startswith(("playwright-js", "js", "javascript", "node", "playwright_js")) else "py"
+    suffix = "playwright" if ext == "js" else "selenium"
+    return {
+        "code": code,
+        "target": target,
+        "filename": f"{workflow.name.replace(' ', '_')}_{suffix}.{ext}",
     }
 
 

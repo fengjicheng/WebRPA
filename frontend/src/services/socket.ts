@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client'
 import { useWorkflowStore } from '@/store/workflowStore'
 import { useNodeRunStore } from '@/store/nodeRunStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
+import { useDebugStore } from '@/store/debugStore'
 import type { LogLevel } from '@/types'
 import { getBackendBaseUrl } from './config'
 
@@ -388,6 +389,15 @@ class SocketService {
       if (data?.nodeId) useNodeRunStore.getState().setStatus(data.nodeId, data.success ? 'success' : 'failed')
     })
 
+    // 调试：命中断点/单步 → 暂停
+    this.socket.on('execution:paused', (data: { workflowId: string; node_id: string; label?: string; variables?: Record<string, any>; reason?: 'breakpoint' | 'step' }) => {
+      useDebugStore.getState().setPaused({ nodeId: data.node_id, label: data.label, variables: data.variables, reason: data.reason })
+    })
+    // 调试：恢复
+    this.socket.on('execution:resumed', () => {
+      useDebugStore.getState().clearPaused()
+    })
+
     // ============ 日志批处理缓冲（高性能） ============
     // 后端短时间内可能推送大量日志，直接 setState 会导致主线程被 React 渲染塞满。
     // 我们把所有日志先放入缓冲队列，每 80ms（或队列 ≥ 200 条）合并后一次性更新 store。
@@ -588,8 +598,10 @@ class SocketService {
         dataFile?: string
       }
       collectedData?: Record<string, unknown>[]
+      healedSelectors?: { nodeId?: string; configKey?: string; oldSelector?: string; newSelector?: string }[]
     }) => {
       console.log('[Socket] 收到 execution:completed 事件 - 后端执行完成！', data)
+      useDebugStore.getState().clearPaused()
       
       // 立即冲刷日志缓冲，确保完成日志和最后的执行日志全部显示
       flushLogBuffer()
@@ -626,6 +638,16 @@ class SocketService {
       window.dispatchEvent(new CustomEvent('execution:completed', { 
         detail: { status, executedNodes: data.result.executedNodes, failedNodes: data.result.failedNodes } 
       }))
+
+      // 选择器自愈：若运行中有选择器被自愈，提示用户是否写回工作流（持久化）
+      if (data.healedSelectors && data.healedSelectors.length > 0) {
+        try {
+          const heals = data.healedSelectors.filter((h) => h.nodeId && h.newSelector)
+          if (heals.length > 0) {
+            window.dispatchEvent(new CustomEvent('selector:healed', { detail: { heals } }))
+          }
+        } catch { /* ignore */ }
+      }
       
       // 停止所有音频播放
       this.stopAllAudio()
@@ -664,6 +686,7 @@ class SocketService {
     // 执行停止
     this.socket.on('execution:stopped', (_data: { workflowId: string }) => {
       isExecuting = false  // 停止接收实时数据行
+      useDebugStore.getState().clearPaused()
       // 停止所有音频播放
       this.stopAllAudio()
       useWorkflowStore.getState().setExecutionStatus('stopped')

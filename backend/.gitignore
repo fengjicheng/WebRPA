@@ -49,6 +49,12 @@ data/ai_assistant/
 # 自动化日志
 @AutomationLog.txt
 allure_reports/
+recordings/
+app/executors/_registry_manifest.json
+data/security.json
+data/command_audit.log
+.pytest_cache/
+tests/__pycache__/
 
 # 日志
 *.log

@@ -15,6 +15,10 @@ const DocumentationDialog = lazy(() => import('./documentation').then(m => ({ de
 import { ExportDialog, type ExportFormat } from './ExportDialog'
 import { encryptWorkflow } from '@/lib/workflowCrypto'
 import { AutoBrowserDialog } from './AutoBrowserDialog'
+import { RecorderPanel } from './RecorderPanel'
+import { DesktopRecorderPanel } from './DesktopRecorderPanel'
+import { VersionHistoryPanel } from './VersionHistoryPanel'
+import { useDebugStore } from '@/store/debugStore'
 import { WorkflowHubDialog } from './WorkflowHubDialog'
 import { LocalWorkflowDialog } from './LocalWorkflowDialog'
 import { ScheduledTasksDialog } from '../scheduled-tasks/ScheduledTasksDialog'
@@ -23,7 +27,7 @@ import { VariableTrackingPanel } from './VariableTrackingPanel'
 import { ScreensaverDialog } from './ScreensaverDialog'
 import { ScreenshotNameDialog, ScreenshotErrorDialog } from './ScreenshotNameDialog'
 import { useClipboardImageMonitor } from '@/hooks/useClipboardImageMonitor'
-import { customModulesApi } from '@/services/api'
+import { customModulesApi, workflowBundleApi } from '@/services/api'
 import { onAssistantUiEvent, emitAssistantUiEvent } from '@/services/aiAssistantSkills'
 import {
   Play,
@@ -51,6 +55,9 @@ import {
   MoreVertical,
   MoreHorizontal,
   ChevronDown,
+  Video,
+  GitCommit,
+  MousePointerClick,
   X,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -84,6 +91,9 @@ export function Toolbar() {
   const [clipboardImageInfo, setClipboardImageInfo] = useState<{width: number, height: number} | null>(null)
   const [editingCustomModuleId, setEditingCustomModuleId] = useState<string | null>(null)
   const [editingCustomModuleName, setEditingCustomModuleName] = useState<string>('')
+  const [showRecorder, setShowRecorder] = useState(false)
+  const [showDesktopRecorder, setShowDesktopRecorder] = useState(false)
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [isAutoLayouting, setIsAutoLayouting] = useState(false)
   const { confirm, ConfirmDialog } = useConfirm()
   const { promptPassword, passwordDialog } = usePasswordPrompt()
@@ -285,7 +295,9 @@ export function Toolbar() {
       }
       const executeResult = await workflowApi.execute(currentWorkflowId, { 
         headless,
-        browserConfig 
+        browserConfig,
+        breakpoints: Array.from(useDebugStore.getState().breakpoints),
+        stepMode: useDebugStore.getState().stepMode,
       })
       
       if (executeResult.error) {
@@ -864,6 +876,53 @@ export function Toolbar() {
     }
   }, [nodes, edges, variables, name, workflowId, addLog])
 
+  // 导出为脚本（Selenium / Playwright-JS）
+  const handleExportScript = useCallback(async (target: 'selenium' | 'playwright-js') => {
+    if (nodes.length === 0) {
+      addLog({ level: 'warning', message: '工作流没有任何节点，无法导出' })
+      return
+    }
+    try {
+      let currentWorkflowId = workflowId
+      const payload = {
+        name,
+        nodes: nodes.map(n => ({ id: n.id, type: n.data.moduleType, position: n.position, data: n.data, style: n.style })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle })),
+        variables: variables.map(v => ({ name: v.name, value: v.value, type: v.type, scope: v.scope })),
+      }
+      if (!currentWorkflowId) {
+        const createResult = await workflowApi.create(payload)
+        if (createResult.error || !createResult.data?.id) {
+          addLog({ level: 'error', message: `创建工作流失败: ${createResult.error || '返回数据无效'}` })
+          return
+        }
+        currentWorkflowId = createResult.data.id
+        setWorkflowId(currentWorkflowId)
+      } else {
+        await workflowApi.update(currentWorkflowId, payload)
+      }
+      const res = await workflowApi.exportScript(currentWorkflowId!, target)
+      const data = res.data
+      if (data?.code) {
+        const blob = new Blob([data.code], { type: 'text/plain;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = data.filename || `${name.replace(/\s+/g, '_')}.txt`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        const label = target === 'selenium' ? 'Selenium' : 'Playwright JS'
+        addLog({ level: 'success', message: `已导出 ${label} 代码: ${data.filename}` })
+      } else {
+        addLog({ level: 'error', message: `导出失败: ${res.error || '未获取到代码'}` })
+      }
+    } catch (e) {
+      addLog({ level: 'error', message: `导出出错: ${e}` })
+    }
+  }, [nodes, edges, variables, name, workflowId, addLog])
+
   // 导出为 JSON
   const handleExportJSON = useCallback(() => {
     if (nodes.length === 0) {
@@ -952,6 +1011,69 @@ export function Toolbar() {
       addLog({ level: 'error', message: `加密导出失败: ${e}` })
     }
   }, [nodes, edges, variables, name, addLog, promptPassword])
+
+  // 导出整包（含依赖的自定义模块、图片资产）
+  const handleExportBundle = useCallback(async () => {
+    if (nodes.length === 0) {
+      addLog({ level: 'warning', message: '工作流没有任何节点，无法导出' })
+      return
+    }
+    try {
+      const content = {
+        nodes: nodes.map(n => ({ id: n.id, type: n.data.moduleType, position: n.position, data: n.data, style: n.style })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle })),
+        variables: variables.map(v => ({ name: v.name, value: v.value, type: v.type, scope: v.scope })),
+      }
+      const res = await workflowBundleApi.export(name, content)
+      if (res.error || !res.data?.bundle) {
+        addLog({ level: 'error', message: `整包导出失败: ${res.error || res.data?.error || '未知错误'}` })
+        return
+      }
+      const blob = new Blob([JSON.stringify(res.data.bundle, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${name.replace(/\s+/g, '_')}.bundle.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      addLog({ level: 'success', message: `已导出整包: ${name}.bundle.json` })
+    } catch (e) {
+      addLog({ level: 'error', message: `整包导出失败: ${e}` })
+    }
+  }, [nodes, edges, variables, name, addLog])
+
+  // 导入整包（还原自定义模块/图片，并加载工作流到画布）
+  const handleImportBundle = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json,.json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const bundle = JSON.parse(await file.text())
+        const res = await workflowBundleApi.import(bundle)
+        if (res.error || !res.data?.success || !res.data.workflow) {
+          addLog({ level: 'error', message: `整包导入失败: ${res.error || res.data?.error || '格式不正确'}` })
+          return
+        }
+        const wf = res.data.workflow
+        useWorkflowStore.getState().importWorkflow({
+          name: res.data.name || '导入的工作流',
+          nodes: wf.nodes as any,
+          edges: wf.edges as any,
+          variables: wf.variables as any,
+        })
+        const r = res.data.restored
+        addLog({ level: 'success', message: `整包已导入（还原模块 ${r?.customModules || 0} 个、图片 ${r?.images || 0} 张）` })
+      } catch (e) {
+        addLog({ level: 'error', message: `整包文件解析失败: ${e}` })
+      }
+    }
+    input.click()
+  }, [addLog])
 
   // 导出为 Markdown
   const handleExportMarkdown = useCallback(() => {
@@ -1080,6 +1202,12 @@ export function Toolbar() {
       case 'playwright':
         await handleExportPlaywright()
         break
+      case 'selenium':
+        await handleExportScript('selenium')
+        break
+      case 'playwright-js':
+        await handleExportScript('playwright-js')
+        break
       case 'json':
         handleExportJSON()
         break
@@ -1089,8 +1217,11 @@ export function Toolbar() {
       case 'encrypted':
         await handleExportEncrypted()
         break
+      case 'bundle':
+        await handleExportBundle()
+        break
     }
-  }, [handleExportPlaywright, handleExportJSON, handleExportMarkdown, handleExportEncrypted])
+  }, [handleExportPlaywright, handleExportScript, handleExportJSON, handleExportMarkdown, handleExportEncrypted, handleExportBundle])
 
   // 同步 handleExport 到 ref，便于上方 useEffect 中订阅 AI 助手事件时访问最新版本
   useEffect(() => {
@@ -1363,6 +1494,10 @@ export function Toolbar() {
             <Code className="w-4 h-4 mr-2 text-[hsl(var(--info-500))]" />
             导出
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleImportBundle}>
+            <Package className="w-4 h-4 mr-2 text-[hsl(var(--brand-600))]" />
+            导入整包
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -1452,6 +1587,40 @@ export function Toolbar() {
           <span className="hidden lg:inline">自动化浏览器</span>
         </Button>
 
+        {/* 录制 / 回放 - 归纳为一个下拉，避免顶栏拥挤 */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" title="录制生成节点">
+              <Video className="w-4 h-4 sm:mr-1" />
+              <span className="hidden lg:inline">录制</span>
+              <ChevronDown className="w-3 h-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel>录制生成节点</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowRecorder(true)}>
+              <Video className="w-4 h-4 mr-2 text-red-500" />
+              网页智能录制
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowDesktopRecorder(true)}>
+              <MousePointerClick className="w-4 h-4 mr-2 text-rose-500" />
+              桌面录制
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* 版本历史 - 独立按钮（VSCode 式分支图） */}
+        <Button
+          variant="outline"
+          size="sm"
+          title="版本历史（提交快照 / 恢复 / 对比 / 分支图）"
+          onClick={() => setShowVersionHistory(true)}
+        >
+          <GitCommit className="w-4 h-4 sm:mr-1 text-[hsl(var(--violet-500))]" />
+          <span className="hidden lg:inline">版本</span>
+        </Button>
+
         {/* 全局配置 - 中性灰 */}
         <Button 
           variant="tonal-warning" 
@@ -1539,7 +1708,16 @@ export function Toolbar() {
         onClose={() => setShowAutoBrowser(false)} 
         onLog={handleBrowserLog}
       />
-      
+
+      {/* 智能录制器面板 */}
+      <RecorderPanel open={showRecorder} onClose={() => setShowRecorder(false)} />
+
+      {/* 桌面录制器面板 */}
+      <DesktopRecorderPanel open={showDesktopRecorder} onClose={() => setShowDesktopRecorder(false)} />
+
+      {/* 版本历史面板 */}
+      <VersionHistoryPanel open={showVersionHistory} onClose={() => setShowVersionHistory(false)} />
+
       {/* 工作流仓库对话框 */}
       <WorkflowHubDialog
         open={showWorkflowHub}

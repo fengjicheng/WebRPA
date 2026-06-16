@@ -58,6 +58,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 本地访问鉴权：本机免验，远程需 Token（默认开启，可在安全设置里关闭）
+from starlette.responses import JSONResponse as _JSONResponse
+from app.services import security_manager as _sec
+
+# 这些路径无需鉴权（文档 / 安全状态查询 / CORS 预检）
+_AUTH_PUBLIC_PREFIXES = ("/docs", "/redoc", "/openapi.json", "/api/security/")
+
+
+@app.middleware("http")
+async def _auth_middleware(request, call_next):
+    try:
+        # 预检请求直接放行
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        path = request.url.path or ""
+        # 公共路径放行
+        if any(path.startswith(p) for p in _AUTH_PUBLIC_PREFIXES):
+            return await call_next(request)
+        # 鉴权关闭 → 放行（应急逃生开关）
+        if not _sec.is_enabled():
+            return await call_next(request)
+        # 本机来源 → 放行
+        client_host = request.client.host if request.client else None
+        if _sec.is_loopback(client_host):
+            return await call_next(request)
+        # 远程来源 → 校验 Token（头 / 查询参数 / Bearer）
+        token = request.headers.get("x-webrpa-token") or request.query_params.get("token")
+        if not token:
+            auth = request.headers.get("authorization", "")
+            if auth.lower().startswith("bearer "):
+                token = auth[7:].strip()
+        if _sec.verify(token):
+            return await call_next(request)
+        return _JSONResponse(
+            status_code=401,
+            content={"detail": "需要访问令牌：请在 WebRPA 安全设置中获取 Token 并在远程访问时携带"},
+        )
+    except Exception:
+        # 鉴权中间件自身异常时不阻断业务（避免误伤）
+        return await call_next(request)
+
 # 导入并注册路由
 from app.api.workflows import (
     router as workflows_router, 
@@ -83,6 +124,13 @@ from app.api.desktop_picker import router as desktop_picker_router
 from app.api.custom_modules import router as custom_modules_router
 from app.api.ai_assistant import router as ai_assistant_router, set_sio as set_ai_assistant_sio
 from app.api.screensaver import router as screensaver_router
+from app.api.recorder import router as recorder_router
+from app.api.workflow_versions import router as workflow_versions_router
+from app.api.desktop_recorder import router as desktop_recorder_router
+from app.api.security import router as security_router
+from app.api.credentials import router as credentials_router
+from app.api.retention import router as retention_router
+from app.api.workflow_bundle import router as workflow_bundle_router
 app.include_router(workflows_router)
 app.include_router(element_picker_router)
 app.include_router(data_assets_router)
@@ -103,6 +151,13 @@ app.include_router(desktop_picker_router)
 app.include_router(custom_modules_router)
 app.include_router(ai_assistant_router)
 app.include_router(screensaver_router)
+app.include_router(recorder_router)
+app.include_router(workflow_versions_router)
+app.include_router(desktop_recorder_router)
+app.include_router(security_router)
+app.include_router(credentials_router)
+app.include_router(retention_router)
+app.include_router(workflow_bundle_router)
 
 # 设置 Socket.IO 实例（避免循环导入）
 set_workflows_sio(sio)
@@ -171,6 +226,13 @@ async def startup_event():
             print(f"[Startup] MCP 初始化失败: {e}")
 
     asyncio.create_task(_init_mcp())
+    
+    # 启动留存清理（录像/采集数据滚动清理，避免磁盘膨胀）
+    try:
+        from app.services import retention_manager
+        retention_manager.start_periodic_cleanup()
+    except Exception as e:
+        print(f"[Startup] 留存清理启动失败: {e}")
     
     # 启动剪贴板监听服务（用于检测用户截图）
     try:

@@ -68,6 +68,32 @@ export interface ScheduledTask {
   // 运行模式
   open_monitor?: boolean
   headless?: boolean
+
+  // 失败/成功通知
+  notify_on_failure?: boolean
+  notify_on_success?: boolean
+  notify_channels?: NotifyChannel[]
+}
+
+export interface NotifyChannel {
+  type: 'email' | 'wecom' | 'dingtalk' | 'serverchan' | 'webhook'
+  enabled?: boolean
+  // email
+  smtp_server?: string
+  smtp_port?: number
+  username?: string
+  password?: string
+  to?: string
+  use_ssl?: boolean
+  // wecom / dingtalk
+  key?: string
+  webhook?: string
+  access_token?: string
+  secret?: string
+  // serverchan
+  sendkey?: string
+  // webhook
+  url?: string
 }
 
 export interface ScheduledTaskExecutionLog {

@@ -5,14 +5,15 @@
 WebRPA - 网页机器人流程自动化工具
 </h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/版本-2.1.0-blue.svg" alt="版本">
-  <img src="https://img.shields.io/badge/模块数量-540个-brightgreen.svg" alt="模块数量">
+  <img src="https://img.shields.io/badge/版本-2.2.0-blue.svg" alt="版本">
+  <img src="https://img.shields.io/badge/模块数量-542个-brightgreen.svg" alt="模块数量">
   <img src="https://img.shields.io/badge/协议-AGPL--3.0%20%2B%20商业授权-green.svg" alt="协议">
   <img src="https://img.shields.io/badge/作者-青云制作__彭明航-orange.svg" alt="作者">
   <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/React-19-61dafb.svg" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5-3178c6.svg" alt="TypeScript">
 </p>
+
 
 **一款功能强大的可视化网页自动化工具（支持一定的Windows系统桌面自动化和Android系统自动化），通过拖拽模块的方式快速构建自动化工作流，无需编写代码即可实现网页数据采集、表单填写、自动化测试等任务。**
 
@@ -28,7 +29,7 @@ WebRPA - 网页机器人流程自动化工具
 
 - **🚀 零代码开发**：可视化拖拽，无需编程基础
 - **📦 开箱即用**：内置Python、Node.js环境，一键启动
-- **🔧 模块丰富**：544个功能模块，覆盖95%自动化场景
+- **🔧 模块丰富**：542个功能模块，覆盖95%自动化场景
 - **🤖 AI 小助手**：内置 AI 助手，可对话式理解需求、自动搭建/排查工作流，并具备**自愈能力**（运行失败自动诊断→修复→重跑）；OpenAI 兼容协议，支持 OpenAI / 智谱 / Deepseek / Ollama 等
 - **🎨 界面美观**：现代化UI设计，Motion动效灵动，操作流畅，支持Mermaid流程图
 - **⚡ 性能强劲**：基于FastAPI + React，响应迅速
@@ -157,7 +158,7 @@ WebRPA/
 ├── backend/                 # 后端服务 (Python FastAPI)
 │   ├── app/
 │   │   ├── api/            # API 路由（浏览器、系统、触发器等）
-│   │   ├── executors/      # 模块执行器（540个模块的核心逻辑）
+│   │   ├── executors/      # 模块执行器（542个模块的核心逻辑）
 │   │   ├── models/         # 数据模型（工作流、变量、配置等）
 │   │   └── services/       # 核心服务（浏览器管理、任务调度等）
 │   ├── data/               # 数据文件（AI模型、配置等）
@@ -219,7 +220,7 @@ WebRPA/
 
 ### 文档功能
 
-- 📚 **详细教学文档**，覆盖所有544个模块
+- 📚 **详细教学文档**，覆盖所有542个模块
 - 🔍 **三级标题搜索**：搜索结果精确到三级标题（###），快速定位具体内容
 - 🎨 **关键词高亮**：搜索关键词在文档中自动高亮显示，方便查看
 - 🔖 **保持搜索状态**：切换文档时保持搜索和高亮，方便对比查看

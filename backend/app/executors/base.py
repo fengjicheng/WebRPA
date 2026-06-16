@@ -88,6 +88,102 @@ async def pw_wait_for_element(page_or_frame, selector: str, state: str = 'visibl
     await page_or_frame.locator(selector).first.wait_for(**kwargs)
 
 
+def build_fallback_selectors(hints: dict) -> list[str]:
+    """根据元素提示（拾取时保存的 tag/text/attributes）生成候选选择器，按稳定性从高到低排序。
+
+    用于选择器自愈：当原选择器失效时，依次尝试这些候选锚点重新定位元素。
+    """
+    import re as _re
+    out: list[str] = []
+    if not hints or not isinstance(hints, dict):
+        return out
+    tag = (hints.get('tag') or hints.get('tagName') or '').strip().lower()
+    attrs = hints.get('attributes') or {}
+    if not isinstance(attrs, dict):
+        attrs = {}
+    testid = hints.get('testid') or attrs.get('data-testid')
+    name = hints.get('name') or attrs.get('name')
+    elem_id = hints.get('id') or attrs.get('id')
+    cls = (hints.get('className') or attrs.get('className') or '').strip()
+    placeholder = hints.get('placeholder') or attrs.get('placeholder')
+    aria = hints.get('ariaLabel') or attrs.get('aria-label')
+    text = (hints.get('text') or '').strip()
+    tag_prefix = tag if tag else ''
+
+    def _add(sel: str):
+        if sel and sel not in out:
+            out.append(sel)
+
+    if testid:
+        _add(f'[data-testid="{testid}"]')
+    if elem_id and _re.match(r'^[A-Za-z][\w-]*$', str(elem_id)):
+        _add(f'#{elem_id}')
+    if name:
+        _add(f'{tag_prefix or "*"}[name="{name}"]')
+    if placeholder:
+        _add(f'[placeholder="{placeholder}"]')
+    if aria:
+        _add(f'[aria-label="{aria}"]')
+    if text and len(text) <= 40:
+        safe = text.replace('\\', '\\\\').replace('"', '\\"')
+        _add(f'{tag_prefix or "*"}:has-text("{safe}")')
+        _add(f'text="{safe}"')
+    if cls and ' ' not in cls and _re.match(r'^[A-Za-z][\w-]*$', cls):
+        _add(f'{tag_prefix}.{cls}' if tag_prefix else f'.{cls}')
+    return out
+
+
+async def smart_wait_locator(page_or_frame, selector: str, *, hints=None, state: str = 'attached',
+                             timeout=None, node_config=None, config_key: str = 'selector', context=None):
+    """带自愈的元素定位：先用主选择器等待，失败则用提示生成的候选选择器进行锚点重定位。
+
+    - hints: 拾取时保存的元素提示（dict）
+    - node_config / config_key: 自愈成功后把可用选择器回写到节点配置，下次直接命中
+    - context: 提供时，自愈成功会记录到 context 并写运行日志（供前端"持久化回写"与回放标注）
+    返回定位成功的 locator；全部失败则抛出原始异常。
+    """
+    primary = format_selector(selector)
+    try:
+        loc = page_or_frame.locator(primary).first
+        await loc.wait_for(state=state, timeout=timeout)
+        return loc
+    except Exception as primary_err:
+        fallbacks = build_fallback_selectors(hints)
+        if not fallbacks:
+            raise
+        heal_timeout = 3000  # 候选选择器使用较短超时，避免整体过慢
+        for fb in fallbacks:
+            try:
+                loc = page_or_frame.locator(format_selector(fb)).first
+                await loc.wait_for(state=state, timeout=heal_timeout)
+                print(f"[SELF-HEAL] 选择器失效 {selector!r}，已用候选锚点重定位成功: {fb!r}")
+                if isinstance(node_config, dict) and config_key:
+                    node_config[config_key] = fb
+                # 上报：记录到上下文 + 写运行日志（供持久化回写与回放标注）
+                if context is not None:
+                    try:
+                        node_id = getattr(context, '_current_node_id', None)
+                        records = getattr(context, '_healed_selectors', None)
+                        if records is None:
+                            records = []
+                            setattr(context, '_healed_selectors', records)
+                        records.append({
+                            'nodeId': node_id, 'configKey': config_key,
+                            'oldSelector': selector, 'newSelector': fb,
+                        })
+                    except Exception:
+                        pass
+                    try:
+                        await context.send_progress(
+                            f"选择器自愈：原选择器 {selector!r} 失效，已用候选 {fb!r} 重新定位", "warning")
+                    except Exception:
+                        pass
+                return loc
+            except Exception:
+                continue
+        raise primary_err
+
+
 @dataclass
 class ExecutionContext:
     """执行上下文 - 在模块执行器之间共享的状态（异步版本）"""
@@ -412,6 +508,24 @@ class ExecutionContext:
         if isinstance(value, str):
             import re
 
+            # 凭据库引用解析（最前置，先于普通变量解析）：
+            # {{cred:名称}} / {{cred:名称.字段}} / {{凭据:名称}} / {{凭据:名称.字段}}
+            if '{{' in value and ('cred:' in value or 'cred：' in value or '凭据:' in value or '凭据：' in value):
+                def _resolve_cred(m):
+                    ref = m.group(1).strip()
+                    if '.' in ref:
+                        cname, fld = ref.split('.', 1)
+                        cname, fld = cname.strip(), fld.strip()
+                    else:
+                        cname, fld = ref, 'value'
+                    try:
+                        from app.services import credential_manager
+                        val = credential_manager.get_field(cname, fld)
+                        return val if val is not None else m.group(0)
+                    except Exception:
+                        return m.group(0)
+                value = re.sub(r'\{\{\s*(?:cred|凭据)\s*[:：]\s*([^{}]+?)\s*\}\}', _resolve_cred, value)
+
             _MISSING = object()
 
             def to_replacement_text(resolved: Any) -> str:
@@ -630,27 +744,63 @@ class ModuleExecutor(ABC):
 
 
 class ExecutorRegistry:
-    """执行器注册表"""
+    """执行器注册表（支持懒加载：类型清单先到位，真正的执行器模块按需导入）"""
     
     def __init__(self):
         self._executors: dict[str, ModuleExecutor] = {}
+        self._lazy: dict[str, str] = {}        # module_type -> 子模块名（尚未导入）
+        self._package: Optional[str] = None    # 懒加载子模块所在包名
     
     def register(self, executor_class: Type[ModuleExecutor]):
         """注册执行器类 - 每次都创建新实例"""
         executor = executor_class()
         self._executors[executor.module_type] = executor
+        # 真正注册后，从懒加载占位表里移除
+        self._lazy.pop(executor.module_type, None)
+    
+    def enable_lazy(self, type_to_submodule: dict[str, str], package: str):
+        """启用懒加载：登记 类型→子模块 映射，使 get_all_types 立即可用，
+        而对应执行器模块只在首次 get(type) 时才导入。"""
+        self._package = package
+        for t, sub in type_to_submodule.items():
+            if t not in self._executors:
+                self._lazy[t] = sub
+    
+    def _ensure_loaded(self, module_type: str):
+        """若该类型处于懒加载状态，导入其子模块以触发真正注册。"""
+        sub = self._lazy.get(module_type)
+        if not sub or not self._package:
+            return
+        import importlib
+        try:
+            importlib.import_module(f".{sub}", self._package)
+        except Exception as e:
+            print(f"[registry] 懒加载执行器子模块 {sub} 失败: {e}")
+        finally:
+            # 无论成功失败都移除占位，避免反复尝试
+            self._lazy.pop(module_type, None)
     
     def get(self, module_type: str) -> Optional[ModuleExecutor]:
-        """获取指定类型的执行器"""
+        """获取指定类型的执行器（懒加载时按需导入对应子模块）"""
+        if module_type in self._executors:
+            return self._executors[module_type]
+        if module_type in self._lazy:
+            self._ensure_loaded(module_type)
         return self._executors.get(module_type)
     
     def get_all_types(self) -> list[str]:
-        """获取所有已注册的模块类型"""
-        return list(self._executors.keys())
+        """获取所有模块类型（已加载 + 懒加载占位，两者合并去重）"""
+        types = list(self._executors.keys())
+        for t in self._lazy:
+            if t not in self._executors:
+                types.append(t)
+        return types
     
     def clear(self):
         """清空注册表"""
         self._executors.clear()
+        self._lazy.clear()
+        self._package = None
 
 
 # 全局注册表实例

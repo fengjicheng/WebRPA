@@ -115,6 +115,12 @@ export const documents: DocumentItem[] = [
     description: '创建和管理自定义模块，扩展功能',
   },
   {
+    id: 'platform-guide',
+    title: '🧰 平台能力',
+    icon: Wrench,
+    description: '脚本/整包导出、加密凭据库、版本历史、留存清理',
+  },
+  {
     id: 'advanced-features',
     title: '🧠 高级功能',
     icon: Brain,

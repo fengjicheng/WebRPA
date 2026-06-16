@@ -53,8 +53,21 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'monaco-editor': ['monaco-editor'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('monaco-editor') || id.includes('@monaco-editor')) return 'monaco-editor'
+          // reactflow 必须在 react 判断之前（名字含 react）
+          if (id.includes('reactflow') || id.includes('@reactflow') || id.includes('@xyflow')) return 'reactflow'
+          // React 全家桶必须在同一 chunk：react / react-dom / scheduler / jsx-runtime
+          // 否则 react-dom 给 scheduler 设置 unstable_now 时会因跨 chunk 初始化顺序报错
+          if (
+            id.includes('/react-dom/') || id.includes('/react/') ||
+            id.includes('/scheduler/') || id.includes('/react-is/') ||
+            id.includes('use-sync-external-store')
+          ) return 'react-vendor'
+          if (id.includes('elkjs')) return 'elkjs'
+          if (id.includes('xlsx') || id.includes('exceljs')) return 'excel-vendor'
+          return 'vendor'
         },
       },
     },

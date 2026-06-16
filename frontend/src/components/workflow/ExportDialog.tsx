@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { X, Code2, FileJson, FileText, Download, CheckCircle2, Sparkles, Lock } from 'lucide-react'
+import { X, Code2, FileJson, FileText, Download, CheckCircle2, Sparkles, Lock, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 
@@ -11,7 +11,7 @@ interface ExportDialogProps {
   onExport: (format: ExportFormat) => Promise<void>
 }
 
-export type ExportFormat = 'playwright' | 'json' | 'markdown' | 'encrypted'
+export type ExportFormat = 'playwright' | 'selenium' | 'playwright-js' | 'json' | 'markdown' | 'encrypted' | 'bundle'
 
 const exportFormats = [
   {
@@ -21,6 +21,22 @@ const exportFormats = [
     badge: '推荐',
     Icon: Code2,
     accent: 'success',
+  },
+  {
+    id: 'selenium' as ExportFormat,
+    name: 'Selenium Python',
+    description: '导出为 Selenium + Python 脚本，适合习惯 Selenium 的团队接手',
+    badge: '兼容',
+    Icon: Code2,
+    accent: 'brand',
+  },
+  {
+    id: 'playwright-js' as ExportFormat,
+    name: 'Playwright JavaScript',
+    description: '导出为 Playwright + Node.js(JavaScript) 脚本，适合前端/Node 技术栈',
+    badge: 'Node',
+    Icon: Code2,
+    accent: 'violet',
   },
   {
     id: 'json' as ExportFormat,
@@ -45,6 +61,14 @@ const exportFormats = [
     badge: '安全',
     Icon: Lock,
     accent: 'amber',
+  },
+  {
+    id: 'bundle' as ExportFormat,
+    name: '整包（含依赖）',
+    description: '把工作流连同依赖的自定义模块、图片资产打包，便于跨机器迁移与团队共享',
+    badge: '迁移',
+    Icon: Package,
+    accent: 'brand',
   },
 ] as const
 

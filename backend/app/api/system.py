@@ -185,13 +185,13 @@ async def save_clipboard_image(request: SaveClipboardImageRequest):
 async def module_required_fields():
     """返回各模块的必填字段映射 { moduleType: [必填字段名, ...] }，供前端配置面板做必填校验提示。"""
     try:
-        from app.services.ai_assistant_module_schemas import get_all_module_schemas
+        from app.services.ai_assistant_module_schemas import get_all_module_schemas, conditional_required_map
         schemas = get_all_module_schemas()
         result = {}
         for mtype, schema in schemas.items():
             req = schema.get("required") if isinstance(schema, dict) else None
             if isinstance(req, list) and req:
                 result[mtype] = req
-        return {"requiredFields": result}
+        return {"requiredFields": result, "conditionalRequired": conditional_required_map()}
     except Exception as e:
-        return {"requiredFields": {}, "error": str(e)}
+        return {"requiredFields": {}, "conditionalRequired": {}, "error": str(e)}

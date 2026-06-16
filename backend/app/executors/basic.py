@@ -9,6 +9,7 @@ from .base import (
     ModuleResult,
     register_executor,
     pw_wait_for_element,
+    smart_wait_locator,
     format_selector
 )
 from .type_utils import to_int, to_float
@@ -537,8 +538,16 @@ class ClickElementExecutor(ModuleExecutor):
                     print(f"[ClickElement] 等待元素attached...")
                     await element.wait_for(state='attached', timeout=wait_timeout)
                 except Exception as e:
-                    print(f"[ClickElement] wait_for失败: {e}，尝试pw_wait_for_element...")
-                    await pw_wait_for_element(current_page, selector, state='visible', timeout=wait_timeout)
+                    print(f"[ClickElement] wait_for失败: {e}，尝试自愈重定位...")
+                    # 选择器自愈：仅当拾取时保存了元素提示才走锚点重定位，否则保持原逻辑
+                    _hints = config.get('selectorHints')
+                    if _hints:
+                        element = await smart_wait_locator(
+                            current_page, selector, hints=_hints,
+                            state='visible', timeout=wait_timeout, node_config=config, context=context,
+                        )
+                    else:
+                        await pw_wait_for_element(current_page, selector, state='visible', timeout=wait_timeout)
             
             print(f"[ClickElement] 执行点击...")
             # 处理超时参数：0 表示不限制超时，None 表示使用 Playwright 默认超时
@@ -601,7 +610,12 @@ class HoverElementExecutor(ModuleExecutor):
             try:
                 await element.wait_for(state='attached', timeout=wait_timeout)
             except Exception:
-                await pw_wait_for_element(current_page, selector, state='visible', timeout=wait_timeout)
+                _hints = config.get('selectorHints')
+                if _hints:
+                    element = await smart_wait_locator(current_page, selector, hints=_hints,
+                                                       state='visible', timeout=wait_timeout, node_config=config, context=context)
+                else:
+                    await pw_wait_for_element(current_page, selector, state='visible', timeout=wait_timeout)
 
             # 处理超时参数：0 表示不限制超时，None 表示使用 Playwright 默认超时
             hover_timeout = None if timeout_ms == 0 else timeout_ms
@@ -672,7 +686,17 @@ class InputTextExecutor(ModuleExecutor):
             try:
                 await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
             except Exception:
-                pass
+                # 选择器自愈：仅当存在元素提示时才锚点重定位（成功会回写 selector）；否则保持原逻辑
+                _hints = config.get('selectorHints')
+                if _hints:
+                    try:
+                        await smart_wait_locator(
+                            context.page, selector, hints=_hints,
+                            state='visible', timeout=wait_timeout, node_config=config, context=context,
+                        )
+                        selector = context.resolve_value(config.get('selector', '')) or selector
+                    except Exception:
+                        pass
 
             element, input_type = await self._find_input_element(context.page, selector)
             
@@ -734,7 +758,16 @@ class GetElementInfoExecutor(ModuleExecutor):
                     await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
                     element = context.page.locator(format_selector(selector)).first
                 except Exception:
-                    pass
+                    # 选择器自愈：仅当存在元素提示时才锚点重定位
+                    _hints = config.get('selectorHints')
+                    if _hints:
+                        try:
+                            element = await smart_wait_locator(
+                                context.page, selector, hints=_hints,
+                                state='attached', timeout=wait_timeout, node_config=config, context=context,
+                            )
+                        except Exception:
+                            pass
             
             if await element.count() == 0:
                 return ModuleResult(success=False, error=f"未找到元素: {selector}")
@@ -907,7 +940,14 @@ class WaitElementExecutor(ModuleExecutor):
             # 处理超时参数：0 表示不限制超时，None 表示使用 Playwright 默认超时
             final_timeout = None if wait_timeout == 0 else wait_timeout
             
-            await pw_wait_for_element(context.page, selector, state=state, timeout=final_timeout)
+            # visible/attached 条件支持选择器自愈；hidden/detached 语义为"消失"，不做重定位
+            if state in ('visible', 'attached') and config.get('selectorHints'):
+                await smart_wait_locator(
+                    context.page, selector, hints=config.get('selectorHints'),
+                    state=state, timeout=final_timeout, node_config=config, context=context,
+                )
+            else:
+                await pw_wait_for_element(context.page, selector, state=state, timeout=final_timeout)
             
             condition_labels = {
                 'visible': '可见',

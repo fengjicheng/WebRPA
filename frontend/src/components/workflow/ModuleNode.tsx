@@ -7,11 +7,15 @@ import { Globe, ExternalLink } from 'lucide-react'
 import { moduleIcons } from './ModuleSidebar'
 import { moduleColors } from './moduleColors'
 import { useNodeRunStore } from '@/store/nodeRunStore'
+import { useDebugStore } from '@/store/debugStore'
 
 function ModuleNodeComponent({ id, data, selected }: NodeProps) {
   const nodeData = data as NodeData
   const { fitView, getNodes, setCenter } = useReactFlow()
   const runStatus = useNodeRunStore((s) => s.statuses[id])
+  const hasBreakpoint = useDebugStore((s) => s.breakpoints.has(id))
+  const isPausedHere = useDebugStore((s) => s.isPaused && s.pausedNodeId === id)
+  const toggleBreakpoint = useDebugStore((s) => s.toggleBreakpoint)
   const isDisabled = nodeData.disabled === true
   const isHighlighted = nodeData.isHighlighted === true
   const handleSize = useGlobalConfigStore((state) => state.config.display?.handleSize || 12)
@@ -122,6 +126,7 @@ function ModuleNodeComponent({ id, data, selected }: NodeProps) {
         runStatus === 'running' && '!border-[hsl(var(--brand-500))] ring-2 ring-[hsl(var(--brand-500)/0.55)] shadow-brand-glow animate-pulse',
         runStatus === 'success' && '!border-[hsl(var(--success-500))] ring-2 ring-[hsl(var(--success-500)/0.45)]',
         runStatus === 'failed' && '!border-[hsl(var(--danger-500))] ring-2 ring-[hsl(var(--danger-500)/0.5)]',
+        isPausedHere && '!border-amber-500 ring-2 ring-amber-400/70 shadow-warning-glow',
         isSubflow && nodeData.subflowName ? 'cursor-pointer' : '',
         // AI 助手可视化搭建时节点入场动画
         (nodeData as any).__aiSpawning && 'ai-node-spawn'
@@ -135,7 +140,16 @@ function ModuleNodeComponent({ id, data, selected }: NodeProps) {
       }
       onDoubleClick={isSubflow && nodeData.subflowName ? handleSubflowDoubleClick : undefined}
     >
-      {/* 禁用标记 */}
+      {/* 断点圆点：点击切换。命中时实心红，未命中时悬停才显形 */}
+      <button
+        className={cn(
+          'absolute -left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow z-10 transition-opacity duration-150 cursor-pointer',
+          hasBreakpoint ? 'bg-red-500 opacity-100' : 'bg-red-400/40 opacity-0 group-hover:opacity-100 hover:!bg-red-500'
+        )}
+        title={hasBreakpoint ? '移除断点' : '设置断点（运行到此暂停）'}
+        onClick={(e) => { e.stopPropagation(); toggleBreakpoint(id) }}
+      />
+
       {isDisabled && (
         <div className="absolute -top-2 -right-2 bg-[hsl(var(--slate-700))] text-white text-[9.5px] font-bold px-2 py-0.5 rounded-full shadow-md uppercase tracking-wider">
           已禁用

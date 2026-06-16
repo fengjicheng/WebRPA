@@ -227,6 +227,7 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
     },
     "流程控制": {
         "condition": "条件判断（if/else 分支）",
+        "assert_checkpoint": "断言/检查点（校验变量/页面元素/表达式是否符合预期，失败可中断/警告/跳过，流程稳定性必备）",
         "loop": "循环 N 次",
         "foreach": "遍历列表",
         "foreach_dict": "遍历字典",
@@ -255,6 +256,7 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
     "AI": {
         "ai_chat": "AI 对话（OpenAI 兼容协议）",
         "ai_vision": "AI 视觉理解（多模态）",
+        "ai_vision_act": "AI 视觉操作（看屏点选，自然语言定位屏幕目标并真实点击，不依赖选择器）",
         "ai_extract": "AI 结构化抽取（文本→JSON，按字段抽取）",
         "ai_classify": "AI 文本分类（归入给定类别之一）",
         "ai_summarize": "AI 文本摘要（长文压缩）",

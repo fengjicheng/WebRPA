@@ -154,6 +154,80 @@ export async function initDatabase() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_guestbook_created_at ON guestbook(created_at)`)
   db.run(`CREATE INDEX IF NOT EXISTS idx_guestbook_client_id ON guestbook(client_id)`)
 
+  // 自定义模块在线社区表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS custom_modules (
+      id TEXT PRIMARY KEY,
+      hash TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      description TEXT,
+      icon TEXT DEFAULT '📦',
+      color TEXT DEFAULT '#8B5CF6',
+      category TEXT DEFAULT '其他',
+      tags TEXT,
+      content TEXT NOT NULL,
+      author TEXT DEFAULT '匿名',
+      version TEXT DEFAULT '1.0.0',
+      node_count INTEGER DEFAULT 0,
+      download_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      ip_address TEXT,
+      user_agent TEXT,
+      client_id TEXT,
+      is_active INTEGER DEFAULT 1
+    )
+  `)
+
+  // 自定义模块下载记录表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS custom_module_download_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module_id TEXT NOT NULL,
+      ip_address TEXT NOT NULL,
+      downloaded_at TEXT DEFAULT (datetime('now'))
+    )
+  `)
+
+  // 自定义模块索引
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_hash ON custom_modules(hash)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_category ON custom_modules(category)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_created_at ON custom_modules(created_at)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_download_count ON custom_modules(download_count)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_is_active ON custom_modules(is_active)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_custom_modules_client_id ON custom_modules(client_id)`)
+
+  // 自定义模块评论 + 评分表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS custom_module_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module_id TEXT NOT NULL,
+      nickname TEXT DEFAULT '匿名用户',
+      content TEXT NOT NULL,
+      rating INTEGER DEFAULT 0,
+      client_id TEXT,
+      ip_address TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      is_active INTEGER DEFAULT 1
+    )
+  `)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cm_comments_module ON custom_module_comments(module_id)`)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cm_comments_client ON custom_module_comments(client_id)`)
+
+  // 自定义模块举报表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS custom_module_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      module_id TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      description TEXT,
+      ip_address TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      status TEXT DEFAULT 'pending'
+    )
+  `)
+
   // 保存数据库
   saveDatabase()
 

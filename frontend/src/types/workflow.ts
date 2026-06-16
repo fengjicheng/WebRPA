@@ -245,6 +245,7 @@ export type ModuleType =
   | 'foreach_dict'
   | 'break_loop'
   | 'continue_loop'
+  | 'assert_checkpoint'  // 断言/检查点（流程稳定性）
   | 'scheduled_task'
   | 'subflow'  // 子流程调用
   | 'subflow_header'  // 子流程头（函数头形式）
@@ -291,6 +292,7 @@ export type ModuleType =
   | 'element_visible'
   | 'get_mouse_position'
   | 'screenshot_screen'
+  | 'ai_vision_act'
   | 'rename_file'
   | 'network_capture'
   // 文件操作

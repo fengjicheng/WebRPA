@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { Button } from '@/components/ui/button'
 import { VariableInput } from '@/components/ui/variable-input'
-import { Trash2, Crosshair, Loader2, Ban, ChevronLeft, ChevronRight, Settings, Sparkles } from 'lucide-react'
+import { Trash2, Crosshair, Loader2, Ban, ChevronLeft, ChevronRight, Settings, Sparkles, ScanSearch } from 'lucide-react'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { elementPickerApi, desktopPickerApi } from '@/services/api'
 
@@ -97,6 +97,7 @@ import {
   AIChatConfig,
   AITaskConfig,
   AIVisionConfig,
+  AIVisionActConfig,
   ApiRequestConfig,
   AISmartScraperConfig,
   AIElementSelectorConfig,
@@ -155,6 +156,7 @@ import {
   ForeachDictConfig,
   ScheduledTaskConfig,
   SubflowConfig,
+  AssertCheckpointConfig,
 } from './config-panels/ControlModuleConfigs'
 import {
   WebhookTriggerConfig,
@@ -577,6 +579,7 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
 
   const [isPicking, setIsPicking] = useState(false)
   const [pickingField, setPickingField] = useState<string | null>(null)
+  const [testingField, setTestingField] = useState<string | null>(null)
   const [showUrlDialog, setShowUrlDialog] = useState(false)
   const [pickerUrl, setPickerUrl] = useState('')
   const [pendingField, setPendingField] = useState<string | null>(null)
@@ -760,8 +763,18 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         }
         
         if (selectedResult.data?.selected && selectedResult.data.element) {
-          const selector = selectedResult.data.element.selector
+          const el = selectedResult.data.element
+          const selector = el.selector
           handleChange(fieldName, selector)
+          // 选择器自愈：保存元素提示（标签/文本/属性），运行时主选择器失效可锚点重定位
+          if (fieldName === 'selector') {
+            const attrs = (el.attributes || {}) as Record<string, unknown>
+            handleChange('selectorHints', {
+              tag: el.tagName || '',
+              text: el.text || '',
+              attributes: attrs,
+            })
+          }
           addLog({ level: 'success', message: `已选择元素: ${selector}` })
           
           await elementPickerApi.stop()
@@ -982,6 +995,34 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
   }
 
   // 渲染带选择器按钮的输入框
+  // 测试选择器：在当前浏览器页面上验证是否命中并高亮（普通函数，避免在提前 return 之后调用 Hook）
+  const handleTestSelector = async (id: string) => {
+    const selector = (nodeData[id] as string) || ''
+    if (!selector.trim()) {
+      addLog({ level: 'warning', message: '选择器为空，无法测试' })
+      return
+    }
+    setTestingField(id)
+    try {
+      const hints = (nodeData['selectorHints'] as Record<string, unknown>) || undefined
+      const res = await elementPickerApi.testSelector(selector, hints)
+      const d = res.data
+      if (res.error || !d?.success) {
+        addLog({ level: 'error', message: `测试失败：${res.error || d?.error || '未知错误'}` })
+      } else if (d.matched) {
+        const via = d.isPrimary ? '' : `（经自愈候选 ${d.matchedSelector}）`
+        const txt = d.element?.text ? `，首个文本：${d.element.text}` : ''
+        addLog({ level: 'success', message: `命中 ${d.count} 个元素${via}${txt}，已在页面高亮` })
+      } else {
+        addLog({ level: 'warning', message: '未命中任何元素，请检查选择器或页面是否已打开到目标位置' })
+      }
+    } catch (e) {
+      addLog({ level: 'error', message: `测试选择器出错：${e}` })
+    } finally {
+      setTestingField(null)
+    }
+  }
+
   const renderSelectorInput = (id: string, label: string, placeholder: string) => {
     const rawValue = (nodeData[id] as string) || ''
     const isXPath = rawValue.startsWith('xpath=')
@@ -1032,6 +1073,19 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Crosshair className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handleTestSelector(id)}
+            title="测试定位：在当前浏览器页面验证选择器是否命中并高亮"
+            disabled={testingField === id || !rawValue}
+          >
+            {testingField === id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ScanSearch className="w-4 h-4" />
             )}
           </Button>
         </div>
@@ -1231,6 +1285,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <AITaskConfig moduleType={String(nodeData.moduleType)} data={nodeData} onChange={handleChange} />
       case 'ai_vision':
         return <AIVisionConfig {...props} />
+      case 'ai_vision_act':
+        return <AIVisionActConfig data={nodeData} onChange={handleChange} />
       case 'ai_smart_scraper':
         return <AISmartScraperConfig data={nodeData} onChange={handleChange} />
       case 'ai_element_selector':
@@ -1245,6 +1301,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <ApiRequestConfig data={nodeData} onChange={handleChange} />
       case 'condition':
         return <ConditionConfig {...props} />
+      case 'assert_checkpoint':
+        return <AssertCheckpointConfig {...props} />
       case 'loop':
         return <LoopConfig data={nodeData} onChange={handleChange} />
       case 'foreach':
@@ -2360,6 +2418,39 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
                         {(nodeData.retryExhaustedAction as string) === 'skip' 
                           ? '重试次数用完后跳过此模块，继续执行后续流程'
                           : '重试次数用完后停止整个工作流'}
+                      </p>
+                    </div>
+                  )}
+                  {((nodeData.retryCount as number) ?? 0) > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="retryDelay">重试间隔（秒）</Label>
+                      <NumberInput
+                        id="retryDelay"
+                        value={(nodeData.retryDelay as number) ?? 0}
+                        onChange={(v) => handleChange('retryDelay', v)}
+                        defaultValue={0}
+                        min={0}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        每次重试前的等待时间，0 表示立即重试，可缓解被限流/页面未就绪。
+                      </p>
+                    </div>
+                  )}
+                  {((nodeData.retryCount as number) ?? 0) > 0 && ((nodeData.retryDelay as number) ?? 0) > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="retryBackoff">退避策略</Label>
+                      <Select
+                        id="retryBackoff"
+                        value={(nodeData.retryBackoff as string) || 'fixed'}
+                        onChange={(e) => handleChange('retryBackoff', e.target.value)}
+                      >
+                        <option value="fixed">固定间隔</option>
+                        <option value="exponential">指数退避（间隔翻倍）</option>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {(nodeData.retryBackoff as string) === 'exponential'
+                          ? '间隔随重试次数翻倍（如 2s → 4s → 8s），适合外部接口限流'
+                          : '每次重试都等待相同时间'}
                       </p>
                     </div>
                   )}

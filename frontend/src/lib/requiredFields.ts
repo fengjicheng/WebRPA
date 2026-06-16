@@ -5,7 +5,14 @@
 import { useEffect, useState } from 'react'
 import { apiRequest } from '@/services/api'
 
+interface ConditionalSpec {
+  field?: string
+  default?: string
+  map?: Record<string, string[]>
+}
+
 let cache: Record<string, string[]> | null = null
+let condCache: Record<string, ConditionalSpec> = {}
 let inflight: Promise<Record<string, string[]>> | null = null
 
 async function fetchRequiredFields(): Promise<Record<string, string[]>> {
@@ -13,10 +20,12 @@ async function fetchRequiredFields(): Promise<Record<string, string[]>> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      const res = await apiRequest<{ requiredFields?: Record<string, string[]> }>('/system/module-required-fields')
+      const res = await apiRequest<{ requiredFields?: Record<string, string[]>; conditionalRequired?: Record<string, ConditionalSpec> }>('/system/module-required-fields')
       cache = (res as any)?.data?.requiredFields || (res as any)?.requiredFields || {}
+      condCache = (res as any)?.data?.conditionalRequired || (res as any)?.conditionalRequired || {}
     } catch {
       cache = {}
+      condCache = {}
     }
     inflight = null
     return cache!
@@ -36,14 +45,23 @@ export function useRequiredFields(): Record<string, string[]> {
   return map
 }
 
-/** 计算某模块当前缺失的必填字段 */
+/** 计算某模块当前缺失的必填字段（支持按模式的条件必填，如 real_keyboard 不同 inputType） */
 export function getMissingRequired(
   moduleType: string,
   data: Record<string, unknown>,
   reqMap: Record<string, string[]>,
 ): string[] {
-  const req = reqMap[moduleType]
-  if (!req || req.length === 0) return []
+  // 基础必填 + 条件必填（按判别字段当前取值）
+  const base = reqMap[moduleType] || []
+  const req = [...base]
+  const cond = condCache[moduleType]
+  if (cond && cond.map && cond.field) {
+    let val = data[cond.field] as string | undefined
+    if (val === undefined || val === null || val === '') val = cond.default
+    const extra = (val && cond.map[val]) || []
+    for (const f of extra) if (!req.includes(f)) req.push(f)
+  }
+  if (req.length === 0) return []
   return req.filter((f) => {
     const v = data[f]
     if (v === undefined || v === null) return true

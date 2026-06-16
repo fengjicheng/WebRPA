@@ -150,3 +150,119 @@ async def api_get_status():
     if is_picker_active():
         return {"status": "active"}
     return {"status": "inactive"}
+
+
+class TestSelectorRequest(BaseModel):
+    selector: str
+    hints: Optional[dict] = None
+    highlight: bool = True
+
+
+# 在页面上高亮一组矩形框（2.5 秒后自动消失），用于"测试定位"可视化反馈
+_OVERLAY_JS = """
+(boxes) => {
+  try {
+    const id = '__webrpa_selector_test_overlay__';
+    document.getElementById(id)?.remove();
+    const layer = document.createElement('div');
+    layer.id = id;
+    layer.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none;';
+    boxes.forEach((b, i) => {
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;border:2px solid #ef4444;background:rgba(239,68,68,0.15);box-shadow:0 0 0 1px rgba(255,255,255,0.6);pointer-events:none;border-radius:2px;transition:opacity .3s;';
+      d.style.left = b.x + 'px';
+      d.style.top = b.y + 'px';
+      d.style.width = b.width + 'px';
+      d.style.height = b.height + 'px';
+      if (i === 0) {
+        const tag = document.createElement('div');
+        tag.textContent = '匹配 ' + boxes.length + ' 个';
+        tag.style.cssText = 'position:absolute;left:0;top:-20px;background:#ef4444;color:#fff;font:12px sans-serif;padding:1px 6px;border-radius:3px;white-space:nowrap;';
+        d.appendChild(tag);
+      }
+      layer.appendChild(d);
+    });
+    document.documentElement.appendChild(layer);
+    setTimeout(() => { layer.style.transition='opacity .4s'; layer.style.opacity='0'; setTimeout(()=>layer.remove(), 400); }, 2500);
+  } catch (e) {}
+}
+"""
+
+
+@router.post("/test-selector")
+async def api_test_selector(req: TestSelectorRequest):
+    """在当前浏览器页面上测试选择器是否命中元素，并高亮匹配项。
+
+    - 先测主选择器；命中失败时若提供 hints，则尝试自愈候选选择器。
+    - 返回命中数量、命中所用选择器、首个元素信息，并在页面上高亮匹配框。
+    """
+    from app.services import browser_engine
+
+    if not browser_engine.is_open():
+        return {"success": False, "error": "浏览器未打开，请先启动浏览器或元素拾取后再测试"}
+    page = browser_engine.get_page()
+    if page is None:
+        return {"success": False, "error": "没有可用的页面"}
+
+    selector = (req.selector or "").strip()
+    if not selector:
+        return {"success": False, "error": "选择器为空"}
+
+    candidates = [selector]
+    if req.hints:
+        try:
+            from app.executors.base import build_fallback_selectors
+            for c in build_fallback_selectors(req.hints):
+                if c not in candidates:
+                    candidates.append(c)
+        except Exception:
+            pass
+
+    tried = []
+    for cand in candidates:
+        try:
+            loc = page.locator(cand)
+            count = await loc.count()
+        except Exception as e:
+            tried.append({"selector": cand, "error": str(e)[:160]})
+            continue
+        tried.append({"selector": cand, "count": count})
+        if count > 0:
+            # 收集首个元素信息
+            element = {}
+            try:
+                first = loc.first
+                tag = await first.evaluate("e => e.tagName ? e.tagName.toLowerCase() : ''")
+                try:
+                    text = (await first.inner_text(timeout=1500)) or ""
+                except Exception:
+                    text = ""
+                element = {"tag": tag, "text": text.strip()[:120]}
+            except Exception:
+                pass
+            # 高亮
+            if req.highlight:
+                try:
+                    boxes = []
+                    for i in range(min(count, 30)):
+                        try:
+                            b = await loc.nth(i).bounding_box()
+                            if b:
+                                boxes.append(b)
+                        except Exception:
+                            pass
+                    if boxes:
+                        await page.evaluate(_OVERLAY_JS, boxes)
+                except Exception:
+                    pass
+            return {
+                "success": True,
+                "matched": True,
+                "count": count,
+                "matchedSelector": cand,
+                "isPrimary": cand == selector,
+                "element": element,
+                "tried": tried,
+            }
+
+    return {"success": True, "matched": False, "count": 0, "tried": tried}

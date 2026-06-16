@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 import { useGlobalConfigStore, type BrowserType, type AIModelProfile, type AssistantScene } from '@/store/globalConfigStore'
-import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug, Cpu } from 'lucide-react'
-import { systemApi } from '@/services/api'
+import { X, Settings, Brain, Mail, RotateCcw, Folder, Loader2, Database, Monitor, Globe, Zap, MessageCircle, MessageSquare, Plus, Trash2, Bot, Check, Plug, Cpu, ShieldCheck, KeyRound, HardDrive } from 'lucide-react'
+import { systemApi, securityApi, getAuthToken, setAuthToken, credentialApi, retentionApi, type CredentialItem, type RetentionConfig, type RetentionUsage } from '@/services/api'
 import { aiAssistantApi } from '@/services/aiAssistantApi'
 import { getBackendBaseUrl } from '@/services/config'
 import { MCPConfigPanel } from './MCPConfigPanel'
@@ -91,12 +91,281 @@ function ModelProfilesManager({
 }
 
 
+// 访问鉴权设置面板（本机查看/重置 Token、开关鉴权；远程访问填入 Token）
+function SecuritySettings() {
+  const [enabled, setEnabled] = useState(true)
+  const [isLocal, setIsLocal] = useState(true)
+  const [token, setToken] = useState<string | null>(null)
+  const [manualToken, setManualToken] = useState(getAuthToken())
+  const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const refresh = async () => {
+    const res = await securityApi.status()
+    if (res.data) {
+      setEnabled(res.data.enabled)
+      setIsLocal(res.data.isLocal)
+      setToken(res.data.token)
+    }
+  }
+  useEffect(() => { refresh() }, [])
+
+  const toggle = async (v: boolean) => {
+    setLoading(true)
+    try { await securityApi.toggle(v); await refresh() } finally { setLoading(false) }
+  }
+  const regen = async () => {
+    setLoading(true)
+    try { const r = await securityApi.regenerate(); if (r.data?.token) setToken(r.data.token); await refresh() } finally { setLoading(false) }
+  }
+  const copy = async () => {
+    if (!token) return
+    try { await navigator.clipboard.writeText(token); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* ignore */ }
+  }
+  const saveManual = () => { setAuthToken(manualToken.trim()); setCopied(true); setTimeout(() => setCopied(false), 1500) }
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">
+        后端默认监听局域网。开启鉴权后：<strong>本机访问免验</strong>，其它设备访问需携带访问令牌（Token），保护文件共享 / 远程控制 / 命令执行等高危能力。
+      </p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div>
+            <Label className="text-gray-700 font-medium">启用访问鉴权</Label>
+            <p className="text-xs text-gray-500 mt-1">关闭后局域网内任意设备可无凭据访问全部接口（不推荐）</p>
+          </div>
+          <input type="checkbox" checked={enabled} disabled={loading || !isLocal} onChange={(e) => toggle(e.target.checked)} className="w-5 h-5" />
+        </div>
+
+        {isLocal ? (
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+            <Label className="text-gray-700 font-medium">访问令牌（仅本机可见）</Label>
+            <div className="flex items-center gap-2">
+              <Input readOnly value={token || ''} className="bg-white text-black border-gray-300 font-mono text-xs" />
+              <Button type="button" variant="outline" size="sm" onClick={copy} className="border-gray-300 text-gray-700 whitespace-nowrap">
+                {copied ? <Check className="w-4 h-4" /> : '复制'}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={regen} disabled={loading} className="border-gray-300 text-gray-700 whitespace-nowrap">
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />重置
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">从其它设备访问 WebRPA 时，在该设备的「安全」里粘贴此令牌即可。</p>
+          </div>
+        ) : (
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+            <Label className="text-gray-700 font-medium">访问令牌（远程访问需填写）</Label>
+            <div className="flex items-center gap-2">
+              <Input value={manualToken} onChange={(e) => setManualToken(e.target.value)} placeholder="粘贴在主机「安全」里看到的 Token" className="bg-white text-black border-gray-300 font-mono text-xs" />
+              <Button type="button" variant="outline" size="sm" onClick={saveManual} className="border-gray-300 text-gray-700 whitespace-nowrap">
+                {copied ? <Check className="w-4 h-4" /> : '保存'}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">令牌保存在本浏览器，后续请求会自动携带。</p>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+
+// 凭据库设置面板：管理本地加密凭据（口令/API Key/数据库密码等），节点里用 {{cred:名称.字段}} 引用
+function CredentialSettings() {
+  const [list, setList] = useState<CredentialItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState<{ name: string; description: string; fields: { key: string; value: string }[] } | null>(null)
+  const { confirm, alert, ConfirmDialog } = useConfirm()
+
+  const refresh = async () => {
+    setLoading(true)
+    try {
+      const res = await credentialApi.list()
+      if (res.data?.credentials) setList(res.data.credentials)
+    } finally { setLoading(false) }
+  }
+  useEffect(() => { refresh() }, [])
+
+  const startNew = () => setEditing({ name: '', description: '', fields: [{ key: 'value', value: '' }] })
+  const startEdit = (c: CredentialItem) => setEditing({
+    name: c.name, description: c.description,
+    // 编辑时字段值留空表示保留原值
+    fields: c.fields.length ? c.fields.map(f => ({ key: f.key, value: '' })) : [{ key: 'value', value: '' }],
+  })
+
+  const save = async () => {
+    if (!editing) return
+    if (!editing.name.trim()) { await alert('请填写凭据名', { title: '提示' }); return }
+    const fields: Record<string, string> = {}
+    for (const f of editing.fields) {
+      if (f.key.trim()) fields[f.key.trim()] = f.value
+    }
+    if (Object.keys(fields).length === 0) { await alert('至少需要一个字段', { title: '提示' }); return }
+    const res = await credentialApi.upsert(editing.name.trim(), fields, editing.description)
+    if (res.error) { await alert(`保存失败：${res.error}`, { title: '失败' }); return }
+    setEditing(null)
+    refresh()
+  }
+
+  const del = async (name: string) => {
+    const ok = await confirm(`删除凭据「${name}」？引用它的工作流将无法解析。`, { type: 'warning', title: '删除凭据', confirmText: '删除', cancelText: '取消' })
+    if (!ok) return
+    await credentialApi.delete(name)
+    refresh()
+  }
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">
+        本地加密保存口令 / API Key / 数据库密码等敏感信息（Fernet 加密落盘）。在任意节点的字符串里用
+        <code className="bg-gray-100 px-1 rounded mx-1">{'{{cred:名称}}'}</code> 或
+        <code className="bg-gray-100 px-1 rounded mx-1">{'{{cred:名称.字段}}'}</code> 引用，运行时自动注入，工作流文件中不含明文。
+      </p>
+      {editing ? (
+        <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-gray-700 text-xs">凭据名</Label>
+              <Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="如：我的邮箱" className="bg-white text-black border-gray-300 h-8 text-sm mt-1" />
+            </div>
+            <div>
+              <Label className="text-gray-700 text-xs">说明（可选）</Label>
+              <Input value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="用途备注" className="bg-white text-black border-gray-300 h-8 text-sm mt-1" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-gray-700 text-xs">字段（字段名 → 值；编辑时留空表示保留原值）</Label>
+            {editing.fields.map((f, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input value={f.key} onChange={(e) => { const fs = [...editing.fields]; fs[i] = { ...fs[i], key: e.target.value }; setEditing({ ...editing, fields: fs }) }} placeholder="字段名 如 value/password/api_key" className="bg-white text-black border-gray-300 h-8 text-sm w-1/3" />
+                <Input type="password" value={f.value} onChange={(e) => { const fs = [...editing.fields]; fs[i] = { ...fs[i], value: e.target.value }; setEditing({ ...editing, fields: fs }) }} placeholder="值" className="bg-white text-black border-gray-300 h-8 text-sm flex-1" />
+                <button onClick={() => setEditing({ ...editing, fields: editing.fields.filter((_, j) => j !== i) })} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing({ ...editing, fields: [...editing.fields, { key: '', value: '' }] })} className="border-gray-300 text-gray-700 hover:bg-gray-100">
+              <Plus className="w-4 h-4 mr-1" />添加字段
+            </Button>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)} className="border-gray-300 text-gray-700">取消</Button>
+            <Button type="button" size="sm" onClick={save}>保存</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Button type="button" variant="outline" size="sm" onClick={startNew} className="border-gray-300 text-gray-700 hover:bg-gray-100"><Plus className="w-4 h-4 mr-1" />新增凭据</Button>
+            <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading} className="border-gray-300 text-gray-700"><RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /></Button>
+          </div>
+          {list.length === 0 ? (
+            <p className="text-xs text-gray-400 py-8 text-center">还没有凭据，点「新增凭据」创建</p>
+          ) : list.map((c) => (
+            <div key={c.name} className="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start justify-between">
+              <div className="min-w-0">
+                <div className="font-medium text-sm text-black">{c.name}</div>
+                {c.description && <div className="text-xs text-gray-500">{c.description}</div>}
+                <div className="text-xs text-gray-400 mt-1 flex flex-wrap gap-1">
+                  {c.fields.map(f => <span key={f.key} className="px-1.5 py-0.5 rounded bg-gray-100">{f.key}: {f.masked}</span>)}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button type="button" variant="outline" size="sm" onClick={() => startEdit(c)} className="border-gray-300 text-gray-700 h-7 px-2 text-xs">编辑</Button>
+                <button onClick={() => del(c.name)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <ConfirmDialog />
+    </>
+  )
+}
+
+// 留存清理设置面板：录像/采集数据的自动滚动清理策略 + 手动清理
+function RetentionSettings() {
+  const [cfg, setCfg] = useState<RetentionConfig | null>(null)
+  const [usage, setUsage] = useState<RetentionUsage | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
+  const { alert, ConfirmDialog } = useConfirm()
+
+  const refresh = async () => {
+    const res = await retentionApi.getConfig()
+    if (res.data?.config) setCfg(res.data.config)
+    if (res.data?.usage) setUsage(res.data.usage)
+  }
+  useEffect(() => { refresh() }, [])
+
+  const save = async () => {
+    if (!cfg) return
+    setSaving(true)
+    try {
+      const res = await retentionApi.setConfig(cfg)
+      if (res.data?.config) setCfg(res.data.config)
+      await alert('已保存清理策略', { title: '成功' })
+    } finally { setSaving(false) }
+  }
+  const cleanupNow = async () => {
+    setCleaning(true)
+    try {
+      await retentionApi.cleanup()
+      await refresh()
+      await alert('清理完成', { title: '成功' })
+    } finally { setCleaning(false) }
+  }
+
+  if (!cfg) return <div className="py-8 text-center text-gray-400"><Loader2 className="w-5 h-5 animate-spin inline" /></div>
+
+  const numField = (label: string, key: keyof RetentionConfig, hint: string) => (
+    <div>
+      <Label className="text-gray-700 text-xs">{label}</Label>
+      <Input type="number" min={0} value={cfg[key] as number} onChange={(e) => setCfg({ ...cfg, [key]: Number(e.target.value) })} className="bg-white text-black border-gray-300 h-8 text-sm mt-1" />
+      <p className="text-[11px] text-gray-400 mt-0.5">{hint}</p>
+    </div>
+  )
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">
+        长期使用后运行录像与采集数据会占用磁盘。开启后按「保留天数」和「总大小上限」滚动清理（0 表示该维度不限制）。
+      </p>
+      {usage && (
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-black">运行录像：{usage.recordings.count} 个 · {usage.recordings.sizeMB} MB</div>
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-black">采集数据：{usage.data.count} 个 · {usage.data.sizeMB} MB</div>
+        </div>
+      )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <Label className="text-gray-700 font-medium">启用自动清理</Label>
+          <input type="checkbox" checked={cfg.enabled} onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })} className="w-5 h-5" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {numField('录像保留天数', 'recordings_max_days', '超过天数的录像会被删除')}
+          {numField('录像总大小上限(MB)', 'recordings_max_total_mb', '超出后从最旧开始删')}
+          {numField('数据保留天数', 'data_max_days', '超过天数的导出数据会被删除')}
+          {numField('数据总大小上限(MB)', 'data_max_total_mb', '超出后从最旧开始删')}
+          {numField('清理间隔(小时)', 'cleanup_interval_hours', '后台定时清理的间隔')}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={cleanupNow} disabled={cleaning} className="border-gray-300 text-gray-700">
+            {cleaning ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}立即清理一次
+          </Button>
+          <Button type="button" size="sm" onClick={save} disabled={saving}>{saving ? '保存中...' : '保存策略'}</Button>
+        </div>
+      </div>
+      <ConfirmDialog />
+    </>
+  )
+}
+
+
 interface GlobalConfigDialogProps {
   isOpen: boolean
   onClose: () => void
 }
 
-type TabType = 'system' | 'ai' | 'aiAssistant' | 'mcp' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu'
+type TabType = 'system' | 'ai' | 'aiAssistant' | 'mcp' | 'aiScraper' | 'email' | 'workflow' | 'database' | 'display' | 'browser' | 'triggers' | 'qq' | 'feishu' | 'security' | 'credentials' | 'retention'
 
 // 浏览器选项
 const browserOptions: { value: BrowserType; label: string; description: string }[] = [
@@ -192,6 +461,9 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
     { id: 'triggers',    label: '触发器',   Icon: Zap,            accent: 'amber'   },
     { id: 'qq',          label: 'QQ号',     Icon: MessageCircle,  accent: 'brand'   },
     { id: 'feishu',      label: '飞书',     Icon: MessageSquare,  accent: 'info'    },
+    { id: 'security',    label: '安全',     Icon: ShieldCheck,    accent: 'success' },
+    { id: 'credentials', label: '凭据库',   Icon: KeyRound,       accent: 'warning' },
+    { id: 'retention',   label: '留存清理', Icon: HardDrive,      accent: 'info'    },
   ]
 
   return (
@@ -1784,6 +2056,18 @@ export function GlobalConfigDialog({ isOpen, onClose }: GlobalConfigDialogProps)
                 </div>
               </div>
             </>
+          )}
+
+          {activeTab === 'security' && (
+            <SecuritySettings />
+          )}
+
+          {activeTab === 'credentials' && (
+            <CredentialSettings />
+          )}
+
+          {activeTab === 'retention' && (
+            <RetentionSettings />
           )}
           </div>
         </div>

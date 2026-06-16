@@ -16,6 +16,7 @@ import workflowRoutes from './routes/workflows.js'
 import commentsRoutes from './routes/comments.js'
 import guestbookRoutes from './routes/guestbook.js'
 import remoteRoutes from './routes/remote.js'
+import customModulesRoutes from './routes/customModules.js'
 import { setupWebSocket } from './websocket.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { requestLogger } from './middleware/logger.js'
@@ -99,8 +100,8 @@ app.get('/health', (req, res) => {
 // 获取最新版本号
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '2.1.0',
-    releaseDate: '2026-06-15',
+    version: '2.2.0',
+    releaseDate: '2026-06-16',
     downloadUrl: 'https://github.com/pmh1314520/WebRPA/releases',
     changelog: '2.0.0 大版本：全面强化 AI 能力——新增 AI 小助手（对话式搭建/排查工作流，支持运行失败自动诊断与自愈重跑）、AI 数据处理模块（信息抽取/分类/摘要/翻译/情感/数据规整/语义去重/智能路由）、完整 Excel 自动化模块（基于 openpyxl + COM）；数据表格全量虚拟滚动、日志实时推送等大量体验优化。详见 GitHub Releases。'
   })
@@ -111,6 +112,7 @@ app.use('/api/workflows', workflowRoutes)
 app.use('/api/comments', commentsRoutes)
 app.use('/api/guestbook', guestbookRoutes)
 app.use('/api/remote', remoteRoutes)
+app.use('/api/custom-modules', customModulesRoutes)
 
 // 404 处理
 app.use(notFoundHandler)

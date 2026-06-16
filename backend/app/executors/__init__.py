@@ -13,105 +13,87 @@ from .base import (
     escape_css_selector,
 )
 
-# 导入所有执行器以触发注册
-from . import basic
-from . import basic_variable  # 变量操作执行器
-from . import advanced
-from . import advanced_file_ops  # 文件操作执行器
-from . import advanced_browser
-from . import advanced_image
-from . import advanced_keyboard
-from . import advanced_pillow
-from . import control
-from . import control_extended  # 扩展控制流执行器
-from . import math_list_ops  # 数学和列表运算执行器
-from . import list_advanced  # 列表高级操作执行器
-from . import dict_advanced  # 字典高级操作执行器
-from . import math_advanced  # 高级数学运算执行器
-from . import statistics  # 统计分析执行器
-from . import string_convert  # 字符串转换执行器
-from . import captcha
-from . import data_structure
-from . import ai
-from . import ai_tasks  # AI 数据处理任务模块（抽取/分类/摘要/翻译/情感）from . import ai_scraper
-from . import ai_firecrawl
-from . import table
-from . import subflow
-from . import database
-from . import media
-from . import media_record
-from . import media_m3u8
-from . import media_ytdlp  # yt-dlp 下载（视频/音频/字幕/播放列表）
-from . import qq
-from . import wechat
-from . import pdf_ops
-from . import pdf_convert
-from . import document_convert
-from . import screen_share
-from . import trigger
-from . import utility_tools
-from . import desktop_automation  # 全新的桌面应用自动化模块（基于 uiautomation）
-from . import desktop_advanced  # 影刀级桌面增强(智能查找/批量抓取/UI 快照/XPath/录制器)
-from . import format_factory
-from . import python_script
-from . import table_extract
-from . import advanced_openpyxl  # Excel 自动化模块（openpyxl）
-from . import advanced_openpyxl_pro  # Excel 自动化高级增强模块（openpyxl）
-from . import advanced_excel_yingdao  # Excel 自动化影刀对标补全（openpyxl + win32com）
-from . import switch_tab
-# 手机自动化模块
-from . import phone_device
-from . import phone_touch
-from . import phone_input
-from . import phone_screen
-from . import phone_app
-from . import phone_file
-from . import phone_advanced
-from . import phone_vision
-from . import phone_settings
-from . import phone_clipboard
-# Webhook请求模块
-from . import webhook
-# 飞书自动化模块
-from . import feishu
+# 导入所有执行器以触发注册（支持懒加载：启动只读清单，执行器模块按需导入）
+import json as _json
+import importlib as _importlib
+from pathlib import Path as _Path
 
-# WPS 多维表格自动化模块
-from . import wps
-# 多数据库支持模块
-from . import database_advanced
-# 关系型数据库INSERT/UPDATE/DELETE模块
-from . import database_relational
-from . import database_relational2
-# SSH远程操作模块
-from . import ssh
-from . import sap_automation  # SAP GUI 自动化模块
-# AI生图、生视频模块
-from . import ai_media
-# 概率触发器模块
-from . import probability
-# 网络监听模块
-from . import network_monitor
-# Allure测试报告模块
-from . import allure
-# Apprise多渠道通知模块
-from . import notify_apprise
-# 自定义模块执行器（重要！用户创建的自定义模块依赖此模块）
-from . import custom_module
-# 备注节点
-from . import note
-# 媒体处理模块
-from . import media_audio
-from . import media_convert
-from . import media_image_effect
-from . import media_qrcode
-from . import media_recognition
-from . import media_video_edit
-from . import media_watermark
-# 盲水印（blind_watermark）模块
-from . import blind_watermark
+# 权威子模块清单（顺序与历史一致；新增执行器文件务必登记到此处）
+_SUBMODULES = [
+    'basic', 'basic_variable', 'advanced', 'advanced_file_ops', 'advanced_browser',
+    'advanced_image', 'advanced_keyboard', 'advanced_pillow', 'control', 'control_extended',
+    'math_list_ops', 'list_advanced', 'dict_advanced', 'math_advanced', 'statistics',
+    'string_convert', 'captcha', 'data_structure', 'ai', 'ai_tasks', 'ai_firecrawl',
+    'table', 'subflow', 'database', 'media', 'media_record', 'media_m3u8', 'media_ytdlp',
+    'qq', 'wechat', 'pdf_ops', 'pdf_convert', 'document_convert', 'screen_share', 'trigger',
+    'utility_tools', 'desktop_automation', 'desktop_advanced', 'format_factory', 'python_script',
+    'table_extract', 'advanced_openpyxl', 'advanced_openpyxl_pro', 'advanced_excel_yingdao',
+    'advanced_vision_act', 'advanced_assert', 'switch_tab',
+    'phone_device', 'phone_touch', 'phone_input', 'phone_screen', 'phone_app', 'phone_file',
+    'phone_advanced', 'phone_vision', 'phone_settings', 'phone_clipboard',
+    'webhook', 'feishu', 'wps', 'database_advanced', 'database_relational', 'database_relational2',
+    'ssh', 'sap_automation', 'ai_media', 'probability', 'network_monitor', 'allure',
+    'notify_apprise', 'custom_module', 'note', 'media_audio', 'media_convert',
+    'media_image_effect', 'media_qrcode', 'media_recognition', 'media_video_edit',
+    'media_watermark', 'blind_watermark',
+]
 
-# 调试：打印已注册的执行器
-print(f"[DEBUG] 已注册的执行器类型: {registry.get_all_types()}")
+_DIR = _Path(__file__).parent
+_MANIFEST = _DIR / "_registry_manifest.json"
+
+
+def _signature() -> str:
+    """子模块文件名+修改时间的签名，用于判断清单是否过期"""
+    parts = []
+    for n in _SUBMODULES:
+        try:
+            parts.append(f"{n}:{int((_DIR / (n + '.py')).stat().st_mtime)}")
+        except OSError:
+            parts.append(f"{n}:0")
+    return ";".join(parts)
+
+
+def _eager_import_all_and_build_manifest():
+    """全量导入所有执行器子模块（原始行为），并记录 类型→子模块 清单以供下次懒加载。"""
+    type_to_sub: dict[str, str] = {}
+    for n in _SUBMODULES:
+        before = set(registry.get_all_types())
+        try:
+            _importlib.import_module(f".{n}", __name__)
+        except Exception as e:
+            print(f"[executors] 导入子模块 {n} 失败: {e}")
+            continue
+        for t in set(registry.get_all_types()) - before:
+            type_to_sub[t] = n
+    try:
+        _MANIFEST.write_text(
+            _json.dumps({"sig": _signature(), "map": type_to_sub}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"[executors] 写入注册清单失败（不影响运行）: {e}")
+
+
+def _try_enable_lazy() -> bool:
+    """尝试用磁盘清单启用懒加载；清单缺失/过期/损坏则返回 False 走全量导入。"""
+    try:
+        if not _MANIFEST.exists():
+            return False
+        data = _json.loads(_MANIFEST.read_text(encoding="utf-8"))
+        if data.get("sig") != _signature():
+            return False
+        mp = data.get("map") or {}
+        if not mp:
+            return False
+        registry.enable_lazy(mp, __name__)
+        return True
+    except Exception as e:
+        print(f"[executors] 读取注册清单失败，回退全量导入: {e}")
+        return False
+
+
+if not _try_enable_lazy():
+    _eager_import_all_and_build_manifest()
 
 __all__ = [
     "ModuleExecutor",

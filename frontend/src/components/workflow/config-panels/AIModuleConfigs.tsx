@@ -1287,3 +1287,106 @@ export function AITaskConfig({ moduleType, data, onChange }: { moduleType: strin
     </div>
   )
 }
+
+// AI视觉操作配置（看屏点选，不依赖选择器）
+export function AIVisionActConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const action = (data.action as string) || 'click'
+  const needButton = action === 'click' || action === 'double'
+  return (
+    <>
+      <AIModelPicker data={data} onChange={onChange} />
+      <div className="space-y-2">
+        <Label htmlFor="apiUrl">API地址</Label>
+        <VariableInput
+          value={(data.apiUrl as string) || ''}
+          onChange={(v) => onChange('apiUrl', v)}
+          placeholder="https://open.bigmodel.cn/api/paas/v4/chat/completions，支持 {变量名}"
+        />
+        <p className="text-xs text-muted-foreground">需支持坐标定位的视觉模型（如 GLM-4V、UI-TARS、GPT-4o）</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="apiKey">API密钥</Label>
+        <VariableInput
+          value={(data.apiKey as string) || ''}
+          onChange={(v) => onChange('apiKey', v)}
+          placeholder="API密钥，支持 {变量名}"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="model">模型名称</Label>
+        <VariableInput
+          value={(data.model as string) || ''}
+          onChange={(v) => onChange('model', v)}
+          placeholder="glm-4v / ui-tars / gpt-4o，支持 {变量名}"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="instruction">目标描述</Label>
+        <VariableInput
+          value={(data.instruction as string) || ''}
+          onChange={(v) => onChange('instruction', v)}
+          placeholder="用自然语言描述要点击的目标，如：右上角的登录按钮"
+          multiline
+          rows={3}
+        />
+        <p className="text-xs text-muted-foreground">AI 会截取当前屏幕，根据描述定位目标并返回坐标。</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="action">执行动作</Label>
+        <Select
+          id="action"
+          value={action}
+          onChange={(e) => onChange('action', e.target.value)}
+        >
+          <option value="click">单击</option>
+          <option value="double">双击</option>
+          <option value="right">右键单击</option>
+          <option value="move">仅移动鼠标</option>
+          <option value="locate">仅定位（不操作，返回坐标）</option>
+        </Select>
+      </div>
+      {needButton && (
+        <div className="space-y-2">
+          <Label htmlFor="button">鼠标按键</Label>
+          <Select
+            id="button"
+            value={(data.button as string) || 'left'}
+            onChange={(e) => onChange('button', e.target.value)}
+          >
+            <option value="left">左键</option>
+            <option value="right">右键</option>
+            <option value="middle">中键</option>
+          </Select>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="variableName">存储坐标到变量</Label>
+        <VariableNameInput
+          value={(data.variableName as string) || ''}
+          onChange={(v) => onChange('variableName', v)}
+          placeholder="结果变量名，存储 {x, y} 坐标"
+          isStorageVariable={true}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="maxTokens">最大Token数</Label>
+        <NumberInput
+          id="maxTokens"
+          value={(data.maxTokens as number) ?? 300}
+          onChange={(v) => onChange('maxTokens', v)}
+          defaultValue={300}
+          min={1}
+        />
+      </div>
+      <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+        <p className="text-xs text-violet-800">
+          <strong>AI视觉操作</strong>让 AI 直接"看屏幕"定位目标并真实点击，无需任何选择器。<br/>
+          • 适合 Canvas、图片按钮、防自动化页面等取不到选择器的场景<br/>
+          • 操作的是整个桌面屏幕（物理鼠标），请确保目标窗口在前台
+        </p>
+      </div>
+    </>
+  )
+}

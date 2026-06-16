@@ -12,7 +12,7 @@ from .base import (
     ModuleResult,
     register_executor,
     pw_wait_for_element,
-
+    smart_wait_locator,
     format_selector
 )
 from .type_utils import to_int, to_float, parse_search_region
@@ -284,8 +284,13 @@ class SelectDropdownExecutor(ModuleExecutor):
             except Exception:
                 pass
             
-            await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
-            element = context.page.locator(format_selector(selector))
+            _hints = config.get('selectorHints')
+            if _hints:
+                element = await smart_wait_locator(context.page, selector, hints=_hints,
+                                                   state='visible', timeout=wait_timeout, node_config=config, context=context)
+            else:
+                await pw_wait_for_element(context.page, selector, state='visible', timeout=wait_timeout)
+                element = context.page.locator(format_selector(selector))
 
             if select_by == 'value':
                 await element.select_option(value=value)
@@ -324,8 +329,13 @@ class SetCheckboxExecutor(ModuleExecutor):
         
         try:
             await context.switch_to_latest_page()
-            await pw_wait_for_element(context.page, selector, state='visible')
-            element = context.page.locator(format_selector(selector))
+            _hints = config.get('selectorHints')
+            if _hints:
+                element = await smart_wait_locator(context.page, selector, hints=_hints,
+                                                   state='visible', node_config=config, context=context)
+            else:
+                await pw_wait_for_element(context.page, selector, state='visible')
+                element = context.page.locator(format_selector(selector))
             
             if checked:
                 await element.check()
@@ -1911,6 +1921,46 @@ class RealKeyboardExecutor(ModuleExecutor):
         '5': 0x35, '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
     }
 
+    @staticmethod
+    def _activate_window_by_title(title_substr: str) -> bool:
+        """按标题子串查找顶层窗口并激活到前台（用 Alt 键技巧绕过前台锁定）。找到并激活返回 True。"""
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        target = {"hwnd": None}
+        sub = title_substr.lower()
+
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+
+        def _cb(hwnd, _lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return True
+            buf = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buf, length + 1)
+            if sub in (buf.value or "").lower():
+                target["hwnd"] = hwnd
+                return False  # 停止枚举
+            return True
+
+        user32.EnumWindows(EnumWindowsProc(_cb), 0)
+        hwnd = target["hwnd"]
+        if not hwnd:
+            return False
+        try:
+            SW_RESTORE = 9
+            user32.ShowWindow(hwnd, SW_RESTORE)
+            # Alt 键技巧：先按一下 Alt，让本进程获得设置前台窗口的权限
+            user32.keybd_event(0x12, 0, 0, 0)      # Alt down
+            user32.keybd_event(0x12, 0, 0x0002, 0)  # Alt up
+            user32.SetForegroundWindow(hwnd)
+            user32.BringWindowToTop(hwnd)
+        except Exception:
+            pass
+        return True
+
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import ctypes
         from ctypes import wintypes
@@ -1918,6 +1968,19 @@ class RealKeyboardExecutor(ModuleExecutor):
         input_type = context.resolve_value(config.get("inputType", "text"))  # 支持变量引用
         press_mode = context.resolve_value(config.get("pressMode", "click"))  # 支持变量引用
         hold_duration = to_float(config.get("holdDuration", 1), 1, context)  # 长按时长(秒)
+
+        # 可选：发送按键前先把目标窗口激活到前台（硬件按键只会进前台窗口，
+        # 否则按键会打进 WebRPA 自己的窗口，表现为"完全没反应"）
+        window_title = context.resolve_value(config.get("windowTitle", "") or "")
+        if window_title:
+            try:
+                activated = self._activate_window_by_title(str(window_title))
+                if activated:
+                    await asyncio.sleep(0.35)
+                else:
+                    print(f"[real_keyboard] 未找到标题包含『{window_title}』的窗口，按键将发往当前前台窗口")
+            except Exception as _e:
+                print(f"[real_keyboard] 激活窗口失败: {_e}")
         
         try:
             # SendInput 结构体定义

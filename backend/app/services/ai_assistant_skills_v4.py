@@ -833,6 +833,16 @@ async def skill_run_python_inline(
     适合：临时计算、字符串处理、调用 stdlib、做 ad-hoc 分析。
     不适合：需要工作流变量、需要返回到画布的复杂任务。
     """
+    # 安全护栏：拦截灾难级代码 + 审计
+    try:
+        from app.services.ai_command_guard import check_python_code, audit
+        _allowed, _reason = check_python_code(code or "")
+        if not _allowed:
+            audit("python_inline", code or "", allowed=False, reason=_reason)
+            return {"error": f"该代码被安全护栏拦截：{_reason}", "blocked": True}
+        audit("python_inline", code or "", allowed=True)
+    except Exception:
+        pass
     try:
         import subprocess
         import tempfile

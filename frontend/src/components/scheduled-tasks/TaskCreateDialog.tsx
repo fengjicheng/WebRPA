@@ -5,10 +5,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useScheduledTaskStore, type ScheduledTaskTrigger } from '@/store/scheduledTaskStore'
+import { useScheduledTaskStore, type ScheduledTaskTrigger, type NotifyChannel } from '@/store/scheduledTaskStore'
 import { localWorkflowApi } from '@/services/api'
 import { Clock, Zap, Power, Repeat, X, Webhook } from 'lucide-react'
 import { DialogPortal } from '@/components/ui/dialog-portal'
+import { NotificationConfigEditor } from './NotificationConfigEditor'
 
 interface TaskCreateDialogProps {
   open: boolean
@@ -59,6 +60,10 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
   const [webhookPath, setWebhookPath] = useState('')
   const [openMonitor, setOpenMonitor] = useState(false)
   const [headless, setHeadless] = useState(false)
+  // 执行通知
+  const [notifyOnFailure, setNotifyOnFailure] = useState(false)
+  const [notifyOnSuccess, setNotifyOnSuccess] = useState(false)
+  const [notifyChannels, setNotifyChannels] = useState<NotifyChannel[]>([])
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -283,6 +288,9 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
         enabled: true,
         open_monitor: openMonitor,
         headless: headless,
+        notify_on_failure: notifyOnFailure,
+        notify_on_success: notifyOnSuccess,
+        notify_channels: notifyChannels,
       }
       
       await createTask(taskData)
@@ -319,6 +327,9 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
     setWebhookPath('')
     setOpenMonitor(false)
     setHeadless(false)
+    setNotifyOnFailure(false)
+    setNotifyOnSuccess(false)
+    setNotifyChannels([])
     setError('')
     
     onClose()
@@ -694,6 +705,17 @@ export function TaskCreateDialog({ open, onClose }: TaskCreateDialogProps) {
             <p className="text-xs text-purple-700 ml-2">
               开启后，自动化浏览器将在后台隐藏运行，不会弹出浏览器窗口。
             </p>
+
+            <NotificationConfigEditor
+              notifyOnFailure={notifyOnFailure}
+              notifyOnSuccess={notifyOnSuccess}
+              channels={notifyChannels}
+              onChange={(patch) => {
+                if (patch.notifyOnFailure !== undefined) setNotifyOnFailure(patch.notifyOnFailure)
+                if (patch.notifyOnSuccess !== undefined) setNotifyOnSuccess(patch.notifyOnSuccess)
+                if (patch.channels !== undefined) setNotifyChannels(patch.channels)
+              }}
+            />
           </div>
           
           {/* 重复执行配置 */}

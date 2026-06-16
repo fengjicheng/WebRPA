@@ -66,8 +66,13 @@ class SkillRegistry:
 
     def __init__(self) -> None:
         self._skills: dict[str, Skill] = {}
+        self._duplicates: list[str] = []  # 记录重名注册，便于排查技术债
 
     def register(self, skill: Skill) -> None:
+        # 重名检测：历史上 v2/v3/v4 分散注册，重名会静默覆盖，这里显式告警便于排查
+        if skill.name in self._skills:
+            self._duplicates.append(skill.name)
+            print(f"[skill] 警告：技能名重复注册被覆盖: {skill.name}")
         self._skills[skill.name] = skill
 
     def get(self, name: str) -> Skill | None:
@@ -273,9 +278,11 @@ async def skill_validate_workflow_nodes(nodes: list[dict], edges: list[dict] | N
         ndata = node.get("data") or {}
         schema = get_module_schema(ntype)
 
-        # 检查必填
-        if schema and schema.get("required"):
-            for req_field in schema["required"]:
+        # 检查必填（按当前配置的模式动态判定，多模式模块只校验当前模式所需字段）
+        from app.services.ai_assistant_module_schemas import effective_required as _eff_req
+        _req_fields = _eff_req(ntype, ndata) if schema else []
+        if _req_fields:
+            for req_field in _req_fields:
                 val = ndata.get(req_field)
                 if val is None or val == "" or (isinstance(val, list) and not val):
                     issues.append({
@@ -1951,6 +1958,17 @@ async def skill_run_shell_command(
     if not command or not command.strip():
         return {"error": "命令不能为空"}
 
+    # 安全护栏：拦截灾难级命令 + 审计
+    try:
+        from app.services.ai_command_guard import check_shell_command, audit
+        _allowed, _reason = check_shell_command(command)
+        if not _allowed:
+            audit("shell", command, allowed=False, reason=_reason, cwd=cwd or "")
+            return {"error": f"该命令被安全护栏拦截：{_reason}。如确需执行，请手动在终端运行。", "blocked": True}
+        audit("shell", command, allowed=True, cwd=cwd or "")
+    except Exception:
+        pass
+
     timeout = min(max(int(timeout), 1), 600)
     work_dir = cwd or str(_project_root())
     is_windows = _os.name == "nt"
@@ -2058,6 +2076,17 @@ async def skill_run_python_script(
     """
     if not code or not code.strip():
         return {"error": "Python 代码不能为空"}
+
+    # 安全护栏：拦截灾难级代码 + 审计
+    try:
+        from app.services.ai_command_guard import check_python_code, audit
+        _allowed, _reason = check_python_code(code)
+        if not _allowed:
+            audit("python", code, allowed=False, reason=_reason)
+            return {"error": f"该代码被安全护栏拦截：{_reason}。如确需执行，请手动运行。", "blocked": True}
+        audit("python", code, allowed=True)
+    except Exception:
+        pass
 
     timeout = min(max(int(timeout), 1), 1800)
     py_exe = _get_bundled_python_path()
@@ -4117,6 +4146,34 @@ def _register_all() -> None:
 
 
 _register_all()
+
+
+# ---------- 统一技能加载入口（治理 v2/v3/v4/mcp 分散导入的技术债） ----------
+_EXTENSION_MODULES = [
+    "app.services.ai_assistant_skills_v2",   # dry-run / 运行时洞察 / 依赖预检 / 健壮性 / 桌面感知
+    "app.services.ai_assistant_skills_v3",   # 系统控制 / 一次性延时 / 自学习 / 教训 / 用户画像
+    "app.services.ai_assistant_skills_v4",   # 通用增强（HTTP/文件/Excel/二维码/时间/系统/正则…）
+    "app.services.ai_assistant_skills_mcp",  # MCP 服务器配置/管理
+]
+_skills_loaded = False
+
+
+def load_all_skills() -> dict:
+    """幂等地加载全部技能扩展模块（副作用：把扩展 skill 注册进 registry）。
+    统一入口，替代在 ai_assistant_service 里分散的 noqa 导入。返回加载摘要。"""
+    global _skills_loaded
+    if _skills_loaded:
+        return {"loaded": True, "skills": len(registry.names()), "duplicates": sorted(set(registry._duplicates))}
+    import importlib
+    for mod in _EXTENSION_MODULES:
+        try:
+            importlib.import_module(mod)
+        except Exception as e:
+            print(f"[skill] 加载扩展技能模块失败 {mod}: {e}")
+    _skills_loaded = True
+    if registry._duplicates:
+        print(f"[skill] 检测到重名技能（后者覆盖前者）: {sorted(set(registry._duplicates))}")
+    return {"loaded": True, "skills": len(registry.names()), "duplicates": sorted(set(registry._duplicates))}
 
 
 # ---------- 公共调度入口 ----------

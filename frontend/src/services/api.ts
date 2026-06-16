@@ -22,6 +22,23 @@ export function getBackendUrl(): string {
   return getBackendBaseUrl()
 }
 
+// 远程访问令牌：本机访问后端会免验（忽略此头），仅当从其它设备访问 WebRPA 时才需要在「安全设置」里填入
+export function getAuthToken(): string {
+  try {
+    return localStorage.getItem('webrpa_token') || ''
+  } catch {
+    return ''
+  }
+}
+export function setAuthToken(token: string): void {
+  try {
+    if (token) localStorage.setItem('webrpa_token', token)
+    else localStorage.removeItem('webrpa_token')
+  } catch {
+    // ignore
+  }
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
@@ -85,11 +102,13 @@ export async function apiRequest<T = any>(
     
     const url = `${API_BASE}${endpoint}`
     const isFormData = options.body instanceof FormData
+    const _authToken = getAuthToken()
+    const _authHeader: Record<string, string> = _authToken ? { 'X-WebRPA-Token': _authToken } : {}
     const response = await fetch(url, {
       ...options,
       headers: isFormData
-        ? { ...(options.headers as Record<string, string>) }
-        : { 'Content-Type': 'application/json', ...(options.headers as Record<string, string>) },
+        ? { ..._authHeader, ...(options.headers as Record<string, string>) }
+        : { 'Content-Type': 'application/json', ..._authHeader, ...(options.headers as Record<string, string>) },
     })
     if (!response.ok) {
       // 尝试解析后端返回的详细错误信息（FastAPI 422 的 detail 字段）
@@ -166,6 +185,15 @@ export const workflowApi = {
     apiRequest(`/workflows/${id}/execute`, { method: 'POST', body: JSON.stringify(params || {}) }),
   stop: (id: string) =>
     apiRequest(`/workflows/${id}/stop`, { method: 'POST' }),
+  /** 调试：从暂停处继续 */
+  debugResume: (id: string) =>
+    apiRequest(`/workflows/${id}/debug/resume`, { method: 'POST' }),
+  /** 调试：单步执行 */
+  debugStep: (id: string) =>
+    apiRequest(`/workflows/${id}/debug/step`, { method: 'POST' }),
+  /** 调试：运行中更新断点 */
+  debugBreakpoints: (id: string, breakpoints: string[]) =>
+    apiRequest(`/workflows/${id}/debug/breakpoints`, { method: 'POST', body: JSON.stringify({ breakpoints }) }),
   /** 获取本次执行收集到的完整数据（不限 20 条预览上限） */
   getFullData: (id: string) =>
     apiRequest<{ rows: Record<string, unknown>[]; columns: string[]; total: number }>(
@@ -175,6 +203,11 @@ export const workflowApi = {
   getLatestFullData: () =>
     apiRequest<{ workflow_id: string; rows: Record<string, unknown>[]; columns: string[]; total: number }>(
       `/workflows/data-latest/full`
+    ),
+  /** 导出工作流为脚本（target: 'selenium' | 'playwright-js'） */
+  exportScript: (id: string, target: string) =>
+    apiRequest<{ code: string; filename: string; target: string }>(
+      `/workflows/${id}/export-script?target=${encodeURIComponent(target)}`
     ),
 }
 
@@ -419,6 +452,104 @@ export const elementPickerApi = {
   getSelected: () => apiRequest('/element-picker/selected'),
   getSimilar: () => apiRequest('/element-picker/similar'),
   getStatus: () => apiRequest('/element-picker/status'),
+  /** 在当前浏览器页面上测试选择器是否命中并高亮匹配项 */
+  testSelector: (selector: string, hints?: Record<string, unknown>, highlight = true) =>
+    apiRequest<{
+      success: boolean
+      matched?: boolean
+      count?: number
+      matchedSelector?: string
+      isPrimary?: boolean
+      element?: { tag?: string; text?: string }
+      error?: string
+    }>('/element-picker/test-selector', {
+      method: 'POST',
+      body: JSON.stringify({ selector, hints: hints || null, highlight }),
+    }),
+}
+
+// ==================== 网页智能录制器 API ====================
+export const recorderApi = {
+  start: () => apiRequest('/recorder/start', { method: 'POST' }),
+  stop: () => apiRequest('/recorder/stop', { method: 'POST' }),
+  events: () => apiRequest('/recorder/events'),
+  status: () => apiRequest('/recorder/status'),
+}
+
+// ==================== 访问鉴权 API ====================
+export const securityApi = {
+  status: () => apiRequest<{ enabled: boolean; isLocal: boolean; token: string | null }>('/security/status'),
+  toggle: (enabled: boolean) =>
+    apiRequest<{ success: boolean; enabled?: boolean; error?: string }>(
+      '/security/toggle', { method: 'POST', body: JSON.stringify({ enabled }) }
+    ),
+  regenerate: () =>
+    apiRequest<{ success: boolean; token?: string; error?: string }>(
+      '/security/regenerate', { method: 'POST' }
+    ),
+}
+
+// ==================== 桌面智能录制器 API ====================
+export const desktopRecorderApi = {
+  start: () => apiRequest('/desktop-recorder/start', { method: 'POST' }),
+  stop: () => apiRequest('/desktop-recorder/stop', { method: 'POST' }),
+  pause: () => apiRequest('/desktop-recorder/pause', { method: 'POST' }),
+  resume: () => apiRequest('/desktop-recorder/resume', { method: 'POST' }),
+  events: () => apiRequest('/desktop-recorder/events'),
+  status: () => apiRequest('/desktop-recorder/status'),
+}
+
+// ==================== 工作流版本管理 API（Git 式本地版本历史） ====================
+export interface WorkflowVersionInfo {
+  version: string
+  message: string
+  createdAt: string
+  summary?: { nodeCount?: number; edgeCount?: number }
+}
+export interface WorkflowDiff {
+  nodesAdded: { id: string; label: string }[]
+  nodesRemoved: { id: string; label: string }[]
+  nodesModified: { id: string; label: string; typeChanged: boolean; configChanged: boolean; moved: boolean }[]
+  edgesAdded: number
+  edgesRemoved: number
+  hasChanges: boolean
+}
+export const workflowVersionsApi = {
+  commit: (workflow: string, content: unknown, message?: string, folder?: string) =>
+    apiRequest<{ success: boolean; version?: string; createdAt?: string; error?: string }>(
+      '/workflow-versions/commit',
+      { method: 'POST', body: JSON.stringify({ workflow, content, message, folder }) }
+    ),
+  list: (workflow: string, folder?: string) =>
+    apiRequest<{ success: boolean; versions: WorkflowVersionInfo[]; error?: string }>(
+      '/workflow-versions/list',
+      { method: 'POST', body: JSON.stringify({ workflow, folder }) }
+    ),
+  get: (workflow: string, versionId: string, folder?: string) =>
+    apiRequest<{ success: boolean; version?: string; content?: any; message?: string; createdAt?: string; error?: string }>(
+      '/workflow-versions/get',
+      { method: 'POST', body: JSON.stringify({ workflow, versionId, folder }) }
+    ),
+  remove: (workflow: string, versionId: string, folder?: string) =>
+    apiRequest<{ success: boolean; error?: string }>(
+      '/workflow-versions/delete',
+      { method: 'POST', body: JSON.stringify({ workflow, versionId, folder }) }
+    ),
+  diff: (workflow: string, opts: { fromVersionId?: string; toVersionId?: string; content?: unknown; folder?: string }) =>
+    apiRequest<{ success: boolean; diff?: WorkflowDiff; error?: string }>(
+      '/workflow-versions/diff',
+      { method: 'POST', body: JSON.stringify({ workflow, ...opts }) }
+    ),
+  exportBundle: (workflow: string, folder?: string) =>
+    apiRequest<{ success: boolean; bundle?: any; error?: string }>(
+      '/workflow-versions/export',
+      { method: 'POST', body: JSON.stringify({ workflow, folder }) }
+    ),
+  importBundle: (workflow: string, bundle: unknown, folder?: string) =>
+    apiRequest<{ success: boolean; imported?: number; error?: string }>(
+      '/workflow-versions/import',
+      { method: 'POST', body: JSON.stringify({ workflow, bundle, folder }) }
+    ),
 }
 
 // ==================== 桌面元素选择器 API ====================
@@ -473,4 +604,74 @@ export const screensaverApi = {
     }),
   stop: () => apiRequest('/screensaver/stop', { method: 'POST' }),
   status: () => apiRequest<{ running: boolean; pid?: number }>('/screensaver/status'),
+}
+
+// ==================== 凭据库 API ====================
+export interface CredentialItem {
+  name: string
+  description: string
+  fields: { key: string; masked: string }[]
+  created_at: string
+  updated_at: string
+}
+export const credentialApi = {
+  list: () => apiRequest<{ success: boolean; credentials: CredentialItem[] }>('/credentials'),
+  names: () => apiRequest<{ success: boolean; names: string[] }>('/credentials/names'),
+  upsert: (name: string, fields: Record<string, string>, description?: string) =>
+    apiRequest('/credentials', {
+      method: 'POST',
+      body: JSON.stringify({ name, fields, description: description || '' }),
+    }),
+  rename: (oldName: string, newName: string) =>
+    apiRequest('/credentials/rename', {
+      method: 'POST',
+      body: JSON.stringify({ old_name: oldName, new_name: newName }),
+    }),
+  delete: (name: string) =>
+    apiRequest(`/credentials/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+}
+
+// ==================== 留存清理 API ====================
+export interface RetentionConfig {
+  enabled: boolean
+  recordings_max_days: number
+  recordings_max_total_mb: number
+  data_max_days: number
+  data_max_total_mb: number
+  cleanup_interval_hours: number
+}
+export interface RetentionUsage {
+  recordings: { count: number; sizeMB: number }
+  data: { count: number; sizeMB: number }
+}
+export const retentionApi = {
+  getConfig: () =>
+    apiRequest<{ success: boolean; config: RetentionConfig; usage: RetentionUsage }>('/retention/config'),
+  setConfig: (config: Partial<RetentionConfig>) =>
+    apiRequest<{ success: boolean; config: RetentionConfig }>('/retention/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+  cleanup: () => apiRequest('/retention/cleanup', { method: 'POST' }),
+  usage: () => apiRequest<{ success: boolean; usage: RetentionUsage }>('/retention/usage'),
+}
+
+// ==================== 工作流整包 API ====================
+export const workflowBundleApi = {
+  export: (name: string, content: { nodes: unknown[]; edges: unknown[]; variables?: unknown[] }) =>
+    apiRequest<{ success: boolean; bundle?: unknown; error?: string }>('/workflow-bundle/export', {
+      method: 'POST',
+      body: JSON.stringify({ name, content }),
+    }),
+  import: (bundle: unknown) =>
+    apiRequest<{
+      success: boolean
+      name?: string
+      workflow?: { nodes: unknown[]; edges: unknown[]; variables: unknown[] }
+      restored?: { customModules: number; images: number }
+      error?: string
+    }>('/workflow-bundle/import', {
+      method: 'POST',
+      body: JSON.stringify({ bundle }),
+    }),
 }

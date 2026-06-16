@@ -663,6 +663,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   foreach_dict: '遍历字典',
   break_loop: '跳出循环',
   continue_loop: '跳过当前循环',
+  assert_checkpoint: '断言/检查点',
   stop_workflow: '强制停止工作流执行',
   scheduled_task: '定时任务',
   subflow: '子流程',
@@ -709,6 +710,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   element_visible: '元素可见判断',
   get_mouse_position: '获取鼠标位置',
   screenshot_screen: '屏幕截图',
+  ai_vision_act: 'AI视觉操作',
   rename_file: '文件重命名',
   network_capture: '网络抓包',
   // 文件操作
@@ -971,6 +973,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   foreach: 0,              // 遍历本身不超时
   break_loop: 5,        // 5秒
   continue_loop: 5,     // 5秒
+  assert_checkpoint: 30, // 30秒（元素断言可能需等待）
   scheduled_task: 0,       // 定时任务不超时
   subflow: 0,              // 子流程不超时，由内部模块控制
   // 触发器 - 默认不超时，由用户配置
@@ -1017,6 +1020,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   element_visible: 60,  // 1分钟
   get_mouse_position: 5,// 5秒
   screenshot_screen: 10,// 10秒
+  ai_vision_act: 60,    // 60秒（截屏+视觉模型+点击）
   rename_file: 10,      // 10秒
   network_capture: 300, // 5分钟
   // 文件操作

@@ -1182,6 +1182,18 @@ export function RealKeyboardConfig({ data, onChange }: { data: NodeData; onChang
           )}
         </>
       )}
+      <div className="space-y-2 pt-2 border-t border-border">
+        <Label htmlFor="windowTitle">目标窗口标题（可选）</Label>
+        <VariableInput
+          value={(data.windowTitle as string) || ''}
+          onChange={(v) => onChange('windowTitle', v)}
+          placeholder="如: 记事本 / Edge / 微信，发送前先激活该窗口到前台"
+        />
+        <p className="text-xs text-muted-foreground">
+          硬件按键只会进入当前前台窗口。填写后会在发送前把标题包含该文字的窗口激活到前台，
+          避免按键被打进 WebRPA 自己的窗口。留空则发往当前前台窗口。
+        </p>
+      </div>
       <p className="text-xs text-muted-foreground">
         使用系统级键盘输入，适用于需要真实键盘事件的场景
       </p>

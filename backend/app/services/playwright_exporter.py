@@ -395,7 +395,18 @@ class PlaywrightExporter:
         if generator:
             generator(data, node_id, processed)
         else:
-            self._add_comment(f'TODO: 不支持的模块类型 "{module_type}"，请手动实现')
+            # 没有专用生成器：保留模块类型与关键配置，输出结构化占位（而非空 pass），便于人工补全
+            self._add_comment(f'模块「{module_type}」暂无脚本导出实现，以下为其配置，请按需手动实现：')
+            try:
+                _keys = [k for k in data.keys() if k not in ('label', 'moduleType')]
+                for _k in _keys[:12]:
+                    _v = data.get(_k)
+                    _vs = str(_v)
+                    if len(_vs) > 80:
+                        _vs = _vs[:80] + '...'
+                    self._add_comment(f'  {_k} = {_vs}')
+            except Exception:
+                pass
             self._add_line('pass')
     
     def _generate_entry_point(self):
@@ -1870,31 +1881,68 @@ class PlaywrightExporter:
     # ==================== 不支持或需要手动实现的模块 ====================
     
     def _gen_qq_send_message(self, data: dict, node_id: str, processed: set):
-        """QQ发送消息 - 需要手动实现"""
-        self._add_comment('QQ发送消息 - 需要配合 NapCat 或其他 QQ 机器人框架实现')
-        self._add_comment(f'目标: {data.get("targetId", "")}')
-        self._add_comment(f'消息: {data.get("message", "")}')
-        self._add_line('pass  # TODO: 实现 QQ 消息发送')
-    
+        """QQ发送消息 - 运行期能力，导出为 NapCat HTTP 调用骨架"""
+        target = self._resolve_variable_reference(data.get('targetId', data.get('target', '')))
+        message = self._resolve_variable_reference(data.get('message', ''))
+        self._add_comment('QQ发送消息 - 需 NapCat/OneBot HTTP 接口（请填入 _napcat_url）')
+        self._add_line('import requests')
+        self._add_line('_napcat_url = "http://127.0.0.1:3000"  # 按需替换为你的 NapCat 地址')
+        self._add_line(f'requests.post(_napcat_url + "/send_private_msg", json={{"user_id": {target}, "message": str({message})}}, timeout=15)')
+
     def _gen_wechat_send_message(self, data: dict, node_id: str, processed: set):
-        """微信发送消息 - 需要手动实现"""
-        self._add_comment('微信发送消息 - 需要配合微信自动化工具实现')
-        self._add_line('pass  # TODO: 实现微信消息发送')
+        """微信发送消息 - 运行期能力，导出为 UI 自动化骨架"""
+        target = self._resolve_variable_reference(data.get('target', data.get('contact', '')))
+        message = self._resolve_variable_reference(data.get('message', ''))
+        self._add_comment('微信发送消息 - 需配合 PC 微信 UI 自动化（pywinauto/uiautomation），以下为占位')
+        self._add_comment(f'  联系人 = {data.get("target", data.get("contact", ""))}')
+        self._add_comment(f'  消息 = {data.get("message", "")}')
+        self._add_line(f'print("发送微信消息 ->", {target}, {message})')
     
     def _gen_ai_chat(self, data: dict, node_id: str, processed: set):
-        """AI对话 - 需要手动实现"""
-        self._add_comment('AI对话 - 需要配置 API Key')
-        self._add_line('pass  # TODO: 实现 AI 对话')
-    
+        """AI对话 - OpenAI 兼容协议请求"""
+        prompt = self._resolve_variable_reference(data.get('userPrompt', data.get('prompt', data.get('message', ''))))
+        variable_name = data.get('variableName', '')
+        model = data.get('model', 'gpt-3.5-turbo')
+        self._add_comment('AI对话 - OpenAI 兼容协议（请填入 _api_url / _api_key）')
+        self._add_line('import requests')
+        self._add_line('_api_url = "https://api.openai.com/v1/chat/completions"  # 按需替换')
+        self._add_line('_api_key = "YOUR_API_KEY"  # 按需替换')
+        self._add_line(f'_payload = {{"model": "{model}", "messages": [{{"role": "user", "content": str({prompt})}}]}}')
+        self._add_line('_resp = requests.post(_api_url, json=_payload, headers={"Authorization": f"Bearer {_api_key}"}, timeout=60)')
+        self._add_line('_answer = _resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")')
+        if variable_name:
+            self._add_line(f'variables["{variable_name}"] = _answer')
+
     def _gen_ocr_captcha(self, data: dict, node_id: str, processed: set):
-        """OCR验证码 - 需要手动实现"""
-        self._add_comment('OCR验证码识别 - 需要配置 OCR 服务')
-        self._add_line('pass  # TODO: 实现 OCR 验证码识别')
-    
+        """OCR验证码 - pytesseract 识别截图"""
+        selector = self._resolve_variable_reference(data.get('selector', ''))
+        variable_name = data.get('variableName', '')
+        self._add_comment('OCR验证码 - 截取验证码元素后 pytesseract 识别（需 pytesseract）')
+        self._add_line('import pytesseract, io')
+        self._add_line('from PIL import Image')
+        if selector:
+            self._add_line(f'_png = await page.locator({selector}).screenshot()')
+        else:
+            self._add_line('_png = await page.screenshot()')
+        self._add_line('_text = pytesseract.image_to_string(Image.open(io.BytesIO(_png))).strip()')
+        if variable_name:
+            self._add_line(f'variables["{variable_name}"] = _text')
+
     def _gen_slider_captcha(self, data: dict, node_id: str, processed: set):
-        """滑块验证码 - 需要手动实现"""
-        self._add_comment('滑块验证码 - 需要实现滑块识别逻辑')
-        self._add_line('pass  # TODO: 实现滑块验证码')
+        """滑块验证码 - 拖动滑块骨架（缺口识别需自行补充）"""
+        slider = self._resolve_variable_reference(data.get('sliderSelector', data.get('selector', '')))
+        distance = data.get('distance', 0)
+        self._add_comment('滑块验证码 - 拖动滑块（缺口距离识别请自行补充，下方按固定/给定距离拖动）')
+        self._add_line(f'_box = await page.locator({slider}).bounding_box()')
+        self._add_line('if _box:')
+        self.indent_level += 1
+        self._add_line('_sx = _box["x"] + _box["width"] / 2')
+        self._add_line('_sy = _box["y"] + _box["height"] / 2')
+        self._add_line('await page.mouse.move(_sx, _sy)')
+        self._add_line('await page.mouse.down()')
+        self._add_line(f'await page.mouse.move(_sx + {distance or 0}, _sy, steps=20)')
+        self._add_line('await page.mouse.up()')
+        self.indent_level -= 1
     
     def _gen_scheduled_task(self, data: dict, node_id: str, processed: set):
         """定时任务 - 转换为等待"""
@@ -2201,36 +2249,72 @@ class PlaywrightExporter:
     # ==================== 网络共享模块 ====================
     
     def _gen_share_folder(self, data: dict, node_id: str, processed: set):
-        """共享文件夹 - 需要手动实现"""
-        self._add_comment('共享文件夹 - 需要启动 HTTP 服务器')
-        self._add_line('pass  # TODO: 实现文件夹共享')
-    
+        """共享文件夹 - 启动 http.server 暴露目录"""
+        folder = self._resolve_variable_reference(data.get('folder', data.get('path', '.')))
+        port = data.get('port', 8000)
+        self._add_comment('共享文件夹 - 启动 HTTP 文件服务器（后台线程）')
+        self._add_line('import threading, functools, http.server, socketserver')
+        self._add_line(f'_handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str({folder}))')
+        self._add_line(f'_httpd = socketserver.TCPServer(("0.0.0.0", int({port})), _handler)')
+        self._add_line('threading.Thread(target=_httpd.serve_forever, daemon=True).start()')
+        self._add_line(f'print(f"文件夹已共享: http://localhost:{{{port}}}")')
+
     def _gen_share_file(self, data: dict, node_id: str, processed: set):
-        """共享文件 - 需要手动实现"""
-        self._add_comment('共享文件 - 需要启动 HTTP 服务器')
-        self._add_line('pass  # TODO: 实现文件共享')
-    
+        """共享文件 - 启动 http.server 暴露文件所在目录"""
+        file_path = self._resolve_variable_reference(data.get('filePath', data.get('path', '')))
+        port = data.get('port', 8000)
+        self._add_comment('共享文件 - 启动 HTTP 服务器暴露文件所在目录（后台线程）')
+        self._add_line('import os, threading, functools, http.server, socketserver')
+        self._add_line(f'_dir = os.path.dirname(str({file_path})) or "."')
+        self._add_line('_handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=_dir)')
+        self._add_line(f'_httpd = socketserver.TCPServer(("0.0.0.0", int({port})), _handler)')
+        self._add_line('threading.Thread(target=_httpd.serve_forever, daemon=True).start()')
+        self._add_line(f'print(f"文件已共享: http://localhost:{{{port}}}/" + os.path.basename(str({file_path})))')
+
     def _gen_stop_share(self, data: dict, node_id: str, processed: set):
-        """停止共享"""
-        self._add_comment('停止共享')
-        self._add_line('pass  # TODO: 实现停止共享')
+        """停止共享 - 关闭已启动的 HTTP 服务器"""
+        self._add_comment('停止共享 - 关闭上面启动的 _httpd（若存在）')
+        self._add_line('try:')
+        self.indent_level += 1
+        self._add_line('_httpd.shutdown()')
+        self.indent_level -= 1
+        self._add_line('except NameError:')
+        self.indent_level += 1
+        self._add_line('pass')
+        self.indent_level -= 1
 
     # ==================== 媒体处理模块 ====================
     
     def _gen_format_convert(self, data: dict, node_id: str, processed: set):
-        """格式转换 - 需要 ffmpeg"""
-        self._add_comment('格式转换 - 需要安装 ffmpeg')
-        self._add_line('pass  # TODO: 使用 ffmpeg 实现格式转换')
-    
+        """格式转换 - ffmpeg"""
+        input_path = self._resolve_variable_reference(data.get('inputPath', data.get('inputFile', '')))
+        output_path = self._resolve_variable_reference(data.get('outputPath', data.get('outputFile', '')))
+        self._add_comment('格式转换 - 调用 ffmpeg（需已安装并在 PATH 中）')
+        self._add_line('import subprocess')
+        self._add_line(f'subprocess.run(["ffmpeg", "-y", "-i", str({input_path}), str({output_path})], check=True)')
+
     def _gen_compress_image(self, data: dict, node_id: str, processed: set):
-        """压缩图片"""
-        self._add_comment('压缩图片 - 需要 Pillow')
-        self._add_line('pass  # TODO: 使用 Pillow 实现图片压缩')
-    
+        """压缩图片 - Pillow"""
+        input_path = self._resolve_variable_reference(data.get('inputPath', data.get('imagePath', '')))
+        output_path = self._resolve_variable_reference(data.get('outputPath', data.get('savePath', '')))
+        quality = data.get('quality', 80)
+        self._add_comment('压缩图片 - Pillow（按质量重新编码）')
+        self._add_line('from PIL import Image')
+        self._add_line(f'_img = Image.open({input_path})')
+        self._add_line('if _img.mode in ("RGBA", "P"):')
+        self.indent_level += 1
+        self._add_line('_img = _img.convert("RGB")')
+        self.indent_level -= 1
+        self._add_line(f'_img.save({output_path}, quality=int({quality}), optimize=True)')
+
     def _gen_compress_video(self, data: dict, node_id: str, processed: set):
-        """压缩视频 - 需要 ffmpeg"""
-        self._add_comment('压缩视频 - 需要安装 ffmpeg')
-        self._add_line('pass  # TODO: 使用 ffmpeg 实现视频压缩')
+        """压缩视频 - ffmpeg"""
+        input_path = self._resolve_variable_reference(data.get('inputPath', data.get('inputFile', '')))
+        output_path = self._resolve_variable_reference(data.get('outputPath', data.get('outputFile', '')))
+        crf = data.get('crf', 28)
+        self._add_comment('压缩视频 - ffmpeg H.264 CRF（需已安装 ffmpeg）')
+        self._add_line('import subprocess')
+        self._add_line(f'subprocess.run(["ffmpeg", "-y", "-i", str({input_path}), "-vcodec", "libx264", "-crf", str({crf}), str({output_path})], check=True)')
 
     # ==================== 其他模块 ====================
     
@@ -2245,14 +2329,27 @@ class PlaywrightExporter:
         self.indent_level -= 1
     
     def _gen_network_capture(self, data: dict, node_id: str, processed: set):
-        """网络抓包 - 需要手动实现"""
-        self._add_comment('网络抓包 - 需要配置 Playwright 网络监听')
-        self._add_line('pass  # TODO: 实现网络抓包')
-    
+        """网络抓包 - 运行期能力，导出为 Playwright 监听骨架"""
+        self._add_comment('网络抓包 - 用 Playwright 监听请求/响应（按需补充过滤与落盘）')
+        self._add_line('_captured = []')
+        self._add_line('page.on("response", lambda r: _captured.append({"url": r.url, "status": r.status}))')
+        self._add_comment('在需要抓包的操作之后读取 _captured 即可')
+
     def _gen_macro_recorder(self, data: dict, node_id: str, processed: set):
-        """宏录制器 - 需要手动实现"""
-        self._add_comment('宏录制器 - 需要实现宏回放逻辑')
-        self._add_line('pass  # TODO: 实现宏回放')
+        """宏录制器 - 回放录制的鼠标键盘动作（运行期能力）"""
+        actions = data.get('actions') or data.get('macroData') or []
+        self._add_comment('宏回放 - 用 pyautogui 回放录制的动作序列')
+        self._add_line('import pyautogui, time')
+        self._add_line(f'_actions = {actions!r}')
+        self._add_line('for _a in (_actions or []):')
+        self.indent_level += 1
+        self._add_line('_t = _a.get("type")')
+        self._add_line('if _t == "move": pyautogui.moveTo(_a.get("x", 0), _a.get("y", 0))')
+        self._add_line('elif _t == "click": pyautogui.click(_a.get("x", 0), _a.get("y", 0), button=_a.get("button", "left"))')
+        self._add_line('elif _t == "key": pyautogui.press(_a.get("key", ""))')
+        self._add_line('elif _t == "type": pyautogui.typewrite(_a.get("text", ""))')
+        self._add_line('time.sleep(_a.get("delay", 0.05))')
+        self.indent_level -= 1
     
     def _gen_text_to_speech(self, data: dict, node_id: str, processed: set):
         """文字转语音"""
@@ -2272,14 +2369,34 @@ class PlaywrightExporter:
         self.indent_level -= 1
     
     def _gen_play_music(self, data: dict, node_id: str, processed: set):
-        """播放音乐 - 需要手动实现"""
-        self._add_comment('播放音乐 - 需要音频播放库')
-        self._add_line('pass  # TODO: 实现音乐播放')
-    
+        """播放音乐 - 用系统默认播放器打开"""
+        file_path = self._resolve_variable_reference(data.get('filePath', data.get('musicPath', data.get('path', ''))))
+        self._add_comment('播放音乐 - 调用系统默认播放器')
+        self._add_line('import os, sys, subprocess')
+        self._add_line(f'_p = str({file_path})')
+        self._add_line('if sys.platform == "win32":')
+        self.indent_level += 1
+        self._add_line('os.startfile(_p)')
+        self.indent_level -= 1
+        self._add_line('else:')
+        self.indent_level += 1
+        self._add_line('subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", _p])')
+        self.indent_level -= 1
+
     def _gen_play_video(self, data: dict, node_id: str, processed: set):
-        """播放视频 - 需要手动实现"""
-        self._add_comment('播放视频 - 需要视频播放库')
-        self._add_line('pass  # TODO: 实现视频播放')
+        """播放视频 - 用系统默认播放器打开"""
+        file_path = self._resolve_variable_reference(data.get('filePath', data.get('videoPath', data.get('path', ''))))
+        self._add_comment('播放视频 - 调用系统默认播放器')
+        self._add_line('import os, sys, subprocess')
+        self._add_line(f'_p = str({file_path})')
+        self._add_line('if sys.platform == "win32":')
+        self.indent_level += 1
+        self._add_line('os.startfile(_p)')
+        self.indent_level -= 1
+        self._add_line('else:')
+        self.indent_level += 1
+        self._add_line('subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", _p])')
+        self.indent_level -= 1
     
     def _gen_view_image(self, data: dict, node_id: str, processed: set):
         """查看图片"""
@@ -2311,9 +2428,20 @@ class PlaywrightExporter:
         self.indent_level -= 1
     
     def _gen_click_text(self, data: dict, node_id: str, processed: set):
-        """点击文本 - 需要 OCR"""
-        self._add_comment('点击文本 - 需要 OCR 识别')
-        self._add_line('pass  # TODO: 实现 OCR 文本点击')
+        """点击文本 - OCR 定位后 pyautogui 点击"""
+        text = self._resolve_variable_reference(data.get('text', data.get('targetText', '')))
+        self._add_comment('点击文本 - 截屏 OCR 定位文本中心并点击（需 pytesseract + pyautogui）')
+        self._add_line('import pyautogui, pytesseract')
+        self._add_line('_shot = pyautogui.screenshot()')
+        self._add_line('_data = pytesseract.image_to_data(_shot, lang="chi_sim+eng", output_type=pytesseract.Output.DICT)')
+        self._add_line(f'_target = str({text})')
+        self._add_line('for _i, _w in enumerate(_data["text"]):')
+        self.indent_level += 1
+        self._add_line('if _target and _target in _w:')
+        self.indent_level += 1
+        self._add_line('pyautogui.click(_data["left"][_i] + _data["width"][_i] // 2, _data["top"][_i] + _data["height"][_i] // 2)')
+        self._add_line('break')
+        self.indent_level -= 2
     
     def _gen_hover_image(self, data: dict, node_id: str, processed: set):
         """悬停图像 - 需要 pyautogui"""
@@ -2329,14 +2457,34 @@ class PlaywrightExporter:
         self.indent_level -= 1
     
     def _gen_hover_text(self, data: dict, node_id: str, processed: set):
-        """悬停文本 - 需要 OCR"""
-        self._add_comment('悬停文本 - 需要 OCR 识别')
-        self._add_line('pass  # TODO: 实现 OCR 文本悬停')
+        """悬停文本 - OCR 定位后 pyautogui 移动"""
+        text = self._resolve_variable_reference(data.get('text', data.get('targetText', '')))
+        self._add_comment('悬停文本 - 截屏 OCR 定位文本中心并移动鼠标（需 pytesseract + pyautogui）')
+        self._add_line('import pyautogui, pytesseract')
+        self._add_line('_shot = pyautogui.screenshot()')
+        self._add_line('_data = pytesseract.image_to_data(_shot, lang="chi_sim+eng", output_type=pytesseract.Output.DICT)')
+        self._add_line(f'_target = str({text})')
+        self._add_line('for _i, _w in enumerate(_data["text"]):')
+        self.indent_level += 1
+        self._add_line('if _target and _target in _w:')
+        self.indent_level += 1
+        self._add_line('pyautogui.moveTo(_data["left"][_i] + _data["width"][_i] // 2, _data["top"][_i] + _data["height"][_i] // 2)')
+        self._add_line('break')
+        self.indent_level -= 2
     
     def _gen_drag_image(self, data: dict, node_id: str, processed: set):
-        """拖拽图像 - 需要 pyautogui"""
-        self._add_comment('拖拽图像 - 需要 pyautogui')
-        self._add_line('pass  # TODO: 实现图像拖拽')
+        """拖拽图像 - pyautogui 定位源图后拖到目标坐标"""
+        image_path = self._resolve_variable_reference(data.get('imagePath', data.get('sourceImage', '')))
+        tx = data.get('targetX', 0)
+        ty = data.get('targetY', 0)
+        self._add_comment('拖拽图像 - 模板匹配定位后拖拽（需 pyautogui + opencv）')
+        self._add_line('import pyautogui')
+        self._add_line(f'_loc = pyautogui.locateCenterOnScreen({image_path}, confidence=0.8)')
+        self._add_line('if _loc:')
+        self.indent_level += 1
+        self._add_line('pyautogui.moveTo(_loc)')
+        self._add_line(f'pyautogui.dragTo({tx}, {ty}, duration=0.5, button="left")')
+        self.indent_level -= 1
     
     def _gen_image_grayscale(self, data: dict, node_id: str, processed: set):
         """图片灰度化"""
@@ -2349,14 +2497,33 @@ class PlaywrightExporter:
         self._add_line(f'_img.save({output_path})')
     
     def _gen_image_round_corners(self, data: dict, node_id: str, processed: set):
-        """图片圆角化"""
-        self._add_comment('图片圆角化 - 需要 Pillow')
-        self._add_line('pass  # TODO: 实现图片圆角化')
-    
+        """图片圆角化 - Pillow 圆角遮罩"""
+        input_path = self._resolve_variable_reference(data.get('inputPath', data.get('imagePath', '')))
+        output_path = self._resolve_variable_reference(data.get('outputPath', data.get('savePath', '')))
+        radius = data.get('radius', 30)
+        self._add_comment('图片圆角化 - Pillow 圆角遮罩')
+        self._add_line('from PIL import Image, ImageDraw')
+        self._add_line(f'_img = Image.open({input_path}).convert("RGBA")')
+        self._add_line('_mask = Image.new("L", _img.size, 0)')
+        self._add_line('_draw = ImageDraw.Draw(_mask)')
+        self._add_line(f'_draw.rounded_rectangle([0, 0, _img.size[0], _img.size[1]], radius=int({radius}), fill=255)')
+        self._add_line('_img.putalpha(_mask)')
+        self._add_line(f'_img.save({output_path})')
+
     def _gen_audio_to_text(self, data: dict, node_id: str, processed: set):
-        """音频转文字"""
-        self._add_comment('音频转文字 - 需要语音识别服务')
-        self._add_line('pass  # TODO: 实现音频转文字')
+        """音频转文字 - SpeechRecognition"""
+        audio_path = self._resolve_variable_reference(data.get('audioPath', data.get('filePath', '')))
+        variable_name = data.get('variableName', '')
+        self._add_comment('音频转文字 - SpeechRecognition（需 speech_recognition；wav 格式最佳）')
+        self._add_line('import speech_recognition as sr')
+        self._add_line('_r = sr.Recognizer()')
+        self._add_line(f'with sr.AudioFile(str({audio_path})) as _src:')
+        self.indent_level += 1
+        self._add_line('_audio = _r.record(_src)')
+        self.indent_level -= 1
+        self._add_line('_text = _r.recognize_google(_audio, language="zh-CN")')
+        if variable_name:
+            self._add_line(f'variables["{variable_name}"] = _text')
     
     def _gen_qr_generate(self, data: dict, node_id: str, processed: set):
         """生成二维码"""
@@ -2381,14 +2548,32 @@ class PlaywrightExporter:
             self._add_line(f'variables["{variable_name}"] = _result[0].data.decode() if _result else ""')
     
     def _gen_screen_record(self, data: dict, node_id: str, processed: set):
-        """屏幕录制"""
-        self._add_comment('屏幕录制 - 需要 ffmpeg 或 pyautogui')
-        self._add_line('pass  # TODO: 实现屏幕录制')
-    
+        """屏幕录制 - ffmpeg（Windows gdigrab）"""
+        output_path = self._resolve_variable_reference(data.get('outputPath', data.get('savePath', 'screen.mp4')))
+        duration = data.get('duration', 10)
+        self._add_comment('屏幕录制 - ffmpeg 抓屏（Windows gdigrab；需已安装 ffmpeg）')
+        self._add_line('import subprocess, sys')
+        self._add_line(f'_dur = str({duration})')
+        self._add_line('if sys.platform == "win32":')
+        self.indent_level += 1
+        self._add_line(f'subprocess.run(["ffmpeg", "-y", "-f", "gdigrab", "-t", _dur, "-i", "desktop", str({output_path})], check=True)')
+        self.indent_level -= 1
+        self._add_line('else:')
+        self.indent_level += 1
+        self._add_line(f'subprocess.run(["ffmpeg", "-y", "-f", "x11grab", "-t", _dur, "-i", ":0.0", str({output_path})], check=True)')
+        self.indent_level -= 1
+
     def _gen_face_recognition(self, data: dict, node_id: str, processed: set):
-        """人脸识别"""
-        self._add_comment('人脸识别 - 需要 face_recognition 库')
-        self._add_line('pass  # TODO: 实现人脸识别')
+        """人脸识别 - face_recognition 统计人脸数量"""
+        image_path = self._resolve_variable_reference(data.get('imagePath', data.get('inputPath', '')))
+        variable_name = data.get('variableName', '')
+        self._add_comment('人脸识别 - face_recognition（需安装 face_recognition + dlib）')
+        self._add_line('import face_recognition')
+        self._add_line(f'_img = face_recognition.load_image_file(str({image_path}))')
+        self._add_line('_faces = face_recognition.face_locations(_img)')
+        if variable_name:
+            self._add_line(f'variables["{variable_name}"] = len(_faces)')
+        self._add_line('print(f"检测到 {len(_faces)} 张人脸")')
     
     def _gen_image_ocr(self, data: dict, node_id: str, processed: set):
         """图片 OCR"""

@@ -160,10 +160,41 @@ def _generate_table_html(rows: list, filename: Optional[str], show_title: bool =
     return table_html
 
 
+def _convert_legacy_office(file_path: Path, target_ext: str) -> Path | None:
+    """用 win32com 把旧版 .doc/.ppt/.xls 转为新格式（需安装对应 Office）。失败返回 None。"""
+    import tempfile
+    ext = file_path.suffix.lower()
+    out = Path(tempfile.gettempdir()) / (file_path.stem + "_conv" + target_ext)
+    try:
+        import win32com.client as win32  # type: ignore
+        if ext == '.doc':
+            app = win32.Dispatch('Word.Application')
+            app.Visible = False
+            try:
+                doc = app.Documents.Open(str(file_path))
+                doc.SaveAs(str(out), FileFormat=16)  # wdFormatDocumentDefault(.docx)
+                doc.Close()
+            finally:
+                app.Quit()
+            return out if out.exists() else None
+        if ext == '.ppt':
+            app = win32.Dispatch('PowerPoint.Application')
+            try:
+                pres = app.Presentations.Open(str(file_path), WithWindow=False)
+                pres.SaveAs(str(out), 24)  # ppSaveAsOpenXMLPresentation(.pptx)
+                pres.Close()
+            finally:
+                app.Quit()
+            return out if out.exists() else None
+    except Exception as e:
+        print(f"[file_preview] 旧版 Office 转换失败: {e}")
+    return None
+
+
 def preview_word(file_path: Path) -> Tuple[str, str]:
     """
     预览 Word 文件，返回 (html_content, content_type)
-    支持 .docx
+    支持 .docx；.doc 自动尝试转换为 .docx（需安装 Word）
     """
     ext = file_path.suffix.lower()
     
@@ -171,7 +202,16 @@ def preview_word(file_path: Path) -> Tuple[str, str]:
         if ext == '.docx':
             return _preview_docx(file_path)
         elif ext == '.doc':
-            return "<p>暂不支持 .doc 格式，请转换为 .docx</p>", "text/html"
+            converted = _convert_legacy_office(file_path, '.docx')
+            if converted:
+                try:
+                    return _preview_docx(converted)
+                finally:
+                    try:
+                        converted.unlink()
+                    except Exception:
+                        pass
+            return "<p>无法预览 .doc：未检测到可用的 Word 组件。请转换为 .docx 后重试。</p>", "text/html"
         else:
             return f"<p>不支持的 Word 格式: {ext}</p>", "text/html"
     except Exception as e:
@@ -247,7 +287,16 @@ def preview_ppt(file_path: Path) -> Tuple[str, str]:
         if ext == '.pptx':
             return _preview_pptx(file_path)
         elif ext == '.ppt':
-            return "<p>暂不支持 .ppt 格式，请转换为 .pptx</p>", "text/html"
+            converted = _convert_legacy_office(file_path, '.pptx')
+            if converted:
+                try:
+                    return _preview_pptx(converted)
+                finally:
+                    try:
+                        converted.unlink()
+                    except Exception:
+                        pass
+            return "<p>无法预览 .ppt：未检测到可用的 PowerPoint 组件。请转换为 .pptx 后重试。</p>", "text/html"
         else:
             return f"<p>不支持的 PPT 格式: {ext}</p>", "text/html"
     except ImportError:

@@ -30,12 +30,15 @@ import {
   Users,
   Link,
   Unlink,
+  Star,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { useWorkflowStore } from '@/store/workflowStore'
+import { customModulesApi } from '@/services/api'
+import type { CustomModule } from '@/types/customModule'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DialogPortal } from '@/components/ui/dialog-portal'
 import { remoteService, type RemoteSession } from '@/services/remote'
@@ -86,6 +89,36 @@ interface HubWorkflow {
 interface Category {
   name: string
   count: number
+}
+
+// 在线社区自定义模块类型
+interface HubCustomModule {
+  id: string
+  name: string
+  display_name: string
+  description: string
+  icon: string
+  color: string
+  author: string
+  category: string
+  tags: string[]
+  version: string
+  node_count: number
+  download_count: number
+  comment_count?: number
+  avg_rating?: number
+  created_at: string
+  content?: CustomModule
+}
+
+// 在线社区模块评论
+interface HubModuleComment {
+  id: number
+  nickname: string
+  content: string
+  rating: number
+  created_at: string
+  isOwner: boolean
 }
 
 // 评论类型
@@ -142,15 +175,49 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
   // 状态
   const [activeTab, setActiveTab] = useState<'browse' | 'publish' | 'my' | 'custom_modules' | 'guestbook' | 'remote' | 'settings'>('browse')
   
-  // 自定义模块状态（部分字段为预留，未来实现自定义模块 hub 时启用）
-  const [_customModules, _setCustomModules] = useState<any[]>([])
-  const [_customModulesLoading, _setCustomModulesLoading] = useState(false)
-  const [_customModulesError, _setCustomModulesError] = useState<string | null>(null)
+  // 自定义模块仓库状态（本地自定义模块的浏览/管理）
+  const [customModules, setCustomModules] = useState<CustomModule[]>([])
+  const [customModulesLoading, setCustomModulesLoading] = useState(false)
+  const [customModulesError, setCustomModulesError] = useState<string | null>(null)
   const [customModuleSearchQuery, setCustomModuleSearchQuery] = useState('')
   const [selectedCustomModuleCategory, setSelectedCustomModuleCategory] = useState('全部')
+  const customModulesLoadedRef = useRef(false)
   const [hubUrl, setHubUrlState] = useState(getHubUrl())
   const [tempHubUrl, setTempHubUrl] = useState(hubUrl)
   const [tempClientId, setTempClientId] = useState('')
+
+  // 自定义模块：本地/在线社区视图切换
+  const [customModuleView, setCustomModuleView] = useState<'local' | 'online'>('local')
+  // 在线社区状态
+  const [hubModules, setHubModules] = useState<HubCustomModule[]>([])
+  const [hubModulesLoading, setHubModulesLoading] = useState(false)
+  const [hubModulesError, setHubModulesError] = useState<string | null>(null)
+  const [hubModuleSearch, setHubModuleSearch] = useState('')
+  const [hubModuleCategory, setHubModuleCategory] = useState('全部')
+  const [hubModuleSort, setHubModuleSort] = useState<'newest' | 'popular' | 'downloads'>('newest')
+  const [hubModuleScope, setHubModuleScope] = useState<'all' | 'mine'>('all')
+  const [downloadingHubModuleId, setDownloadingHubModuleId] = useState<string | null>(null)
+  // 发布本地模块到社区
+  const [publishingModule, setPublishingModule] = useState<CustomModule | null>(null)
+  const [publishModuleAuthor, setPublishModuleAuthor] = useState('')
+  const [publishModuleSubmitting, setPublishModuleSubmitting] = useState(false)
+  const [publishModuleError, setPublishModuleError] = useState<string | null>(null)
+  // 社区模块：收藏（本地 localStorage）
+  const [hubFavorites, setHubFavorites] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('hub_module_favorites') || '[]') } catch { return [] }
+  })
+  // 社区模块详情（评论/评分/举报）
+  const [detailModule, setDetailModule] = useState<HubCustomModule | null>(null)
+  const [moduleComments, setModuleComments] = useState<HubModuleComment[]>([])
+  const [moduleAvgRating, setModuleAvgRating] = useState(0)
+  const [commentInput, setCommentInput] = useState('')
+  const [commentNick, setCommentNick] = useState('')
+  const [commentRating, setCommentRating] = useState(0)
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
+  // 社区模块：编辑自己发布的元信息
+  const [editingHubModule, setEditingHubModule] = useState<HubCustomModule | null>(null)
+  const [editHubForm, setEditHubForm] = useState({ display_name: '', description: '', category: '其他', tags: '', version: '' })
+  const [editHubSubmitting, setEditHubSubmitting] = useState(false)
 
   // 浏览状态
   const [workflows, setWorkflows] = useState<HubWorkflow[]>([])
@@ -939,6 +1006,11 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
       setSelectedWorkflow(null)
       setPublishSuccess(false)
       setPublishError(null)
+      customModulesLoadedRef.current = false
+      setPublishingModule(null)
+      setPublishModuleError(null)
+      setDetailModule(null)
+      setEditingHubModule(null)
     }
   }, [open])
 
@@ -954,6 +1026,378 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
     return () => clearTimeout(timer)
   }, [searchQuery, sortBy, selectedCategory])
+
+  // ==================== 自定义模块仓库 ====================
+  const loadCustomModules = useCallback(async () => {
+    setCustomModulesLoading(true)
+    setCustomModulesError(null)
+    try {
+      const res = await customModulesApi.list()
+      const list = (res.data as { modules?: CustomModule[] })?.modules || []
+      setCustomModules(list)
+      customModulesLoadedRef.current = true
+    } catch (e) {
+      setCustomModulesError(String(e))
+    } finally {
+      setCustomModulesLoading(false)
+    }
+  }, [])
+
+  // 打开自定义模块标签页时加载
+  useEffect(() => {
+    if (open && activeTab === 'custom_modules' && !customModulesLoadedRef.current) {
+      loadCustomModules()
+    }
+  }, [open, activeTab, loadCustomModules])
+
+  // 使用：插入一个自定义模块节点到画布
+  const handleUseCustomModule = useCallback(async (m: CustomModule) => {
+    try {
+      useWorkflowStore.getState().addNode('custom_module', { x: 280, y: 180 }, {
+        customModuleId: m.id,
+        customModuleName: m.name,
+        label: m.display_name || m.name,
+        icon: m.icon,
+      })
+      customModulesApi.incrementUsage(m.id).catch(() => {})
+      onClose()
+    } catch (e) {
+      alert(`插入模块失败：${e}`)
+    }
+  }, [onClose, alert])
+
+  // 复制
+  const handleDuplicateCustomModule = useCallback(async (m: CustomModule) => {
+    const res = await customModulesApi.duplicate(m.id)
+    if ((res.data as CustomModule)?.id) {
+      await loadCustomModules()
+    } else {
+      alert(`复制失败：${res.error || '未知错误'}`)
+    }
+  }, [loadCustomModules, alert])
+
+  // 导出为 JSON 文件
+  const handleExportCustomModule = useCallback((m: CustomModule) => {
+    const blob = new Blob([JSON.stringify(m, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${m.name || 'custom_module'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [])
+
+  // 导入 JSON 文件
+  const handleImportCustomModule = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json,.json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const data = JSON.parse(await file.text())
+        const res = await customModulesApi.importModule(data)
+        if ((res.data as CustomModule)?.id) {
+          await loadCustomModules()
+        } else {
+          alert(`导入失败：${res.error || '数据格式不正确'}`)
+        }
+      } catch (e) {
+        alert(`模块文件解析失败：${e}`)
+      }
+    }
+    input.click()
+  }, [loadCustomModules, alert])
+
+  // 收藏切换
+  const handleToggleFavorite = useCallback(async (m: CustomModule) => {
+    const res = await customModulesApi.update(m.id, { is_favorite: !m.is_favorite })
+    if ((res.data as CustomModule)?.id) {
+      setCustomModules((prev) => prev.map((x) => x.id === m.id ? { ...x, is_favorite: !x.is_favorite } : x))
+    }
+  }, [])
+
+  // 删除
+  const handleDeleteCustomModule = useCallback(async (m: CustomModule) => {
+    const ok = await confirm(`删除自定义模块「${m.display_name || m.name}」？此操作不可恢复。`, {
+      type: 'warning', title: '删除模块', confirmText: '删除', cancelText: '取消',
+    })
+    if (!ok) return
+    const res = await customModulesApi.delete(m.id)
+    if ((res.data as { success?: boolean })?.success) {
+      setCustomModules((prev) => prev.filter((x) => x.id !== m.id))
+    } else {
+      alert(`删除失败：${res.error || '未知错误'}`)
+    }
+  }, [confirm, alert])
+
+  // 过滤后的自定义模块（搜索 + 分类 + 收藏置顶）
+  const filteredCustomModules = customModules
+    .filter((m) => {
+      if (selectedCustomModuleCategory !== '全部' && m.category !== selectedCustomModuleCategory) return false
+      const q = customModuleSearchQuery.trim().toLowerCase()
+      if (!q) return true
+      return (
+        (m.display_name || '').toLowerCase().includes(q) ||
+        (m.name || '').toLowerCase().includes(q) ||
+        (m.description || '').toLowerCase().includes(q) ||
+        (m.tags || []).some((t) => t.toLowerCase().includes(q))
+      )
+    })
+    .sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0))
+
+  // ==================== 自定义模块在线社区 ====================
+  // 加载云端模块列表
+  const loadHubModules = useCallback(async () => {
+    setHubModulesLoading(true)
+    setHubModulesError(null)
+    try {
+      let url: string
+      let options: RequestInit | undefined
+      if (hubModuleScope === 'mine') {
+        url = `${hubUrl}/api/custom-modules/my-modules`
+        options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: getClientId() }),
+        }
+      } else {
+        const params = new URLSearchParams({ page: '1', limit: '50', sort: hubModuleSort })
+        if (hubModuleCategory && hubModuleCategory !== '全部') params.set('category', hubModuleCategory)
+        if (hubModuleSearch.trim()) params.set('search', hubModuleSearch.trim())
+        url = `${hubUrl}/api/custom-modules?${params}`
+      }
+      const res = await fetch(url, options)
+      if (!res.ok) throw new Error('加载失败')
+      const data = await res.json()
+      setHubModules(data.modules || [])
+    } catch (e) {
+      setHubModulesError('无法连接到社区服务器，请检查网络或仓库地址')
+      setHubModules([])
+    } finally {
+      setHubModulesLoading(false)
+    }
+  }, [hubUrl, hubModuleScope, hubModuleSort, hubModuleCategory, hubModuleSearch])
+
+  // 从社区下载模块到本地
+  const handleDownloadHubModule = useCallback(async (m: HubCustomModule) => {
+    setDownloadingHubModuleId(m.id)
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/${m.id}/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || '下载失败')
+      }
+      const data = await res.json()
+      const moduleJson = data.content
+      if (!moduleJson) throw new Error('下载内容为空')
+      // 导入到本地自定义模块仓库
+      const imp = await customModulesApi.importModule(moduleJson)
+      if ((imp.data as CustomModule)?.id) {
+        setHubModules((prev) => prev.map((x) => x.id === m.id ? { ...x, download_count: (x.download_count || 0) + 1 } : x))
+        await alert(`「${m.display_name || m.name}」已下载到本地模块仓库`, { title: '下载成功' })
+      } else {
+        throw new Error(imp.error || '导入到本地失败')
+      }
+    } catch (e) {
+      await alert(e instanceof Error ? e.message : '下载失败，请稍后重试', { title: '下载失败' })
+    } finally {
+      setDownloadingHubModuleId(null)
+    }
+  }, [hubUrl, alert])
+
+  // 删除自己发布到社区的模块
+  const handleDeleteHubModule = useCallback(async (m: HubCustomModule) => {
+    const ok = await confirm(`确定要从社区删除「${m.display_name || m.name}」吗？此操作不可恢复。`, {
+      type: 'warning', title: '删除社区模块', confirmText: '删除', cancelText: '取消',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/${m.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: getClientId() }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || '删除失败')
+      }
+      setHubModules((prev) => prev.filter((x) => x.id !== m.id))
+    } catch (e) {
+      await alert(e instanceof Error ? e.message : '删除失败，请稍后重试', { title: '删除失败' })
+    }
+  }, [hubUrl, confirm, alert])
+
+  // 打开"发布到社区"弹层
+  const openPublishModule = useCallback((m: CustomModule) => {
+    setPublishingModule(m)
+    setPublishModuleAuthor(m.author || '')
+    setPublishModuleError(null)
+  }, [])
+
+  // 提交发布本地模块到社区
+  const handlePublishModule = useCallback(async () => {
+    if (!publishingModule) return
+    const m = publishingModule
+    if (!m.workflow || !Array.isArray(m.workflow.nodes) || m.workflow.nodes.length === 0) {
+      setPublishModuleError('该模块内部工作流为空，无法发布')
+      return
+    }
+    setPublishModuleSubmitting(true)
+    setPublishModuleError(null)
+    try {
+      // 组装发布用的完整模块 JSON（携带最新作者）
+      const moduleJson = { ...m, author: publishModuleAuthor.trim() || '匿名' }
+      const res = await fetch(`${hubUrl}/api/custom-modules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: m.display_name || m.name,
+          description: m.description || '',
+          author: publishModuleAuthor.trim() || '匿名',
+          category: m.category || '其他',
+          tags: (m.tags || []).slice(0, 8),
+          module: moduleJson,
+          clientId: getClientId(),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || '发布失败')
+      }
+      setPublishingModule(null)
+      await alert(`「${m.display_name || m.name}」已发布到社区`, { title: '发布成功' })
+      // 若当前在线视图，刷新列表
+      if (customModuleView === 'online') loadHubModules()
+    } catch (e) {
+      setPublishModuleError(e instanceof Error ? e.message : '发布失败，请稍后重试')
+    } finally {
+      setPublishModuleSubmitting(false)
+    }
+  }, [publishingModule, publishModuleAuthor, hubUrl, alert, customModuleView, loadHubModules])
+
+  // 切换到在线视图或筛选条件变化时加载
+  useEffect(() => {
+    if (open && activeTab === 'custom_modules' && customModuleView === 'online') {
+      const timer = setTimeout(() => loadHubModules(), 300)
+      return () => clearTimeout(timer)
+    }
+  }, [open, activeTab, customModuleView, loadHubModules])
+
+  // 收藏切换（本地持久化）
+  const toggleHubFavorite = useCallback((id: string) => {
+    setHubFavorites((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      try { localStorage.setItem('hub_module_favorites', JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }, [])
+
+  // 打开社区模块详情并加载评论
+  const openHubDetail = useCallback(async (m: HubCustomModule) => {
+    setDetailModule(m)
+    setModuleComments([])
+    setModuleAvgRating(m.avg_rating || 0)
+    setCommentInput('')
+    setCommentRating(0)
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/${m.id}/comments?clientId=${encodeURIComponent(getClientId())}`)
+      if (res.ok) {
+        const data = await res.json()
+        setModuleComments(data.comments || [])
+        setModuleAvgRating(data.avgRating || 0)
+      }
+    } catch { /* ignore */ }
+  }, [hubUrl])
+
+  // 提交评论/评分
+  const submitHubComment = useCallback(async () => {
+    if (!detailModule || !commentInput.trim()) return
+    setCommentSubmitting(true)
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/${detailModule.id}/comments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: commentNick.trim() || '匿名用户', content: commentInput.trim(), rating: commentRating, clientId: getClientId() }),
+      })
+      if (res.ok) {
+        setCommentInput('')
+        setCommentRating(0)
+        const r = await fetch(`${hubUrl}/api/custom-modules/${detailModule.id}/comments?clientId=${encodeURIComponent(getClientId())}`)
+        if (r.ok) { const d = await r.json(); setModuleComments(d.comments || []); setModuleAvgRating(d.avgRating || 0) }
+      } else {
+        const d = await res.json().catch(() => ({}))
+        await alert(d.error || '评论发布失败', { title: '失败' })
+      }
+    } finally { setCommentSubmitting(false) }
+  }, [detailModule, commentInput, commentNick, commentRating, hubUrl, alert])
+
+  // 删除自己的评论
+  const deleteHubComment = useCallback(async (commentId: number) => {
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/comments/${commentId}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: getClientId() }),
+      })
+      if (res.ok) setModuleComments((prev) => prev.filter((c) => c.id !== commentId))
+    } catch { /* ignore */ }
+  }, [hubUrl])
+
+  // 举报模块
+  const reportHubModule = useCallback(async (m: HubCustomModule) => {
+    const reason = await confirm('确认举报该模块为「违规/恶意」内容？我们会尽快审核。', {
+      title: '举报模块', type: 'warning', confirmText: '确认举报', cancelText: '取消',
+    })
+    if (!reason) return
+    try {
+      const res = await fetch(`${hubUrl}/api/custom-modules/${m.id}/report`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: '违规内容', description: '' }),
+      })
+      if (res.ok) await alert('举报已提交，感谢反馈', { title: '已提交' })
+    } catch { /* ignore */ }
+  }, [hubUrl, confirm, alert])
+
+  // 打开"编辑社区模块"
+  const openEditHub = useCallback((m: HubCustomModule) => {
+    setEditingHubModule(m)
+    setEditHubForm({
+      display_name: m.display_name || '', description: m.description || '',
+      category: m.category || '其他', tags: (m.tags || []).join(', '), version: m.version || '1.0.0',
+    })
+  }, [])
+
+  // 提交编辑社区模块元信息
+  const submitEditHub = useCallback(async () => {
+    if (!editingHubModule) return
+    setEditHubSubmitting(true)
+    try {
+      const tags = editHubForm.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean).slice(0, 8)
+      const res = await fetch(`${hubUrl}/api/custom-modules/${editingHubModule.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: getClientId(),
+          display_name: editHubForm.display_name.trim(),
+          description: editHubForm.description.trim(),
+          category: editHubForm.category,
+          tags,
+          version: editHubForm.version.trim() || '1.0.0',
+        }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setEditingHubModule(null)
+        await alert('模块已更新', { title: '成功' })
+        loadHubModules()
+      } else {
+        await alert(d.error || '更新失败', { title: '失败' })
+      }
+    } finally { setEditHubSubmitting(false) }
+  }, [editingHubModule, editHubForm, hubUrl, alert, loadHubModules])
+
 
   // 下载工作流
   const handleDownload = async (workflow: HubWorkflow, mode: 'replace' | 'merge' = 'replace') => {
@@ -1847,76 +2291,339 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
           {activeTab === 'custom_modules' && (
             <div className="h-full flex flex-col">
               <div className="p-4 border-b bg-gray-50 flex-shrink-0">
-                <div className="text-center mb-4">
-                  <Package className="w-10 h-10 mx-auto text-purple-500 mb-2" />
-                  <h3 className="text-base font-semibold">自定义模块仓库</h3>
-                  <p className="text-xs text-gray-500 mt-1">浏览和下载社区分享的自定义模块</p>
-                </div>
-                
-                <div className="flex gap-3 items-center">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="搜索自定义模块..."
-                      value={customModuleSearchQuery}
-                      onChange={(e) => setCustomModuleSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
+                {/* 本地 / 在线社区 视图切换 */}
+                <div className="flex justify-center mb-3">
+                  <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+                    <button
+                      onClick={() => setCustomModuleView('local')}
+                      className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                        customModuleView === 'local' ? 'bg-purple-500 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Package className="w-3.5 h-3.5 inline mr-1" />本地模块
+                    </button>
+                    <button
+                      onClick={() => setCustomModuleView('online')}
+                      className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                        customModuleView === 'online' ? 'bg-purple-500 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5 inline mr-1" />在线社区
+                    </button>
                   </div>
-                  <Select 
-                    value={selectedCustomModuleCategory} 
-                    onChange={(e) => setSelectedCustomModuleCategory(e.target.value)}
-                    className="w-32"
-                  >
-                    <option value="全部">全部分类</option>
-                    <option value="自定义">自定义</option>
-                    <option value="自动化">自动化</option>
-                    <option value="数据处理">数据处理</option>
-                    <option value="AI">AI</option>
-                    <option value="工具">工具</option>
-                    <option value="网页操作">网页操作</option>
-                    <option value="文件操作">文件操作</option>
-                    <option value="数据库">数据库</option>
-                    <option value="API">API</option>
-                    <option value="邮件">邮件</option>
-                    <option value="通知">通知</option>
-                    <option value="图像处理">图像处理</option>
-                    <option value="文本处理">文本处理</option>
-                    <option value="Excel">Excel</option>
-                    <option value="PDF">PDF</option>
-                    <option value="爬虫">爬虫</option>
-                    <option value="测试">测试</option>
-                    <option value="监控">监控</option>
-                    <option value="定时任务">定时任务</option>
-                    <option value="流程控制">流程控制</option>
-                    <option value="系统操作">系统操作</option>
-                    <option value="网络">网络</option>
-                    <option value="安全">安全</option>
-                    <option value="其他">其他</option>
-                  </Select>
                 </div>
+
+                {customModuleView === 'local' ? (
+                  <div className="flex gap-3 items-center">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="搜索自定义模块..."
+                        value={customModuleSearchQuery}
+                        onChange={(e) => setCustomModuleSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select
+                      value={selectedCustomModuleCategory}
+                      onChange={(e) => setSelectedCustomModuleCategory(e.target.value)}
+                      className="w-32"
+                    >
+                      <option value="全部">全部分类</option>
+                      <option value="自定义">自定义</option>
+                      <option value="自动化">自动化</option>
+                      <option value="数据处理">数据处理</option>
+                      <option value="AI">AI</option>
+                      <option value="工具">工具</option>
+                      <option value="网页操作">网页操作</option>
+                      <option value="文件操作">文件操作</option>
+                      <option value="数据库">数据库</option>
+                      <option value="API">API</option>
+                      <option value="邮件">邮件</option>
+                      <option value="通知">通知</option>
+                      <option value="图像处理">图像处理</option>
+                      <option value="文本处理">文本处理</option>
+                      <option value="Excel">Excel</option>
+                      <option value="PDF">PDF</option>
+                      <option value="爬虫">爬虫</option>
+                      <option value="测试">测试</option>
+                      <option value="监控">监控</option>
+                      <option value="定时任务">定时任务</option>
+                      <option value="流程控制">流程控制</option>
+                      <option value="系统操作">系统操作</option>
+                      <option value="网络">网络</option>
+                      <option value="安全">安全</option>
+                      <option value="其他">其他</option>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={handleImportCustomModule} title="从 JSON 文件导入模块">
+                      <Upload className="w-4 h-4 mr-1" />导入
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={loadCustomModules} title="刷新列表" disabled={customModulesLoading}>
+                      <RefreshCw className={`w-4 h-4 ${customModulesLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-3 items-center">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          placeholder="搜索社区模块..."
+                          value={hubModuleSearch}
+                          onChange={(e) => setHubModuleSearch(e.target.value)}
+                          className="pl-10"
+                          disabled={hubModuleScope === 'mine'}
+                        />
+                      </div>
+                      <Select
+                        value={hubModuleCategory}
+                        onChange={(e) => setHubModuleCategory(e.target.value)}
+                        className="w-28"
+                        disabled={hubModuleScope === 'mine'}
+                      >
+                        <option value="全部">全部分类</option>
+                        <option value="自定义">自定义</option>
+                        <option value="自动化">自动化</option>
+                        <option value="数据处理">数据处理</option>
+                        <option value="AI">AI</option>
+                        <option value="工具">工具</option>
+                        <option value="网页操作">网页操作</option>
+                        <option value="文件操作">文件操作</option>
+                        <option value="数据库">数据库</option>
+                        <option value="API">API</option>
+                        <option value="邮件">邮件</option>
+                        <option value="通知">通知</option>
+                        <option value="图像处理">图像处理</option>
+                        <option value="文本处理">文本处理</option>
+                        <option value="Excel">Excel</option>
+                        <option value="PDF">PDF</option>
+                        <option value="爬虫">爬虫</option>
+                        <option value="测试">测试</option>
+                        <option value="监控">监控</option>
+                        <option value="定时任务">定时任务</option>
+                        <option value="流程控制">流程控制</option>
+                        <option value="系统操作">系统操作</option>
+                        <option value="网络">网络</option>
+                        <option value="安全">安全</option>
+                        <option value="其他">其他</option>
+                      </Select>
+                      <Select
+                        value={hubModuleSort}
+                        onChange={(e) => setHubModuleSort(e.target.value as 'newest' | 'popular' | 'downloads')}
+                        className="w-24"
+                        disabled={hubModuleScope === 'mine'}
+                      >
+                        <option value="newest">最新</option>
+                        <option value="popular">最热</option>
+                        <option value="downloads">下载多</option>
+                      </Select>
+                      <Button variant="outline" size="sm" onClick={loadHubModules} title="刷新列表" disabled={hubModulesLoading}>
+                        <RefreshCw className={`w-4 h-4 ${hubModulesLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+                    <div className="flex justify-center">
+                      <div className="inline-flex rounded-md border border-gray-200 bg-white p-0.5 text-xs">
+                        <button
+                          onClick={() => setHubModuleScope('all')}
+                          className={`px-3 py-1 rounded transition-colors ${hubModuleScope === 'all' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >全部模块</button>
+                        <button
+                          onClick={() => setHubModuleScope('mine')}
+                          className={`px-3 py-1 rounded transition-colors ${hubModuleScope === 'mine' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >我发布的</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {customModuleView === 'local' ? (
               <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
-                <div className="max-w-4xl mx-auto">
-                  <div className="text-center py-16 text-gray-500">
+                {customModulesLoading ? (
+                  <div className="flex items-center justify-center py-20 text-gray-400">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : customModulesError ? (
+                  <div className="text-center py-16 text-red-500 text-sm">
+                    加载失败：{customModulesError}
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={loadCustomModules}>重试</Button>
+                    </div>
+                  </div>
+                ) : filteredCustomModules.length === 0 ? (
+                  <div className="max-w-md mx-auto text-center py-16 text-gray-500">
                     <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <h4 className="text-lg font-medium mb-2">自定义模块仓库即将上线</h4>
-                    <p className="text-sm mb-4">
-                      你可以在本地创建自定义模块，将工作流封装为可复用的模块
-                    </p>
-                    <div className="space-y-2 text-sm text-left max-w-md mx-auto bg-blue-50 p-4 rounded-lg">
-                      <p className="font-medium text-blue-900">如何使用自定义模块：</p>
+                    <h4 className="text-lg font-medium mb-2">
+                      {customModules.length === 0 ? '还没有自定义模块' : '没有匹配的模块'}
+                    </h4>
+                    <div className="space-y-2 text-sm text-left bg-blue-50 p-4 rounded-lg mt-4">
+                      <p className="font-medium text-blue-900">如何创建自定义模块：</p>
                       <ul className="space-y-1 text-blue-700">
-                        <li>1. 在模块侧边栏点击"自定义模块"标签</li>
-                        <li>2. 点击"创建自定义模块"按钮</li>
-                        <li>3. 配置模块参数和输出</li>
-                        <li>4. 在工作流中像使用内置模块一样使用它</li>
+                        <li>1. 在左侧模块栏切到「自定义模块」标签</li>
+                        <li>2. 点击「创建自定义模块」，把一段工作流封装为模块</li>
+                        <li>3. 配置参数与输出，保存后即出现在这里</li>
+                        <li>4. 也可点上方「导入」加载他人分享的模块 JSON</li>
                       </ul>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filteredCustomModules.map((m) => (
+                      <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow flex flex-col gap-2">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                            style={{ background: (m.color || '#8B5CF6') + '22' }}
+                          >
+                            <span>{m.icon || '📦'}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-sm truncate">{m.display_name || m.name}</span>
+                              {m.is_favorite && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+                            </div>
+                            <div className="text-xs text-gray-500 line-clamp-2">{m.description || '（无描述）'}</div>
+                          </div>
+                          <button
+                            onClick={() => handleToggleFavorite(m)}
+                            title={m.is_favorite ? '取消收藏' : '收藏'}
+                            className="p-1 text-gray-300 hover:text-amber-400 flex-shrink-0"
+                          >
+                            <Star className={`w-4 h-4 ${m.is_favorite ? 'text-amber-400 fill-amber-400' : ''}`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-gray-400 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{m.category || 'custom'}</span>
+                          <span>v{m.version || '1.0.0'}</span>
+                          <span>· 使用 {m.usage_count || 0} 次</span>
+                          {(m.tags || []).slice(0, 3).map((t) => (
+                            <span key={t} className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">#{t}</span>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
+                          <Button size="sm" variant="default" className="flex-1 h-7 text-xs" onClick={() => handleUseCustomModule(m)}>
+                            <Plus className="w-3.5 h-3.5 mr-1" />使用
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2" title="复制" onClick={() => handleDuplicateCustomModule(m)}>
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2" title="导出 JSON" onClick={() => handleExportCustomModule(m)}>
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-purple-600 hover:bg-purple-50" title="发布到在线社区，供他人下载" onClick={() => openPublishModule(m)}>
+                            <Upload className="w-3.5 h-3.5 mr-1" />发布
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-red-600 hover:bg-red-50" title="删除" onClick={() => handleDeleteCustomModule(m)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+              ) : (
+              <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
+                {hubModulesLoading ? (
+                  <div className="flex items-center justify-center py-20 text-gray-400">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : hubModulesError ? (
+                  <div className="text-center py-16 text-red-500 text-sm">
+                    {hubModulesError}
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={loadHubModules}>重试</Button>
+                    </div>
+                  </div>
+                ) : hubModules.length === 0 ? (
+                  <div className="max-w-md mx-auto text-center py-16 text-gray-500">
+                    <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <h4 className="text-lg font-medium mb-2">
+                      {hubModuleScope === 'mine' ? '你还没有发布任何模块' : '社区暂无模块'}
+                    </h4>
+                    <p className="text-sm text-gray-400 mt-2">
+                      {hubModuleScope === 'mine'
+                        ? '切到「本地模块」，在模块卡片上点击发布按钮即可分享到社区'
+                        : '换个搜索词或分类，或成为第一个分享模块的人'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[...hubModules].sort((a, b) => (hubFavorites.includes(b.id) ? 1 : 0) - (hubFavorites.includes(a.id) ? 1 : 0)).map((m) => (
+                      <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-md transition-shadow flex flex-col gap-2">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                            style={{ background: (m.color || '#8B5CF6') + '22' }}
+                          >
+                            <span>{m.icon || '📦'}</span>
+                          </div>
+                          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openHubDetail(m)}>
+                            <div className="font-medium text-sm truncate hover:text-purple-600">{m.display_name || m.name}</div>
+                            <div className="text-xs text-gray-500 line-clamp-2">{m.description || '（无描述）'}</div>
+                          </div>
+                          <button
+                            onClick={() => toggleHubFavorite(m.id)}
+                            title={hubFavorites.includes(m.id) ? '取消收藏' : '收藏'}
+                            className="p-1 text-gray-300 hover:text-amber-400 flex-shrink-0"
+                          >
+                            <Star className={`w-4 h-4 ${hubFavorites.includes(m.id) ? 'text-amber-400 fill-amber-400' : ''}`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-gray-400 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{m.category || '其他'}</span>
+                          <span>v{m.version || '1.0.0'}</span>
+                          <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{m.author || '匿名'}</span>
+                          <span className="flex items-center gap-0.5"><Download className="w-3 h-3" />{m.download_count || 0}</span>
+                          {(m.avg_rating ?? 0) > 0 && (
+                            <span className="flex items-center gap-0.5 text-amber-500"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{m.avg_rating}</span>
+                          )}
+                          {(m.comment_count ?? 0) > 0 && (
+                            <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" />{m.comment_count}</span>
+                          )}
+                          {(m.tags || []).slice(0, 2).map((t) => (
+                            <span key={t} className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">#{t}</span>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="flex-1 h-7 text-xs"
+                            onClick={() => handleDownloadHubModule(m)}
+                            disabled={downloadingHubModuleId === m.id}
+                          >
+                            {downloadingHubModuleId === m.id ? (
+                              <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5 mr-1" />
+                            )}
+                            下载到本地
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2" title="详情 / 评论 / 评分" onClick={() => openHubDetail(m)}>
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </Button>
+                          {hubModuleScope === 'mine' ? (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 px-2" title="编辑（版本更新）" onClick={() => openEditHub(m)}>
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-red-600 hover:bg-red-50" title="从社区删除" onClick={() => handleDeleteHubModule(m)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-gray-400 hover:text-red-600" title="举报" onClick={() => reportHubModule(m)}>
+                              <AlertCircle className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              )}
             </div>
           )}
 
@@ -2815,6 +3522,208 @@ export function WorkflowHubDialog({ open, onClose }: Props) {
 
         {/* 确认对话框 */}
         <ConfirmDialog />
+
+        {/* 发布自定义模块到社区弹层 */}
+        {publishingModule && (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => !publishModuleSubmitting && setPublishingModule(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-lg bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-purple-500" />
+                  <span className="font-medium text-sm text-black">发布到社区</span>
+                </div>
+                <button
+                  onClick={() => !publishModuleSubmitting && setPublishingModule(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                    style={{ background: (publishingModule.color || '#8B5CF6') + '22' }}
+                  >
+                    <span>{publishingModule.icon || '📦'}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm text-black truncate">{publishingModule.display_name || publishingModule.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{publishingModule.description || '（无描述）'}</div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-700">作者署名</Label>
+                  <Input
+                    placeholder="留空则显示为匿名"
+                    value={publishModuleAuthor}
+                    onChange={(e) => setPublishModuleAuthor(e.target.value)}
+                    className="mt-1 bg-white text-black"
+                    maxLength={30}
+                  />
+                </div>
+                <div className="text-xs text-gray-500 bg-blue-50 rounded-lg p-3 space-y-1">
+                  <p>· 模块的内部工作流、参数、输出将一并发布到社区</p>
+                  <p>· 请勿包含账号密码等敏感信息</p>
+                  <p>· 你可在「在线社区 - 我发布的」中删除自己发布的模块</p>
+                </div>
+                {publishModuleError && (
+                  <div className="text-xs text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />{publishModuleError}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 px-4 py-3 border-t">
+                <Button variant="outline" size="sm" onClick={() => setPublishingModule(null)} disabled={publishModuleSubmitting}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={handlePublishModule} disabled={publishModuleSubmitting}>
+                  {publishModuleSubmitting ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />发布中...</>
+                  ) : (
+                    <><Upload className="w-3.5 h-3.5 mr-1" />确认发布</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 社区模块详情：评论 / 评分 / 举报 */}
+        {detailModule && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetailModule(null)}>
+            <div className="w-full max-w-lg max-h-[80vh] flex flex-col rounded-lg bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{ background: (detailModule.color || '#8B5CF6') + '22' }}>
+                    <span>{detailModule.icon || '📦'}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm text-black truncate">{detailModule.display_name || detailModule.name}</div>
+                    <div className="text-[11px] text-gray-500">v{detailModule.version} · {detailModule.author || '匿名'} · 下载 {detailModule.download_count || 0}</div>
+                  </div>
+                </div>
+                <button onClick={() => setDetailModule(null)} className="p-1 text-gray-400 hover:text-gray-600 rounded"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <p className="text-sm text-gray-600">{detailModule.description || '（无描述）'}</p>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-500">综合评分</span>
+                  <span className="flex items-center gap-0.5 text-amber-500 font-medium">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />{moduleAvgRating || '—'}
+                  </span>
+                  <span className="text-gray-400 text-xs">（{moduleComments.length} 条评论）</span>
+                </div>
+
+                {/* 发表评论 + 评分 */}
+                <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <Input placeholder="昵称（可选）" value={commentNick} onChange={(e) => setCommentNick(e.target.value)} className="h-8 text-sm bg-white text-black w-32" maxLength={30} />
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} onClick={() => setCommentRating(n === commentRating ? 0 : n)} title={`${n} 星`}>
+                          <Star className={`w-4 h-4 ${n <= commentRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="写下你的使用感受或建议…"
+                    rows={2}
+                    maxLength={500}
+                    className="w-full text-sm border border-gray-300 rounded p-2 bg-white text-black resize-none"
+                  />
+                  <div className="flex justify-end">
+                    <Button size="sm" onClick={submitHubComment} disabled={commentSubmitting || !commentInput.trim()}>
+                      {commentSubmitting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}发表
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 评论列表 */}
+                {moduleComments.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-4">还没有评论，来抢沙发吧</p>
+                ) : moduleComments.map((c) => (
+                  <div key={c.id} className="border-b border-gray-100 pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-black">{c.nickname}</span>
+                        {c.rating > 0 && (
+                          <span className="flex items-center text-amber-500 text-xs">
+                            {Array.from({ length: c.rating }).map((_, i) => <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
+                          </span>
+                        )}
+                      </div>
+                      {c.isOwner && (
+                        <button onClick={() => deleteHubComment(c.id)} className="text-gray-300 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-0.5">{c.content}</p>
+                    <span className="text-[11px] text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between gap-2 px-4 py-3 border-t">
+                <Button variant="outline" size="sm" className="text-gray-500" onClick={() => reportHubModule(detailModule)}>
+                  <AlertCircle className="w-3.5 h-3.5 mr-1" />举报
+                </Button>
+                <Button size="sm" onClick={() => handleDownloadHubModule(detailModule)} disabled={downloadingHubModuleId === detailModule.id}>
+                  <Download className="w-3.5 h-3.5 mr-1" />下载到本地
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 编辑社区模块元信息（版本更新） */}
+        {editingHubModule && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !editHubSubmitting && setEditingHubModule(null)}>
+            <div className="w-full max-w-md rounded-lg bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <span className="font-medium text-sm text-black">编辑社区模块（版本更新）</span>
+                <button onClick={() => !editHubSubmitting && setEditingHubModule(null)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 space-y-3">
+                <div>
+                  <Label className="text-xs text-gray-700">显示名称</Label>
+                  <Input value={editHubForm.display_name} onChange={(e) => setEditHubForm({ ...editHubForm, display_name: e.target.value })} className="mt-1 bg-white text-black" maxLength={50} />
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-700">描述</Label>
+                  <Input value={editHubForm.description} onChange={(e) => setEditHubForm({ ...editHubForm, description: e.target.value })} className="mt-1 bg-white text-black" maxLength={500} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-gray-700">分类</Label>
+                    <Input value={editHubForm.category} onChange={(e) => setEditHubForm({ ...editHubForm, category: e.target.value })} className="mt-1 bg-white text-black" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-700">版本号</Label>
+                    <Input value={editHubForm.version} onChange={(e) => setEditHubForm({ ...editHubForm, version: e.target.value })} className="mt-1 bg-white text-black" maxLength={20} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-gray-700">标签（逗号分隔，最多 8 个）</Label>
+                  <Input value={editHubForm.tags} onChange={(e) => setEditHubForm({ ...editHubForm, tags: e.target.value })} className="mt-1 bg-white text-black" placeholder="如：自动化, 数据" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 px-4 py-3 border-t">
+                <Button variant="outline" size="sm" onClick={() => setEditingHubModule(null)} disabled={editHubSubmitting}>取消</Button>
+                <Button size="sm" onClick={submitEditHub} disabled={editHubSubmitting}>
+                  {editHubSubmitting ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />保存中...</> : '保存更新'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
     </DialogPortal>

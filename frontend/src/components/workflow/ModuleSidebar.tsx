@@ -340,6 +340,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   foreach: ListOrdered,
   break_loop: LogOut,
   continue_loop: SkipForward,
+  assert_checkpoint: ShieldCheck,
   stop_workflow: Power,
   scheduled_task: Clock,
   subflow: Workflow,
@@ -441,6 +442,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   element_visible: GitBranch,
   get_mouse_position: Crosshair,
   screenshot_screen: Monitor,
+  ai_vision_act: Eye,
   network_capture: Radio,
   // 媒体处理
   format_convert: FileVideo,
@@ -872,6 +874,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   element_visible: ['元素', '可见', '判断', '检测', 'element', 'visible', '条件', '分支', '网页', 'dom', '显示'],
   get_mouse_position: ['获取', '鼠标', '位置', '坐标', 'mouse', 'position', 'cursor', '光标'],
   screenshot_screen: ['截屏', '屏幕', '截图', '桌面', 'screenshot', 'screen', 'capture', '全屏'],
+  ai_vision_act: ['视觉', '看屏', '点选', 'AI', '视觉操作', '看屏点选', 'vision', 'computer use', 'computeruse', '截图点击', '自然语言点击', '智能点击', 'sjcz', 'kp'],
   network_capture: ['网络', '抓包', '请求', 'network', 'capture', 'request', 'url', '监听', 'F12'],
   // 媒体处理
   format_convert: ['格式', '转换', '视频', '音频', '图片', 'convert', 'format', 'ffmpeg', 'mp4', 'mp3', 'jpg', 'png'],
@@ -1120,6 +1123,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   foreach: ['遍历', '列表', 'foreach', '数组', 'each'],
   break_loop: ['跳出', '循环', 'break', '退出'],
   continue_loop: ['跳过', '当前', '本次', '循环', 'continue', '下一次', 'skip'],
+  assert_checkpoint: ['断言', '检查点', '校验', '验证', 'assert', 'checkpoint', '稳定性', '测试', '期望', '检查'],
   scheduled_task: ['定时', '执行', '计划', '任务', 'schedule', 'timer', 'cron', '时间', '延迟'],
   subflow: ['子流程', '复用', '调用', '函数', 'subflow', 'call', '引用', '嵌套', '模块化'],
   // 触发器
@@ -1493,7 +1497,7 @@ const moduleCategories = [
   {
     name: '流程控制',
     color: 'bg-orange-500',
-    modules: ['condition', 'loop', 'foreach', 'foreach_dict', 'break_loop', 'continue_loop', 'stop_workflow', 'wait', 'scheduled_task', 'subflow', 'input_prompt'] as ModuleType[],
+    modules: ['condition', 'loop', 'foreach', 'foreach_dict', 'break_loop', 'continue_loop', 'assert_checkpoint', 'stop_workflow', 'wait', 'scheduled_task', 'subflow', 'input_prompt'] as ModuleType[],
   },
   {
     name: '触发器',
@@ -1615,7 +1619,7 @@ const moduleCategories = [
   {
     name: 'AI对话与视觉',
     color: 'bg-violet-700',
-    modules: ['ai_chat', 'ai_vision'] as ModuleType[],
+    modules: ['ai_chat', 'ai_vision', 'ai_vision_act'] as ModuleType[],
   },
   {
     name: 'AI数据处理',

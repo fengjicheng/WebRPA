@@ -512,7 +512,51 @@ class ScheduledTaskManager:
                 print(f"[ScheduledTaskManager] 已调度启动任务: {task.name} (延迟{delay}秒)")
     
     # ==================== 任务执行 ====================
-    
+
+    def _dispatch_notification(self, task, log):
+        """根据任务的通知设置，在执行结束后外发通知（失败/成功）。
+
+        使用后台线程执行（notifier 内部为同步 HTTP/SMTP），避免阻塞事件循环。
+        """
+        try:
+            status = getattr(log, 'status', None)
+            notify_fail = getattr(task, 'notify_on_failure', False)
+            notify_ok = getattr(task, 'notify_on_success', False)
+            channels = getattr(task, 'notify_channels', None) or []
+            if not channels:
+                return
+            should = (status == 'failed' and notify_fail) or (status == 'success' and notify_ok)
+            if not should:
+                return
+
+            status_cn = {'failed': '失败', 'success': '成功', 'stopped': '已停止'}.get(status, status or '未知')
+            title = f"[WebRPA] 任务「{task.name}」执行{status_cn}"
+            lines = [
+                f"任务：{task.name}",
+                f"工作流：{getattr(task, 'workflow_name', '') or getattr(task, 'workflow_id', '')}",
+                f"状态：{status_cn}",
+                f"开始：{getattr(log, 'start_time', '')}",
+                f"结束：{getattr(log, 'end_time', '')}",
+                f"耗时：{getattr(log, 'duration', 0)} 秒",
+                f"执行节点：{getattr(log, 'executed_nodes', 0)}，失败节点：{getattr(log, 'failed_nodes', 0)}",
+            ]
+            if getattr(log, 'error', None):
+                lines.append(f"错误：{log.error}")
+            content = "\n".join(lines)
+
+            import threading
+            from app.services import notifier
+
+            def _run():
+                try:
+                    notifier.notify_all(channels, title, content)
+                except Exception as e:
+                    print(f"[ScheduledTaskManager] 通知发送失败: {e}")
+
+            threading.Thread(target=_run, daemon=True).start()
+        except Exception as e:
+            print(f"[ScheduledTaskManager] 组装通知失败: {e}")
+
     async def _execute_task_internal(self, task_id: str, trigger_type: str):
         """内部任务执行方法（由队列处理器调用）"""
         task = self.tasks.get(task_id)
@@ -657,6 +701,11 @@ class ScheduledTaskManager:
             self._save_tasks()
             self._save_logs()
             print(f"[ScheduledTaskManager] 任务状态已清理: {task.name}, is_running={task.is_running}")
+            # 失败/成功通知（异步外发，不阻塞队列）
+            try:
+                self._dispatch_notification(task, log)
+            except Exception as _ne:
+                print(f"[ScheduledTaskManager] 通知派发异常: {_ne}")
 
         # 处理重复执行（移到 finally 外面，避免长 sleep 阻塞队列处理器）
         # 把 sleep 调度到独立 task，立刻返回让队列处理下一条

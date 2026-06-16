@@ -15,6 +15,7 @@ import '@xyflow/react/dist/style.css'
 import { Keyboard, ChevronDown, ChevronUp, FileJson, AlertTriangle, Boxes, Search, X, LayoutList, Workflow } from 'lucide-react'
 
 import { useWorkflowStore, type NodeData } from '@/store/workflowStore'
+import { DebugBar } from './DebugBar'
 import { useLayoutStore } from '@/store/layoutStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { isEncryptedEnvelope, decryptWorkflow } from '@/lib/workflowCrypto'
@@ -344,7 +345,7 @@ const nodeTypes = {
 export function WorkflowEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const reactFlowInstance = useRef<ReactFlowInstance<Node<NodeData>> | null>(null)
-  const { alert: alertDialog, ConfirmDialog } = useConfirm()
+  const { alert: alertDialog, confirm: confirmDialog, ConfirmDialog } = useConfirm()
   const { promptPassword, passwordDialog } = usePasswordPrompt()
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<string[]>([])
   const [isDraggingFile, setIsDraggingFile] = useState(false)
@@ -1026,6 +1027,32 @@ export function WorkflowEditor() {
     reactFlowInstance.current = instance
   }, [])
 
+  // 选择器自愈：运行后若有选择器被自愈，询问是否写回工作流（持久化）
+  useEffect(() => {
+    const onHealed = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { heals?: { nodeId?: string; configKey?: string; oldSelector?: string; newSelector?: string }[] }
+      const heals = (detail?.heals || []).filter((h) => h.nodeId && h.newSelector)
+      if (heals.length === 0) return
+      const ok = await confirmDialog(
+        `本次运行有 ${heals.length} 处选择器失效后被自动修复。是否把修复后的选择器写回工作流（持久化，下次直接生效）？`,
+        { type: 'warning', title: '选择器自愈', confirmText: '写回工作流', cancelText: '暂不' }
+      )
+      if (!ok) return
+      const store = useWorkflowStore.getState()
+      let applied = 0
+      for (const h of heals) {
+        const node = store.nodes.find((n) => n.id === h.nodeId)
+        if (node) {
+          store.updateNodeData(h.nodeId as string, { [h.configKey || 'selector']: h.newSelector } as any)
+          applied++
+        }
+      }
+      store.addLog({ level: 'success', message: `已写回 ${applied} 处自愈选择器，记得保存工作流` })
+    }
+    window.addEventListener('selector:healed', onHealed as EventListener)
+    return () => window.removeEventListener('selector:healed', onHealed as EventListener)
+  }, [confirmDialog])
+
   // 监听 AI 小助手发起的画布操作（聚焦/适配/单节点运行）
   useEffect(() => {
     const offs: Array<() => void> = []
@@ -1589,6 +1616,9 @@ export function WorkflowEditor() {
           {canvasWidgets?.moduleCount !== false && <ModuleCount />}
           {canvasWidgets?.moduleSearch !== false && <ModuleSearch reactFlowInstance={reactFlowInstance.current} />}
           {canvasWidgets?.controlsHelp !== false && <ControlsHelp />}
+
+          {/* 调试控制条（命中断点/单步时浮现） */}
+          <DebugBar />
 
           {/* 视图模式切换：流程图 / 模块条（底部居中，避免与顶部搜索框重叠） */}
           {canvasWidgets?.viewSwitch !== false && (

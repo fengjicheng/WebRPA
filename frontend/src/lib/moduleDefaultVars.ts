@@ -76,6 +76,8 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   ai_dedup_semantic: { variableName: 'deduped_list' },
   ai_route: { variableName: 'route' },
   ai_vision: { resultVariable: 'vision_result' },
+  ai_vision_act: { variableName: 'vision_target' },
+  assert_checkpoint: { variableName: 'assert_passed' },
   ocr_captcha: { resultVariable: 'captcha_text' },
   click_image: { resultVariable: 'image_clicked' },
   click_text: { resultVariable: 'text_clicked' },

@@ -95,6 +95,7 @@ MODULE_DEFAULT_TIMEOUTS = {
     'slider_captcha': 60000,   # 1分钟
     # 流程控制 - 不超时（由内部逻辑控制）
     'condition': 5000,         # 5秒
+    'assert_checkpoint': 30000, # 30秒（元素断言可能需等待）
     'loop': 0,                 # 循环本身不超时
     'foreach': 0,              # 遍历本身不超时
     'infinite_loop': 0,        # 无限循环本身不超时
@@ -134,6 +135,7 @@ MODULE_DEFAULT_TIMEOUTS = {
     'drag_image': 60000,       # 1分钟
     'get_mouse_position': 5000,# 5秒
     'screenshot_screen': 10000,# 10秒
+    'ai_vision_act': 120000,   # 120秒（视觉模型推理较慢）
     'rename_file': 10000,      # 10秒
     'network_capture': 0,      # 不超时（非阻塞，后台运行）
     'macro_recorder': 0,       # 不超时（宏播放时间由用户录制内容决定）
@@ -290,6 +292,79 @@ class WorkflowExecutor:
         # 上次"真实让出事件循环"的时间戳（用于让 socket.io 的 WebSocket 发送协程
         # 有机会把积压的日志/数据包实时写出，避免高速执行时日志全堆到结束才出现）
         self._last_loop_yield = 0.0
+
+        # ===== 可视化调试（断点 / 单步 / 暂停）=====
+        # 完全增量：debug_enabled=False 时下面这些不产生任何行为影响
+        self.debug_enabled = False
+        self.breakpoints: set[str] = set()      # 断点节点 id 集合
+        self.step_mode = False                  # 单步模式：每个节点前都暂停
+        self.is_paused = False                  # 当前是否处于暂停态
+        self.on_paused = None                   # 暂停回调（由 API 层注入，用于推送 socket 事件）
+        self.on_resumed = None                  # 恢复回调
+        self._resume_event = asyncio.Event()
+        self._resume_event.set()                # 默认非暂停
+
+    def configure_debug(self, breakpoints=None, step_mode: bool = False):
+        """开启调试：设置断点集合与是否单步。breakpoints 为空且 step_mode=False 时等于不调试。"""
+        bps = set(breakpoints or [])
+        self.breakpoints = bps
+        self.step_mode = bool(step_mode)
+        self.debug_enabled = bool(bps) or bool(step_mode)
+
+    def debug_resume(self, step: bool = False):
+        """从暂停态继续。step=True 表示只走一步（到下一个节点再暂停）。"""
+        if step:
+            self.step_mode = True
+            self.debug_enabled = True
+        else:
+            self.step_mode = False
+        try:
+            self._resume_event.set()
+        except Exception:
+            pass
+
+    def set_breakpoints(self, breakpoints):
+        """运行中动态更新断点集合。"""
+        self.breakpoints = set(breakpoints or [])
+        if self.breakpoints:
+            self.debug_enabled = True
+
+    async def _maybe_pause(self, node):
+        """调试闸门：命中断点或单步模式时暂停，等待 resume。不调试时立即返回（零开销）。"""
+        if not self.debug_enabled:
+            return
+        if self.should_stop or self.context.stop_workflow:
+            return
+        node_id = getattr(node, 'id', None)
+        hit = (node_id in self.breakpoints) or self.step_mode
+        if not hit:
+            return
+        self.is_paused = True
+        self._resume_event.clear()
+        label = getattr(node, 'data', {}).get('label') if hasattr(node, 'data') else None
+        try:
+            if self.on_paused:
+                snapshot = {}
+                try:
+                    snapshot = dict(self.context.variables)
+                except Exception:
+                    snapshot = {}
+                await self.on_paused({
+                    'node_id': node_id,
+                    'label': label or node_id,
+                    'variables': snapshot,
+                    'reason': 'breakpoint' if (node_id in self.breakpoints) else 'step',
+                })
+        except Exception:
+            pass
+        # 等待外部 resume / step
+        await self._resume_event.wait()
+        self.is_paused = False
+        try:
+            if self.on_resumed:
+                await self.on_resumed({'node_id': node_id})
+        except Exception:
+            pass
 
     def _try_bind_global_browser(self):
         """尝试绑定全局已启动的浏览器会话"""
@@ -712,6 +787,11 @@ class WorkflowExecutor:
         self.context.set_current_node(node.id, label)
         
         await self._notify_node_start(node.id)
+
+        # 调试闸门：命中断点 / 单步时在此暂停（不调试时零开销）
+        await self._maybe_pause(node)
+        if self.should_stop or self.context.stop_workflow:
+            return None
         
         # 特殊处理：自定义模块
         # 自定义模块没有"执行器"，需要在这里直接加载定义并递归执行子工作流；
@@ -799,6 +879,15 @@ class WorkflowExecutor:
         
         # 获取超时行为配置
         retry_exhausted_action = config.get('retryExhaustedAction', 'stop')  # 'stop' 或 'skip'
+
+        # 获取重试退避配置（重试间隔）
+        try:
+            retry_delay = float(config.get('retryDelay', 0) or 0)
+            if retry_delay < 0:
+                retry_delay = 0
+        except (ValueError, TypeError):
+            retry_delay = 0
+        retry_backoff = config.get('retryBackoff', 'fixed')  # 'fixed' 固定 / 'exponential' 指数退避
         
         start_time = time.time()
         last_error = None
@@ -809,6 +898,11 @@ class WorkflowExecutor:
         for attempt in range(retry_count + 1):  # +1 因为第一次不算重试
             try:
                 if attempt > 0:
+                    # 重试退避：固定间隔或指数退避
+                    if retry_delay > 0:
+                        wait_s = retry_delay * (2 ** (attempt - 1)) if retry_backoff == 'exponential' else retry_delay
+                        print(f"[RETRY] 节点 {node.id} ({label}) 重试前等待 {wait_s:.2f} 秒（{retry_backoff}）")
+                        await asyncio.sleep(wait_s)
                     timeout_display = f"{timeout_seconds}秒" if timeout_seconds else "无限制"
                     print(f"[RETRY] 节点 {node.id} ({label}) 第 {attempt} 次重试，超时: {timeout_display}")
                 else:
@@ -2571,6 +2665,13 @@ class WorkflowExecutor:
     async def stop(self):
         """停止工作流执行 - 立即强制停止所有操作"""
         self.should_stop = True
+        # 若正处于调试暂停态，先释放闸门，让被 await 的节点能继续走到停止逻辑
+        self.debug_enabled = False
+        self.step_mode = False
+        try:
+            self._resume_event.set()
+        except Exception:
+            pass
         await self._log(LogLevel.WARNING, "正在停止工作流...", is_system_log=True)
         
         # 1. 终止所有正在运行的 FFmpeg 进程

@@ -5,11 +5,12 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useScheduledTaskStore, type ScheduledTask, type ScheduledTaskTrigger } from '@/store/scheduledTaskStore'
+import { useScheduledTaskStore, type ScheduledTask, type ScheduledTaskTrigger, type NotifyChannel } from '@/store/scheduledTaskStore'
 import { localWorkflowApi } from '@/services/api'
 import { Clock, Zap, Power, Repeat, X, Play, Square, Webhook } from 'lucide-react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DialogPortal } from '@/components/ui/dialog-portal'
+import { NotificationConfigEditor } from './NotificationConfigEditor'
 
 interface TaskEditDialogProps {
   task: ScheduledTask
@@ -69,6 +70,10 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
   // 运行模式配置
   const [openMonitor, setOpenMonitor] = useState(task.open_monitor || false)
   const [headless, setHeadless] = useState(task.headless || false)
+  // 执行通知
+  const [notifyOnFailure, setNotifyOnFailure] = useState(task.notify_on_failure || false)
+  const [notifyOnSuccess, setNotifyOnSuccess] = useState(task.notify_on_success || false)
+  const [notifyChannels, setNotifyChannels] = useState<NotifyChannel[]>(task.notify_channels || [])
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -112,6 +117,9 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
     setWebhookPath(task.trigger.webhook_path || '')
     setOpenMonitor(task.open_monitor || false)
     setHeadless(task.headless || false)
+    setNotifyOnFailure(task.notify_on_failure || false)
+    setNotifyOnSuccess(task.notify_on_success || false)
+    setNotifyChannels(task.notify_channels || [])
     setError('')
   }, [task.id])
   
@@ -376,6 +384,9 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
         trigger: buildTrigger(),
         open_monitor: openMonitor,
         headless: headless,
+        notify_on_failure: notifyOnFailure,
+        notify_on_success: notifyOnSuccess,
+        notify_channels: notifyChannels,
       })
       
       onClose()
@@ -802,6 +813,17 @@ export function TaskEditDialog({ task, open, onClose }: TaskEditDialogProps) {
             <p className="text-xs text-purple-700 ml-2">
               开启后，自动化浏览器将在后台隐藏运行，不会弹出浏览器窗口。
             </p>
+
+            <NotificationConfigEditor
+              notifyOnFailure={notifyOnFailure}
+              notifyOnSuccess={notifyOnSuccess}
+              channels={notifyChannels}
+              onChange={(patch) => {
+                if (patch.notifyOnFailure !== undefined) setNotifyOnFailure(patch.notifyOnFailure)
+                if (patch.notifyOnSuccess !== undefined) setNotifyOnSuccess(patch.notifyOnSuccess)
+                if (patch.channels !== undefined) setNotifyChannels(patch.channels)
+              }}
+            />
           </div>
           
           {error && (

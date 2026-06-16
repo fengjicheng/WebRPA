@@ -27,16 +27,9 @@ from app.models.ai_assistant import (
     ToolCallStatus,
 )
 from app.services.ai_assistant_knowledge import build_system_prompt
-from app.services.ai_assistant_skills import execute_skill, registry as skill_registry
-# v2 新增 skill：dry-run / 运行时洞察 / 依赖预检 / 健壮性 / 桌面感知
-import app.services.ai_assistant_skills_v2  # noqa: F401  # side-effect: 注册新 skill
-# v3 新增 skill：系统控制 / 一次性延时 / 自学习 / 教训 / 用户画像（对标 Hermes Agent）
-import app.services.ai_assistant_skills_v3  # noqa: F401  # side-effect: 注册新 skill
-# v4 新增 skill：超级增强通用能力（HTTP / 文件 / Excel / 二维码 / 时间 / 系统 / 正则等共 28 个）
-import app.services.ai_assistant_skills_v4  # noqa: F401  # side-effect: 注册新 skill
-
-# MCP 管理 skill：让 AI 直接为用户配置 / 管理 MCP 服务器
-import app.services.ai_assistant_skills_mcp  # noqa: F401  # side-effect: 注册新 skill
+from app.services.ai_assistant_skills import execute_skill, registry as skill_registry, load_all_skills
+# 统一加载全部扩展技能（v2/v3/v4/mcp），替代分散的 side-effect 导入，并带重名检测
+load_all_skills()
 
 
 # ---------- 持久化 ----------
