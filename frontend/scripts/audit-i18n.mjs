@@ -508,7 +508,57 @@ function isLogContext(prev) {
 }
 
 /**
- * 扫描 frontend/src 下含中文的字符串字面量，复刻运行时翻译层，
+ * 扫描 .tsx 中的 JSX 文本节点（写在标签之间、不带引号的界面文案）。
+ *
+ * 补的是一个真实盲区：scanStringLiterals 只看字符串字面量，
+ * 而 `<p>播放音频文件…</p>` 这种裸文本同样会显示在界面上、同样需要翻译，
+ * 却完全逃过审计。运行时翻译层是 DOM 级 TreeWalker，整句查表即可翻译，
+ * 所以这类文案的要求与字符串字面量完全一致。
+ *
+ * 提取规则：取 `>` 与 `<` 之间、不含 { } 的纯文本片段（含中文才纳入）。
+ * 带 {表达式} 的片段跳过——那部分是代码，其中的中文会被字面量扫描覆盖。
+ */
+function scanJsxTexts(src) {
+  const out = []
+  const lines = src.split('\n')
+  let inBlockComment = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    // 注释一律跳过：注释里的中文不显示在界面上，误报会淹没真实缺口
+    if (inBlockComment) {
+      if (trimmed.includes('*/')) inBlockComment = false
+      continue
+    }
+    if (trimmed.startsWith('/*')) {
+      if (!trimmed.includes('*/')) inBlockComment = true
+      continue
+    }
+    if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue
+    if (!CHINESE_RE.test(line)) continue
+
+    // 去掉行尾注释后再分析（注释里的中文不算界面文案）
+    const code = line.replace(/\/\/.*$/, '')
+
+    // 形态一：同一行内的 >文案<（如 <span>批量启用</span>）。
+    // 排除引号，含引号的是字符串字面量，已由 scanStringLiterals 覆盖，避免重复计入。
+    for (const m of code.matchAll(/>([^<>{}'"`]+)</g)) {
+      const value = m[1].trim()
+      if (value && CHINESE_RE.test(value)) out.push({ value, line: i + 1 })
+    }
+
+    // 形态二：独立成行的纯文案（上一行以 > 结尾，本行不含任何标签或代码符号）
+    if (CHINESE_RE.test(trimmed) && !/[<>{}'"`=();]/.test(trimmed)) {
+      const prev = (lines[i - 1] || '').trim()
+      if (prev.endsWith('>')) out.push({ value: trimmed, line: i + 1 })
+    }
+  }
+  return out
+}
+
+/**
+ * 扫描 frontend/src 下含中文的字符串字面量与 JSX 文本节点，复刻运行时翻译层，
  * 返回英文模式下仍残留中文的清单：{ file, line, text }[]。
  */
 function findUntranslatedChinese() {
@@ -522,6 +572,12 @@ function findUntranslatedChinese() {
     if (!CHINESE_RE.test(src)) continue
     const ignoreRanges = computeIgnoreRanges(src)
     const literals = scanStringLiterals(src)
+    // JSX 裸文本与字符串字面量一样会显示在界面上，一并纳入扫描
+    if (/\.tsx$/.test(file)) {
+      for (const t of scanJsxTexts(src)) {
+        literals.push({ value: t.value, line: t.line, prev: '' })
+      }
+    }
     for (const lit of literals) {
       if (!CHINESE_RE.test(lit.value)) continue
       if (isLogContext(lit.prev)) continue

@@ -382,7 +382,7 @@ export function WaitImageConfig({
           <span className="text-sm w-12 text-right">{((data.confidence as number) || 0.8) * 100}%</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          '图片匹配的相似度阈值，越高越精确'
+          图片匹配的相似度阈值，越高越精确
         </p>
       </div>
       <div className="space-y-2">
@@ -406,7 +406,7 @@ export function WaitImageConfig({
           step={0.1}
         />
         <p className="text-xs text-muted-foreground">
-          '每次检查图片的时间间隔'
+          每次检查图片的时间间隔
         </p>
       </div>
       
@@ -426,7 +426,7 @@ export function WaitImageConfig({
           <Label htmlFor="useSearchRegion" className="cursor-pointer">限定搜索区域</Label>
         </div>
         <p className="text-xs text-muted-foreground">
-          '仅在屏幕的指定区域内查找图片'
+          仅在屏幕的指定区域内查找图片
         </p>
       </div>
       
@@ -449,7 +449,7 @@ export function WaitImageConfig({
             onBothChange={(x, y) => onChange('searchRegion', { ...(data.searchRegion as object || {}), x2: x, y2: y })}
           />
           <p className="text-xs text-muted-foreground">
-            '定义一个矩形区域，仅在此区域内查找图片'
+            定义一个矩形区域，仅在此区域内查找图片
           </p>
         </div>
       )}
@@ -475,7 +475,7 @@ export function WaitImageConfig({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        '找到图片后，将其中心点坐标存储到指定变量'
+        找到图片后，将其中心点坐标存储到指定变量
       </p>
     </>
   )
@@ -610,7 +610,7 @@ export function PrintLogConfig({ data, onChange }: { data: NodeData; onChange: (
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
-        '在执行日志中打印信息，支持变量引用'
+        在执行日志中打印信息，支持变量引用
       </p>
     </>
   )
@@ -644,7 +644,7 @@ export function PlaySoundConfig({ data, onChange }: { data: NodeData; onChange: 
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        '播放系统提示音，可用于提醒用户'
+        播放系统提示音，可用于提醒用户
       </p>
     </>
   )
@@ -720,9 +720,12 @@ export function PlayMusicConfig({ data, onChange }: { data: NodeData; onChange: 
           <option value="false">否</option>
           <option value="true">是</option>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          选「否」不会弹出播放器，音频在后台直接播放，工作流立刻执行后续模块；选「是」则弹出播放器并等到播放结束才继续。
+        </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        '播放音频文件，支持本地文件和网络URL'
+        播放音频文件，支持本地文件和网络URL
       </p>
     </>
   )
@@ -751,9 +754,12 @@ export function PlayVideoConfig({ data, onChange }: { data: NodeData; onChange: 
           <option value="false">否</option>
           <option value="true">是</option>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          选「否」时播放器照常打开（视频需要画面），但工作流不等它，立刻执行后续模块，播放器可随时手动关闭；选「是」则等到播放结束才继续。
+        </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        '播放视频文件，支持本地文件和网络URL'
+        播放视频文件，支持本地文件和网络URL
       </p>
     </>
   )
@@ -796,12 +802,15 @@ export function ViewImageConfig({ data, onChange }: { data: NodeData; onChange: 
             step={0.1}
           />
           <p className="text-xs text-muted-foreground">
-            '图片显示的时长，单位秒'
+            图片显示的时长，单位秒
           </p>
         </div>
       )}
       <p className="text-xs text-muted-foreground">
-        '在新窗口中查看图片，支持本地文件和网络URL'
+        在新窗口中查看图片，支持本地文件和网络URL
+      </p>
+      <p className="text-xs text-muted-foreground">
+        开启「自动关闭」并设好时长，到时会自动关闭并继续执行；否则会一直等到手动关闭为止。
       </p>
     </>
   )
@@ -887,7 +896,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
               className="h-5 w-5"
             />
             <Label htmlFor="defaultValue" className="cursor-pointer select-none flex-1">
-              '默认选中'
+              默认选中
             </Label>
             <span className={`text-sm font-medium px-2 py-1 rounded ${
               (data.defaultValue as string) === 'true' || (data.defaultValue as boolean) === true
@@ -916,7 +925,7 @@ export function InputPromptConfig({ data, onChange }: { data: NodeData; onChange
             placeholder='选项1,选项2,选项3'
           />
           <p className="text-xs text-muted-foreground">
-            '用逗号分隔多个选项'
+            用逗号分隔多个选项
           </p>
         </div>
       )}
@@ -1053,7 +1062,7 @@ export function TextToSpeechConfig({ data, onChange }: { data: NodeData; onChang
       </div>
       <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-800">
-          '使用系统TTS引擎朗读文本，支持多种语言'
+          使用系统TTS引擎朗读文本，支持多种语言
         </p>
       </div>
     </>
@@ -1674,7 +1683,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
-          '将此分组标记为可复用的子流程'
+          将此分组标记为可复用的子流程
         </p>
       </div>
 
@@ -1715,7 +1724,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
               )
             })()}
             <p className="text-xs text-muted-foreground">
-              '子流程的唯一标识名称，用于调用时引用'
+              子流程的唯一标识名称，用于调用时引用
             </p>
           </div>
           
@@ -1726,10 +1735,10 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
               onClick={convertToSubflowHeader}
               className="bg-[hsl(var(--brand-600))] w-full px-4 py-2 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
             >
-              '转换为函数头形式'
+              转换为函数头形式
             </button>
             <p className="text-xs text-amber-600">
-              ' 转换后将删除分组框，改为函数头节点形式'
+              转换后将删除分组框，改为函数头节点形式
             </p>
           </div>
           
@@ -1771,7 +1780,7 @@ export function GroupConfig({ data, onChange }: { data: NodeData; onChange: (key
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            '用于组织和标记相关的模块，不影响执行逻辑'
+            用于组织和标记相关的模块，不影响执行逻辑
           </p>
         </>
       )}
@@ -1823,7 +1832,7 @@ export function SubflowHeaderConfig({ data, onChange }: { data: NodeData; onChan
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          '子流程的唯一标识名称，用于调用时引用'
+          子流程的唯一标识名称，用于调用时引用
         </p>
       </div>
       
@@ -1880,7 +1889,7 @@ export function RefreshPageConfig({ data, onChange }: { data: NodeData; onChange
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
-        '刷新当前页面并等待加载完成'
+        刷新当前页面并等待加载完成
       </p>
     </>
   )
@@ -1904,7 +1913,7 @@ export function GoBackConfig({ data, onChange }: { data: NodeData; onChange: (ke
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
-        '返回到上一个页面'
+        返回到上一个页面
       </p>
     </>
   )
@@ -1928,7 +1937,7 @@ export function GoForwardConfig({ data, onChange }: { data: NodeData; onChange: 
         </Select>
       </div>
       <p className="text-xs text-muted-foreground">
-        '前进到下一个页面'
+        前进到下一个页面
       </p>
     </>
   )
@@ -2050,7 +2059,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
             placeholder='URL关键词'
           />
           <p className="text-xs text-muted-foreground">
-            '匹配包含此文本的URL'
+            匹配包含此文本的URL
           </p>
         </div>
       )}
@@ -2067,7 +2076,7 @@ export function InjectJavaScriptConfig({ data, onChange }: { data: NodeData; onC
             min={0}
           />
           <p className="text-xs text-muted-foreground">
-            '标签页的索引位置，从0开始'
+            标签页的索引位置，从0开始
           </p>
         </div>
       )}

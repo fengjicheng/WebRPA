@@ -258,10 +258,12 @@ export function ExeUiDesigner({ isOpen, initial, onClose, onApply }: Props) {
             </div>
             <div className="pt-2 mt-2 border-t border-[hsl(var(--border))] space-y-1.5">
               <div className="text-[10.5px] font-semibold text-[hsl(var(--muted-foreground))] uppercase px-1">画布</div>
-              <label className="text-[11px] text-[hsl(var(--muted-foreground))] px-1">宽</label>
+              {/* 用「宽度/高度」而非单字「宽/高」：单字在字典里与优先级语境的「高=High」冲突，
+                  英文模式下画布高度会被误译成 High */}
+              <label className="text-[11px] text-[hsl(var(--muted-foreground))] px-1">宽度</label>
               <input type="number" className="w-full px-2 py-1 rounded-md bg-[hsl(var(--background))] border border-[hsl(var(--border))] text-[12px]"
                 value={layout.width} onChange={(e) => setLayout((L) => ({ ...L, width: Math.max(200, parseInt(e.target.value) || 520) }))} />
-              <label className="text-[11px] text-[hsl(var(--muted-foreground))] px-1">高</label>
+              <label className="text-[11px] text-[hsl(var(--muted-foreground))] px-1">高度</label>
               <input type="number" className="w-full px-2 py-1 rounded-md bg-[hsl(var(--background))] border border-[hsl(var(--border))] text-[12px]"
                 value={layout.height} onChange={(e) => setLayout((L) => ({ ...L, height: Math.max(150, parseInt(e.target.value) || 360) }))} />
               <label className="text-[11px] text-[hsl(var(--muted-foreground))] px-1">背景色</label>

@@ -119,7 +119,7 @@ class SocketService {
     }
   }
 
-  // 播放音乐 - 显示播放器弹窗
+  // 播放音乐：等待播放完成=是 → 弹播放器并等它播完；=否 → 不弹窗，后台直接播放
   private playMusic(data: {
     requestId: string
     audioUrl: string
@@ -130,6 +130,14 @@ class SocketService {
       if (currentAudio) {
         currentAudio.pause()
         currentAudio = null
+      }
+
+      // 「不等待播放完成」的语义是：不弹播放器弹窗，直接后台播放，工作流立刻往下走。
+      // 之前无论该开关如何都弹窗，且弹窗只在播完/手动关闭时才回结果，
+      // 导致这个开关完全失效（既弹窗又阻塞）。
+      if (!data.waitForEnd) {
+        this.playMusicBackground(data)
+        return
       }
 
       // 使用播放器弹窗
@@ -149,6 +157,49 @@ class SocketService {
         console.error('加载播放器失败，使用简单播放:', err)
         this.playMusicSimple(data)
       })
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      this.sendPlayMusicResult(data.requestId, false, errorMsg)
+    }
+  }
+
+  // 后台播放（不弹窗、不阻塞）：先让后端把音频转成浏览器可播放的地址，再静默播放
+  private async playMusicBackground(data: {
+    requestId: string
+    audioUrl: string
+    waitForEnd: boolean
+  }) {
+    try {
+      let url = data.audioUrl
+      // 本地文件路径（如 E:\music\a.mp3）浏览器无法直接播放，必须经后端转换取回可访问 URL。
+      // 这一步是播放器弹窗里原本就有的处理，后台播放同样需要，否则本地文件一律播不出声。
+      try {
+        const resp = await fetch(`${getBackendBaseUrl()}/api/system/convert-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioUrl: data.audioUrl }),
+        })
+        const result = await resp.json()
+        if (result?.success && result.audioPath) {
+          url = `${getBackendBaseUrl()}${result.audioPath}`
+        }
+      } catch (convErr) {
+        // 转换失败不算致命：网络 URL 仍可直接播放，交给下面的 Audio 处理
+        console.warn('[socket] 音频转换失败，尝试直接播放原地址:', convErr)
+      }
+
+      const audio = new Audio(url)
+      currentAudio = audio
+      audio.onended = () => {
+        if (currentAudio === audio) currentAudio = null
+      }
+      audio.play().catch((err) => {
+        // 播放失败只记日志：此时工作流已经继续往下走，不应再回一个失败结果
+        console.error('[socket] 后台播放音乐失败:', err)
+      })
+
+      // 立刻回结果，让工作流继续执行后续模块（音频在后台继续播）
+      this.sendPlayMusicResult(data.requestId, true)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       this.sendPlayMusicResult(data.requestId, false, errorMsg)
@@ -190,12 +241,22 @@ class SocketService {
     }
   }
 
-  // 播放视频 - 显示播放器弹窗
+  // 播放视频：等待播放完成=是 → 等它播完再继续；=否 → 播放器照常打开，但工作流立刻往下走
+  //
+  // 与音乐的区别：视频没有画面就失去意义，所以「不等待」时不能不显示播放器，
+  // 而是解除阻塞——播放器留在页面上继续播，用户可随时手动关闭。
   private playVideo(data: {
     requestId: string
     videoUrl: string
     waitForEnd: boolean
   }) {
+    // 不等待时是否已经回过结果，避免播放器关闭时重复回一次
+    let answered = false
+    const answerOnce = (success: boolean, error?: string) => {
+      if (answered) return
+      answered = true
+      this.sendPlayVideoResult(data.requestId, success, error)
+    }
     try {
       import('@/components/workflow/VideoPlayerDialog').then(({ showVideoPlayer }) => {
         showVideoPlayer(
@@ -205,16 +266,20 @@ class SocketService {
             waitForEnd: data.waitForEnd
           },
           (success, error) => {
-            this.sendPlayVideoResult(data.requestId, success, error)
+            answerOnce(success, error)
           }
         )
+        // 播放器已打开：不等待播放完成时立刻放行工作流
+        if (!data.waitForEnd) {
+          answerOnce(true)
+        }
       }).catch(err => {
         const errorMsg = err instanceof Error ? err.message : String(err)
-        this.sendPlayVideoResult(data.requestId, false, `加载播放器失败: ${errorMsg}`)
+        answerOnce(false, `加载播放器失败: ${errorMsg}`)
       })
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      this.sendPlayVideoResult(data.requestId, false, errorMsg)
+      answerOnce(false, errorMsg)
     }
   }
 

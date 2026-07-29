@@ -1987,6 +1987,75 @@ Object.assign(UI_DICT, {
   '数学统计与CSV': 'Math, Stats & CSV', '数学运算、统计分析、CSV处理、概率触发器': 'Math, statistics, CSV processing, probability triggers',
   'Excel与数据表格': 'Excel & Tables', 'Excel读写、openpyxl全套自动化、WPS操作': 'Excel read/write, full openpyxl automation, WPS operations',
   'Word 自动化': 'Word Automation', 'Word文档读写、查找替换、表格插图、导出PDF': 'Word read/write, find & replace, tables, images, PDF export',
+
+  // 媒体播放：等待播放完成的语义说明
+  '选「否」不会弹出播放器，音频在后台直接播放，工作流立刻执行后续模块；选「是」则弹出播放器并等到播放结束才继续。':
+    'Choosing "No" shows no player: the audio plays in the background and the workflow continues immediately. Choosing "Yes" opens the player and waits until playback finishes.',
+  '选「否」时播放器照常打开（视频需要画面），但工作流不等它，立刻执行后续模块，播放器可随时手动关闭；选「是」则等到播放结束才继续。':
+    'With "No" the player still opens (video needs a picture) but the workflow does not wait for it and continues immediately; you can close the player at any time. With "Yes" it waits until playback finishes.',
+  '开启「自动关闭」并设好时长，到时会自动关闭并继续执行；否则会一直等到手动关闭为止。':
+    'Enable "Auto close" and set a duration to close the viewer automatically and continue; otherwise it waits until you close it manually.',
+
+  // ---- JSX 文本节点补齐（此前审计只扫字符串字面量，这类裸文案是盲区）----
+  '我了解 WebRPA 的方方面面，能帮你搭建工作流、运行任务、答疑解惑；不止于此，我还能直接操作你的电脑——':
+    'I know WebRPA inside out: I can build workflows, run tasks and answer your questions. Beyond that, I can operate your computer directly \u2014',
+  '开启后，定时运行时若网站改版导致元素失效，WebRPA 会自动按语义锚点重定位并':
+    'When enabled, if a site redesign breaks selectors during a scheduled run, WebRPA relocates elements by semantic anchors and',
+  '把修复结果固化进流程（保留旧版本、发通知、写便签）':
+    'persists the fix into the workflow (keeping the old version, sending a notification and leaving a note)',
+  '提示：地址中的端口已自动取当前后端实际端口，可直接复制使用；':
+    'Tip: the port in the address is taken from the current backend port, so you can copy it as is;',
+  '自定义（十六进制）': 'Custom (hex)',
+  '↑↓ 选择 · Enter 插入 · Ctrl+A 全选 · Ctrl 点选/Shift 范围 · Ctrl+C/V 复制粘贴 · Ctrl+X 剪切 · Ctrl+Z/Y 撤销重做 · Ctrl+D 禁用 · Delete 删除 · Ctrl+/ 折叠':
+    '\u2191\u2193 select \u00b7 Enter insert \u00b7 Ctrl+A select all \u00b7 Ctrl click / Shift range \u00b7 Ctrl+C/V copy & paste \u00b7 Ctrl+X cut \u00b7 Ctrl+Z/Y undo & redo \u00b7 Ctrl+D disable \u00b7 Delete remove \u00b7 Ctrl+/ collapse',
+  '批量启用 / 禁用': 'Bulk enable / disable',
+  '硬件按键只会进入当前前台窗口。填写后会在发送前把标题包含该文字的窗口激活到前台，':
+    'Hardware key events only reach the current foreground window. When set, the window whose title contains this text is brought to the front before sending,',
+  '执行后会显示真实的局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器访问。':
+    'After running, the real LAN address is shown (e.g. http://192.168.x.x:port) so devices on the same network can open it in a browser.',
+  '执行后会显示局域网访问地址（如 http://192.168.x.x:端口），同局域网设备可用浏览器实时观看屏幕画面。':
+    'After running, the LAN address is shown (e.g. http://192.168.x.x:port) so devices on the same network can watch the screen live in a browser.',
+  '此配置仅控制轮询间隔，实际响应时间还包含 NapCat API 处理耗时（约1秒，无法优化）。':
+    'This only controls the polling interval; actual latency also includes NapCat API processing (about 1s, not optimizable).',
+  '文件来源': 'File source',
+  '本地文件（电脑任意路径）': 'Local file (any path on this computer)',
+  '直接读取电脑本地任意文件夹的 Excel，无需先上传到 Excel 资源':
+    'Reads an Excel file from any local folder directly, without uploading it to Excel Assets first',
+  '开启（推荐）：本模块会等目标工作流完整跑完再继续，实现「工作流1 跑完自动跑工作流2」。':
+    'Enabled (recommended): this module waits for the target workflow to finish before continuing, so "workflow 1 finishes then workflow 2 runs" works.',
+  '内置的全能 AI 助手，能够回答 WebRPA 相关问题、帮你搭建/运行工作流、配置全局设置。':
+    'A built-in all-round AI assistant that answers WebRPA questions, builds and runs workflows for you, and configures global settings.',
+  '支持 OpenAI 兼容协议（OpenAI / 智谱 / Deepseek / Groq / Ollama 等）。':
+    'Supports the OpenAI-compatible protocol (OpenAI / Zhipu / DeepSeek / Groq / Ollama and more).',
+  '开启后可给小助手发图片/自动截图分析。不填则按模型名自动判断（如 gpt-4o、glm-4v 等）。':
+    'When enabled you can send images to the assistant or have it analyze screenshots. Leave blank to detect automatically from the model name (e.g. gpt-4o, glm-4v).',
+  '深度思考（推理）模型': 'Deep-thinking (reasoning) model',
+  '如 DeepSeek-Reasoner、o1 等推理模型。开启后请求不再下发 temperature，避免部分推理模型报错。':
+    'For reasoning models such as DeepSeek-Reasoner or o1. When enabled, temperature is no longer sent, avoiding errors on some reasoning models.',
+  '让小助手能够直接操作 WebRPA（搭建/运行工作流、修改配置等）。':
+    'Lets the assistant operate WebRPA directly (build and run workflows, change settings, etc.).',
+  '即将把全部全局配置导出为 JSON 文件，方便在其它机器 / 浏览器上导入迁移。':
+    'All global settings will be exported to a JSON file so you can import them on another machine or browser.',
+  '敏感信息': 'Sensitive information',
+  '包含敏感数据（密码 / 密钥 / Token 等）': 'Includes sensitive data (passwords / keys / tokens)',
+  '运行结束后自动关闭窗口': 'Close the window automatically when the run finishes',
+  '（关闭则运行完保留窗口，由用户手动关闭）':
+    '(when off, the window stays open after the run and you close it manually)',
+  '（如': '(e.g. ',
+  'D:\\data\\报表.xlsx': 'D:\\data\\report.xlsx',
+  '里。要更新内容时，': '. To update the content,',
+  '打包已停止（已清理半成品，可重新打包）':
+    'Packaging stopped (partial output cleaned up, you can package again)',
+  '启动手机屏幕镜像后，您可以在电脑上查看和操作手机屏幕。':
+    'Once phone screen mirroring starts, you can view and control the phone screen from your computer.',
+  '已为您拦截此次报错。通常是某个模块配置异常或工作流文件含损坏数据。':
+    'This error was caught for you. It is usually a misconfigured module or a workflow file containing corrupted data.',
+  '协助者已连接，画布已同步，双方操作实时共享':
+    'Helper connected, canvas synced, both sides share actions in real time',
+  '已连接，画布已同步，你的操作会实时同步到对方':
+    'Connected, canvas synced, your actions are mirrored to the other side in real time',
+  '工作流仓库是一个公共平台，用户可以在这里分享和下载工作流。':
+    'The Workflow Hub is a public platform where users can share and download workflows.',
   '数据库操作': 'Databases', 'MySQL/PostgreSQL/SQLite/Redis 等数据库': 'MySQL/PostgreSQL/SQLite/Redis and more',
   '网络请求与抓包': 'Network & Capture', 'HTTP请求、发送邮件、Webhook、网络抓包': 'HTTP requests, email, webhooks, network capture',
   '触发器使用指南': 'Triggers Guide', 'Webhook、热键、文件监控、邮件、API触发': 'Webhook, hotkey, file watch, email and API triggers',

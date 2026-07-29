@@ -1676,7 +1676,13 @@ class PlayMusicExecutor(ModuleExecutor):
             if len(source_display) > 50:
                 source_display = source_display[:50] + "..."
 
-            return ModuleResult(success=True, message=f"播放完成: {source_display}")
+            # 不等待播放完成时并没有"播完"，音频在后台继续播，消息不能说成播放完成
+            if wait_for_end:
+                return ModuleResult(success=True, message=f"播放完成: {source_display}")
+            return ModuleResult(
+                success=True,
+                message=f"已开始后台播放（不等待播放完成）: {source_display}",
+            )
 
         except Exception as e:
             return ModuleResult(success=False, error=f"播放音乐失败: {str(e)}")
@@ -1740,7 +1746,13 @@ class PlayVideoExecutor(ModuleExecutor):
             if len(source_display) > 50:
                 source_display = source_display[:50] + "..."
 
-            return ModuleResult(success=True, message=f"播放完成: {source_display}")
+            # 不等待播放完成时播放器仍在播，不能报"播放完成"
+            if wait_for_end:
+                return ModuleResult(success=True, message=f"播放完成: {source_display}")
+            return ModuleResult(
+                success=True,
+                message=f"已开始播放（不等待播放完成，播放器保持打开）: {source_display}",
+            )
 
         except Exception as e:
             return ModuleResult(success=False, error=f"播放视频失败: {str(e)}")
