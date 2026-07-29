@@ -1,6 +1,7 @@
-import type { NodeData } from '@/store/workflowStore'
+﻿import type { NodeData } from '@/store/workflowStore'
 import { Label } from '@/components/ui/label'
 import { VariableInput } from '@/components/ui/variable-input'
+import { PathInput } from '@/components/ui/path-input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 
@@ -33,7 +34,14 @@ export function DpOpenPageConfig({ data, onChange }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label>浏览器路径（可选）</Label>
-        <VariableInput value={(data.browserPath as string) || ''} onChange={(v) => onChange('browserPath', v)} placeholder="留空自动探测，如 C:\\...\\msedge.exe" />
+        <PathInput
+          value={(data.browserPath as string) || ''}
+          onChange={(v) => onChange('browserPath', v)}
+          type="file"
+          title="选择浏览器程序"
+          fileTypes={[['可执行程序', '*.exe'], ['所有文件', '*.*']]}
+          placeholder="留空自动探测，如 C:\\...\\msedge.exe"
+        />
       </div>
       <div className="space-y-2">
         <Label>复用浏览器</Label>

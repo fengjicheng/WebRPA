@@ -16,6 +16,16 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 import { ImagePathInput } from '@/components/ui/image-path-input'
 import { Code, Upload } from 'lucide-react'
+
+// 媒体文件选择器的类型过滤（放在这里而非各处内联，避免多个面板各写一份而逐渐不一致）
+const AUDIO_FILE_TYPES: Array<[string, string]> = [
+  ['音频文件', '*.mp3;*.wav;*.flac;*.aac;*.m4a;*.ogg;*.wma'],
+  ['所有文件', '*.*'],
+]
+const VIDEO_FILE_TYPES: Array<[string, string]> = [
+  ['视频文件', '*.mp4;*.avi;*.mkv;*.mov;*.wmv;*.flv;*.webm;*.ts'],
+  ['所有文件', '*.*'],
+]
 // 代码编辑器弹窗按需懒加载：Monaco Editor 体积大且在生产构建(极速启动/preview)下
 // 若在启动时就同步加载其分包，曾出现 "Cannot read properties of undefined (reading 'create')"
 // 导致整页白屏。改为仅在用户真正打开代码编辑器时才加载 Monaco，彻底避开启动期初始化顺序问题。
@@ -704,9 +714,12 @@ export function PlayMusicConfig({ data, onChange }: { data: NodeData; onChange: 
     <>
       <div className="space-y-2">
         <Label htmlFor="audioUrl">音频地址</Label>
-        <VariableInput
+        <PathInput
           value={(data.audioUrl as string) || ''}
           onChange={(v) => onChange('audioUrl', v)}
+          type="file"
+          title="选择音频文件"
+          fileTypes={AUDIO_FILE_TYPES}
           placeholder='音频文件的URL或本地路径'
         />
       </div>
@@ -721,7 +734,7 @@ export function PlayMusicConfig({ data, onChange }: { data: NodeData; onChange: 
           <option value="true">是</option>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选「否」不会弹出播放器，音频在后台直接播放，工作流立刻执行后续模块；选「是」则弹出播放器并等到播放结束才继续。
+          选「否」不会弹出播放器，音频用系统原生方式直接出声，工作流立刻执行后续模块；选「是」则弹出播放器并等到播放结束才继续。
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -738,9 +751,12 @@ export function PlayVideoConfig({ data, onChange }: { data: NodeData; onChange: 
     <>
       <div className="space-y-2">
         <Label htmlFor="videoUrl">视频地址</Label>
-        <VariableInput
+        <PathInput
           value={(data.videoUrl as string) || ''}
           onChange={(v) => onChange('videoUrl', v)}
+          type="file"
+          title="选择视频文件"
+          fileTypes={VIDEO_FILE_TYPES}
           placeholder='视频文件的URL或本地路径'
         />
       </div>
@@ -755,7 +771,7 @@ export function PlayVideoConfig({ data, onChange }: { data: NodeData; onChange: 
           <option value="true">是</option>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选「否」时播放器照常打开（视频需要画面），但工作流不等它，立刻执行后续模块，播放器可随时手动关闭；选「是」则等到播放结束才继续。
+          选「否」时用系统默认播放器打开（视频需要画面，这个窗口就是播放本身），工作流不等它、立刻执行后续模块；选「是」则在编辑器内弹出播放器并等到播放结束才继续。
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
@@ -772,7 +788,7 @@ export function ViewImageConfig({ data, onChange }: { data: NodeData; onChange: 
     <>
       <div className="space-y-2">
         <Label htmlFor="imageUrl">图片地址</Label>
-        <VariableInput
+        <ImagePathInput
           value={(data.imageUrl as string) || ''}
           onChange={(v) => onChange('imageUrl', v)}
           placeholder='图片文件的URL或本地路径'

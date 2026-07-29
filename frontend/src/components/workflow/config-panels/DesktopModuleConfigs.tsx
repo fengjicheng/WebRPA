@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableInput } from '@/components/ui/variable-input'
 import { WindowTitleInput } from '@/components/ui/window-title-input'
+import { PathInput } from '@/components/ui/path-input'
+import { ImagePathInput } from '@/components/ui/image-path-input'
 import type { NodeData } from '@/store/workflowStore'
 import type React from 'react'
 import { AlertCircle } from 'lucide-react'
@@ -50,9 +52,12 @@ export function DesktopAppStartConfig({ data, onChange }: ConfigProps) {
       <DesktopModuleInfo />
       <div className="space-y-2">
         <Label htmlFor="appPath">应用路径</Label>
-        <VariableInput
+        <PathInput
           value={(data.appPath as string) || ''}
           onChange={(v) => onChange('appPath', v)}
+          type="file"
+          title="选择应用程序"
+          fileTypes={[['可执行程序', '*.exe'], ['所有文件', '*.*']]}
           placeholder="例如: C:\Program Files\Notepad++\notepad++.exe"
         />
       </div>
@@ -66,9 +71,11 @@ export function DesktopAppStartConfig({ data, onChange }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="workDir">工作目录（可选）</Label>
-        <VariableInput
+        <PathInput
           value={(data.workDir as string) || ''}
           onChange={(v) => onChange('workDir', v)}
+          type="folder"
+          title="选择工作目录"
           placeholder="例如: C:\Users\Documents"
         />
       </div>
@@ -396,7 +403,7 @@ export function DesktopWindowCaptureConfig({ data, onChange }: ConfigProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="savePath">保存路径（可选）</Label>
-        <VariableInput
+        <ImagePathInput
           value={(data.savePath as string) || ''}
           onChange={(v) => onChange('savePath', v)}
           placeholder="留空自动生成"

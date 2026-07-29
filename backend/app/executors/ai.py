@@ -282,8 +282,23 @@ class AIVisionExecutor(ModuleExecutor):
             
             elif image_source == 'url':
                 if not image_url:
-                    return ModuleResult(success=False, error="请指定图片URL")
-                image_url_final = image_url
+                    return ModuleResult(success=False, error="请指定图片URL或本地图片路径")
+                # 除网络 URL 外也接受本地图片路径与 data: URI：
+                # 用户想让 AI 分析本机截图/图片是很自然的需求，原先只有「图片变量」分支
+                # 支持读本地文件，这里填本地路径会被当成网址发给模型而失败。
+                if image_url.startswith('data:'):
+                    _, data = image_url.split(',', 1)
+                    image_base64 = data
+                elif image_url.startswith(('http://', 'https://')):
+                    image_url_final = image_url
+                elif Path(image_url).exists():
+                    with open(image_url, 'rb') as f:
+                        image_base64 = base64.b64encode(f.read()).decode('utf-8')
+                else:
+                    return ModuleResult(
+                        success=False,
+                        error=f"图片地址无效：既不是 http(s) 网址，本地也找不到该文件：{image_url}",
+                    )
             
             elif image_source == 'variable':
                 if not image_variable:

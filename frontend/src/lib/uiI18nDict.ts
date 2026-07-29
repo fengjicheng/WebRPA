@@ -1995,6 +1995,23 @@ Object.assign(UI_DICT, {
     'With "No" the player still opens (video needs a picture) but the workflow does not wait for it and continues immediately; you can close the player at any time. With "Yes" it waits until playback finishes.',
   '开启「自动关闭」并设好时长，到时会自动关闭并继续执行；否则会一直等到手动关闭为止。':
     'Enable "Auto close" and set a duration to close the viewer automatically and continue; otherwise it waits until you close it manually.',
+  '选「否」不会弹出播放器，音频用系统原生方式直接出声，工作流立刻执行后续模块；选「是」则弹出播放器并等到播放结束才继续。':
+    'Choosing "No" shows no player: the audio plays through the native system output and the workflow continues immediately. Choosing "Yes" opens the player and waits until playback finishes.',
+  '选「否」时用系统默认播放器打开（视频需要画面，这个窗口就是播放本身），工作流不等它、立刻执行后续模块；选「是」则在编辑器内弹出播放器并等到播放结束才继续。':
+    'With "No" the video opens in your default system player (video needs a picture, so that window is the playback itself) and the workflow continues immediately. With "Yes" the player opens inside the editor and waits until playback finishes.',
+
+  // ---- 路径选择器的按钮标题与文件类型过滤名 ----
+  '选择数据库文件': 'Select database file',
+  '选择应用程序': 'Select application',
+  '可执行程序': 'Executable',
+  '选择工作目录': 'Select working directory',
+  '选择浏览器程序': 'Select browser executable',
+  '选择私钥文件': 'Select private key file',
+  '私钥文件': 'Private key file',
+  '选择监控目标': 'Select what to watch',
+  '选择视频保存位置': 'Choose where to save the video',
+  // 注：'选择音频文件' / '选择视频文件' / 'SQLite 数据库' / '音频文件' / '视频文件'
+  // 已在本字典别处登记，这里不再重复（重复 key 会触发 tsc TS1117）
 
   // ---- JSX 文本节点补齐（此前审计只扫字符串字面量，这类裸文案是盲区）----
   '我了解 WebRPA 的方方面面，能帮你搭建工作流、运行任务、答疑解惑；不止于此，我还能直接操作你的电脑——':

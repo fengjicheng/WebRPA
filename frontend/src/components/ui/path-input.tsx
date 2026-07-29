@@ -10,7 +10,8 @@ interface PathInputProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
-  type?: 'folder' | 'file'
+  /** both：同时给出「选文件夹」「选文件」两个按钮，用于既可填文件也可填文件夹的场景（如文件监控） */
+  type?: 'folder' | 'file' | 'both'
   title?: string
   fileTypes?: Array<[string, string]>  // 文件类型过滤器，如 [["Excel文件", "*.xlsx"]]
 }
@@ -26,7 +27,7 @@ export function PathInput({
 }: PathInputProps) {
   const [isSelecting, setIsSelecting] = useState(false)
 
-  const handleSelect = async () => {
+  const handleSelect = async (mode: 'folder' | 'file' = type === 'both' ? 'folder' : (type as 'folder' | 'file')) => {
     setIsSelecting(true)
     try {
       // 兼容两种返回结构：apiRequest 包过的 {success, data: {success, path}}
@@ -42,7 +43,7 @@ export function PathInput({
         return null
       }
 
-      if (type === 'folder') {
+      if (mode === 'folder') {
         const result = await systemApi.selectFolder(title || '选择文件夹')
         const p = extractPath(result)
         console.log('[PathInput][folder] 后端返回:', result, '解析到 path:', p)
@@ -77,23 +78,51 @@ export function PathInput({
           placeholder={placeholder}
         />
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={handleSelect}
-        disabled={isSelecting}
-        title={type === 'folder' ? '选择文件夹' : '选择文件'}
-        className="shrink-0"
-      >
-        {isSelecting ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : type === 'folder' ? (
-          <Folder className="w-4 h-4" />
-        ) : (
-          <File className="w-4 h-4" />
-        )}
-      </Button>
+      {/* both 时给两个按钮：既能选文件夹也能选文件（如文件监控触发器） */}
+      {type === 'both' ? (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handleSelect('folder')}
+            disabled={isSelecting}
+            title="选择文件夹"
+            className="shrink-0"
+          >
+            {isSelecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Folder className="w-4 h-4" />}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handleSelect('file')}
+            disabled={isSelecting}
+            title="选择文件"
+            className="shrink-0"
+          >
+            {isSelecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
+          </Button>
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => handleSelect()}
+          disabled={isSelecting}
+          title={type === 'folder' ? '选择文件夹' : '选择文件'}
+          className="shrink-0"
+        >
+          {isSelecting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : type === 'folder' ? (
+            <Folder className="w-4 h-4" />
+          ) : (
+            <File className="w-4 h-4" />
+          )}
+        </Button>
+      )}
     </div>
   )
 }

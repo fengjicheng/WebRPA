@@ -1,4 +1,4 @@
-import type React from 'react'
+﻿import type React from 'react'
 import type { NodeData } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,7 @@ import { NumberInput } from '@/components/ui/number-input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { Textarea } from '@/components/ui/textarea'
 import { VariableInput } from '@/components/ui/variable-input'
+import { PathInput } from '@/components/ui/path-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { DualCoordinateInput } from '@/components/ui/dual-coordinate-input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -307,9 +308,11 @@ export function FileWatcherTriggerConfig({
     <>
       <div className="space-y-2">
         <Label htmlFor="watchPath">监控路径</Label>
-        <VariableInput
+        <PathInput
           value={(data.watchPath as string) || config.fileTrigger.defaultWatchPath || ''}
           onChange={(v) => onChange('watchPath', v)}
+          type="both"
+          title="选择监控目标"
           placeholder="如: C:\\Users\\Downloads 或 C:\\file.txt"
         />
         <p className="text-xs text-muted-foreground">

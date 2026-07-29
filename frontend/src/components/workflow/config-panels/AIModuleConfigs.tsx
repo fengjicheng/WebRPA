@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { NumberInput } from '@/components/ui/number-input'
 import { SelectNative as Select } from '@/components/ui/select-native'
 import { VariableInput } from '@/components/ui/variable-input'
+import { ImagePathInput } from '@/components/ui/image-path-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { VariableRefInput } from '@/components/ui/variable-ref-input'
 import { Bot, Cpu } from 'lucide-react'
@@ -211,11 +212,11 @@ export function AIVisionConfig({
       
       {imageSource === 'url' && (
         <div className="space-y-2">
-          <Label htmlFor="imageUrl">图片URL</Label>
-          <VariableInput
+          <Label htmlFor="imageUrl">图片地址（网址或本地路径）</Label>
+          <ImagePathInput
             value={(data.imageUrl as string) || ''}
             onChange={(v) => onChange('imageUrl', v)}
-            placeholder="https://example.com/image.jpg，支持 {变量名}"
+            placeholder="https://example.com/image.jpg 或本地图片路径，支持 {变量名}"
           />
         </div>
       )}

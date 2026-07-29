@@ -1,6 +1,7 @@
-import { Label } from '@/components/ui/label'
+﻿import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { VariableInput } from '@/components/ui/variable-input'
+import { PathInput } from '@/components/ui/path-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { NumberInput } from '@/components/ui/number-input'
 import { Switch } from '@/components/ui/switch'
@@ -658,9 +659,12 @@ export function SQLiteConnectConfig({ data, onChange }: ConfigProps) {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>数据库文件路径</Label>
-        <VariableInput
+        <PathInput
           value={(data.databasePath as string) || ''}
           onChange={(v) => onChange('databasePath', v)}
+          type="file"
+          title="选择数据库文件"
+          fileTypes={[['SQLite 数据库', '*.db;*.sqlite;*.sqlite3'], ['所有文件', '*.*']]}
           placeholder="C:/data/mydb.db"
         />
       </div>

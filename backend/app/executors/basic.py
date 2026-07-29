@@ -1628,17 +1628,26 @@ class PlayMusicExecutor(ModuleExecutor):
 
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import os as _os_pkg
-        if _os_pkg.environ.get('WEBRPA_PACKAGED'):
-            from app.services.packaged_ui import request_play_music_sync
-        else:
-            from app.main import request_play_music_sync
 
         audio_url = context.resolve_value(config.get("audioUrl", ""))
-        wait_for_end_raw = config.get("waitForEnd", True)
+        # 默认值必须与配置面板一致（面板是 data.waitForEnd ?? false，显示「否」）。
+        # 这里原先默认 True：用户从没碰过下拉框的节点，界面写着「否」却按「是」执行并弹播放器。
+        wait_for_end_raw = config.get("waitForEnd", False)
         # 支持变量引用
         if isinstance(wait_for_end_raw, str):
             wait_for_end_raw = context.resolve_value(wait_for_end_raw)
         wait_for_end = wait_for_end_raw in [True, 'true', 'True', '1', 1]
+
+        # 通道按「是否等待播放完成」选，而不是按「是否打包运行」选：
+        #   · 不等待 → 原生播放（Windows MCI 直接出声），无任何窗口、不依赖前端页面，
+        #     计划任务在后台运行时同样可用，播完即返回让工作流继续；
+        #   · 等待   → 前端播放器弹窗，此时用户确实需要看进度、需要能提前关闭。
+        # 原先一律按 WEBRPA_PACKAGED 判断，非打包模式永远走前端弹窗通道，
+        # waitForEnd 只被传进弹窗内部决定「提前关闭算成功还是失败」，等于这个开关失效。
+        if _os_pkg.environ.get('WEBRPA_PACKAGED') or not wait_for_end:
+            from app.services.packaged_ui import request_play_music_sync
+        else:
+            from app.main import request_play_music_sync
 
         if not audio_url:
             return ModuleResult(success=False, error="音频URL不能为空")
@@ -1698,17 +1707,21 @@ class PlayVideoExecutor(ModuleExecutor):
 
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import os as _os_pkg
-        if _os_pkg.environ.get('WEBRPA_PACKAGED'):
-            from app.services.packaged_ui import request_play_video_sync
-        else:
-            from app.main import request_play_video_sync
 
         video_url = context.resolve_value(config.get("videoUrl", ""))
-        wait_for_end_raw = config.get("waitForEnd", True)
+        # 默认值与配置面板对齐（面板显示「否」），原先默认 True 会让未改过的节点按「是」执行
+        wait_for_end_raw = config.get("waitForEnd", False)
         # 支持变量引用
         if isinstance(wait_for_end_raw, str):
             wait_for_end_raw = context.resolve_value(wait_for_end_raw)
         wait_for_end = wait_for_end_raw in [True, 'true', 'True', '1', 1]
+
+        # 与播放音乐同一套通道选择逻辑：不等待时交给系统默认播放器打开并立即返回。
+        # 视频不存在「无窗口播放」的合理形态，那个系统播放器窗口是播放本身，不是弹窗残留。
+        if _os_pkg.environ.get('WEBRPA_PACKAGED') or not wait_for_end:
+            from app.services.packaged_ui import request_play_video_sync
+        else:
+            from app.main import request_play_video_sync
 
         if not video_url:
             return ModuleResult(success=False, error="视频URL不能为空")

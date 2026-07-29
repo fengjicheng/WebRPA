@@ -2,6 +2,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { VariableInput } from '@/components/ui/variable-input'
+import { PathInput } from '@/components/ui/path-input'
+import { ImagePathInput } from '@/components/ui/image-path-input'
 import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { NumberInput } from '@/components/ui/number-input'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
@@ -166,7 +168,7 @@ export function AIGenerateImageConfig({ data, onChange }: ConfigProps) {
 
       <div className="space-y-2">
         <Label>保存路径（可选）</Label>
-        <VariableInput
+        <ImagePathInput
           value={(data.savePath as string) || ''}
           onChange={(v) => onChange('savePath', v)}
           placeholder="C:/images/output.png"
@@ -299,9 +301,12 @@ export function AIGenerateVideoConfig({ data, onChange }: ConfigProps) {
 
       <div className="space-y-2">
         <Label>保存路径（可选）</Label>
-        <VariableInput
+        <PathInput
           value={(data.savePath as string) || ''}
           onChange={(v) => onChange('savePath', v)}
+          type="file"
+          title="选择视频保存位置"
+          fileTypes={[['视频文件', '*.mp4;*.avi;*.mkv;*.mov;*.webm'], ['所有文件', '*.*']]}
           placeholder="C:/videos/output.mp4"
         />
       </div>

@@ -72,9 +72,12 @@ export function SSHConnectConfig({ data, onChange }: ConfigProps) {
 
       <div className="space-y-2">
         <Label>密钥文件路径（可选）</Label>
-        <VariableInput
+        <PathInput
           value={(data.keyFile as string) || ''}
           onChange={(v) => onChange('keyFile', v)}
+          type="file"
+          title="选择私钥文件"
+          fileTypes={[['私钥文件', '*.pem;*.key;id_rsa;id_ed25519'], ['所有文件', '*.*']]}
           placeholder="C:/Users/user/.ssh/id_rsa"
         />
       </div>
