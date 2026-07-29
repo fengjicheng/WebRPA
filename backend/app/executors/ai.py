@@ -198,6 +198,35 @@ class AIChatExecutor(ModuleExecutor):
             return ModuleResult(success=False, error=f"AI调用失败: {str(e)}")
 
 
+def _resolve_vision_image(raw) -> tuple:
+    """把「图片来源」的原始值解析成 (image_base64, image_url)。
+
+    支持三种形态，供「图片URL/路径」与「图片变量」两个分支共用（避免两处各写一份而逐渐分叉）：
+      · data URI      → 取出 base64 负载
+      · http(s) 网址  → 原样作为 URL 交给模型
+      · 本机文件路径  → 读文件并 base64 编码（用户想让 AI 分析本机截图是常见需求）
+
+    两个返回值都为 None 表示无法识别，由调用方决定是报错还是当成裸 base64 兜底。
+    """
+    text = str(raw or '').strip()
+    if not text:
+        return None, None
+    if text.startswith('data:'):
+        return (text.split(',', 1)[1] if ',' in text else None), None
+    if text.startswith(('http://', 'https://')):
+        return None, text
+    try:
+        # 用 is_file 而非 exists：目录不能当图片读。
+        # 包 try 是因为传进来的可能是超长的裸 base64 字符串，把它当路径探测在个别
+        # 平台/实现上会抛 OSError/ValueError 而不是老实返回 False。
+        candidate = Path(text)
+        if candidate.is_file():
+            return base64.b64encode(candidate.read_bytes()).decode('utf-8'), None
+    except (OSError, ValueError):
+        pass
+    return None, None
+
+
 @register_executor
 class AIVisionExecutor(ModuleExecutor):
     """AI视觉模块执行器"""
@@ -283,18 +312,10 @@ class AIVisionExecutor(ModuleExecutor):
             elif image_source == 'url':
                 if not image_url:
                     return ModuleResult(success=False, error="请指定图片URL或本地图片路径")
-                # 除网络 URL 外也接受本地图片路径与 data: URI：
-                # 用户想让 AI 分析本机截图/图片是很自然的需求，原先只有「图片变量」分支
-                # 支持读本地文件，这里填本地路径会被当成网址发给模型而失败。
-                if image_url.startswith('data:'):
-                    _, data = image_url.split(',', 1)
-                    image_base64 = data
-                elif image_url.startswith(('http://', 'https://')):
-                    image_url_final = image_url
-                elif Path(image_url).exists():
-                    with open(image_url, 'rb') as f:
-                        image_base64 = base64.b64encode(f.read()).decode('utf-8')
-                else:
+                image_base64, image_url_final = _resolve_vision_image(image_url)
+                if not image_base64 and not image_url_final:
+                    # 与「图片变量」不同：这里是用户直接填的地址，识别不了就该明确报错，
+                    # 不能当成裸 base64 发给模型（那样只会拿到一个莫名的模型错误）
                     return ModuleResult(
                         success=False,
                         error=f"图片地址无效：既不是 http(s) 网址，本地也找不到该文件：{image_url}",
@@ -309,16 +330,9 @@ class AIVisionExecutor(ModuleExecutor):
                     return ModuleResult(success=False, error=f"变量 '{image_variable}' 不存在或为空")
                 
                 var_value_str = str(var_value)
-                
-                if var_value_str.startswith('data:'):
-                    _, data = var_value_str.split(',', 1)
-                    image_base64 = data
-                elif var_value_str.startswith('http://') or var_value_str.startswith('https://'):
-                    image_url_final = var_value_str
-                elif Path(var_value_str).exists():
-                    with open(var_value_str, 'rb') as f:
-                        image_base64 = base64.b64encode(f.read()).decode('utf-8')
-                else:
+                image_base64, image_url_final = _resolve_vision_image(var_value_str)
+                if not image_base64 and not image_url_final:
+                    # 变量里常常直接存的就是裸 base64（例如上游截图模块的输出），保留该兜底
                     image_base64 = var_value_str
             
             else:
