@@ -2566,8 +2566,13 @@ class WorkflowExecutor:
         except Exception as e:
             print(f"清理资源时出错: {e}")
     
-    async def cleanup(self):
-        """清理浏览器资源（公共方法，仅清理浏览器）"""
+    async def cleanup_non_browser(self):
+        """只做与浏览器无关的收尾（DrissionPage 单例、Word/WPS 会话）。
+
+        供「保持浏览器打开」的场景使用：用户在全局配置里关掉了「工作流结束后自动关闭
+        浏览器」时，浏览器要留着复用登录态，但 DP 实例与 Word 进程仍必须收掉，
+        否则会残留进程、占着文档，下次运行被占用弹窗挂死。
+        """
         # DrissionPage 全局单例：工作流结束自动关闭，避免残留到下次运行复用脏/死页面
         try:
             from app.executors import drissionpage as _dp
@@ -2581,6 +2586,13 @@ class WorkflowExecutor:
             await cleanup_word_sessions(self.context)
         except Exception as e:
             print(f"[WorkflowExecutor] 清理 Word 会话时出错: {e}")
+
+    async def cleanup(self):
+        """完整收尾：非浏览器资源 + 关闭浏览器。
+
+        调用方若配置了「保持浏览器打开」，应改用 cleanup_non_browser()。
+        """
+        await self.cleanup_non_browser()
         try:
             # 检查是否在使用共享的 browser_engine context，如果是则不关闭
             from app.services import browser_engine as _be

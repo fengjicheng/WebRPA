@@ -715,13 +715,23 @@ async def startup_event():
             if workflow_filename in executions_store:
                 del executions_store[workflow_filename]
             
-            # 清理浏览器资源（防止进程泄漏）
+            # 收尾：是否关闭浏览器必须尊重「全局配置 → 浏览器 → 工作流结束后自动关闭浏览器」。
+            # 这里过去无条件 cleanup()，与手动运行路径（workflows.py 里先判断
+            # autoCloseBrowser）不一致：用户明明关掉了该开关，计划任务跑完照样把浏览器关了，
+            # 下次任务又得重新登录。
+            # 注意 cleanup() 除了关浏览器还会做 DrissionPage / Word 会话等收尾，
+            # 因此不关浏览器时也要走一遍"只清理非浏览器资源"的收尾。
             if executor:
+                _auto_close = bool(scheduled_browser_config.get('autoCloseBrowser', True))
                 try:
-                    await executor.cleanup()
-                    print(f"[execute_workflow_for_scheduled_task] 已清理浏览器资源")
+                    if _auto_close:
+                        await executor.cleanup()
+                        print(f"[execute_workflow_for_scheduled_task] 已清理浏览器资源（配置已启用自动关闭）")
+                    else:
+                        await executor.cleanup_non_browser()
+                        print(f"[execute_workflow_for_scheduled_task] 保持浏览器打开（配置已禁用自动关闭）")
                 except Exception as cleanup_error:
-                    print(f"[execute_workflow_for_scheduled_task] 清理浏览器资源失败: {cleanup_error}")
+                    print(f"[execute_workflow_for_scheduled_task] 清理资源失败: {cleanup_error}")
             
             # 判断执行状态
             is_success = result.status.value == 'completed'

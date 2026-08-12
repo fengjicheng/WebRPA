@@ -8,6 +8,45 @@ import { layoutGraph } from '@/lib/elkLayout'
 import { collectNodeVarNames } from '@/lib/moduleDefaultVars'
 
 // ============================================================================
+// 日志显示偏好的本地持久化
+//
+// 「简洁日志 / 详细日志」与「显示条数」是用户的长期习惯，过去只存在内存里，
+// 刷新页面或重开编辑器就回到默认（简洁 / 100 条），每次都得重新点一遍。
+// 这里只持久化这两个轻量偏好，不给 workflowStore 整体套 persist——那会把
+// nodes/edges/logs 等运行态一起写进 localStorage。
+// ============================================================================
+
+const LOG_PREFS_KEY = 'webrpa.editor.logPrefs'
+const DEFAULT_LOG_PREFS = { verboseLog: false, maxLogCount: 100 }
+
+function readLogPrefs(): { verboseLog: boolean; maxLogCount: number } {
+  try {
+    const raw = localStorage.getItem(LOG_PREFS_KEY)
+    if (!raw) return { ...DEFAULT_LOG_PREFS }
+    const parsed = JSON.parse(raw) as Partial<typeof DEFAULT_LOG_PREFS>
+    const count = Number(parsed.maxLogCount)
+    return {
+      verboseLog: typeof parsed.verboseLog === 'boolean' ? parsed.verboseLog : DEFAULT_LOG_PREFS.verboseLog,
+      maxLogCount: Number.isFinite(count) && count > 0 ? count : DEFAULT_LOG_PREFS.maxLogCount,
+    }
+  } catch {
+    return { ...DEFAULT_LOG_PREFS }
+  }
+}
+
+function writeLogPrefs(prefs: { verboseLog: boolean; maxLogCount: number }): void {
+  try {
+    localStorage.setItem(LOG_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    // 隐私模式/存储写满时忽略：偏好丢失不影响功能
+  }
+}
+
+// 注意：socket 连接建立时会读 store 里的 verboseLog 同步给后端，
+// 而这里已把初始值置为本地保存的偏好，因此恢复的偏好会自动同步，无需额外处理。
+const INITIAL_LOG_PREFS = readLogPrefs()
+
+// ============================================================================
 // 全局节点/边 sanitizer：保证写入 react-flow 的数据永远不会让 react-flow 崩
 // 经历过的事故：某些来源（旧版本工作流文件、AI 生成、merge 导入等）的节点
 // position 字段缺失或不合法，react-flow 内部 getNodePositionWithOrigin 会
@@ -1279,8 +1318,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   clipboardEdges: [],
   executionStatus: 'pending',
   logs: [],
-  verboseLog: false,
-  maxLogCount: 100,
+  // 日志显示偏好从本地读取，刷新/重开编辑器后保持用户上次的选择
+  verboseLog: INITIAL_LOG_PREFS.verboseLog,
+  maxLogCount: INITIAL_LOG_PREFS.maxLogCount,
   collectedData: [],
   currentExecutionWorkflowId: null,
   dataAssets: [],
@@ -2830,6 +2870,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   setVerboseLog: (enabled) => {
     set({ verboseLog: enabled })
+    writeLogPrefs({ verboseLog: enabled, maxLogCount: get().maxLogCount })
     // 同步到后端
     import('@/services/socket').then(({ socketService }) => {
       socketService.setVerboseLog(enabled)
@@ -2838,6 +2879,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   setMaxLogCount: (count) => {
     set({ maxLogCount: count })
+    writeLogPrefs({ verboseLog: get().verboseLog, maxLogCount: count })
   },
 
   setExecutionStatus: (status) => {

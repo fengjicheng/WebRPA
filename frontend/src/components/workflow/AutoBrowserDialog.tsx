@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Globe, MousePointer, Copy, Check, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { UrlInput } from '@/components/ui/url-input'
-import { browserApi, elementPickerApi, systemApi } from '@/services/api'
+import { browserApi, elementPickerApi, systemApi, featurePackApi } from '@/services/api'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { DialogPortal } from '@/components/ui/dialog-portal'
+import { MissingPacksDialog, type MissingPackGroup } from './MissingPacksDialog'
+import { FeaturePackDialog } from './FeaturePackDialog'
 
 interface AutoBrowserDialogProps {
   isOpen: boolean
@@ -22,6 +24,9 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // 记录上一次已处理的选择器，避免轮询期间对同一结果重复复制/记日志
   const lastHandledRef = useRef('')
+  // 打开浏览器因缺功能模块包而失败时，用这两个状态把安装引导弹出来
+  const [missingPacks, setMissingPacks] = useState<MissingPackGroup[] | null>(null)
+  const [showFeaturePacks, setShowFeaturePacks] = useState(false)
   const { config } = useGlobalConfigStore()
 
   // 检查浏览器状态
@@ -133,6 +138,29 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
     }
   }
 
+  /**
+   * 打开浏览器失败时，判断是不是「缺少功能模块包」，若是则弹出安装引导。
+   *
+   * 后端在缺包时返回的是一段人类可读的错误（如「网页自动化功能不可用：未安装
+   * Playwright。请安装「网页自动化」功能模块包后重试。」），并没有结构化标记，
+   * 所以这里按关键字识别，再用与「运行前预检」同一个接口拿到准确的缺失清单，
+   * 复用同一个弹窗，保证提示内容和运行前一致（含体积、备选包、安装教学）。
+   */
+  const maybePromptMissingPacks = async (rawError: string) => {
+    const text = String(rawError || '')
+    const looksMissingPack = /功能模块包|Playwright|功能不可用|未安装/.test(text)
+    if (!looksMissingPack) return
+    try {
+      // open_page 是「网页自动化」包的代表模块，用它反查缺失的包
+      const pf = await featurePackApi.preflight(['open_page'])
+      if (pf.success && pf.data && pf.data.ok === false && (pf.data.missing?.length ?? 0) > 0) {
+        setMissingPacks(pf.data.missing as MissingPackGroup[])
+      }
+    } catch {
+      // 预检本身失败就不再打扰用户，底栏已有明确错误信息
+    }
+  }
+
   const handleOpenBrowser = async () => {
     setLoading(true)
     try {
@@ -149,6 +177,10 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
       const result = await browserApi.open(url || undefined, browserConfig)
       if (result.error) {
         onLog('error', `打开浏览器失败: ${result.error}`)
+        // 失败原因是「缺少功能模块包」时，直接把安装弹窗顶上来。
+        // 过去只在底栏留一行「未安装 Playwright，请安装功能模块包后重试」，
+        // 用户看到提示却没有任何入口，只能自己去菜单里翻。
+        await maybePromptMissingPacks(result.error)
       } else {
         setBrowserOpen(true)
         const browserName = config.browser?.type === 'chrome' ? 'Chrome' : 
@@ -158,6 +190,7 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
       }
     } catch (error) {
       onLog('error', `打开浏览器异常: ${error}`)
+      await maybePromptMissingPacks(String(error))
     } finally {
       setLoading(false)
     }
@@ -429,6 +462,15 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
         </div>
       </div>
     </div>
+
+    {/* 缺少功能模块包时的安装引导（与「运行前预检」复用同一弹窗，提示内容一致） */}
+    <MissingPacksDialog
+      open={!!missingPacks}
+      missing={missingPacks || []}
+      onClose={() => setMissingPacks(null)}
+      onOpenManager={() => { setMissingPacks(null); setShowFeaturePacks(true) }}
+    />
+    <FeaturePackDialog open={showFeaturePacks} onClose={() => setShowFeaturePacks(false)} />
     </DialogPortal>
   )
 }
