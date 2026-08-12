@@ -14,6 +14,9 @@ class ExecutionGraph:
         self.adjacency: dict[str, list[str]] = defaultdict(list)  # node_id -> [next_node_ids]
         self.reverse_adjacency: dict[str, list[str]] = defaultdict(list)  # node_id -> [prev_node_ids]
         self.start_nodes: list[str] = []  # 没有入边的节点
+        # 孤立节点：既无入边也无出边。多为拖进画布后忘记连线、或删连线后遗留的废弃节点。
+        # 它们不参与执行（详见 parse 里的判定），这里记录下来供执行器提示用户。
+        self.isolated_nodes: list[str] = []
         # condition_branches: source -> {handle: [target_ids]} 支持一对多
         self.condition_branches: dict[str, dict[str, list[str]]] = {}
         self.loop_branches: dict[str, dict[str, list[str]]] = {}  # loop_node_id -> {handle: [target_node_ids]}
@@ -135,6 +138,8 @@ class WorkflowParser:
         # 仅统计"普通入边"（排除 error 回流边）：用于起始节点兜底判定，
         # 避免"出错→回流到入口节点重试"被误判为无起始节点而整流程无法启动。
         nodes_with_normal_incoming = set()
+        # 统计有出边的节点：用于把"孤立节点"从起始节点里剔除（见下方判定）
+        nodes_with_outgoing = set()
         # 用 set 去重每个 source 的下游边集合（同一对 source/target 不重复）
         seen_adjacency: dict[str, set[str]] = defaultdict(set)
         seen_reverse: dict[str, set[str]] = defaultdict(set)
@@ -146,6 +151,7 @@ class WorkflowParser:
             source_id = edge.source
             target_id = edge.target
             source_node = graph.nodes.get(source_id)
+            nodes_with_outgoing.add(source_id)
             
             # 处理异常处理分支（所有模块的 error handle）
             if edge.sourceHandle == 'error':
@@ -195,9 +201,29 @@ class WorkflowParser:
                 nodes_with_normal_incoming.add(target_id)
         
         # 找出起始节点（没有入边的节点）
+        #
+        # 关键：排除"孤立节点"（既无入边也无出边）。这类节点几乎都是拖进画布后忘记连线、
+        # 或删掉连线后遗留的废弃节点。若把它们也当起始节点，就会与真正的起始节点**并行**
+        # 执行，抢在前面跑——例如流程本该先「设置变量」再「点击元素」，孤立的点击节点却
+        # 提前执行，此时 {变量} 还没值，未解析的 "{菜单产品}" 被当成 CSS 选择器，
+        # 报 Unsupported token "{"。这种竞态表现为"同一个工作流有时成功有时失败"。
+        #
+        # 仅在工作流确实存在连线时才剔除：整图无任何连线时（单节点工作流、或模块条里
+        # 一串互不连线的模块）保持原行为，避免把合法用法一并禁掉。
+        has_any_edge = bool(graph.edges)
         for node_id in graph.nodes:
-            if node_id not in nodes_with_incoming:
-                graph.start_nodes.append(node_id)
+            if node_id in nodes_with_incoming:
+                continue
+            if has_any_edge and node_id not in nodes_with_outgoing:
+                graph.isolated_nodes.append(node_id)
+                continue
+            graph.start_nodes.append(node_id)
+
+        # 极端兜底：若剔除孤立节点后一个起始节点都不剩（例如整图只有孤立节点却又存在
+        # 视觉节点产生的边），退回把孤立节点当起始节点，保证工作流仍可运行。
+        if not graph.start_nodes and graph.isolated_nodes:
+            graph.start_nodes.extend(graph.isolated_nodes)
+            graph.isolated_nodes = []
         
         # 兜底：若所有节点都有入边（错误回流边构成环，例如"出错→回到入口节点重试"），
         # 上面会判定为无起始节点导致整个工作流无法启动。此时改用"普通入边"重新判定，

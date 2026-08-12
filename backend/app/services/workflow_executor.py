@@ -2787,6 +2787,25 @@ class WorkflowExecutor:
                 if node:
                     label = node.data.get('label', node.type)
                     print(f"  - {nid}: {node.type} ({label})")
+
+            # 明确告知被跳过的孤立节点：它们没有任何连线，过去会被当成起始节点并行执行，
+            # 抢在变量赋值之前跑（表现为 {变量} 未解析被当选择器用、且时好时坏）。
+            # 现在不再执行，但必须让用户知道画布上有这些废弃节点。
+            isolated = [nid for nid in getattr(self.graph, 'isolated_nodes', [])
+                        if nid not in self._subflow_node_ids]
+            if isolated:
+                labels = []
+                for nid in isolated:
+                    node = self.graph.get_node(nid)
+                    labels.append(node.data.get('label', node.type) if node else nid)
+                await self._log(
+                    LogLevel.WARNING,
+                    f"⚠️ 已跳过 {len(isolated)} 个未连线的孤立模块："
+                    + "、".join(f"「{x}」" for x in labels)
+                    + "。它们没有任何连线，不参与执行；如需运行请把它们接入流程，"
+                      "如已废弃可删除。",
+                    is_system_log=True,
+                )
             
             # 调试：打印所有节点和边的信息
             _dbg(f"[DEBUG] 工作流共有 {len(self.graph.nodes)} 个节点:")
