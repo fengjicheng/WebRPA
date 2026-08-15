@@ -1,4 +1,5 @@
-import { useWorkflowStore } from '@/store/workflowStore'
+import { useWorkflowStore, moduleTypeLabels } from '@/store/workflowStore'
+import type { ModuleType } from '@/types'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { useCustomModuleStore } from '@/store/customModuleStore'
 import { lazy, Suspense } from 'react'
@@ -230,8 +231,22 @@ export function Toolbar() {
       if (moduleTypes.length > 0) {
         const pf = await featurePackApi.preflight(moduleTypes)
         if (pf.success && pf.data && pf.data.ok === false && (pf.data.missing?.length ?? 0) > 0) {
-          setMissingPacks(pf.data.missing as MissingPackGroup[])
-          addLog({ level: 'warning', message: '工作流缺少功能模块包，已弹窗提示下载与安装方式，运行已中止' })
+          const missing = pf.data.missing as MissingPackGroup[]
+          setMissingPacks(missing)
+          // 日志必须自带完整可操作信息：过去只写一句「已弹窗提示」，一旦用户没注意到弹窗
+          // （或弹窗被误关），日志里既看不到缺哪个包，也不知道去哪装，等于什么都没说。
+          // 这里与正常运行保持一致：先清空并切到日志栏，再逐条列出缺失清单。
+          clearLogs()
+          setBottomPanelTab('logs')
+          addLog({ level: 'warning', message: '运行已中止：工作流用到的模块需要先安装功能模块包' })
+          missing.forEach((group) => {
+            const affected = group.module_types.map(t => moduleTypeLabels[t as ModuleType] || t).join('、')
+            const packs = group.alternatives.length > 0
+              ? group.alternatives.map(a => `${a.name}（${a.id}，约 ${a.size_mb} MB）`).join(' 或 ')
+              : '（未能取到功能包信息，请在功能模块包管理器中查看）'
+            addLog({ level: 'warning', message: `缺少功能包：${packs}；受影响模块：${affected}` })
+          })
+          addLog({ level: 'info', message: '编辑器已弹出安装引导（含下载入口与图文步骤）；若未看到弹窗，可从 更多 → 功能模块包 手动安装' })
           return
         }
       }

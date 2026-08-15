@@ -4048,3 +4048,21 @@ Object.assign(UI_DICT, {
   '默认读值。公式单元格若没有缓存计算值（文件从未用 Excel 打开保存过），会自动返回公式文本并在执行结果中提示。':
     'Reads the value by default. If a formula cell has no cached result (the file has never been opened and saved in Excel), the formula text is returned instead and noted in the run result.',
 })
+
+// ---- 缺功能包提示：日志改为自带完整清单 + 空清单兜底 ----
+Object.assign(UI_DICT, {
+  '运行已中止：工作流用到的模块需要先安装功能模块包':
+    'Run aborted: modules used by this workflow require their feature packs to be installed first',
+  '编辑器已弹出安装引导（含下载入口与图文步骤）；若未看到弹窗，可从 更多 → 功能模块包 手动安装':
+    'The editor has opened the install guide (with download links and step-by-step instructions). If you did not see the dialog, install manually via More \u2192 Feature packs',
+  '（未能取到功能包信息，请在功能模块包管理器中查看）':
+    '(feature pack details unavailable; check the feature pack manager)',
+  '未能取到该功能包的详细信息，请到下载页按模块名称查找对应功能包':
+    'Details for this feature pack are unavailable; open the download page and find the pack by module name',
+})
+
+// 含 ${} 插值的日志行走 PHRASES 短语兜底（整句无法命中时按片段替换）
+Object.assign(PHRASES, {
+  '缺少功能包：': 'Missing feature pack: ',
+  '；受影响模块：': '; affected modules: ',
+})

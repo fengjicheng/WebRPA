@@ -169,7 +169,10 @@ export function FeaturePackDialog({ open, onClose }: FeaturePackDialogProps) {
       <div
         className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
         style={{ zIndex: 2147483646 }}
-        onClick={onClose}
+        // 本弹窗可能被渲染在别的对话框（如自动化浏览器）的 React 子树里，
+        // portal 的事件仍沿 React 树冒泡：点遮罩关闭自己时必须拦住，
+        // 否则会连带触发外层对话框遮罩的 onClose，把整条安装引导链路一起关掉。
+        onClick={(e) => { e.stopPropagation(); onClose() }}
       >
         <div
           className="bg-[hsl(var(--card))] rounded-xl shadow-2xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in"

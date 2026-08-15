@@ -55,7 +55,13 @@ export function MissingPacksDialog({ open, missing, onClose, onOpenManager }: Mi
       <div
         className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
         style={{ zIndex: 2147483646 }}
-        onClick={onClose}
+        // 刻意不给遮罩绑 onClick 关闭：这是「运行已被中止」的阻断性提示，
+        // 遮罩铺满全屏，随手一点就关掉会让用户误以为"根本没弹窗"，
+        // 只留右上角 X 与底部「稍后再说」两个明确的关闭入口。
+        // stopPropagation 是必需的：本弹窗可能被渲染在别的对话框（如自动化浏览器）
+        // 的 React 子树里，portal 的事件仍沿 React 树冒泡，
+        // 不拦住就会连带触发外层对话框遮罩的关闭。
+        onClick={(e) => e.stopPropagation()}
       >
         <div
           className="bg-[hsl(var(--card))] rounded-xl shadow-2xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in"
@@ -108,6 +114,23 @@ export function MissingPacksDialog({ open, missing, onClose, onOpenManager }: Mi
                       </p>
                     )}
                     {/* 备选功能包 */}
+                    {group.alternatives.length === 0 && (
+                      // 后端没能给出功能包详情时（清单缺项等）不能渲染成空白块，
+                      // 至少要留一个可用的下载入口，否则用户面对空弹窗无从下手。
+                      <div className="flex items-center gap-3 p-2.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+                        <p className="flex-1 text-[12.5px] text-[hsl(var(--slate-600))]">
+                          未能取到该功能包的详细信息，请到下载页按模块名称查找对应功能包
+                        </p>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => window.open(PACK_DOWNLOAD_HUB, '_blank', 'noopener')}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          下载
+                        </Button>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {group.alternatives.map((alt) => (
                         <div
