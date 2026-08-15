@@ -33,6 +33,8 @@ class SwitchTabExecutor(ModuleExecutor):
         Returns:
             ModuleResult: 执行结果
         """
+        # 用户主动管理标签页属于正常用法，之后不该再提示「可能忘了跟进新标签页」
+        context._manual_tab_switch = True
         try:
             # 获取浏览器上下文
             browser_context = context.browser_context

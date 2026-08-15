@@ -15,6 +15,26 @@ from .base import (
     register_executor,
 )
 
+# 本机地址：脚本请求这些地址时必须直连，不能经过系统代理
+_LOCAL_HOSTS = ('localhost', '127.0.0.1', '::1', '0.0.0.0')
+
+
+def _local_no_proxy_env(env: dict) -> dict:
+    """在保留用户原有绕过列表的前提下，把本机地址补进 NO_PROXY。
+
+    同时写大小写两种键：Windows 环境变量本身不区分大小写，但脚本可能在
+    WSL / 自带 Python 等场景下运行，requests 读 no_proxy、部分库读 NO_PROXY。
+    """
+    existing = env.get('NO_PROXY') or env.get('no_proxy') or ''
+    items = [x.strip() for x in existing.split(',') if x.strip()]
+    lowered = {x.lower() for x in items}
+    for host in _LOCAL_HOSTS:
+        if host not in lowered:
+            items.append(host)
+            lowered.add(host)
+    merged = ','.join(items)
+    return {'NO_PROXY': merged, 'no_proxy': merged}
+
 
 @register_executor
 class PythonScriptExecutor(ModuleExecutor):
@@ -85,6 +105,13 @@ class PythonScriptExecutor(ModuleExecutor):
             
             # 准备所有变量（通过环境变量传递）
             env = os.environ.copy()
+
+            # 让脚本里请求本机后端（如 http://localhost:5241/... 触发 Webhook）不要走系统代理。
+            # 开了 Clash/V2Ray 一类代理时系统会设置 HTTP(S)_PROXY，requests 会查
+            # proxy_bypass() 所以能通，但 httpx / urllib.request 不查，会把 localhost
+            # 也发给代理，表现为「连接失败：请确保服务正在运行」——而后端明明在跑。
+            # 这里只把本机地址加入绕过列表，公网请求仍按用户的系统代理走。
+            env.update(_local_no_proxy_env(env))
             
             # 将所有工作流变量序列化为JSON并通过环境变量传递
             all_vars = dict(context.variables)

@@ -44,15 +44,20 @@ BROWSER_SCHEMAS: dict = {
     },
     "click_element": {
         "required": ["selector"],
-        "optional": ["timeout", "doubleClick"],
+        "optional": ["timeout", "doubleClick", "followNewTab"],
         "defaults": {},
         "desc": {
             "selector": "CSS 选择器或 XPath，例如 #search-btn 或 .submit",
             "timeout": "等待元素出现的超时（秒）",
             "doubleClick": "是否双击",
+            "followNewTab": "点击后若打开了新标签页，是否自动切换到新标签页继续操作"
+                            "（默认 false；点链接开新标签页的场景应设为 true，"
+                            "否则后续模块仍在原页面上找元素）",
         },
         "example": {"selector": "#kw"},
-        "combo": "前序通常是 wait_element 或 input_text；后接 wait_page_load",
+        "combo": "前序通常是 wait_element 或 input_text；后接 wait_page_load。"
+                 "点击会打开新标签页时把 followNewTab 设为 true，"
+                 "或后接 switch_tab（switchMode=last）",
     },
     "input_text": {
         "required": ["selector", "text"],

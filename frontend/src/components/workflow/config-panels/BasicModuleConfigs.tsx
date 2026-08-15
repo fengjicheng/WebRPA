@@ -137,6 +137,19 @@ export function ClickElementConfig({
           <option value="right">右键</option>
         </Select>
       </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="followNewTab"
+          checked={(data.followNewTab as boolean) ?? false}
+          onCheckedChange={(c) => onChange('followNewTab', c)}
+        />
+        <Label htmlFor="followNewTab" className="cursor-pointer">点击后跟进新标签页</Label>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {(data.followNewTab as boolean)
+          ? '点击后若打开了新标签页，自动切换到该标签页，后续模块在新标签页上继续操作。'
+          : '默认不切换：点击链接打开新标签页后，后续模块仍在原页面操作，容易出现「元素明明在新页面上却找不到」。勾选此项即可自动跟进。'}
+      </p>
     </>
   )
 }

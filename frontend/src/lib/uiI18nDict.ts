@@ -4022,3 +4022,20 @@ Object.assign(UI_DICT, {
   '展开子工作流监控': 'Expand subflow monitor',
   '关闭（不影响执行）': 'Close (execution continues)',
 })
+
+// ---- 点击元素：新标签页跟进 ----
+Object.assign(UI_DICT, {
+  '点击后跟进新标签页': 'Follow the new tab after clicking',
+  '点击后若打开了新标签页，自动切换到该标签页，后续模块在新标签页上继续操作。':
+    'If clicking opens a new tab, switch to it automatically so later modules act on the new tab.',
+  '默认不切换：点击链接打开新标签页后，后续模块仍在原页面操作，容易出现「元素明明在新页面上却找不到」。勾选此项即可自动跟进。':
+    'Not switching by default: after a link opens a new tab, later modules still act on the original page, which often looks like "the element is on the new page but cannot be found". Tick this to follow the new tab automatically.',
+})
+
+// ---- 元素存在判断：与元素可见判断的区别说明 ----
+Object.assign(UI_DICT, {
+  '只检查元素是否存在于 DOM 中，被隐藏的元素（display:none、visibility:hidden 等）同样算存在':
+    'Only checks whether the element exists in the DOM; hidden elements (display:none, visibility:hidden, etc.) still count as existing',
+  '它不能代表元素可以被点击。若要判断能否点击，请改用“元素可见判断”':
+    'It does not mean the element is clickable. To check clickability, use "Element-visible check" instead',
+})

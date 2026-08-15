@@ -227,6 +227,11 @@ class ExecutionContext:
     _variable_tracking: list[dict[str, Any]] = field(default_factory=list)  # 变量变化历史记录
     _current_node_id: Optional[str] = None  # 当前执行的节点ID
     _current_node_name: Optional[str] = None  # 当前执行的节点名称
+    # 「有新标签页但没跟进」只提示一次，避免循环里刷屏
+    _new_tab_hinted: bool = False
+    # 用户是否主动切换过标签页（用了「切换标签页」模块）。
+    # 主动切换是合法用法，此时不该再提示「你可能忘了跟进新标签页」。
+    _manual_tab_switch: bool = False
     # 待完成的回调任务集合（避免 create_task 后被 GC）
     _pending_callback_tasks: set = field(default_factory=set)
     
@@ -385,12 +390,153 @@ class ExecutionContext:
                 self.page = pages[-1]
                 return True
             
-            # 当前页面仍然有效，保持不变
+            # 当前页面仍然有效，保持不变。
+            # 但如果浏览器里已经有更晚打开的标签页而我们还在旧页上操作，
+            # 大概率是上一步点击开了新标签页却没跟进——这是「元素明明在新页面上
+            # 却找不到」的头号原因，这里零开销地提示一次（只读本地属性，不等待）。
+            self.warn_unfollowed_new_tab(pages)
             return False
         except Exception as e:
             print(f"[ExecutionContext] switch_to_latest_page 失败: {e}")
             return False
-    
+
+    def warn_unfollowed_new_tab(self, pages=None, action_desc: str = '点击') -> bool:
+        """存在未跟进的新标签页时提示一次。返回是否发出了提示。
+
+        抑制条件：已提示过、用户主动用过「切换标签页」、只有一个标签页、
+        或当前就在最新标签页上——这些都属于正常情况，不该打扰用户。
+        """
+        if self._new_tab_hinted or self._manual_tab_switch:
+            return False
+        try:
+            if pages is None:
+                if self.browser_context is None:
+                    return False
+                pages = self.browser_context.pages
+            if not pages or len(pages) <= 1:
+                return False
+            if self.page is pages[-1]:
+                return False
+        except Exception:
+            return False
+        self._new_tab_hinted = True
+        self.add_log(
+            'warning',
+            f"检测到{action_desc}后打开了新标签页，但后续模块仍在原标签页上操作，"
+            f"这会导致「元素明明在新页面上却找不到」。"
+            f"如需在新标签页继续操作，请勾选「点击元素」的「点击后跟进新标签页」，"
+            f"或添加「切换标签页」模块（切换模式选「最后一个」）。",
+            node_id=self._current_node_id,
+        )
+        return True
+
+    def begin_watch_new_tabs(self) -> dict[str, Any]:
+        """开始监视「本次交互是否打开了新标签页」。
+
+        背景：switch_to_latest_page 只在当前页被关闭时才切换，所以点击链接/按钮
+        打开新标签页后，上下文仍停留在原页面，后续网页模块全部作用在旧页面上，
+        表现为「元素明明在新页面上却找不到」，而且日志里看不出任何异常。
+        这里把「有没有开新标签页」变成可观测事实，交由调用方决定跟进还是提示。
+
+        返回 watch 句柄；交互结束后必须交给 settle_new_tabs 收尾（内部会摘除监听器）。
+        """
+        watch: dict[str, Any] = {'pages': [], 'listener': None}
+        if self.browser_context is None:
+            return watch
+
+        def _on_new_page(page):
+            watch['pages'].append(page)
+
+        try:
+            self.browser_context.on('page', _on_new_page)
+            watch['listener'] = _on_new_page
+        except Exception as e:
+            print(f"[ExecutionContext] 监视新标签页失败: {e}")
+        return watch
+
+    async def settle_new_tabs(self, watch: dict[str, Any], follow: bool,
+                              action_desc: str = '点击', wait_ms: int = 3000) -> str:
+        """收尾新标签页监视：按需跟进到新标签页，否则给出可执行的提示。
+
+        follow=False 时不产生任何等待开销（不改变既有行为），仅在确实开了新标签页时
+        记一条警告，说明当前仍在原页面以及怎么跟进——这类问题不提示极难自查。
+        返回可直接拼到模块 message 末尾的补充说明。
+        """
+        if not isinstance(watch, dict):
+            return ''
+        # 必须持有 watch['pages'] 的同一引用：监听器是往这个列表里 append 的，
+        # 写成 `watch.get('pages') or []` 会在列表为空时退化成新对象，
+        # 于是「等待稍后才出现的新标签页」永远等不到。
+        pages = watch.get('pages')
+        if not isinstance(pages, list):
+            return ''
+        try:
+            # 新标签页可能略晚于交互动作返回才出现，仅在需要跟进时才等
+            if follow and not pages:
+                waited = 0.0
+                while waited < wait_ms / 1000.0 and not pages:
+                    await asyncio.sleep(0.1)
+                    waited += 0.1
+            if not pages:
+                return ''
+            new_page = pages[-1]
+            if not follow:
+                # 事件恰好已投递到时就地提示；没赶上也没关系，
+                # 下一个网页模块的 switch_to_latest_page 会兜底提示。
+                self.warn_unfollowed_new_tab([self.page, new_page], action_desc)
+                return ''
+            try:
+                await new_page.wait_for_load_state('domcontentloaded', timeout=10000)
+            except Exception:
+                # 新页加载慢或被重定向都不影响跟进本身，后续模块自己会等元素
+                pass
+            self.page = new_page
+            # 切页后必须清空 iframe 状态，否则后续模块会拿着旧页的 frame 引用去操作
+            self._in_iframe = False
+            self._current_frame = None
+            self._iframe_locator = None
+            self._main_page = None
+            url = getattr(new_page, 'url', '') or ''
+            self.add_log('info', f"已跟进{action_desc}打开的新标签页：{url}",
+                         node_id=self._current_node_id)
+            return f"，已跟进新标签页：{url}"
+        except Exception as e:
+            print(f"[ExecutionContext] settle_new_tabs 失败: {e}")
+            return ''
+        finally:
+            listener = watch.get('listener')
+            if listener is not None and self.browser_context is not None:
+                try:
+                    self.browser_context.remove_listener('page', listener)
+                except Exception:
+                    pass
+            watch['listener'] = None
+
+    async def describe_element_state(self, page_or_frame, selector: str) -> str:
+        """诊断元素当前状态，用于把「等满超时」变成一句能直接行动的错误说明。
+
+        典型场景：元素在 DOM 里存在但被隐藏（折叠菜单、未展开的下拉），
+        点击会一直等「可见可交互」直到超时，原始报错只有一句 Timeout，
+        用户无从判断是选择器写错了还是元素被隐藏了。
+        """
+        try:
+            loc = page_or_frame.locator(format_selector(selector))
+            count = await loc.count()
+            if count == 0:
+                return "（诊断：页面上找不到该选择器匹配的元素，请确认选择器是否正确、"\
+                       "元素是否在 iframe 内、或页面是否还没加载完）"
+            try:
+                visible = await loc.first.is_visible()
+            except Exception:
+                visible = False
+            if not visible:
+                return (f"（诊断：找到 {count} 个匹配元素，但首个元素不可见——"
+                        f"通常是被隐藏、需要先展开菜单/滚动到可见区域，或页面上存在同名的隐藏元素。"
+                        f"可改用「元素可见判断」做前置判断，或先点开父级菜单）")
+            return f"（诊断：找到 {count} 个匹配元素且可见，可能被其它元素遮挡或正在移动）"
+        except Exception:
+            return ''
+
     def get_variable(self, name: str, default: Any = None) -> Any:
         """获取变量值，支持 ${var} 和 {var} 两种格式"""
         if isinstance(name, str):

@@ -4083,6 +4083,8 @@ export function ElementExistsConfig({ renderSelectorInput }: { data: NodeData; o
               <li>元素存在时走 true 分支</li>
               <li>元素不存在时走 false 分支</li>
               <li>可以连接不同的后续模块实现条件判断</li>
+              <li>只检查元素是否存在于 DOM 中，被隐藏的元素（display:none、visibility:hidden 等）同样算存在</li>
+              <li>它不能代表元素可以被点击。若要判断能否点击，请改用“元素可见判断”</li>
             </ul>
           </div>
         </div>
@@ -4097,7 +4099,7 @@ export function ElementVisibleConfig({ renderSelectorInput }: { data: NodeData; 
     <div className="space-y-4">
       <div className="bg-[hsl(var(--card))] p-3 rounded-lg border-l-4 border-green-500">
         <p className="text-sm text-gray-700 font-medium mb-1">
-          👁️ 元素可见判断
+          元素可见判断
         </p>
         <p className="text-xs text-gray-600">
           判断指定元素是否在页面中可见（不仅存在，还要显示出来），返回 true/false 分支

@@ -580,6 +580,12 @@ class ClickElementExecutor(ModuleExecutor):
         if isinstance(wait_for_selector_raw, str):
             wait_for_selector_raw = context.resolve_value(wait_for_selector_raw)
         wait_for_selector = wait_for_selector_raw in [True, 'true', 'True', '1', 1]
+        # 点击链接/按钮常会打开新标签页。默认保持原有行为（继续在原页面操作），
+        # 勾选后自动跟进到新标签页，省掉手工再加一个「切换标签页」模块。
+        follow_new_tab_raw = config.get('followNewTab', False)
+        if isinstance(follow_new_tab_raw, str):
+            follow_new_tab_raw = context.resolve_value(follow_new_tab_raw)
+        follow_new_tab = follow_new_tab_raw in [True, 'true', 'True', '1', 1]
         # 获取超时配置（秒），转换为毫秒传给 Playwright
         timeout_ms = to_int(config.get('timeout', 30), 30, context) * 1000
 
@@ -589,11 +595,14 @@ class ClickElementExecutor(ModuleExecutor):
         if context.page is None:
             return ModuleResult(success=False, error="没有打开的页面")
 
+        tab_watch = None
         try:
             print(f"[ClickElement] 开始点击，selector: {selector}")
             print(f"[ClickElement] 当前在iframe中: {context._in_iframe}")
             
             await context.switch_to_latest_page()
+            # 必须在点击之前挂上监听，否则点击瞬间打开的新标签页会漏掉
+            tab_watch = context.begin_watch_new_tabs()
             
             # 如果在iframe中，获取当前的frame
             current_page = await context.get_current_frame()
@@ -636,12 +645,29 @@ class ClickElementExecutor(ModuleExecutor):
                 await element.click(timeout=click_timeout)
             
             print(f"[ClickElement] 点击成功")
-            return ModuleResult(success=True, message=f"已点击元素: {selector}")
+            extra = await context.settle_new_tabs(tab_watch, follow_new_tab, '点击')
+            tab_watch = None
+            return ModuleResult(success=True, message=f"已点击元素: {selector}{extra}")
         
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return ModuleResult(success=False, error=f"点击元素失败: {str(e)}")
+            # 只有一句 Timeout 时用户无法判断是选择器写错还是元素被隐藏，补一段诊断
+            diag = ''
+            try:
+                _page = await context.get_current_frame()
+                if _page is not None:
+                    diag = await context.describe_element_state(_page, selector)
+            except Exception:
+                diag = ''
+            return ModuleResult(success=False, error=f"点击元素失败: {str(e)}{diag}")
+        finally:
+            # 点击失败或提前 return 时也要摘掉监听器，避免监听器越积越多
+            if tab_watch is not None:
+                try:
+                    await context.settle_new_tabs(tab_watch, False, '点击')
+                except Exception:
+                    pass
 
 
 @register_executor

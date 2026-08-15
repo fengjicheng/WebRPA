@@ -37,15 +37,26 @@ Simulate a mouse click on a page element.
 | Selector | CSS selector of the target | \`#btn\`, \`.submit\` |
 | Click type | How to click | single/double/right |
 | Wait clickable | Whether to wait until clickable | yes/no |
+| Follow the new tab after clicking | Switch automatically when the click opens a new tab | yes/no (default no) |
 
 **Click types**:
 - **Single**: a normal left click — most common
 - **Double**: two quick clicks — to open files, etc.
 - **Right**: opens the context menu
 
+**Follow the new tab after clicking**:
+
+Many links carry \`target="_blank"\`, so clicking them opens a new browser tab. By default the executor **stays on the original page**, and later modules keep looking for elements there. That is why it can look like "the element is clearly on the new page but it can never be found".
+
+- Ticked: after the click, wait for the new tab and switch to it, so later modules act on the new tab.
+- Not ticked: stay on the original page. If you do need to switch, add a "Switch tab (last)" module after the click.
+- If the click does not open a new tab, the option makes no difference and adds no extra waiting.
+
 **Common issues**:
 - Click has no effect? Add a "Wait for element" module first
 - Element covered? Use "Scroll page" then click
+- Nothing can be found after clicking a link? Most likely a new-tab issue — tick "Follow the new tab after clicking"
+- Timeout even though the element clearly exists? The element may exist in the DOM but be hidden, in which case the click waits for visibility until it times out. Check whether you need to expand a parent menu or scroll it into view first
 
 ---
 
