@@ -45,29 +45,39 @@ def to_float(value, default: float, context=None) -> float:
         return default
 
 
-def to_bool(value, context=None) -> bool:
-    """将值转换为布尔值，支持变量解析"""
+def to_bool(value, default: bool = False, context=None) -> bool:
+    """将值转换为布尔值，支持变量解析。
+
+    参数顺序刻意与 to_int / to_float 保持一致（value, default, context）。
+    早先 to_bool 的签名是 (value, context)，与另两个函数不同，
+    调用方按惯例写成 to_bool(x, 默认值, context) 就会抛
+    "to_bool() takes from 1 to 2 positional arguments but 3 were given"，
+    桌面自动化模块曾因此整批失效（如「启动桌面应用」的 waitReady）。
+    统一签名后由 tests/contract/test_type_utils_signature.py 静态守护。
+    """
     if value is None:
-        return False
-    
+        return default
+
     # 如果提供了 context，先解析变量
     if context is not None and isinstance(value, str):
         value = context.resolve_value(value)
-    
+
     # 如果已经是布尔值，直接返回
     if isinstance(value, bool):
         return value
-    
-    # 字符串转换
+
+    # 字符串转换：空串按「未填写」处理，交回默认值（与 to_int / to_float 一致）
     if isinstance(value, str):
         value = value.strip().lower()
+        if not value:
+            return default
         return value in ('true', 'yes', '1', 'on', 'enabled')
-    
+
     # 数字转换
     if isinstance(value, (int, float)):
         return bool(value)
-    
-    return False
+
+    return default
 
 
 def parse_search_region(search_region: dict) -> tuple:

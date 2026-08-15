@@ -519,7 +519,7 @@ class ExcelRunMacroExecutor(ModuleExecutor):
         import asyncio
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         macro_name = context.resolve_value(config.get("macroName", "")) or ""
-        save_after = to_bool(config.get("saveAfter", False), context)
+        save_after = to_bool(config.get("saveAfter", False), False, context=context)
         if not os.path.exists(path):
             return ModuleResult(success=False, error=f"Excel 文件不存在: {path}")
         if not macro_name:

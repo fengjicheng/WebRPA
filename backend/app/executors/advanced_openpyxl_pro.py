@@ -445,7 +445,7 @@ class ExcelAddChartExecutor(ModuleExecutor):
         cats_range = (context.resolve_value(config.get("catsRange", "")) or "").strip().upper()
         anchor = (context.resolve_value(config.get("anchor", "")) or "").strip().upper()
         title = context.resolve_value(config.get("title", "")) or ""
-        titles_from_data = to_bool(config.get("titlesFromData", True), context)
+        titles_from_data = to_bool(config.get("titlesFromData", True), True, context=context)
         if not data_range:
             return ModuleResult(success=False, error="数据区域(dataRange)不能为空，如 B1:B10")
         try:
@@ -595,7 +595,7 @@ class ExcelHideExecutor(ModuleExecutor):
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         target = (context.resolve_value(config.get("target", "column")) or "column").strip()  # column/row
         key = (context.resolve_value(config.get("key", "")) or "").strip()  # 列字母(A/A:C) 或 行号(1/1:3)
-        hidden = to_bool(config.get("hidden", True), context)
+        hidden = to_bool(config.get("hidden", True), True, context=context)
         if not key:
             return ModuleResult(success=False, error="请填写列字母或行号(key)，如 A、A:C、1、1:5")
         try:
@@ -661,8 +661,8 @@ class ExcelSortRangeExecutor(ModuleExecutor):
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         cell_range = (context.resolve_value(config.get("range", "")) or "").strip().upper()
         sort_col = to_int(config.get("sortColumn", 1), 1, context)  # 区域内第几列（从1开始）
-        descending = to_bool(config.get("descending", False), context)
-        has_header = to_bool(config.get("hasHeader", True), context)
+        descending = to_bool(config.get("descending", False), False, context=context)
+        has_header = to_bool(config.get("hasHeader", True), True, context=context)
         if not cell_range or ":" not in cell_range:
             return ModuleResult(success=False, error="区域不能为空且需为范围（如 A1:D100）")
         try:
@@ -704,7 +704,7 @@ class ExcelRemoveDuplicatesExecutor(ModuleExecutor):
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         cell_range = (context.resolve_value(config.get("range", "")) or "").strip().upper()
         key_cols_raw = context.resolve_value(config.get("keyColumns", ""))  # 如 "1,2" 区域内列号
-        has_header = to_bool(config.get("hasHeader", True), context)
+        has_header = to_bool(config.get("hasHeader", True), True, context=context)
         try:
             from openpyxl.utils.cell import range_boundaries
             wb = _load_wb(path)
@@ -758,7 +758,7 @@ class ExcelWriteDictsExecutor(ModuleExecutor):
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         data_raw = context.resolve_value(config.get("data", ""))
-        write_header = to_bool(config.get("writeHeader", True), context)
+        write_header = to_bool(config.get("writeHeader", True), True, context=context)
         start_cell = (context.resolve_value(config.get("startCell", "A1")) or "A1").strip().upper()
         try:
             if isinstance(data_raw, (list, tuple)):
@@ -915,7 +915,7 @@ class ExcelProtectSheetExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_name = context.resolve_value(config.get("sheetName", ""))
-        protect = to_bool(config.get("protect", True), context)
+        protect = to_bool(config.get("protect", True), True, context=context)
         password = context.resolve_value(config.get("password", "")) or ""
         try:
             wb = _load_wb(path)
@@ -1014,7 +1014,7 @@ class ExcelSetZoomExecutor(ModuleExecutor):
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         zoom = to_int(config.get("zoom", 100), 100, context)
-        show_grid = to_bool(config.get("showGridLines", True), context)
+        show_grid = to_bool(config.get("showGridLines", True), True, context=context)
         try:
             zoom = max(10, min(400, zoom))
             wb = _load_wb(path)

@@ -1659,7 +1659,8 @@ class DesktopGetControlInfoExecutor(ModuleExecutor):
                 "control_type": control.ControlTypeName,
                 "handle": control.NativeWindowHandle,
                 "is_enabled": control.IsEnabled,
-                "is_visible": control.IsVisible,
+                # uiautomation 没有 IsVisible，可见性由 IsOffscreen 取反得出
+                "is_visible": not control.IsOffscreen,
                 "is_offscreen": control.IsOffscreen,
                 "has_keyboard_focus": control.HasKeyboardFocus,
                 "rect": {
@@ -1819,7 +1820,8 @@ class DesktopAppGetInfoExecutor(ModuleExecutor):
                 "process_id": window.ProcessId,
                 "handle": window.NativeWindowHandle,
                 "is_enabled": window.IsEnabled,
-                "is_visible": window.IsVisible,
+                # uiautomation 没有 IsVisible，可见性由 IsOffscreen 取反得出
+                "is_visible": not window.IsOffscreen,
                 "is_topmost": window.IsTopmost,
                 "rect": {
                     "left": window.BoundingRectangle.left,
@@ -1931,7 +1933,8 @@ class DesktopWindowListExecutor(ModuleExecutor):
             for window in auto.GetRootControl().GetChildren():
                 if window.ControlTypeName == "WindowControl":
                     # 应用过滤条件
-                    if filter_visible and not window.IsVisible:
+                    # uiautomation 的控件没有 IsVisible 属性，可见性用 IsOffscreen 取反表达
+                    if filter_visible and window.IsOffscreen:
                         continue
                     if filter_enabled and not window.IsEnabled:
                         continue
@@ -1943,7 +1946,7 @@ class DesktopWindowListExecutor(ModuleExecutor):
                         "class_name": window.ClassName,
                         "process_id": window.ProcessId,
                         "handle": window.NativeWindowHandle,
-                        "is_visible": window.IsVisible,
+                        "is_visible": not window.IsOffscreen,
                         "is_enabled": window.IsEnabled
                     })
             

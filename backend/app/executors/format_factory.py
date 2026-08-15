@@ -526,7 +526,7 @@ class BatchFormatConvertExecutor(ModuleExecutor):
         output_folder = context.resolve_value(config.get('outputFolder', ''))
         output_format = context.resolve_value(config.get('outputFormat', 'mp4')).lower()
         file_pattern = context.resolve_value(config.get('filePattern', '*.*'))
-        recursive = to_bool(config.get('recursive', False), context)
+        recursive = to_bool(config.get('recursive', False), False, context=context)
         result_variable = config.get('resultVariable', 'converted_files')
         
         if not input_folder:

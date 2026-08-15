@@ -1253,7 +1253,8 @@ class WaitPageLoadExecutor(ModuleExecutor):
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         wait_until = context.resolve_value(config.get('waitUntil', 'load'))
-        timeout = to_int(config.get('timeout', 60))
+        # to_int 的 default 是必填参数，且要传 context 才能解析 {变量}
+        timeout = to_int(config.get('timeout', 60), 60, context)
         
         if context.page is None:
             return ModuleResult(success=False, error="页面未打开")

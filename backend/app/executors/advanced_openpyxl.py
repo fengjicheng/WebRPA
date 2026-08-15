@@ -181,7 +181,7 @@ class ExcelCreateExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_names_raw = context.resolve_value(config.get("sheetNames", "Sheet1")) or "Sheet1"
-        overwrite = to_bool(config.get("overwrite", False), context)
+        overwrite = to_bool(config.get("overwrite", False), False, context=context)
         if not path:
             return ModuleResult(success=False, error="文件路径不能为空")
         if os.path.exists(path) and not overwrite:
@@ -593,7 +593,7 @@ class ExcelFindReplaceExecutor(ModuleExecutor):
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         find = context.resolve_value(config.get("find", ""))
         replace = context.resolve_value(config.get("replace", ""))
-        match_entire = to_bool(config.get("matchEntire", False), context)
+        match_entire = to_bool(config.get("matchEntire", False), False, context=context)
         if find is None or str(find) == "":
             return ModuleResult(success=False, error="查找内容不能为空")
         try:
@@ -647,15 +647,15 @@ class ExcelSetStyleExecutor(ModuleExecutor):
         cell_range = (context.resolve_value(config.get("range", "")) or "").strip().upper()
         if not cell_range:
             return ModuleResult(success=False, error="区域不能为空（如 A1 或 A1:C3）")
-        bold = to_bool(config.get("bold", False), context)
-        italic = to_bool(config.get("italic", False), context)
+        bold = to_bool(config.get("bold", False), False, context=context)
+        italic = to_bool(config.get("italic", False), False, context=context)
         font_size = to_int(config.get("fontSize", 0), 0, context)
         font_name = context.resolve_value(config.get("fontName", "")) or ""
         font_color = _norm_color(context.resolve_value(config.get("fontColor", "")) or "")
         bg_color = _norm_color(context.resolve_value(config.get("bgColor", "")) or "")
         align_h = context.resolve_value(config.get("alignH", "")) or ""   # left/center/right
         align_v = context.resolve_value(config.get("alignV", "")) or ""   # top/center/bottom
-        border = to_bool(config.get("border", False), context)
+        border = to_bool(config.get("border", False), False, context=context)
         try:
             from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
             wb = _load_wb(path)
@@ -710,7 +710,7 @@ class ExcelMergeCellsExecutor(ModuleExecutor):
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_name = context.resolve_value(config.get("sheetName", ""))
         cell_range = (context.resolve_value(config.get("range", "")) or "").strip().upper()
-        unmerge = to_bool(config.get("unmerge", False), context)
+        unmerge = to_bool(config.get("unmerge", False), False, context=context)
         if not cell_range:
             return ModuleResult(success=False, error="区域不能为空（如 A1:C1）")
         try:

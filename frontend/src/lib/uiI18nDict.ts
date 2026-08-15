@@ -4066,3 +4066,9 @@ Object.assign(PHRASES, {
   '缺少功能包：': 'Missing feature pack: ',
   '；受影响模块：': '; affected modules: ',
 })
+
+// ---- 自动化浏览器：功能包已装但仍启动不了 ----
+Object.assign(UI_DICT, {
+  '功能包检测显示「网页自动化」已安装，但浏览器仍无法启动，可能是安装不完整或文件被清理。请在 更多 → 功能模块包 中重新安装该功能包，并重启后端服务':
+    'The feature pack check reports "Web automation" as installed, but the browser still cannot start \u2014 the install may be incomplete or files were removed. Reinstall the pack via More \u2192 Feature packs, then restart the backend service',
+})

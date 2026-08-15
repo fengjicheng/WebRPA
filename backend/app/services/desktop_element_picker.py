@@ -279,7 +279,8 @@ class DesktopElementPicker:
             
             # 状态信息
             try:
-                info['is_visible'] = element.IsVisible
+                # uiautomation 没有 IsVisible，可见性由 IsOffscreen 取反得出
+                info['is_visible'] = not element.IsOffscreen
             except Exception:
                 pass
             

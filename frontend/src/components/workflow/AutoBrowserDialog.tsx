@@ -155,7 +155,13 @@ export function AutoBrowserDialog({ isOpen, onClose, onLog }: AutoBrowserDialogP
       const pf = await featurePackApi.preflight(['open_page'])
       if (pf.success && pf.data && pf.data.ok === false && (pf.data.missing?.length ?? 0) > 0) {
         setMissingPacks(pf.data.missing as MissingPackGroup[])
+        return
       }
+      // 预检说不缺包，但浏览器确实起不来：典型是功能包装过但 Playwright 内核
+      // 不完整/被杀软清理。此时不能静默——否则底栏只剩一行「未安装 Playwright」，
+      // 用户按提示去装却发现"已安装"，彻底卡死。
+      onLog('warning', '功能包检测显示「网页自动化」已安装，但浏览器仍无法启动，可能是安装不完整或文件被清理。请在 更多 → 功能模块包 中重新安装该功能包，并重启后端服务')
+      setShowFeaturePacks(true)
     } catch {
       // 预检本身失败就不再打扰用户，底栏已有明确错误信息
     }
