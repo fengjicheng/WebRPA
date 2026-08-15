@@ -22,6 +22,14 @@ type BrowserBusyCallback = () => void
 // 浏览器意外关闭回调
 type BrowserClosedCallback = () => void
 
+/** 子工作流监控事件名（后端 app/executors/workflow_chain.py 推送） */
+export type SubflowEventName =
+  | 'subflow:started'
+  | 'subflow:node_start'
+  | 'subflow:node_complete'
+  | 'subflow:log'
+  | 'subflow:completed'
+
 // 全局音频播放器（用于管理播放状态）
 let currentAudio: HTMLAudioElement | null = null
 
@@ -863,6 +871,28 @@ class SocketService {
       !(l.event === event && l.callback === callback)
     this.pendingListeners = this.pendingListeners.filter(matcher)
     this.externalListeners = this.externalListeners.filter(matcher)
+  }
+
+  /**
+   * 订阅子工作流监控事件（「运行其它工作流」时后端推送的 subflow:* 系列）。
+   *
+   * 这些事件只有子工作流监控窗口关心，不进日志缓冲、不写节点运行态 store，
+   * 所以走外部监听器通道而不是 setupEventListeners 里的固定监听：
+   * 窗口组件卸载时要能干净退订，避免重复注册。
+   * 返回取消订阅函数。
+   */
+  onSubflowEvent(event: SubflowEventName, handler: (data: Record<string, any>) => void): () => void {
+    const wrapped = (data: unknown) => {
+      // 后端载荷理论上一定是对象，但推送链路上任何一环出问题都不该把窗口打崩
+      if (!data || typeof data !== 'object') return
+      try {
+        handler(data as Record<string, any>)
+      } catch (err) {
+        console.error(`[Socket] 处理 ${event} 事件失败:`, err)
+      }
+    }
+    this.on(event, wrapped)
+    return () => this.off(event, wrapped)
   }
 
   // 内部：把待绑定的监听器（含历史外部 listener）一次性绑定到 socket

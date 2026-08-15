@@ -37,6 +37,7 @@ import { BlockFlowView } from './BlockFlowView'
 import { LogPanel } from './LogPanel'
 import { Toolbar } from './Toolbar'
 import { RemoteCursor } from './RemoteCursor'
+import { SubflowMonitorDialog } from './SubflowMonitorDialog'
 import { socketService } from '@/services/socket'
 import { remoteService } from '@/services/remote'
 import { onAssistantUiEvent } from '@/services/aiAssistantSkills'
@@ -1909,6 +1910,8 @@ export function WorkflowEditor() {
       <ConfirmDialog />
       {/* 加密包导入密码弹窗 */}
       {passwordDialog}
+      {/* 子工作流执行监控窗口（无子工作流运行时自身不渲染任何内容） */}
+      <SubflowMonitorDialog />
     </div>
   )
 }

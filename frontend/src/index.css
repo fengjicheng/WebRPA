@@ -1919,6 +1919,13 @@ input[type="range"].slider-thumb::-moz-range-thumb {
   to   { transform: translateX(-100%); }
 }
 
+/* ----- 子工作流监控窗口：当前正在执行的模块呼吸光圈 -----
+   只做外发光的强弱变化，不改 transform，避免 ReactFlow 节点定位被动画干扰。 */
+@keyframes webrpa-subflow-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px hsl(var(--brand-600) / 0.14); }
+  50%      { box-shadow: 0 0 0 7px hsl(var(--brand-600) / 0.28); }
+}
+
 /* ============================================================
    AI 助手可视化逐步搭建工作流：节点入场动画
    - 节点淡入 + 轻微下落 + 蓝色光晕脉冲，让用户"亲眼看着 AI 一步步把节点画到画布上"

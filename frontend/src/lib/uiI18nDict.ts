@@ -4014,3 +4014,11 @@ Object.assign(UI_DICT, {
   '用 GET / POST 等任意方法访问以下地址即可触发（body 可选）': 'Trigger it by requesting the address below with any method such as GET or POST (body optional)',
   '提示：地址中的端口已自动取当前后端实际端口，可直接复制使用； 在 WebRPA 内用「Webhook 请求」模块调用时也填这个完整地址。': 'Note: the port is taken from the actual backend port, so the address can be copied as-is; use this full address in the "Webhook request" module inside WebRPA too.',
 })
+
+// ---- 子工作流执行监控窗口 ----
+Object.assign(UI_DICT, {
+  '子工作流': 'Subflow',
+  '嵌套层级': 'Nesting level',
+  '展开子工作流监控': 'Expand subflow monitor',
+  '关闭（不影响执行）': 'Close (execution continues)',
+})

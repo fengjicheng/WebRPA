@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from app.executors.base import (
     ModuleExecutor,
@@ -113,6 +114,76 @@ def _build_workflow_object(content: dict, fallback_name: str):
     )
 
 
+async def _emit_subflow(event: str, payload: dict) -> None:
+    """向前端推送子工作流监控事件（异常隔离：推送失败绝不影响子工作流执行）。
+
+    复用 workflows.py 里的 safe_emit，保证与手动运行路径同一套 Socket 实例与容错策略。
+    """
+    try:
+        from app.api.workflows import safe_emit
+        await safe_emit(event, payload)
+    except Exception:
+        # 监控是旁路能力，推送失败不能让工作流跟着失败
+        pass
+
+
+def _serialize_graph(workflow) -> dict:
+    """把子工作流的图结构精简成前端画布够用的最小载荷。
+
+    只带渲染与高亮必需的字段：节点 id / 模块类型 / 位置 / 标签 / 尺寸，以及连线端点。
+    不带完整 data（里面可能有大段脚本、表格数据、base64 图片），否则一条 socket 消息
+    就能顶到几 MB，把实时日志通道挤住。
+    """
+    nodes = []
+    for n in workflow.nodes:
+        data = n.data or {}
+        module_type = data.get("moduleType") or n.type or ""
+        nodes.append({
+            "id": n.id,
+            "moduleType": module_type,
+            "label": data.get("label") or module_type,
+            "position": {
+                "x": float(getattr(n.position, "x", 0) or 0),
+                "y": float(getattr(n.position, "y", 0) or 0),
+            },
+            # 尺寸是可选字段，不同来源的工作流不一定带；缺失时交给前端用默认尺寸渲染
+            "width": getattr(n, "width", None),
+            "height": getattr(n, "height", None),
+        })
+    edges = [{
+        "id": e.id,
+        "source": e.source,
+        "target": e.target,
+        "sourceHandle": e.sourceHandle,
+        "targetHandle": e.targetHandle,
+    } for e in workflow.edges]
+    return {"nodes": nodes, "edges": edges}
+
+
+def _make_subflow_callbacks(subflow_id: str) -> dict:
+    """产出子工作流的节点事件回调，供监控窗口做「运行到哪个模块就高亮哪个」。
+
+    只挂节点开始/结束两个回调：日志由调用方单独接（还要同时转发到父流程），
+    变量更新不推（与手动运行路径一致，密集循环下会挤占通道）。
+    """
+    async def on_node_start(node_id: str) -> None:
+        await _emit_subflow("subflow:node_start", {
+            "subflowId": subflow_id,
+            "nodeId": node_id,
+        })
+
+    async def on_node_complete(node_id: str, result) -> None:
+        await _emit_subflow("subflow:node_complete", {
+            "subflowId": subflow_id,
+            "nodeId": node_id,
+            "success": bool(getattr(result, "success", False)),
+            "duration": getattr(result, "duration", None),
+            "error": getattr(result, "error", None),
+        })
+
+    return {"on_node_start": on_node_start, "on_node_complete": on_node_complete}
+
+
 @register_executor
 class RunWorkflowFileExecutor(ModuleExecutor):
     """运行其它工作流（把多条工作流串成一条业务链）"""
@@ -179,11 +250,17 @@ class RunWorkflowFileExecutor(ModuleExecutor):
         # 子工作流沿用父工作流的运行环境（同一浏览器 / 同一无头设置）
         from app.services.workflow_executor import WorkflowExecutor
 
+        # 子工作流监控窗口用的唯一标识：同一父流程里可能并发/嵌套多个子工作流，
+        # 前端靠它区分是哪一个窗口在更新。带上父节点 id，便于窗口标题回指来源模块。
+        subflow_id = f"sub_{uuid4().hex[:12]}"
+        parent_node_id = getattr(context, "_current_node_id", None)
+
         async def _run_sub() -> dict:
             executor = WorkflowExecutor(
                 workflow=sub_workflow,
                 headless=getattr(context, "headless", False),
                 browser_config=getattr(context, "browser_config", None),
+                **_make_subflow_callbacks(subflow_id),
             )
             # 传播调用链，供子工作流内再次调用时做循环检测
             setattr(executor.context, "_workflow_chain_stack", chain_stack + [key])
@@ -194,7 +271,7 @@ class RunWorkflowFileExecutor(ModuleExecutor):
                         executor.context.set_variable(k, v)
                 except Exception:
                     pass
-            # 子工作流内的日志转发到父工作流日志，便于统一查看
+            # 子工作流内的日志：既转发到父工作流日志（统一查看），也推给子流程监控窗口
             try:
                 parent_ctx = context
 
@@ -210,12 +287,47 @@ class RunWorkflowFileExecutor(ModuleExecutor):
                         )
                     except Exception:
                         pass
+                    await _emit_subflow(
+                        "subflow:log",
+                        {
+                            "subflowId": subflow_id,
+                            "level": str(getattr(getattr(entry, "level", None), "value", None) or "info"),
+                            "message": getattr(entry, "message", ""),
+                            "nodeId": getattr(entry, "node_id", None),
+                        },
+                    )
 
                 executor.on_log = _forward_log
             except Exception:
                 pass
 
-            exec_result = await executor.execute()
+            # 告知前端开一个监控窗口，并把子工作流的图结构一并送过去
+            # （父画布上没有子工作流的节点，前端只能靠这份结构把它画出来）
+            await _emit_subflow("subflow:started", {
+                "subflowId": subflow_id,
+                "name": sub_workflow.name,
+                "file": wf_path.name,
+                "parentNodeId": parent_node_id,
+                "depth": len(chain_stack),
+                **_serialize_graph(sub_workflow),
+            })
+
+            try:
+                exec_result = await executor.execute()
+            except BaseException as exec_exc:
+                # 执行期抛异常时必须补发结束事件，否则监控窗口会一直停在「运行中」，
+                # 用户以为还在跑。补发后原样抛出，交给外层生成模块错误信息。
+                await _emit_subflow("subflow:completed", {
+                    "subflowId": subflow_id,
+                    "name": sub_workflow.name,
+                    "success": False,
+                    "status": "failed",
+                    "executedNodes": int(getattr(executor, "executed_nodes", 0) or 0),
+                    "failedNodes": int(getattr(executor, "failed_nodes", 0) or 0),
+                    "error": str(exec_exc) or exec_exc.__class__.__name__,
+                })
+                raise
+
             # ExecutionResult 用 status/error_message 表达结果（不是 success/error）
             status = getattr(exec_result, "status", None)
             status_str = getattr(status, "value", None) or str(status or "")
@@ -226,6 +338,17 @@ class RunWorkflowFileExecutor(ModuleExecutor):
                 sub_vars = dict(executor.context.variables or {})
             except Exception:
                 sub_vars = {}
+
+            await _emit_subflow("subflow:completed", {
+                "subflowId": subflow_id,
+                "name": sub_workflow.name,
+                "success": ok,
+                "status": status_str,
+                "executedNodes": int(getattr(executor, "executed_nodes", 0) or 0),
+                "failedNodes": int(getattr(executor, "failed_nodes", 0) or 0),
+                "error": err,
+            })
+
             return {"success": ok, "error": err, "variables": sub_vars,
                     "executed_nodes": getattr(executor, "executed_nodes", 0),
                     "failed_nodes": getattr(executor, "failed_nodes", 0)}
