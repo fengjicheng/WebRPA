@@ -604,6 +604,25 @@ class TestFinallyCleanupIsPreserved:
         ]
         assert manual_env.global_variables == {"总数": 3}
 
+    async def test_global_variables_are_normalised_before_store(self, manual_env):
+        """入库前必须规范化：含 datetime / Excel 公式对象的变量不得原样存进全局变量。
+
+        原样存下会让 GET /api/workflows/global-variables 序列化失败，
+        并把脏对象带进下一次执行，污染后续所有 {变量} 渲染。
+        """
+        import json
+        from datetime import datetime
+
+        manual_env.executor.context.variables = {
+            "日期": datetime(2026, 8, 5, 22, 27, 5),
+            "数字": 1,
+        }
+
+        await manual_env.run_execution()
+
+        assert manual_env.global_variables == {"日期": "2026-08-05 22:27:05", "数字": 1}
+        json.dumps(manual_env.global_variables, ensure_ascii=False)
+
     async def test_cleanup_also_runs_on_exception_exit(self, manual_env):
         """异常出口同样走 `finally`：队列与节流时间戳照样清理干净。
 

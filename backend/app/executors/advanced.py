@@ -780,6 +780,10 @@ class ReadExcelExecutor(ModuleExecutor):
                     cell_address, row_index, column_index, start_cell, end_cell, start_row, start_col
                 )
             
+            # 规范化：日期单元格返回 datetime，不是 JSON 原生类型，
+            # 直接入变量会让后续 {变量} 渲染 / 接口返回 / 前端推送全部抛 TypeError
+            from app.utils.json_safe import to_json_safe
+            result = to_json_safe(result)
             context.set_variable(variable_name, result)
             
             display_content = str(result)

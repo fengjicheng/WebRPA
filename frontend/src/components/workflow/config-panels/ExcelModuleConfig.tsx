@@ -32,6 +32,18 @@ const CSV_TYPES: Array<[string, string]> = [['CSV 文件', '*.csv'], ['所有文
 // 通用字段
 const F_FILE: FieldDef = { key: 'filePath', label: 'Excel 文件路径', type: 'path', placeholder: '如 D:\\data.xlsx，支持 {变量名}' }
 const F_SHEET: FieldDef = { key: 'sheetName', label: '工作表名（留空取活动表）', type: 'text', placeholder: '如 Sheet1，支持 {变量名}' }
+// 读取类模块：决定读单元格的计算结果还是公式本身
+const F_READ_CONTENT: FieldDef = {
+  key: 'readContent',
+  label: '读取内容',
+  type: 'select',
+  default: 'value',
+  options: [
+    { value: 'value', label: '值（单元格的计算结果）' },
+    { value: 'formula', label: '公式（如 =SUM(A1:A2)）' },
+  ],
+  hint: '默认读值。公式单元格若没有缓存计算值（文件从未用 Excel 打开保存过），会自动返回公式文本并在执行结果中提示。',
+}
 
 export function ExcelModuleConfig({ moduleType, data, onChange }: ExcelModuleConfigProps) {
   const fields = EXCEL_FIELD_SCHEMAS[moduleType]
@@ -176,6 +188,7 @@ const EXCEL_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
   excel_read_cell: [
     F_FILE, F_SHEET,
     { key: 'cell', label: '单元格地址', type: 'text', placeholder: '如 A1' },
+    F_READ_CONTENT,
     { key: 'resultVariable', label: '存储到变量', type: 'varname', placeholder: 'cell_value' },
   ],
   excel_write_range: [
@@ -186,6 +199,7 @@ const EXCEL_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
   excel_read_range: [
     F_FILE, F_SHEET,
     { key: 'range', label: '区域', type: 'text', placeholder: '如 A1:C10' },
+    F_READ_CONTENT,
     { key: 'resultVariable', label: '存储到变量', type: 'varname', placeholder: 'range_data' },
   ],
   excel_append_row: [

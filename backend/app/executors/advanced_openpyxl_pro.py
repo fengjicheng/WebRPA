@@ -17,6 +17,7 @@ from typing import Any
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 from .type_utils import to_int, to_bool, to_float
+from app.utils.json_safe import to_json_safe
 
 
 def _openpyxl():
@@ -820,6 +821,8 @@ class ExcelReadDictsExecutor(ModuleExecutor):
                     if all(v is None for v in row):
                         continue
                     result.append({headers[i]: (row[i] if i < len(row) else None) for i in range(len(headers))})
+            # 日期单元格返回 datetime，需规范化后才能安全入变量
+            result = to_json_safe(result)
             if var:
                 context.set_variable(var, result)
             return ModuleResult(success=True, message=f"已读取 {len(result)} 条记录", data={"data": result})
@@ -987,7 +990,9 @@ class ExcelReadFormulaExecutor(ModuleExecutor):
             data_only = (mode == "value")
             wb = _load_wb(path, read_only=True, data_only=data_only)
             ws = _get_ws(wb, sheet_name)
-            value = ws[cell].value
+            # 规范化：公式模式下数组公式是 ArrayFormula 对象，值模式下日期是 datetime，
+            # 两者都不是 JSON 原生类型，直接入变量会让后续 {变量} 渲染崩掉
+            value = to_json_safe(ws[cell].value)
             wb.close()
             if var:
                 context.set_variable(var, value)

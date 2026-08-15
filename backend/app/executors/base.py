@@ -675,9 +675,14 @@ class ExecutionContext:
                 if resolved is None:
                     return ''
                 if isinstance(resolved, (list, dict)):
-                    import json
-                    return json.dumps(resolved, ensure_ascii=False)
-                return str(resolved)
+                    # 必须走安全序列化：变量里可能嵌着 datetime、Excel 公式对象等
+                    # 非 JSON 原生类型（如「读取区域」读到日期或数组公式），
+                    # 裸 json.dumps 会抛 TypeError 并把整条工作流带崩。
+                    from app.utils.json_safe import dumps_json_safe
+                    return dumps_json_safe(resolved)
+                from app.utils.json_safe import to_json_safe
+                safe = to_json_safe(resolved)
+                return safe if isinstance(safe, str) else str(safe)
             
             def resolve_nested_variables(text: str, max_depth: int = 5) -> str:
                 """递归解析嵌套的变量引用，最多解析max_depth层"""

@@ -453,6 +453,36 @@ async def list_workflows():
     ]
 
 
+# 注意：全局变量的三个路由必须注册在 /{workflow_id} 之前。
+# Starlette 按注册顺序匹配，若放在后面，/api/workflows/global-variables 会被
+# /api/workflows/{workflow_id} 抢先匹配（workflow_id="global-variables"），
+# 查不到工作流而返回 404，导致全局变量接口彻底不可用。
+@router.get("/global-variables")
+async def get_global_variables():
+    """获取所有全局变量"""
+    return {
+        "variables": global_variables,
+        "count": len(global_variables)
+    }
+
+
+@router.delete("/global-variables")
+async def clear_global_variables():
+    """清空所有全局变量"""
+    global_variables.clear()
+    return {"message": "全局变量已清空"}
+
+
+@router.delete("/global-variables/{variable_name}")
+async def delete_global_variable(variable_name: str):
+    """删除指定的全局变量"""
+    if variable_name in global_variables:
+        del global_variables[variable_name]
+        return {"message": f"变量 {variable_name} 已删除"}
+    else:
+        raise HTTPException(status_code=404, detail="变量不存在")
+
+
 @router.get("/{workflow_id}")
 async def get_workflow(workflow_id: str):
     """获取单个工作流"""
@@ -600,10 +630,13 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
             else:
                 var_type = 'unknown'
         
+        # 值必须规范化：含 datetime / Excel 公式对象时 emit 会序列化失败，
+        # 异常虽被回调的 done_callback 吞掉，但该条变量更新会静默丢失
+        from app.utils.json_safe import to_json_safe
         await sio.emit('execution:variable_update', {
             'workflowId': workflow_id,
             'name': name,
-            'value': value,
+            'value': to_json_safe(value),
             'type': var_type,
         })
     
@@ -750,7 +783,11 @@ async def execute_workflow(workflow_id: str, background_tasks: BackgroundTasks, 
             
             # 保存全局变量到持久化存储（在清理执行器之前）
             if workflow_id in executions_store:
-                global_variables.update(executions_store[workflow_id].context.variables)
+                # 规范化后再入库：变量里可能含 datetime、Excel 公式对象等非 JSON 原生类型
+                # （如「读取区域」读到日期或数组公式）。原样存下会让 GET /global-variables
+                # 序列化失败，并把脏对象带进下一次执行，污染后续所有 {变量} 渲染。
+                from app.utils.json_safe import to_json_safe
+                global_variables.update(to_json_safe(executions_store[workflow_id].context.variables))
                 print(f"[run_execution] 已保存 {len(global_variables)} 个全局变量")
             
         except Exception as e:
@@ -1252,32 +1289,6 @@ async def export_workflow_script(workflow_id: str, target: str = "selenium"):
         "target": target,
         "filename": f"{workflow.name.replace(' ', '_')}_{suffix}.{ext}",
     }
-
-
-@router.get("/global-variables")
-async def get_global_variables():
-    """获取所有全局变量"""
-    return {
-        "variables": global_variables,
-        "count": len(global_variables)
-    }
-
-
-@router.delete("/global-variables")
-async def clear_global_variables():
-    """清空所有全局变量"""
-    global_variables.clear()
-    return {"message": "全局变量已清空"}
-
-
-@router.delete("/global-variables/{variable_name}")
-async def delete_global_variable(variable_name: str):
-    """删除指定的全局变量"""
-    if variable_name in global_variables:
-        del global_variables[variable_name]
-        return {"message": f"变量 {variable_name} 已删除"}
-    else:
-        raise HTTPException(status_code=404, detail="变量不存在")
 
 
 @router.get("/{workflow_id}/variable-tracking")

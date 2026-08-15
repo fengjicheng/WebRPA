@@ -15,6 +15,7 @@ from typing import Any
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
 from .type_utils import to_int, to_bool
+from app.utils.json_safe import to_json_safe
 
 
 def _openpyxl():
@@ -28,12 +29,16 @@ def _resolve_path(context: ExecutionContext, raw: str) -> str:
     return p
 
 
-def _load_wb(path: str, read_only: bool = False):
-    """加载工作簿（不存在则报错）。"""
+def _load_wb(path: str, read_only: bool = False, data_only: bool = False):
+    """加载工作簿（不存在则报错）。
+
+    data_only 默认 False：写类模块必须保留公式，否则保存后公式会被计算值覆盖。
+    读类模块需要单元格的计算结果时显式传 True。
+    """
     openpyxl = _openpyxl()
     if not os.path.exists(path):
         raise FileNotFoundError(f"Excel 文件不存在: {path}")
-    return openpyxl.load_workbook(path, read_only=read_only, data_only=False)
+    return openpyxl.load_workbook(path, read_only=read_only, data_only=data_only)
 
 
 def _get_ws(wb, sheet_name: str):
@@ -43,6 +48,92 @@ def _get_ws(wb, sheet_name: str):
     if sheet_name not in wb.sheetnames:
         raise ValueError(f"工作表不存在: {sheet_name}（现有: {', '.join(wb.sheetnames)}）")
     return wb[sheet_name]
+
+
+# 读取内容模式：值（单元格计算结果）/ 公式（单元格里写的公式本身）
+READ_MODE_VALUE = "value"
+READ_MODE_FORMULA = "formula"
+
+
+def _cells_to_grid(ws, ref: str) -> list:
+    """把 ws[ref] 的返回值统一成二维列表（单格 / 单行 / 单列 / 区域都适用）。"""
+    cells = ws[ref]
+    # 单个单元格：ws['A1'] 直接返回 Cell
+    if not isinstance(cells, tuple):
+        return [[cells.value]]
+    grid = []
+    for row in cells:
+        # 单行或单列区域时，元素可能是 Cell 而不是 tuple
+        if not isinstance(row, tuple):
+            row = (row,)
+        grid.append([c.value for c in row])
+    return grid
+
+
+def _is_formula_value(value: Any) -> bool:
+    """判断一个单元格原始值是否是公式（公式文本或 openpyxl 公式对象）。"""
+    if isinstance(value, str):
+        return value.startswith("=")
+    return type(value).__name__ in ("ArrayFormula", "DataTableFormula")
+
+
+def _read_grid(path: str, sheet_name: str, ref: str, read_mode: str) -> tuple:
+    """读取区域并规范化成 JSON 原生类型的二维列表。
+
+    返回 (grid, fallback_count)：
+    - read_mode=formula：直接读公式（公式对象转成公式文本）
+    - read_mode=value：读 Excel 缓存的计算结果；若某格为空但原文件里确实写着公式，
+      则回填该公式文本并计入 fallback_count。
+      回退是必需的：由程序生成、从未被 Excel 打开保存过的 xlsx 没有公式缓存值，
+      纯值模式会把这些格读成空，用户既拿不到值也看不到公式。
+    """
+    if read_mode == READ_MODE_FORMULA:
+        wb = _load_wb(path, read_only=True, data_only=False)
+        try:
+            grid = _cells_to_grid(_get_ws(wb, sheet_name), ref)
+        finally:
+            wb.close()
+        return to_json_safe(grid), 0
+
+    wb = _load_wb(path, read_only=True, data_only=True)
+    try:
+        grid = _cells_to_grid(_get_ws(wb, sheet_name), ref)
+    finally:
+        wb.close()
+
+    if not any(v is None for row in grid for v in row):
+        return to_json_safe(grid), 0
+
+    wb = _load_wb(path, read_only=True, data_only=False)
+    try:
+        raw_grid = _cells_to_grid(_get_ws(wb, sheet_name), ref)
+    finally:
+        wb.close()
+
+    fallback_count = 0
+    for i, row in enumerate(grid):
+        if i >= len(raw_grid):
+            break
+        for j, value in enumerate(row):
+            if value is not None or j >= len(raw_grid[i]):
+                continue
+            if _is_formula_value(raw_grid[i][j]):
+                row[j] = raw_grid[i][j]
+                fallback_count += 1
+    return to_json_safe(grid), fallback_count
+
+
+def _read_mode_of(context: ExecutionContext, config: dict) -> str:
+    """取「读取内容」配置，默认读值。"""
+    raw = (context.resolve_value(config.get("readContent", READ_MODE_VALUE)) or READ_MODE_VALUE)
+    return READ_MODE_FORMULA if str(raw).strip() == READ_MODE_FORMULA else READ_MODE_VALUE
+
+
+def _fallback_tip(fallback_count: int) -> str:
+    """公式回退提示，供拼进模块执行消息。"""
+    if fallback_count <= 0:
+        return ""
+    return f"（{fallback_count} 个单元格无缓存计算值，已返回公式文本；用 Excel 打开并保存该文件可获得计算结果）"
 
 
 def _parse_2d(raw: Any) -> list:
@@ -240,14 +331,14 @@ class ExcelReadCellExecutor(ModuleExecutor):
         var = config.get("resultVariable", "") or config.get("variableName", "")
         if not cell:
             return ModuleResult(success=False, error="单元格地址不能为空（如 A1）")
+        read_mode = _read_mode_of(context, config)
         try:
-            wb = _load_wb(path, read_only=True)
-            ws = _get_ws(wb, sheet_name)
-            value = ws[cell].value
-            wb.close()
+            grid, fallback_count = _read_grid(path, sheet_name, cell, read_mode)
+            value = grid[0][0] if grid and grid[0] else None
             if var:
                 context.set_variable(var, value)
-            return ModuleResult(success=True, message=f"{cell} = {value}", data={"value": value})
+            message = f"{cell} = {value}{_fallback_tip(fallback_count)}"
+            return ModuleResult(success=True, message=message, data={"value": value})
         except Exception as e:
             return ModuleResult(success=False, error=f"读取单元格失败: {e}")
 
@@ -300,19 +391,13 @@ class ExcelReadRangeExecutor(ModuleExecutor):
         var = config.get("resultVariable", "") or config.get("variableName", "")
         if not cell_range:
             return ModuleResult(success=False, error="区域不能为空（如 A1:C10）")
+        read_mode = _read_mode_of(context, config)
         try:
-            wb = _load_wb(path, read_only=True)
-            ws = _get_ws(wb, sheet_name)
-            result = []
-            for row in ws[cell_range]:
-                # 单格时 ws[range] 返回单个 cell，统一成二维
-                if not isinstance(row, tuple):
-                    row = (row,)
-                result.append([c.value for c in row])
-            wb.close()
+            result, fallback_count = _read_grid(path, sheet_name, cell_range, read_mode)
             if var:
                 context.set_variable(var, result)
-            return ModuleResult(success=True, message=f"已读取区域 {cell_range}（{len(result)} 行）", data={"data": result})
+            message = f"已读取区域 {cell_range}（{len(result)} 行）{_fallback_tip(fallback_count)}"
+            return ModuleResult(success=True, message=message, data={"data": result})
         except Exception as e:
             return ModuleResult(success=False, error=f"读取区域失败: {e}")
 

@@ -1041,9 +1041,16 @@ WORKFLOWS_PY = _BACKEND_DIR / "app" / "api" / "workflows.py"
 # 更新为"阶段二切换后的现状"。阶段一的原始基线为 length=9362、
 # sha256=c385ce212f5452ba0faa046a8ba182525271854b6a848674b362b439aa80b8f7，仅作历史记录。
 # 从此刻起，本用例的职责由"守住阶段一零改动"转为"守住阶段二切换后的手动路径不再被意外改动"。
-RUN_EXECUTION_BASELINE_LENGTH = 8954
+#
+# 【基线更新记录】修复「Excel 读取结果含 datetime / ArrayFormula 导致全局变量序列化失败」
+# 缺陷时，在出口收尾处把 `global_variables.update(context.variables)` 改为先经
+# `to_json_safe` 规范化（新增 4 行注释 + 1 行局部 import），因此基线从
+# length=8954、sha256=9364ff6c464dd7f529af90b436ab94b501c30ba5dc41052e8d207b39043cfef2
+# 更新为下方数值。规范化行为由 tests/regression/test_regression_manual_path_events.py 的
+# test_global_variables_are_normalised_before_store 覆盖。
+RUN_EXECUTION_BASELINE_LENGTH = 9213
 RUN_EXECUTION_BASELINE_SHA256 = (
-    "9364ff6c464dd7f529af90b436ab94b501c30ba5dc41052e8d207b39043cfef2"
+    "2f6c13ad5e2c6e424909f7e06f560554c2853f03a6aa29618bf0a44a97a9422c"
 )
 
 

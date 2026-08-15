@@ -4039,3 +4039,12 @@ Object.assign(UI_DICT, {
   '它不能代表元素可以被点击。若要判断能否点击，请改用“元素可见判断”':
     'It does not mean the element is clickable. To check clickability, use "Element-visible check" instead',
 })
+
+// ---- Excel 读取类模块：读取内容（值 / 公式） ----
+Object.assign(UI_DICT, {
+  '读取内容': 'Read content',
+  '值（单元格的计算结果）': 'Value (the cell\u2019s calculated result)',
+  '公式（如 =SUM(A1:A2)）': 'Formula (e.g. =SUM(A1:A2))',
+  '默认读值。公式单元格若没有缓存计算值（文件从未用 Excel 打开保存过），会自动返回公式文本并在执行结果中提示。':
+    'Reads the value by default. If a formula cell has no cached result (the file has never been opened and saved in Excel), the formula text is returned instead and noted in the run result.',
+})
