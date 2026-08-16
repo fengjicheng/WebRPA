@@ -31,41 +31,25 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   // ==================== 触发器 ====================
   element_change_trigger: {
     saveNewElementSelector: 'new_element_selector',
-    saveChangeInfo: 'element_change_info',
+    saveChangeInfo: 'change_info',
   },
   webhook_trigger: { saveToVariable: 'webhook_data' },
   file_watcher_trigger: { saveToVariable: 'file_event' },
   email_trigger: { saveToVariable: 'email_data' },
-  api_trigger: { saveToVariable: 'api_response' },
-  mouse_trigger: { saveToVariable: 'mouse_position' },
-  image_trigger: { saveToVariable: 'image_position' },
-  sound_trigger: { saveToVariable: 'sound_volume' },
-  face_trigger: { saveToVariable: 'face_detected' },
-  gesture_trigger: { saveToVariable: 'gesture_info' },
+  api_trigger: { saveToVariable: 'api_request' },
+  mouse_trigger: { saveToVariable: 'mouse_event' },
+  image_trigger: { saveToVariable: 'image_event' },
+  sound_trigger: { saveToVariable: 'sound_event' },
+  face_trigger: { saveToVariable: 'face_event' },
+  gesture_trigger: { saveToVariable: 'gesture_data' },
 
   // ==================== 数据/网络/AI ====================
   api_request: { resultVariable: 'api_response' },
-  send_email: { resultVariable: 'email_sent' },
   read_excel: { resultVariable: 'excel_data' },
   // Excel 自动化（openpyxl）读取类模块
-  excel_read_cell: { resultVariable: 'cell_value' },
-  excel_read_range: { resultVariable: 'range_data' },
-  excel_read_dicts: { resultVariable: 'records' },
-  excel_read_formula: { resultVariable: 'cell_value' },
-  excel_list_sheets: { resultVariable: 'sheet_list' },
-  excel_get_info: { resultVariable: 'sheet_info' },
-  excel_count_rows: { resultVariable: 'row_count' },
-  excel_find_empty_row: { resultVariable: 'empty_row' },
-  excel_find_empty_col: { resultVariable: 'empty_col' },
-  excel_find_empty_cell: { resultVariable: 'empty_cell' },
-  excel_run_macro: { resultVariable: 'macro_result' },
-  screenshot: { resultVariable: 'screenshot_path' },
-  get_element_info: { resultVariable: 'element_info' },
-  download_file: { resultVariable: 'file_downloaded' },
   extract_table_data: { variableName: 'table_data' },
-  run_command: { resultVariable: 'command_output' },
+  run_command: { resultVariable: 'cmd_output' },
   js_script: { resultVariable: 'js_result' },
-  python_script: { resultVariable: 'python_result' },
   ai_chat: { resultVariable: 'ai_response' },
   ai_extract: { variableName: 'extracted_data' },
   ai_classify: { variableName: 'category' },
@@ -76,59 +60,35 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   ai_dedup_semantic: { variableName: 'deduped_list' },
   ai_route: { variableName: 'route' },
   ai_vision: { resultVariable: 'vision_result' },
-  ai_vision_act: { variableName: 'vision_target' },
-  assert_checkpoint: { variableName: 'assert_passed' },
   ocr_captcha: { resultVariable: 'captcha_text' },
-  click_image: { resultVariable: 'image_clicked' },
-  click_text: { resultVariable: 'text_clicked' },
-  hover_image: { resultVariable: 'image_hovered' },
-  hover_text: { resultVariable: 'text_hovered' },
-  drag_image: { resultVariable: 'image_dragged' },
-  image_exists: { resultVariable: 'image_found' },
-  element_exists: { resultVariable: 'element_found' },
-  element_visible: { resultVariable: 'element_visible' },
   list_operation: { resultVariable: 'list_result' },
   dict_operation: { resultVariable: 'dict_result' },
-  string_replace: { resultVariable: 'replaced_string' },
+  string_replace: { resultVariable: 'replace_result' },
   regex_extract: { resultVariable: 'regex_result' },
-  json_parse: { resultVariable: 'json_data' },
-  base64: { resultVariable: 'encoded_data' },
-  random_number: { resultVariable: 'random_value' },
-  get_time: { resultVariable: 'current_time' },
+  json_parse: { resultVariable: 'parsed_json' },
+  base64: { resultVariable: 'base64_result' },
   db_query: { resultVariable: 'query_result' },
-  db_execute: { resultVariable: 'execute_result' },
-  db_insert: { resultVariable: 'insert_result' },
-  db_update: { resultVariable: 'update_result' },
-  db_delete: { resultVariable: 'delete_result' },
   list_get: { resultVariable: 'list_item' },
-  list_length: { resultVariable: 'list_size' },
+  list_length: { resultVariable: 'list_len' },
   dict_get: { resultVariable: 'dict_value' },
-  dict_keys: { resultVariable: 'dict_keys_list' },
-  get_clipboard: { resultVariable: 'clipboard_content' },
-  get_mouse_position: { resultVariable: 'mouse_position' },
-  screenshot_screen: { resultVariable: 'screen_shot' },
-  list_files: { resultVariable: 'files_list' },
+  dict_keys: { resultVariable: 'dict_keys' },
+  list_files: { resultVariable: 'file_list' },
   get_file_info: { resultVariable: 'file_info' },
   read_text_file: { resultVariable: 'file_content' },
-  input_prompt: { resultVariable: 'user_input' },
-  network_capture: { resultVariable: 'network_requests' },
+  network_capture: { resultVariable: 'captured_data' },
   firecrawl_scrape: { variableName: 'scrape_result' },
   firecrawl_map: { variableName: 'map_result' },
   firecrawl_crawl: { variableName: 'crawl_result' },
-  ai_smart_scraper: { resultVariable: 'scraped_data' },
-  ai_element_selector: { resultVariable: 'selector_result' },
 
   // ==================== 手机自动化 ====================
-  phone_screenshot: { resultVariable: 'phone_screenshot' },
   phone_get_clipboard: { variableName: 'phone_clipboard' },
-  phone_click_image: { resultVariable: 'phone_image_clicked' },
-  phone_click_text: { resultVariable: 'phone_text_clicked' },
-  phone_wait_image: { resultVariable: 'phone_image_found' },
-  phone_image_exists: { resultVariable: 'phone_image_exists' },
+  phone_click_image: { resultVariable: 'phone_click_result' },
+  phone_wait_image: { resultVariable: 'phone_wait_result' },
+  phone_image_exists: { resultVariable: 'phone_image_exists_result' },
 
   // ==================== 二维码 / 图像处理 ====================
   qr_generate: { resultVariable: 'qr_image' },
-  qr_decode: { resultVariable: 'qr_text' },
+  qr_decode: { resultVariable: 'qr_content' },
   image_format_convert: { resultVariable: 'converted_image' },
   image_resize: { resultVariable: 'resized_image' },
   image_crop: { resultVariable: 'cropped_image' },
@@ -136,7 +96,7 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   image_flip: { resultVariable: 'flipped_image' },
   image_blur: { resultVariable: 'blurred_image' },
   image_sharpen: { resultVariable: 'sharpened_image' },
-  image_brightness: { resultVariable: 'bright_image' },
+  image_brightness: { resultVariable: 'brightness_image' },
   image_contrast: { resultVariable: 'contrast_image' },
   image_color_balance: { resultVariable: 'balanced_image' },
   image_convert_format: { resultVariable: 'converted_image' },
@@ -145,8 +105,8 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   image_thumbnail: { resultVariable: 'thumbnail_image' },
   image_filter: { resultVariable: 'filtered_image' },
   image_get_info: { resultVariable: 'image_info' },
-  image_remove_bg: { resultVariable: 'transparent_image' },
-  image_grayscale: { resultVariable: 'gray_image' },
+  image_remove_bg: { resultVariable: 'nobg_image' },
+  image_grayscale: { resultVariable: 'grayscale_image' },
   image_round_corners: { resultVariable: 'rounded_image' },
 
   // ==================== 盲水印（隐式数字水印） ====================
@@ -157,14 +117,14 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
 
   // ==================== 实用工具 ====================
   file_hash_compare: { resultVariable: 'hash_compare_result' },
-  file_diff_compare: { resultVariable: 'diff_compare_result' },
+  file_diff_compare: { resultVariable: 'diff_result' },
   folder_hash_compare: { resultVariable: 'folder_hash_result' },
   folder_diff_compare: { resultVariable: 'folder_diff_result' },
-  random_password_generator: { resultVariable: 'generated_password' },
+  random_password_generator: { resultVariable: 'random_password' },
   url_encode_decode: { resultVariable: 'url_result' },
   md5_encrypt: { resultVariable: 'md5_hash' },
   sha_encrypt: { resultVariable: 'sha_hash' },
-  timestamp_converter: { resultVariable: 'timestamp_result' },
+  timestamp_converter: { resultVariable: 'converted_time' },
   rgb_to_hsv: { resultVariable: 'hsv_color' },
   rgb_to_cmyk: { resultVariable: 'cmyk_color' },
   hex_to_cmyk: { resultVariable: 'cmyk_color' },
@@ -172,72 +132,28 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
 
   // ==================== PDF ====================
   pdf_extract_text: { resultVariable: 'pdf_text' },
-  pdf_extract_images: { resultVariable: 'pdf_images' },
+  pdf_extract_images: { resultVariable: 'extracted_images' },
   pdf_get_info: { resultVariable: 'pdf_info' },
-  pdf_to_images: { resultVariable: 'pdf_images_paths' },
-  pdf_to_word: { resultVariable: 'word_path' },
+  pdf_to_images: { resultVariable: 'pdf_images' },
+  pdf_to_word: { resultVariable: 'word_file' },
 
   // ==================== 控制流 / 循环 ====================
   foreach: { itemVariable: 'item', indexVariable: 'index' },
   foreach_dict: { keyVariable: 'key', valueVariable: 'value', indexVariable: 'index' },
   loop: { indexVariable: 'index' },
-  infinite_loop: { indexVariable: 'index' },
+  infinite_loop: { indexVariable: 'loop_index' },
 
   // ==================== 数学/统计 ====================
-  list_sum: { resultVariable: 'sum_result' },
-  list_average: { resultVariable: 'average_result' },
-  list_max: { resultVariable: 'max_value' },
-  list_min: { resultVariable: 'min_value' },
-  list_sort: { resultVariable: 'sorted_list' },
-  list_unique: { resultVariable: 'unique_list' },
-  list_count: { resultVariable: 'count_result' },
-  list_find: { resultVariable: 'find_result' },
-  list_filter: { resultVariable: 'filtered_list' },
-  list_map: { resultVariable: 'mapped_list' },
-  list_merge: { resultVariable: 'merged_list' },
-  list_flatten: { resultVariable: 'flat_list' },
-  list_chunk: { resultVariable: 'chunks' },
-  list_reverse: { resultVariable: 'reversed_list' },
-  math_round: { resultVariable: 'round_result' },
-  math_floor: { resultVariable: 'floor_result' },
-  math_modulo: { resultVariable: 'modulo_result' },
-  math_abs: { resultVariable: 'abs_result' },
-  math_sqrt: { resultVariable: 'sqrt_result' },
-  math_power: { resultVariable: 'power_result' },
-  math_log: { resultVariable: 'log_result' },
-  math_trig: { resultVariable: 'trig_result' },
-  math_exp: { resultVariable: 'exp_result' },
-  math_gcd: { resultVariable: 'gcd_result' },
-  math_lcm: { resultVariable: 'lcm_result' },
-  math_factorial: { resultVariable: 'factorial_result' },
-  math_percentage: { resultVariable: 'percentage' },
-  math_clamp: { resultVariable: 'clamped_value' },
-  math_random_advanced: { resultVariable: 'random_advanced' },
-  math_base_convert: { resultVariable: 'base_result' },
-  stat_median: { resultVariable: 'median' },
-  stat_mode: { resultVariable: 'mode' },
-  stat_variance: { resultVariable: 'variance' },
-  stat_stdev: { resultVariable: 'stdev' },
-  stat_percentile: { resultVariable: 'percentile' },
-  csv_parse: { resultVariable: 'csv_data' },
-  csv_generate: { resultVariable: 'csv_text' },
 
   // ==================== 字典 ====================
-  dict_merge: { resultVariable: 'merged_dict' },
-  dict_filter: { resultVariable: 'filtered_dict' },
-  dict_invert: { resultVariable: 'inverted_dict' },
-  dict_sort: { resultVariable: 'sorted_dict' },
-  dict_get_path: { resultVariable: 'path_value' },
-  dict_flatten: { resultVariable: 'flat_dict' },
 
   // ==================== 字符串 ====================
   string_split: { resultVariable: 'split_result' },
-  string_join: { resultVariable: 'joined_string' },
-  string_concat: { resultVariable: 'concat_string' },
-  string_trim: { resultVariable: 'trimmed_string' },
-  string_case: { resultVariable: 'cased_string' },
-  string_substring: { resultVariable: 'sub_string' },
-  list_to_string_advanced: { resultVariable: 'joined_string' },
+  string_join: { resultVariable: 'join_result' },
+  string_concat: { resultVariable: 'concat_result' },
+  string_trim: { resultVariable: 'trim_result' },
+  string_case: { resultVariable: 'case_result' },
+  string_substring: { resultVariable: 'substring_result' },
 
   // ==================== 桌面应用 ====================
   desktop_get_text: { controlVariable: 'desktop_control', saveToVariable: 'control_text' },
@@ -259,23 +175,16 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   // ==================== AI 媒体 ====================
   ai_generate_image: { variableName: 'ai_image_urls' },
   ai_generate_video: { variableName: 'ai_video_url' },
-  audio_to_text: { resultVariable: 'audio_text' },
+  audio_to_text: { resultVariable: 'transcribed_text' },
 
   // ==================== Allure 测试 ====================
-  allure_init: { resultVariable: 'allure_initialized' },
-  allure_start_test: { resultVariable: 'test_id' },
-  allure_generate_report: { resultVariable: 'report_path' },
 
   // ==================== 数据库扩展 ====================
   oracle_query: { variableName: 'oracle_result' },
-  oracle_execute: { resultVariable: 'oracle_affected' },
   postgresql_query: { variableName: 'postgresql_result' },
-  postgresql_execute: { resultVariable: 'pg_affected' },
   mongodb_find: { variableName: 'mongodb_result' },
   sqlserver_query: { variableName: 'sqlserver_result' },
-  sqlserver_execute: { resultVariable: 'mssql_affected' },
   sqlite_query: { variableName: 'sqlite_result' },
-  sqlite_execute: { resultVariable: 'sqlite_affected' },
   redis_get: { variableName: 'redis_value' },
   redis_hget: { variableName: 'redis_hash_value' },
 
@@ -291,7 +200,7 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   sap_get_status_message: { sessionVariable: 'sap_session', saveToVariable: 'sap_status_message' },
   sap_get_title: { sessionVariable: 'sap_session', saveToVariable: 'sap_title' },
   sap_read_gridview: { sessionVariable: 'sap_session', saveToVariable: 'sap_table_data' },
-  sap_export_gridview_excel: { sessionVariable: 'sap_session', resultVariable: 'export_path' },
+  sap_export_gridview_excel: { sessionVariable: 'sap_session' },
 
   // ==================== Webhook 请求 ====================
   webhook_request: {
@@ -304,7 +213,6 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   feishu_sheet_read: { variableName: 'feishu_sheet_data' },
 
   // ==================== 文本/媒体识别 ====================
-  network_monitor_wait: { resultVariable: 'monitored_request' },
 
   // ==================== 任务 2.3 补登记：后端含非空默认内置变量的模块 ====================
   // 媒体格式转换 / 录屏
@@ -370,7 +278,9 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   word_read_table: { resultVariable: 'word_table' },
 
   // ==================== 补登记：桌面应用（应用/控件句柄变量）====================
-  desktop_app_start: { connectionVariable: 'desktop_app' },
+  // desktop_app_start 的字段名以 addNode 为准：addNode 写的是 saveToVariable，
+  // 这里曾错挂在 connectionVariable 上（取值相同但字段名不同），补全因此挂不上。
+  desktop_app_start: { saveToVariable: 'desktop_app' },
   desktop_wait_control: { appVariable: 'desktop_app', saveToVariable: 'desktop_control' },
 
   // ==================== 补登记：SAP 会话句柄变量 ====================
@@ -387,6 +297,76 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   sap_set_checkbox: { sessionVariable: 'sap_session' },
   sap_set_field_value: { sessionVariable: 'sap_session' },
   sap_set_focus: { sessionVariable: 'sap_session' },
+
+  // ==================== 以下条目由 addNode 事实源补齐（module-integrity-audit 任务 11） ====================
+  // 取值一律以 workflowStore.ts 的 addNode 默认配置为准（设计决策 1）：addNode 决定运行时
+  // 真实写入 node.data 的变量名，这里只是补全提示的兜底，必须与之一致，否则会产生幽灵变量。
+
+  // ---------- AI 视觉与生成 ----------
+  ai_element_selector: { variableName: 'element_selector' },
+  ai_smart_scraper: { variableName: 'scraper_result' },
+
+  // ---------- 桌面自动化控件操作 ----------
+  desktop_control_info: {
+    controlVariable: 'desktop_control',
+    saveToVariable: 'control_info',
+  },
+  desktop_control_tree: {
+    appVariable: 'desktop_app',
+    saveToVariable: 'control_tree',
+  },
+  desktop_dialog_handle: { appVariable: 'desktop_app' },
+
+  // ---------- 文档格式转换 ----------
+  docx_to_html: { resultVariable: 'html_output' },
+  docx_to_markdown: { resultVariable: 'markdown_output' },
+  epub_to_markdown: { resultVariable: 'markdown_output' },
+  html_to_docx: { resultVariable: 'docx_output' },
+  html_to_markdown: { resultVariable: 'markdown_output' },
+  latex_to_pdf: { resultVariable: 'pdf_output' },
+  markdown_to_docx: { resultVariable: 'docx_output' },
+  markdown_to_epub: { resultVariable: 'epub_output' },
+  markdown_to_html: { resultVariable: 'html_output' },
+  markdown_to_pdf: { resultVariable: 'pdf_output' },
+  org_to_html: { resultVariable: 'html_output' },
+  rst_to_html: { resultVariable: 'html_output' },
+  universal_doc_convert: { resultVariable: 'convert_output' },
+
+  // ---------- 网页与浏览器 ----------
+  get_clipboard: { variableName: 'clipboard_content' },
+  get_element_info: { variableName: 'element_value' },
+  get_mouse_position: { variableName: 'mouse_pos' },
+  get_time: { variableName: 'current_time' },
+
+  // ---------- 其他 ----------
+  hotkey_trigger: { saveToVariable: 'hotkey_data' },
+  images_to_pdf: { resultVariable: 'pdf_result' },
+  input_prompt: { variableName: 'user_input' },
+  phone_pull_file: { variableName: 'phone_file_path' },
+  phone_screenshot: { variableName: 'phone_screenshot_path' },
+  qq_send_file: { resultVariable: 'qq_file_result' },
+  qq_send_image: { resultVariable: 'qq_img_result' },
+  qq_send_message: { resultVariable: 'qq_msg_result' },
+  random_number: { variableName: 'random_num' },
+  screenshot: { variableName: 'screenshot_path' },
+  screenshot_screen: { variableName: 'screen_path' },
+  set_variable: { variableName: 'my_var' },
+  table_get_cell: { resultVariable: 'cell_value' },
+  wechat_send_file: { resultVariable: 'wechat_file_result' },
+  wechat_send_message: { resultVariable: 'wechat_msg_result' },
+
+  // ---------- PDF 处理 ----------
+  pdf_add_watermark: { resultVariable: 'watermarked_pdf' },
+  pdf_compress: { resultVariable: 'compressed_pdf' },
+  pdf_decrypt: { resultVariable: 'decrypted_pdf' },
+  pdf_delete_pages: { resultVariable: 'result_pdf' },
+  pdf_encrypt: { resultVariable: 'encrypted_pdf' },
+  pdf_insert_pages: { resultVariable: 'result_pdf' },
+  pdf_merge: { resultVariable: 'merged_pdf' },
+  pdf_reorder_pages: { resultVariable: 'reordered_pdf' },
+  pdf_rotate: { resultVariable: 'rotated_pdf' },
+  pdf_split: { resultVariable: 'split_pdfs' },
+
 }
 
 /**

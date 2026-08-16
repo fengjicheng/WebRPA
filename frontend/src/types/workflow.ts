@@ -241,6 +241,7 @@ export type ModuleType =
   // 流程控制
   | 'condition'
   | 'loop'
+  | 'infinite_loop'
   | 'foreach'
   | 'foreach_dict'
   | 'break_loop'
@@ -618,6 +619,7 @@ export type ModuleType =
   | 'sap_close_warning'
   | 'sap_set_checkbox'
   | 'sap_select_combobox'
+  | 'sap_select_tab'
   | 'sap_read_gridview'
   | 'sap_export_gridview_excel'
   | 'sap_set_focus'

@@ -5,7 +5,7 @@ import type { NodeData } from '@/store/workflowStore'
 import { useGlobalConfigStore } from '@/store/globalConfigStore'
 import { Globe, ExternalLink, Play } from 'lucide-react'
 import { moduleIcons } from './ModuleSidebar'
-import { moduleColors } from './moduleColors'
+import { getNodeColorClass } from './moduleColors'
 import { useNodeRunStore } from '@/store/nodeRunStore'
 import { useDebugStore } from '@/store/debugStore'
 
@@ -61,9 +61,10 @@ function ModuleNodeComponent({ id, data, selected }: NodeProps) {
   }
   
   const Icon = isCustomModule ? null : (moduleIcons[nodeData.moduleType] || Globe)
-  const colorClass = isCustomModule 
-    ? '' 
-    : (moduleColors[nodeData.moduleType] || 'border-gray-500 bg-gray-50')
+  // 兜底样式统一走 moduleColors 的 DEFAULT_NODE_COLOR_CLASS，不在此处硬编码字面量（需求 4.6）
+  const colorClass = isCustomModule
+    ? ''
+    : getNodeColorClass(nodeData.moduleType)
 
   const handleSubflowDoubleClick = (e: React.MouseEvent) => {
     if (nodeData.moduleType !== 'subflow') return

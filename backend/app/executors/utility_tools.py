@@ -26,7 +26,9 @@ class FileHashCompareExecutor(ModuleExecutor):
         file1_path = context.resolve_value(config.get("file1Path", ""))
         file2_path = context.resolve_value(config.get("file2Path", ""))
         hash_algorithm = context.resolve_value(config.get("hashAlgorithm", "md5"))
-        result_variable = config.get("resultVariable", "files_equal")
+        # 默认变量名以前端 addNode 为准（hash_compare_result）：addNode 创建节点时写入的
+        # 就是这个名字，此处兜底仅在旧工作流缺该字段时生效，两处必须一致。
+        result_variable = config.get("resultVariable", "hash_compare_result")
         
         if not file1_path or not file2_path:
             return ModuleResult(success=False, error="两个文件路径都不能为空")
@@ -76,7 +78,8 @@ class FileDiffCompareExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         file1_path = context.resolve_value(config.get("file1Path", ""))
         file2_path = context.resolve_value(config.get("file2Path", ""))
-        result_variable = config.get("resultVariable", "file_diff")
+        # 默认变量名以前端 addNode 为准（diff_result）
+        result_variable = config.get("resultVariable", "diff_result")
         output_format = context.resolve_value(config.get("outputFormat", "unified"))
         
         if not file1_path or not file2_path:
@@ -132,7 +135,8 @@ class FolderHashCompareExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         folder1_path = context.resolve_value(config.get("folder1Path", ""))
         folder2_path = context.resolve_value(config.get("folder2Path", ""))
-        result_variable = config.get("resultVariable", "folders_equal")
+        # 默认变量名以前端 addNode 为准（folder_hash_result）
+        result_variable = config.get("resultVariable", "folder_hash_result")
         
         if not folder1_path or not folder2_path:
             return ModuleResult(success=False, error="两个文件夹路径都不能为空")
@@ -182,7 +186,8 @@ class FolderDiffCompareExecutor(ModuleExecutor):
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         folder1_path = context.resolve_value(config.get("folder1Path", ""))
         folder2_path = context.resolve_value(config.get("folder2Path", ""))
-        result_variable = config.get("resultVariable", "diff_files")
+        # 默认变量名以前端 addNode 为准（folder_diff_result）
+        result_variable = config.get("resultVariable", "folder_diff_result")
         
         if not folder1_path or not folder2_path:
             return ModuleResult(success=False, error="两个文件夹路径都不能为空")
@@ -267,7 +272,8 @@ class RandomPasswordGeneratorExecutor(ModuleExecutor):
             exclude_ambiguous_raw = context.resolve_value(exclude_ambiguous_raw)
         exclude_ambiguous = exclude_ambiguous_raw in [True, 'true', 'True', '1', 1]
         
-        result_variable = config.get("resultVariable", "generated_password")
+        # 默认变量名以前端 addNode 为准（random_password）
+        result_variable = config.get("resultVariable", "random_password")
         
         try:
             # 构建字符集
@@ -423,7 +429,8 @@ class TimestampConverterExecutor(ModuleExecutor):
         input_value = context.resolve_value(config.get("inputValue", ""))
         timestamp_unit = context.resolve_value(config.get("timestampUnit", "seconds"))
         datetime_format = context.resolve_value(config.get("datetimeFormat", "%Y-%m-%d %H:%M:%S"))
-        result_variable = config.get("resultVariable", "timestamp_result")
+        # 默认变量名以前端 addNode 为准（converted_time）
+        result_variable = config.get("resultVariable", "converted_time")
         
         try:
             if operation == "to_timestamp":
@@ -658,7 +665,8 @@ class UUIDGeneratorExecutor(ModuleExecutor):
             remove_hyphens_raw = context.resolve_value(remove_hyphens_raw)
         remove_hyphens = remove_hyphens_raw in [True, 'true', 'True', '1', 1]
         
-        result_variable = config.get("resultVariable", "generated_uuid")
+        # 默认变量名以前端 addNode 为准（uuid）
+        result_variable = config.get("resultVariable", "uuid")
         
         try:
             # 生成UUID

@@ -128,7 +128,7 @@ All available modules, grouped by category:
 - **AI capabilities**: AI chat, AI vision, AI smart crawler, AI element selector
 - **Advanced features**: API requests, email, file operations, PDF, media, etc.
 - **Blind watermark (invisible digital watermark)**: embed text/small images into a picture invisibly yet recoverably, often used for copyright tracing
-- **473 modules total**, covering almost every common automation scenario
+- **571 modules total**, covering almost every common automation scenario
 
 > **The module search box supports fuzzy search by Chinese, pinyin or pinyin initials**: typing \`dakai\` or \`dk\` finds "Open page"; typing \`mangshuiyin\` or \`msy\` finds the "Blind watermark" modules.
 

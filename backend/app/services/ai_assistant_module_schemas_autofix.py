@@ -3948,18 +3948,27 @@ AUTOFIX_SCHEMAS: dict = {
         "optional": [
             "clickType",
             "doubleClick",
+            "followNewTab",
             "timeout",
             "waitForSelector"
         ],
         "defaults": {},
         "desc": {
             "selector": "CSS 选择器或 XPath，例如 #search-btn 或 .submit",
-            "timeout": "等待元素出现的超时（秒）"
+            "timeout": "等待元素出现的超时（秒）",
+            "doubleClick": "是否双击",
+            # 本文件的条目会覆盖 ai_assistant_module_schemas.py 里的同名条目，
+            # followNewTab 曾因此丢失，AI 便不知道有这个配置项。
+            "followNewTab": "点击后若打开了新标签页，是否自动切换到新标签页继续操作"
+                            "（默认 false；点链接开新标签页的场景应设为 true，"
+                            "否则后续模块仍在原页面上找元素）"
         },
         "example": {
             "selector": "#kw"
         },
-        "combo": "前序通常是 wait_element 或 input_text；后接 wait_page_load"
+        "combo": "前序通常是 wait_element 或 input_text；后接 wait_page_load。"
+                 "点击会打开新标签页时把 followNewTab 设为 true，"
+                 "或后接 switch_tab（switchMode=last）"
     },
     "input_text": {
         "required": [
@@ -4528,20 +4537,29 @@ AUTOFIX_SCHEMAS: dict = {
         "optional": [
             "appArgs",
             "arguments",
+            "saveToVariable",
             "connectionVariable",
             "waitReady",
             "waitTimeout"
         ],
         "defaults": {
-            "waitReady": True
+            "waitReady": True,
+            "saveToVariable": "desktop_app"
         },
         "desc": {
-            "appPath": "EXE 路径"
+            "appPath": "EXE 路径",
+            # 变量名字段以前端 addNode 为准：saveToVariable 是主字段，
+            # connectionVariable 是后端仅为兼容旧工作流保留的历史别名。
+            "saveToVariable": "应用句柄变量名，后续 desktop_* 模块用它定位这个应用（默认 desktop_app）",
+            "connectionVariable": "历史别名，等价于 saveToVariable，新工作流请用 saveToVariable",
+            "waitReady": "启动后是否等待应用主窗口就绪再继续（默认 true）。"
+                         "设为 false 会立刻返回，后续找控件可能因窗口还没画出来而失败",
+            "waitTimeout": "waitReady 为 true 时的最长等待秒数（默认 10）"
         },
         "example": {
             "appPath": "C:\\\\app.exe"
         },
-        "combo": ""
+        "combo": "后接 desktop_find_control / desktop_click_control 等，用 saveToVariable 传递应用句柄"
     },
     "desktop_app_close": {
         "required": [],
@@ -5019,13 +5037,16 @@ AUTOFIX_SCHEMAS: dict = {
         "example": {},
         "combo": ""
     },
+    # 必填字段名以「前端配置面板 + 后端主字段」为准：两处都用 name，testName 只是后端
+    # 为兼容旧工作流保留的历史别名。之前这里把历史别名列为必填，AI 生成的配置在界面上
+    # 找不到对应输入框，用户无法核对也无法修改。
     "allure_start_test": {
         "required": [
-            "testName"
+            "name"
         ],
         "optional": [
             "description",
-            "name",
+            "testName",
             "resultVariable",
             "severity",
             "tags",
@@ -5035,10 +5056,14 @@ AUTOFIX_SCHEMAS: dict = {
             "severity": "normal"
         },
         "desc": {
-            "severity": "blocker/critical/normal/minor/trivial"
+            "name": "测试用例名称（历史别名 testName 仍可用，新工作流请用 name）",
+            "severity": "严重级别，取值：blocker / critical / normal / minor / trivial"
+        },
+        "enum": {
+            "severity": ["blocker", "critical", "normal", "minor", "trivial"]
         },
         "example": {
-            "testName": "登录测试"
+            "name": "登录测试"
         },
         "combo": ""
     },

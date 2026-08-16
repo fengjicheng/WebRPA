@@ -362,6 +362,28 @@ export function ForeachDictConfig({ data, onChange }: ConfigProps) {
   )
 }
 
+// 无限循环配置
+export function InfiniteLoopConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="indexVariable">索引变量名</Label>
+        <VariableInput
+          value={(data.indexVariable as string) || 'loop_index'}
+          onChange={(v) => onChange('indexVariable', v)}
+          placeholder="索引变量名（默认：loop_index）"
+        />
+        <p className="text-xs text-muted-foreground">
+          每轮循环把当前轮次（从 0 开始）写入该变量。注意「循环」模块默认是 index，本模块默认是 loop_index。
+        </p>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        本模块不会自己停止，必须在循环体内用「跳出循环」模块退出，否则会一直执行到工作流被手动停止。
+      </p>
+    </div>
+  )
+}
+
 // 定时任务配置
 export function ScheduledTaskConfig({ data, onChange }: ConfigProps) {
   const scheduleType = (data.scheduleType as string) || 'datetime'

@@ -6,6 +6,8 @@ The scheduled-task system runs workflows automatically without manual triggering
 
 ## Overview
 
+### Core capabilities
+
 - **Scheduled runs**: run at a set time or interval
 - **Repeat**: repeat a set number of times
 - **Multiple triggers**: time, hotkey, webhook, file watch, email
@@ -175,6 +177,8 @@ Value: ready
 ---
 
 ## Repeat
+
+### Configure repeat
 
 \`\`\`yaml
 Enable repeat: yes

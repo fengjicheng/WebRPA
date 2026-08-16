@@ -331,6 +331,8 @@ Print log: deleted {deletedCount} expired logs
 
 Disconnect and free resources.
 
+### Config
+
 | Parameter | Description | Example |
 |------|------|------|
 | Connection name | The connection to close | \`default\` |

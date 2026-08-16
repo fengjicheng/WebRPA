@@ -2451,6 +2451,8 @@ Object.assign(UI_DICT, {
   "AI全站数据抓取": "AI Full-Site Data Scraping",
   "滑块验证": "Slider Verification",
   "跳出循环": "Break Loop",
+  "无限循环": "Infinite Loop",
+  "切换选项卡": "Switch Tab",
   "强制停止工作流执行": "Force Stop Workflow Execution",
   "热键触发器": "Hotkey Trigger",
   "文件监控触发器": "File Monitor Trigger",
@@ -4071,4 +4073,21 @@ Object.assign(PHRASES, {
 Object.assign(UI_DICT, {
   '功能包检测显示「网页自动化」已安装，但浏览器仍无法启动，可能是安装不完整或文件被清理。请在 更多 → 功能模块包 中重新安装该功能包，并重启后端服务':
     'The feature pack check reports "Web automation" as installed, but the browser still cannot start \u2014 the install may be incomplete or files were removed. Reinstall the pack via More \u2192 Feature packs, then restart the backend service',
+})
+
+// ============================================================
+// 精确整句翻译：module-integrity-audit 任务 15 / 19 新增文案
+//   · 无限循环模块配置（ControlModuleConfigs.InfiniteLoopConfig）
+//   · SAP 切换选项卡模块配置（SAPModuleConfigs.SapSelectTabConfig）
+// 这两个模块的前端登记是本次补齐的（后端一直有执行器），其面板文案随之新增。
+// ============================================================
+Object.assign(UI_DICT, {
+  '索引变量名（默认：loop_index）': 'Index variable (default: loop_index)',
+  '每轮循环把当前轮次（从 0 开始）写入该变量。注意「循环」模块默认是 index，本模块默认是 loop_index。':
+    'Each iteration writes the current round (starting at 0) into this variable. Note that the "Loop" module defaults to index while this one defaults to loop_index.',
+  '本模块不会自己停止，必须在循环体内用「跳出循环」模块退出，否则会一直执行到工作流被手动停止。':
+    'This module never stops on its own. Use the "Break loop" module inside the loop body to exit, otherwise it keeps running until the workflow is stopped manually.',
+  '选项卡元素ID': 'Tab element ID',
+  '用 SAP 脚本录制器取选项卡（tabp 开头）的元素ID；切换后该选项卡内的控件才能被操作':
+    'Use the SAP script recorder to get the tab element ID (starts with tabp); controls inside the tab become operable only after switching to it',
 })

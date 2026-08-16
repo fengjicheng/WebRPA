@@ -686,6 +686,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   sap_close_warning: '关闭警告弹窗',
   sap_set_checkbox: '设置复选框',
   sap_select_combobox: '设置下拉框',
+  sap_select_tab: '切换选项卡',
   sap_read_gridview: '读取表格数据',
   sap_export_gridview_excel: '导出表格到Excel',
   sap_set_focus: '设置焦点',
@@ -721,6 +722,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   // 流程控制
   condition: '条件判断',
   loop: '循环',
+  infinite_loop: '无限循环',
   foreach: '遍历列表',
   foreach_dict: '遍历字典',
   break_loop: '跳出循环',
@@ -1058,6 +1060,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   // 流程控制
   condition: 5,         // 5秒
   loop: 0,                 // 循环本身不超时
+  infinite_loop: 0,        // 无限循环本身不超时（靠「跳出循环」退出）
   foreach: 0,              // 遍历本身不超时
   break_loop: 5,        // 5秒
   continue_loop: 5,     // 5秒

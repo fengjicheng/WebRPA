@@ -603,7 +603,10 @@ class ApiTriggerExecutor(ModuleExecutor):
         condition_operator = context.resolve_value(config.get('conditionOperator', '=='))
         check_interval = to_int(config.get('checkInterval', 10), 10, context)
         timeout = to_int(config.get('timeout', 0), 0, context)
-        save_to_variable = config.get('saveToVariable', 'api_response')
+        # 默认变量名以前端 addNode 为准（api_request）：addNode 创建节点时就把它写进了
+        # node.data，这里的兜底只在旧工作流缺该字段时生效，两处必须一致，否则补全提示的
+        # 名字与实际写入的名字不同，用户按提示写引用取不到值。
+        save_to_variable = config.get('saveToVariable', 'api_request')
 
         if not api_url:
             return ModuleResult(success=False, error="API地址不能为空")
@@ -763,7 +766,8 @@ class MouseTriggerExecutor(ModuleExecutor):
         min_gesture_distance = to_int(config.get('minGestureDistance', 50), 50, context)
         gesture_timeout = to_float(config.get('gestureTimeout', 2.0), 2.0, context)
         timeout = to_int(config.get('timeout', 0), 0, context)
-        save_to_variable = config.get('saveToVariable', 'mouse_position')
+        # 默认变量名以前端 addNode 为准（mouse_event）
+        save_to_variable = config.get('saveToVariable', 'mouse_event')
 
         try:
             import ctypes
@@ -994,7 +998,8 @@ class ImageTriggerExecutor(ModuleExecutor):
         check_interval = float(config.get('checkInterval', 0.5))
         timeout = to_int(config.get('timeout', 0), 0, context)
         search_region = config.get('searchRegion', None)
-        save_to_variable = config.get('saveToVariable', 'image_position')
+        # 默认变量名以前端 addNode 为准（image_event）
+        save_to_variable = config.get('saveToVariable', 'image_event')
         
         if not image_path:
             return ModuleResult(success=False, error="图像路径不能为空")
@@ -1162,7 +1167,8 @@ class SoundTriggerExecutor(ModuleExecutor):
         volume_threshold = to_int(config.get('volumeThreshold', 50), 50, context)
         check_interval = float(config.get('checkInterval', 0.1))
         timeout = to_int(config.get('timeout', 0), 0, context)
-        save_to_variable = config.get('saveToVariable', 'sound_volume')
+        # 默认变量名以前端 addNode 为准（sound_event）
+        save_to_variable = config.get('saveToVariable', 'sound_event')
         
         try:
             from comtypes import CLSCTX_ALL
@@ -1237,7 +1243,8 @@ class FaceTriggerExecutor(ModuleExecutor):
         check_interval = float(config.get('checkInterval', 0.5))
         timeout = to_int(config.get('timeout', 0), 0, context)
         camera_index = to_int(config.get('cameraIndex', 0), 0, context)
-        save_to_variable = config.get('saveToVariable', 'face_detected')
+        # 默认变量名以前端 addNode 为准（face_event）
+        save_to_variable = config.get('saveToVariable', 'face_event')
         
         if not target_face_image:
             return ModuleResult(success=False, error="目标人脸图片路径不能为空")

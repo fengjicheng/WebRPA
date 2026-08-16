@@ -10,7 +10,7 @@ import type React from 'react'
 import { useWorkflowStore, moduleTypeLabels, type NodeData, type ErrorPolicy } from '@/store/workflowStore'
 import { useNodeRunStore } from '@/store/nodeRunStore'
 import { moduleIcons, moduleCategories, moduleKeywords } from './ModuleSidebar'
-import { moduleColors } from './moduleColors'
+import { getBlockRowColorClasses } from './moduleColors'
 import { SelectNative } from '@/components/ui/select-native'
 import { Plus, Search, Trash2, X, ChevronUp, ChevronDown, Ban, CheckCircle2, RotateCcw } from 'lucide-react'
 import type { ModuleType } from '@/types'
@@ -490,12 +490,10 @@ export function BlockFlowView() {
     const data = node.data as NodeData
     const type = data.moduleType as ModuleType
     const Icon = moduleIcons[type]
-    const parts = (moduleColors[type] || '').split(' ')
-    const borderCls = parts.find((c) => c.startsWith('border-')) || 'border-slate-300'
-    const bgCls = parts.find((c) => c.startsWith('bg-')) || 'bg-slate-100'
-    // 由分类描边色派生：强调条(bg-xxx-500) 与图标色(text-xxx-600)
-    const accentBar = borderCls.replace('border-', 'bg-')
-    const accentText = borderCls.replace('border-', 'text-').replace(/-500$/, '-600')
+    // 配色与画布节点同源：统一由 getBlockRowColorClasses 从画布节点样式类派生，
+    // 兜底也复用同一份 DEFAULT_NODE_COLOR_CLASS，不在此处硬编码字面量（需求 4.3 / 4.6）
+    const { borderClass: borderCls, bgClass: bgCls, accentBarClass: accentBar, accentTextClass: accentText } =
+      getBlockRowColorClasses(type)
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId
     const multiSelected = selectedIds.has(node.id)

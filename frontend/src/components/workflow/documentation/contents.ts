@@ -57,6 +57,7 @@ const FILE_TO_DOC_ID: Record<string, string> = {
   'content-cases': 'practical-cases',
   'content-patterns': 'workflow-patterns',
   'content-tips': 'tips-tricks',
+  'content-module-reference': 'module-reference',
 }
 
 // 按 docId 索引的 lazy loader

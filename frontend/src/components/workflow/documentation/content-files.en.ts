@@ -26,6 +26,8 @@ This chapter covers operations on files and folders.
 
 List all files and folders in a directory.
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | Directory path | The directory to list |
@@ -73,6 +75,8 @@ A list of full file paths:
 
 Copy a file to a new location.
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | Source file | The file to copy |
@@ -108,6 +112,8 @@ Iterate: {fileList}
 
 Move a file to a new location (the original is removed).
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | Source file | The file to move |
@@ -131,6 +137,8 @@ Archive by date:
 ## Delete file
 
 Delete a file.
+
+### Config
 
 | Parameter | Description |
 |------|------|
@@ -163,6 +171,8 @@ Safe delete:
 
 Create a new directory.
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | Folder path | The directory path to create |
@@ -186,6 +196,8 @@ Create a dated dir:
 
 Check whether a file or folder exists.
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | Path | The file/folder path to check |
@@ -208,6 +220,8 @@ Condition: {configExists}
 ## Get file info
 
 Get detailed info about a file.
+
+### Config
 
 | Parameter | Description |
 |------|------|
@@ -246,6 +260,8 @@ Check the file size:
 
 Read a text file's content.
 
+### Config
+
 | Parameter | Description |
 |------|------|
 | File path | The file to read |
@@ -275,6 +291,8 @@ JSON parse: {configText} -> {configObj}
 ## Write text file
 
 Write content to a text file.
+
+### Config
 
 | Parameter | Description |
 |------|------|
@@ -309,6 +327,8 @@ Append a log:
 ## Rename file/folder
 
 Rename a file or folder.
+
+### Config
 
 | Parameter | Description |
 |------|------|

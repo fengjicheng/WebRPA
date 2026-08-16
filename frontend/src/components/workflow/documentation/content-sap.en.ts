@@ -4,6 +4,19 @@ export const sapGuideContentEn = `# SAP Automation Guide
 
 ---
 
+## Contents
+
+- [Module overview](#module-overview)
+- [Connect & log in](#connect--log-in)
+- [Transaction codes](#transaction-codes)
+- [Field operations](#field-operations)
+- [Buttons & controls](#buttons--controls)
+- [Table operations](#table-operations)
+- [Practical cases](#practical-cases)
+- [FAQ](#faq)
+
+---
+
 ## Module overview
 
 WebRPA provides a complete set of SAP GUI automation modules:

@@ -371,6 +371,42 @@ Export the data table to a file:
 
 ---
 
+## Data collection and export
+
+### Collect data into the table
+
+1. Use the **Get element info** module
+2. Fill in the **stored column name** field
+3. The data is collected into the data table automatically
+
+**Example**: collecting a product list
+
+\`\`\`
+Foreach list (list of product selectors)
+  ├─ Get element info (title) -> stored column: Product name
+  ├─ Get element info (price) -> stored column: Price
+  └─ Get element info (link)  -> stored column: Product link
+\`\`\`
+
+### View collected data
+
+1. Open the log panel at the bottom
+2. Switch to the **Data table** tab
+3. You get a table-style preview of the data
+4. Cells can be edited directly
+
+### Export data
+
+**Option 1: manual export**
+- Click the **Download CSV** button on the Data table tab
+
+**Option 2: automatic export**
+- Use the **Export table** module
+- Excel or CSV format
+- Custom save path and file name supported
+
+---
+
 ## Math operations
 
 ### Set variable (expressions)

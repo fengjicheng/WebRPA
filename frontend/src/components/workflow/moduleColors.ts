@@ -83,7 +83,9 @@ function buildModuleColors(): Record<string, string> {
 export const moduleColors: Record<string, string> = buildModuleColors()
 
 // Tailwind 分类色 → 代表性 hex（供 minimap 等需要真实颜色值的场景，确保缩略图颜色与画布模块一致）
-const tailwindHex: Record<string, string> = {
+//
+// 导出以便配色审计测试独立复算「分类 color 经 tailwindHex 映射结果」（Property 7 缩略图侧）。
+export const tailwindHex: Record<string, string> = {
   'bg-blue-500': '#3b82f6', 'bg-blue-600': '#2563eb', 'bg-blue-700': '#1d4ed8', 'bg-blue-800': '#1e40af',
   'bg-indigo-500': '#6366f1', 'bg-indigo-600': '#4f46e5', 'bg-indigo-700': '#4338ca', 'bg-indigo-800': '#3730a3',
   'bg-purple-500': '#a855f7', 'bg-purple-600': '#9333ea', 'bg-purple-700': '#7e22ce',
@@ -106,10 +108,18 @@ const tailwindHex: Record<string, string> = {
   'bg-stone-500': '#78716c',
 }
 
+/**
+ * 未登记 color / 未知模块时，缩略图等 hex 场景回退的默认色（唯一一份定义）。
+ *
+ * 与 DEFAULT_NODE_COLOR_CLASS 分属两个取值域（类名 vs hex），但同样只允许一处定义，
+ * 禁止在调用点各自硬编码字面量（需求 4.6）。
+ */
+export const DEFAULT_NODE_HEX_COLOR = '#3b82f6'
+
 function buildModuleHexColors(): Record<string, string> {
   const colors: Record<string, string> = {}
   for (const category of moduleCategories) {
-    const hex = tailwindHex[category.color] || '#3b82f6'
+    const hex = tailwindHex[category.color] || DEFAULT_NODE_HEX_COLOR
     for (const moduleType of category.modules) colors[moduleType as string] = hex
   }
   return colors
@@ -117,10 +127,50 @@ function buildModuleHexColors(): Record<string, string> {
 
 export const moduleHexColors: Record<string, string> = buildModuleHexColors()
 
-/** 取模块的真实代表色（hex），用于 minimap 等。未知模块回退到蓝色。 */
+/** 取模块的真实代表色（hex），用于 minimap 等。未知模块回退到 DEFAULT_NODE_HEX_COLOR。 */
 export function getModuleHexColor(moduleType?: string): string {
-  if (!moduleType) return '#3b82f6'
-  return moduleHexColors[moduleType] || '#3b82f6'
+  if (!moduleType) return DEFAULT_NODE_HEX_COLOR
+  return moduleHexColors[moduleType] || DEFAULT_NODE_HEX_COLOR
+}
+
+/**
+ * 取模块的画布节点样式类（边框 + 背景 + 文字），未知模块回退 DEFAULT_NODE_COLOR_CLASS。
+ *
+ * 画布节点（ModuleNode）必须经此函数取色，不得在组件内另写兜底字面量（需求 4.6）。
+ */
+export function getNodeColorClass(moduleType?: string): string {
+  if (!moduleType) return DEFAULT_NODE_COLOR_CLASS
+  return moduleColors[moduleType] || DEFAULT_NODE_COLOR_CLASS
+}
+
+/** 模块条视图（BlockFlowView）单行所需的配色类名，全部由画布节点样式类派生。 */
+export interface BlockRowColorClasses {
+  /** 边框色，直接取画布节点样式类中的 border-*，是模块条配色的唯一来源 */
+  borderClass: string
+  /** 背景色，直接取画布节点样式类中的 bg-* */
+  bgClass: string
+  /** 左侧强调条：由边框色换前缀派生 */
+  accentBarClass: string
+  /** 图标色：由边框色换前缀并加深一档派生 */
+  accentTextClass: string
+}
+
+/**
+ * 取模块条视图单行的配色类名（与画布节点同源）。
+ *
+ * 同源保证：本函数只以 getNodeColorClass 的结果为输入做前缀替换，不引入第二份颜色表，
+ * 因此模块条视图与画布节点必然指向同一个分类 color（Property 7）。
+ */
+export function getBlockRowColorClasses(moduleType?: string): BlockRowColorClasses {
+  const parts = getNodeColorClass(moduleType).split(' ')
+  const borderClass = parts.find((c) => c.startsWith('border-')) ?? ''
+  const bgClass = parts.find((c) => c.startsWith('bg-')) ?? ''
+  return {
+    borderClass,
+    bgClass,
+    accentBarClass: borderClass.replace('border-', 'bg-'),
+    accentTextClass: borderClass.replace('border-', 'text-').replace(/-500$/, '-600'),
+  }
 }
 
 // ============================================================================
@@ -194,6 +244,33 @@ export function findDuplicateCategorizedModules(): { type: string; categories: s
  * 导致画布色与分类色不一致。
  * @returns 去重后的未登记 color 字符串列表（保持首次出现顺序）。
  */
+/**
+ * 返回共用同一 color 的分类分组（撞色）。
+ *
+ * 撞色不影响「配色与分类色一致」这一性质，因此**不判定为失败**；但它会让用户在画布上
+ * 无法凭颜色区分这几类模块，需要可见以便人工决定是否调色（需求 4.7）。
+ * @returns 每个被 2 个及以上分类共用的 color，附带共用它的分类名（保持 moduleCategories 顺序）。
+ */
+export function findCategoryColorCollisions(): { color: string; categories: string[] }[] {
+  const colorToCategories = new Map<string, string[]>()
+  for (const category of moduleCategories) {
+    const list = colorToCategories.get(category.color)
+    if (list) {
+      list.push(category.name)
+    } else {
+      colorToCategories.set(category.color, [category.name])
+    }
+  }
+
+  const result: { color: string; categories: string[] }[] = []
+  for (const [color, categories] of colorToCategories) {
+    if (categories.length > 1) {
+      result.push({ color, categories })
+    }
+  }
+  return result
+}
+
 export function findUnmappedCategoryColors(): string[] {
   const seen = new Set<string>()
   const result: string[] = []

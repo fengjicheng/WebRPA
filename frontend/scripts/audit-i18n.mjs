@@ -12,6 +12,11 @@
          返回重复 key（tsc TS1117 隐患）。
      - buildReport(): 汇总报告对象。
 
+   另：报告中并入教学文档的「中英成对 + 章节序列一致」小节（Property 10），
+   逻辑复用 audit-module-docs.mjs，使 audit-i18n 成为文案完整性的单一入口。
+   教学文档仍不参与中文残留扫描（其正文本就是中文，不走 UI_DICT），且该小节
+   不影响本脚本的退出码语义（仍只由 Property 14 / 15 决定）。
+
    运行方式（cwd = frontend）：
      node scripts/audit-i18n.mjs
    或使用项目内置 node：
@@ -21,6 +26,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+// 教学文档的中英成对与章节序列检查复用 audit-module-docs.mjs 的实现，不复制一份逻辑。
+// 该模块被 import 时无副作用（内部有 isMain 守卫）。
+import { findDocSectionGaps } from './audit-module-docs.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FRONTEND_DIR = path.resolve(__dirname, '..')
@@ -651,12 +659,48 @@ function main() {
     for (const r of residuals.slice(0, 40)) log('    - ' + r.file + ':' + r.line + '  ' + r.text)
   }
 
+  // --- 教学文档中英成对与章节序列（module-integrity-audit 任务 10 / Property 10）---
+  //
+  // 教学文档仍然**不参与**上面的「中文字面量残留」扫描：它的正文本身就是中文，不走
+  // UI_DICT 翻译层，扫描它只会产出成千上万条无意义的残留。但「英文版是否跟着中文版
+  // 同步更新」同样属于文案完整性，之前没有任何守护。
+  //
+  // 这里复用 audit-module-docs.mjs 的判定逻辑（不复制一份），让 audit-i18n 保持为
+  // 「文案完整性」的单一入口，维护者不需要记住跑两个脚本。
+  //
+  // 退出码语义保持不变：只有 Property 14 / 15 决定 RED/GREEN 与退出码，文档成对性
+  // 作为独立小节输出。这样做是为了不改变既有 CI 与提交前检查的行为契约——文档章节
+  // 的补齐由 audit-module-docs.mjs 自己的退出码把关。
+  log('')
+  log('[Property 10] 中英教学文档成对与章节序列一致（并入报告，不影响本脚本退出码）')
+  let docGaps = null
+  try {
+    docGaps = findDocSectionGaps()
+  } catch (e) {
+    log('  ERROR: 无法执行文档成对性检查：' + (e && e.message ? e.message : String(e)))
+  }
+  if (docGaps) {
+    const oneSided = docGaps.filter((g) => g.kind !== 'section-mismatch')
+    const mismatched = docGaps.filter((g) => g.kind === 'section-mismatch')
+    if (docGaps.length === 0) {
+      log('  PASS: 中英教学文档一一成对，标题骨架一致')
+    } else {
+      log('  FAIL: 单边文件 ' + oneSided.length + ' 个，章节序列不一致 ' + mismatched.length + ' 个')
+      for (const g of oneSided) log('    - ' + g.file + '  ' + g.section)
+      for (const g of mismatched) log('    - ' + g.file + '  ' + g.section)
+    }
+    log('  详情与未提及模块清单请运行: node scripts/audit-module-docs.mjs')
+  }
+
   // --- 汇总 ---
   const hasGap = duplicateKeys.length > 0 || residuals.length > 0
   log('')
   log('[结论]')
   log('  Property 15 (无重复 key): ' + (duplicateKeys.length === 0 ? 'PASS' : 'FAIL(' + duplicateKeys.length + ')'))
   log('  Property 14 (无中文残留): ' + (residuals.length === 0 ? 'PASS' : 'FAIL(' + residuals.length + ')'))
+  if (docGaps) {
+    log('  Property 10 (中英文档同步): ' + (docGaps.length === 0 ? 'PASS' : 'FAIL(' + docGaps.length + ')，见 audit-module-docs'))
+  }
   log('  总判定: ' + (hasGap ? 'RED (存在缺口，待 6.2 修复)' : 'GREEN'))
   log('========================================')
 

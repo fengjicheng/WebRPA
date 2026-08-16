@@ -159,6 +159,7 @@ import {
 import {
   ConditionConfig,
   LoopConfig,
+  InfiniteLoopConfig,
   ForeachConfig,
   ForeachDictConfig,
   ScheduledTaskConfig,
@@ -432,6 +433,7 @@ import {
   SapReadGridViewConfig,
   SapExportGridViewExcelConfig,
   SapSetFocusConfig,
+  SapSelectTabConfig,
   SapMaximizeWindowConfig,
 } from './config-panels'
 import {
@@ -1382,6 +1384,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <AssertCheckpointConfig {...props} />
       case 'loop':
         return <LoopConfig data={nodeData} onChange={handleChange} />
+      case 'infinite_loop':
+        return <InfiniteLoopConfig data={nodeData} onChange={handleChange} />
       case 'foreach':
         return <ForeachConfig data={nodeData} onChange={handleChange} />
       case 'foreach_dict':
@@ -2227,6 +2231,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <SapSetCheckboxConfig data={nodeData} onChange={handleChange} />
       case 'sap_select_combobox':
         return <SapSelectComboBoxConfig data={nodeData} onChange={handleChange} />
+      case 'sap_select_tab':
+        return <SapSelectTabConfig data={nodeData} onChange={handleChange} />
       case 'sap_read_gridview':
         return <SapReadGridViewConfig data={nodeData} onChange={handleChange} />
       case 'sap_export_gridview_excel':

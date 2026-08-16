@@ -36,6 +36,28 @@ def make_context():
     return _factory
 
 
+class _LoopbackClientASGI:
+    """把 ASGI scope 的 client 改写为本机来源的包装层。
+
+    目的：命中鉴权/RBAC 中间件的「本机豁免」，测试无需携带 Token/会话即可访问，
+    也不需要修改磁盘上的安全配置。
+
+    为什么不用 `TestClient(app, client=(...))`：`client` 参数在不同 starlette 版本里
+    时有时无（当前 0.41.x 已移除，传入会直接 TypeError 让整个接口测试集无法收集）。
+    改成自己包一层 ASGI 中间件后，与 starlette / httpx 版本完全解耦。
+    """
+
+    def __init__(self, app, client=("127.0.0.1", 12345)):
+        self.app = app
+        self.client = client
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") in ("http", "websocket"):
+            scope = dict(scope)
+            scope["client"] = self.client
+        await self.app(scope, receive, send)
+
+
 @pytest.fixture(scope="session")
 def client():
     """FastAPI TestClient（不绑真实网络端口）。
@@ -47,9 +69,7 @@ def client():
     from fastapi.testclient import TestClient
     from app.main import app
 
-    # 以本机(loopback)来源构造客户端：命中鉴权/RBAC 中间件的"本机豁免"，
-    # 测试无需携带 Token/会话即可访问，且不修改磁盘上的安全配置。
-    return TestClient(app, client=("127.0.0.1", 12345))
+    return TestClient(_LoopbackClientASGI(app))
 
 
 @pytest.fixture

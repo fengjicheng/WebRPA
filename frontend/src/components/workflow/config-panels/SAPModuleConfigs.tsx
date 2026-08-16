@@ -292,6 +292,23 @@ export function SapSetFocusConfig({ data, onChange }: ConfigProps) {
   )
 }
 
+export function SapSelectTabConfig({ data, onChange }: ConfigProps) {
+  return (
+    <div className="space-y-4">
+      <SessionVarField data={data} onChange={onChange} />
+      <ElementIdField
+        data={data}
+        onChange={onChange}
+        label="选项卡元素ID"
+        placeholder="wnd[0]/usr/tabsTABSTRIP/tabpTAB01"
+      />
+      <p className="text-xs text-muted-foreground">
+        用 SAP 脚本录制器取选项卡（tabp 开头）的元素ID；切换后该选项卡内的控件才能被操作
+      </p>
+    </div>
+  )
+}
+
 export function SapMaximizeWindowConfig({ data, onChange }: ConfigProps) {
   return (
     <div className="space-y-4">

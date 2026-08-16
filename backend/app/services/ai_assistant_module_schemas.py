@@ -2233,20 +2233,31 @@ ADVANCED_MATH_SCHEMAS: dict = {
         "example": {"resultsPath": "D:\\\\allure-results", "projectName": "我的项目"},
         "combo": "测试流程入口",
     },
+    # 字段名以「前端配置面板 + 后端主字段」为准：两处都用 name，testName / stepName 是
+    # 后端仅为兼容旧工作流保留的历史别名。schema 之前写的是历史别名，导致 AI 生成的配置
+    # 在界面上找不到对应输入框，用户既无法核对也无法修改。
     "allure_start_test": {
-        "required": ["testName"],
+        "required": ["name"],
         "optional": ["description", "severity", "tags", "resultVariable"],
         "defaults": {"severity": "normal", "resultVariable": "test_id"},
-        "desc": {"severity": "blocker/critical/normal/minor/trivial"},
-        "example": {"testName": "登录测试"},
+        "desc": {
+            "name": "测试用例名称（历史别名 testName 仍可用，新工作流请用 name）",
+            "severity": "严重级别，取值：blocker / critical / normal / minor / trivial",
+        },
+        "enum": {"severity": ["blocker", "critical", "normal", "minor", "trivial"]},
+        "example": {"name": "登录测试"},
         "combo": "",
     },
     "allure_add_step": {
-        "required": ["stepName", "status"],
+        "required": ["name", "status"],
         "optional": ["description"],
         "defaults": {"status": "passed"},
-        "desc": {"status": "passed/failed/skipped/broken"},
-        "example": {"stepName": "输入用户名", "status": "passed"},
+        "desc": {
+            "name": "步骤名称（历史别名 stepName 仍可用，新工作流请用 name）",
+            "status": "步骤结果，取值：passed / failed / skipped / broken",
+        },
+        "enum": {"status": ["passed", "failed", "skipped", "broken"]},
+        "example": {"name": "输入用户名", "status": "passed"},
         "combo": "",
     },
     "allure_add_attachment": {

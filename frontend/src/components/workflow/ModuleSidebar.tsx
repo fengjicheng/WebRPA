@@ -363,6 +363,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   // 流程控制
   condition: GitBranch,
   loop: Repeat,
+  infinite_loop: Repeat,
   foreach: ListOrdered,
   break_loop: LogOut,
   continue_loop: SkipForward,
@@ -827,6 +828,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   sap_close_warning: X,
   sap_set_checkbox: CheckSquare,
   sap_select_combobox: ChevronDown,
+  sap_select_tab: Table2,
   sap_read_gridview: Table2,
   sap_export_gridview_excel: FileSpreadsheet,
   sap_set_focus: Crosshair,
@@ -1156,6 +1158,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   slider_captcha: ['滑块', '验证', '验证码', 'slider', '拖动'],
   condition: ['条件', '判断', 'if', 'condition', '分支'],
   loop: ['循环', '重复', 'loop', 'for', '次数'],
+  infinite_loop: ['无限', '循环', '死循环', 'infinite', 'loop', 'while', '一直'],
   foreach: ['遍历', '列表', 'foreach', '数组', 'each'],
   break_loop: ['跳出', '循环', 'break', '退出'],
   continue_loop: ['跳过', '当前', '本次', '循环', 'continue', '下一次', 'skip'],
@@ -1456,6 +1459,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   sap_close_warning: ['sap', '关闭', '警告', '弹窗', 'close', 'warning', 'dialog'],
   sap_set_checkbox: ['sap', '复选框', 'checkbox', '勾选', 'check'],
   sap_select_combobox: ['sap', '下拉框', 'combobox', '选择', 'select', 'dropdown'],
+  sap_select_tab: ['sap', '选项卡', '标签页', '页签', 'tab', 'tabstrip', '切换'],
   sap_read_gridview: ['sap', '表格', 'gridview', '读取', 'grid', 'table', '数据'],
   sap_export_gridview_excel: ['sap', '导出', 'excel', 'export', '表格', 'gridview', '下载'],
   sap_set_focus: ['sap', '焦点', 'focus', '设置'],
@@ -1555,7 +1559,7 @@ const moduleCategories = [
   {
     name: '流程控制',
     color: 'bg-orange-500',
-    modules: ['condition', 'loop', 'foreach', 'foreach_dict', 'break_loop', 'continue_loop', 'assert_checkpoint', 'stop_workflow', 'wait', 'scheduled_task', 'subflow', 'run_workflow_file', 'input_prompt'] as ModuleType[],
+    modules: ['condition', 'loop', 'infinite_loop', 'foreach', 'foreach_dict', 'break_loop', 'continue_loop', 'assert_checkpoint', 'stop_workflow', 'wait', 'scheduled_task', 'subflow', 'run_workflow_file', 'input_prompt'] as ModuleType[],
   },
   {
     name: '触发器',
@@ -1754,7 +1758,7 @@ const moduleCategories = [
   {
     name: 'SAP自动化',
     color: 'bg-blue-800',
-    modules: ['sap_login', 'sap_logout', 'sap_run_tcode', 'sap_set_field_value', 'sap_get_field_value', 'sap_click_button', 'sap_send_vkey', 'sap_get_status_message', 'sap_get_title', 'sap_close_warning', 'sap_set_checkbox', 'sap_select_combobox', 'sap_read_gridview', 'sap_export_gridview_excel', 'sap_set_focus', 'sap_maximize_window'] as ModuleType[],
+    modules: ['sap_login', 'sap_logout', 'sap_run_tcode', 'sap_set_field_value', 'sap_get_field_value', 'sap_click_button', 'sap_send_vkey', 'sap_get_status_message', 'sap_get_title', 'sap_close_warning', 'sap_set_checkbox', 'sap_select_combobox', 'sap_select_tab', 'sap_read_gridview', 'sap_export_gridview_excel', 'sap_set_focus', 'sap_maximize_window'] as ModuleType[],
   },
   // ===== 实用工具 =====
   {

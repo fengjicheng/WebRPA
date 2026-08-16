@@ -253,7 +253,10 @@ class LoopExecutor(ModuleExecutor):
         count = to_int(raw_count, 10, context)
         condition = config.get('condition', '')  # 保持原始条件表达式,不在这里解析
         max_iterations = to_int(config.get('maxIterations', 1000), 1000, context)
-        index_variable = config.get('indexVariable', 'loop_index')
+        # 默认索引变量名以前端 addNode 为准（index）：addNode 创建 loop 节点时写入的就是
+        # indexVariable='index'，这里的兜底只在旧工作流缺该字段时生效。
+        # 注意与 infinite_loop 区分：那个模块 addNode 没有默认配置，其兜底仍是 loop_index。
+        index_variable = config.get('indexVariable', 'index')
         
         start_value = to_int(config.get('startValue', 1), 1, context)
         end_value = to_int(config.get('endValue', 10), 10, context)
