@@ -221,22 +221,13 @@ workflows/*.json
 !workflows/.gitkeep
 
 # ============================================
-# 启动器开发文件（不开源）
+# 启动器（不开源，整目录排除）
 # ============================================
-
-# Tauri 启动器编译产物
-launcher/dist/
-launcher/node_modules/
-launcher/src-tauri/target/
-launcher/src-tauri/Cargo.lock
-
-# 但是保留源代码以便追踪修改
-!launcher/src/
-!launcher/src-tauri/src/
-!launcher/package.json
-!launcher/vite.config.js
-!launcher/src-tauri/Cargo.toml
-!launcher/src-tauri/tauri.conf.json
+#
+# 注意：这里**不能**再写 !launcher/... 之类的反向例外。
+# 历史上曾用 `!launcher/src/` 等规则「保留源代码以便追踪修改」，结果把整个启动器
+# 源码推上了公开仓库（origin/main 上曾有 28 个文件、59 次提交），已通过改写历史移除。
+launcher/
 # AI 助手会话历史 + 全局变量（含用户隐私）
 backend/data/global_vars.json
 backend/data/ai_assistant/
@@ -269,6 +260,25 @@ _update_version.ps1
 
 # Exclude WebRPA official website source
 website/
+
+# ============================================
+# 其余不开源 / 无需入库的对象（整目录或整类排除）
+# ============================================
+
+# 启动器二进制（发布产物，72MB）
+WebRPA启动器.exe
+
+# OCR 模型权重（约 100MB，用 download_models.py 自行下载）
+models/
+
+# 运行时数据与导出结果（可能含业务数据）
+data/
+
+# 一次性开发脚本（按钮改色、去 emoji、去渐变等历史改造脚本，非项目运行所需）
+scripts/
+
+# 根目录一次性审计脚本
+_module_audit.py
 
 # 临时端到端联调脚本 / 误生成的双层路径目录（测试从 backend 目录跑时产生）
 _e2e_*.py
