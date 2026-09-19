@@ -46,6 +46,7 @@ export const MODULE_DEFAULT_VARS: Record<string, Record<string, string>> = {
   // ==================== 数据/网络/AI ====================
   api_request: { resultVariable: 'api_response' },
   read_excel: { resultVariable: 'excel_data' },
+  type_convert: { resultVariable: 'converted_value' },
   // Excel 自动化（openpyxl）读取类模块
   extract_table_data: { variableName: 'table_data' },
   run_command: { resultVariable: 'cmd_output' },

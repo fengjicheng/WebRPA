@@ -375,6 +375,7 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
     "变量与数据": {
         "set_variable": "设置/创建变量",
         "increment_decrement": "数值变量自增/自减",
+        "type_convert": "变量强制类型转换（字符串/整数/小数/布尔/列表/字典）",
         "json_parse": "解析 JSON 字符串",
         "base64": "Base64 编解码",
         "regex_extract": "用正则表达式提取文本",
@@ -460,6 +461,7 @@ MODULE_CATEGORIES: dict[str, dict[str, str]] = {
     },
     "Excel自动化(openpyxl)": {
         "excel_create": "创建 Excel 工作簿",
+        "excel_close": "关闭 Excel/WPS 工作簿并释放文件占用",
         "excel_add_sheet": "添加工作表",
         "excel_delete_sheet": "删除工作表",
         "excel_rename_sheet": "重命名工作表",

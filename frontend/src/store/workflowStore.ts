@@ -342,6 +342,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   // 数据处理
   set_variable: '设置变量',
   increment_decrement: '自增自减',
+  type_convert: '变量类型转换',
   json_parse: 'JSON解析',
   base64: 'Base64编解码',
   random_number: '随机数',
@@ -352,6 +353,7 @@ export const moduleTypeLabels: Record<ModuleType, string> = {
   read_excel: '读取Excel',
   // Excel 自动化（openpyxl）
   excel_create: '创建Excel',
+  excel_close: '关闭Excel',
   excel_add_sheet: '添加工作表',
   excel_delete_sheet: '删除工作表',
   excel_rename_sheet: '重命名工作表',
@@ -982,6 +984,7 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   // 数据处理 - 通常很快
   set_variable: 5,      // 5秒
   increment_decrement: 5, // 5秒
+  type_convert: 5,
   json_parse: 5,        // 5秒
   base64: 10,           // 10秒
   random_number: 5,     // 5秒
@@ -990,6 +993,8 @@ export const moduleDefaultTimeouts: Partial<Record<ModuleType, number>> = {
   save_image: 60,       // 1分钟
   screenshot: 60,       // 60秒
   read_excel: 60,       // 1分钟，大Excel文件
+  excel_create: 30,
+  excel_close: 30,
   // 字符串操作 - 很快
   regex_extract: 10,    // 10秒
   string_replace: 5,    // 5秒
@@ -1579,6 +1584,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       // 设置变量模块默认变量
       defaultData = {
         variableName: 'my_var',
+      }
+    } else if (type === 'type_convert') {
+      defaultData = {
+        targetType: 'string',
+        resultVariable: 'converted_value',
+        listSeparator: ',',
       }
     } else if (type === 'random_number') {
       // 随机数模块默认变量

@@ -1,6 +1,7 @@
 """媒体处理模块 - 识别相关（人脸识别、OCR）"""
 import asyncio
 import os
+import threading
 from pathlib import Path
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
@@ -94,24 +95,91 @@ class FaceRecognitionExecutor(ModuleExecutor):
 
 # 全局缓存 easyocr reader，避免每次重新加载模型
 _easyocr_reader = None
-_easyocr_lock = asyncio.Lock()
+_easyocr_lock = threading.Lock()
+_rapidocr_reader = None
+_paddleocr_reader = None
+
+
+class OCRInitializationError(RuntimeError):
+    """所有通用 OCR 引擎均不可用，并保留每个引擎的真实失败原因。"""
 
 
 def get_easyocr_reader():
     """获取缓存的 easyocr reader，使用项目内置模型目录"""
     global _easyocr_reader
-    if _easyocr_reader is None:
-        import easyocr
-        model_dir = str(_EASYOCR_MODEL_DIR)
-        print(f"[EasyOCR] 使用本地模型目录: {model_dir}")
-        _easyocr_reader = easyocr.Reader(
-            ['ch_sim', 'en'],
-            gpu=False,
-            verbose=False,
-            model_storage_directory=model_dir,
-            download_enabled=False,  # 禁止自动下载，使用本地模型
-        )
+    with _easyocr_lock:
+        if _easyocr_reader is None:
+            required = (_EASYOCR_MODEL_DIR / "craft_mlt_25k.pth",
+                        _EASYOCR_MODEL_DIR / "zh_sim_g2.pth")
+            missing = [p.name for p in required if not p.is_file()]
+            if missing:
+                raise FileNotFoundError(
+                    f"EasyOCR 模型不完整（目录 {_EASYOCR_MODEL_DIR}，缺少: {', '.join(missing)}）"
+                )
+            import easyocr
+            model_dir = str(_EASYOCR_MODEL_DIR)
+            print(f"[EasyOCR] 使用本地模型目录: {model_dir}")
+            _easyocr_reader = easyocr.Reader(
+                ['ch_sim', 'en'],
+                gpu=False,
+                verbose=False,
+                model_storage_directory=model_dir,
+                download_enabled=False,
+            )
     return _easyocr_reader
+
+
+def _box_sort_key(item):
+    box = item[0] if item else None
+    try:
+        return float(box[0][1]), float(box[0][0])
+    except Exception:
+        return 0.0, 0.0
+
+
+def _read_general_ocr(img_array):
+    """按 EasyOCR → RapidOCR → PaddleOCR 回退识别，返回 (文本, 引擎名)。
+
+    OCR 功能包允许 PaddleOCR/EasyOCR 二选一；旧实现却硬依赖 EasyOCR，导致只安装
+    Paddle 包时直接报“初始化失败”。这里逐引擎尝试，并在全部失败时给出可诊断信息。
+    """
+    global _rapidocr_reader, _paddleocr_reader
+    errors = []
+
+    try:
+        reader = get_easyocr_reader()
+        rows = reader.readtext(img_array)
+        texts = [str(item[1]) for item in sorted(rows or [], key=_box_sort_key) if len(item) > 1]
+        return '\n'.join(texts), 'EasyOCR'
+    except Exception as e:
+        errors.append(f"EasyOCR: {type(e).__name__}: {e}")
+
+    try:
+        if _rapidocr_reader is None:
+            from rapidocr_onnxruntime import RapidOCR
+            _rapidocr_reader = RapidOCR()
+        raw = _rapidocr_reader(img_array)
+        rows = raw[0] if isinstance(raw, tuple) else raw
+        texts = [str(item[1]) for item in sorted(rows or [], key=_box_sort_key) if len(item) > 1]
+        return '\n'.join(texts), 'RapidOCR'
+    except Exception as e:
+        errors.append(f"RapidOCR: {type(e).__name__}: {e}")
+
+    try:
+        from app.services.paddle_ocr_init import get_ocr_instance, parse_ocr_result
+        if _paddleocr_reader is None:
+            _paddleocr_reader = get_ocr_instance('ch')
+        if hasattr(_paddleocr_reader, 'predict'):
+            raw = _paddleocr_reader.predict(img_array)
+        else:
+            raw = _paddleocr_reader.ocr(img_array)
+        rows = parse_ocr_result(raw)
+        texts = [str(item[1]) for item in sorted(rows or [], key=_box_sort_key) if len(item) > 1]
+        return '\n'.join(texts), 'PaddleOCR'
+    except Exception as e:
+        errors.append(f"PaddleOCR: {type(e).__name__}: {e}")
+
+    raise OCRInitializationError("；".join(errors))
 
 
 @register_executor
@@ -135,10 +203,10 @@ class ImageOCRExecutor(ModuleExecutor):
             else:
                 return await self._ocr_file(config, context, loop, result_variable, ocr_type)
                 
-        except ImportError:
-            return ModuleResult(success=False, error="OCR识别功能初始化失败")
+        except OCRInitializationError as e:
+            return ModuleResult(success=False, error=f"OCR识别功能初始化失败：{e}")
         except Exception as e:
-            return ModuleResult(success=False, error=f"OCR识别失败: {str(e)}")
+            return ModuleResult(success=False, error=f"OCR识别失败: {type(e).__name__}: {e}")
     
     async def _ocr_region(self, config: dict, context: ExecutionContext, loop, result_variable: str, ocr_type: str) -> ModuleResult:
         """区域识别模式 - 截取屏幕指定区域"""
@@ -230,11 +298,8 @@ class ImageOCRExecutor(ModuleExecutor):
                 result = ocr_engine.classification(image_bytes)
                 return result
             else:
-                reader = get_easyocr_reader()
-                results = reader.readtext(img_array)
-                results_sorted = sorted(results, key=lambda x: (x[0][0][1], x[0][0][0]))
-                texts = [item[1] for item in results_sorted]
-                return '\n'.join(texts) if texts else ""
+                text, _engine = _read_general_ocr(img_array)
+                return text
         
         text = await loop.run_in_executor(None, capture_and_ocr)
         
@@ -291,11 +356,8 @@ class ImageOCRExecutor(ModuleExecutor):
                         new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
                         pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
                     img_array = np.array(pil_image)
-                    reader = get_easyocr_reader()
-                    results = reader.readtext(img_array)
-                    results_sorted = sorted(results, key=lambda x: (x[0][0][1], x[0][0][0]))
-                    texts = [item[1] for item in results_sorted]
-                    return '\n'.join(texts) if texts else ""
+                    text, _engine = _read_general_ocr(img_array)
+                    return text
         
         text = await loop.run_in_executor(None, do_ocr)
         

@@ -561,6 +561,8 @@ async def _read_excel_xlsx(file_path: str, request: ReadExcelRequest):
         row_data = []
         for cell in ws[request.rowIndex]:
             row_data.append(cell.value if cell.value is not None else '')
+        while row_data and row_data[-1] == '':
+            row_data.pop()
         result = row_data
         result_type = 'array'
     
@@ -573,6 +575,8 @@ async def _read_excel_xlsx(file_path: str, request: ReadExcelRequest):
             col_idx = openpyxl.utils.column_index_from_string(col_idx)
         for row in ws.iter_rows(min_col=col_idx, max_col=col_idx):
             col_data.append(row[0].value if row[0].value is not None else '')
+        while col_data and col_data[-1] == '':
+            col_data.pop()
         result = col_data
         result_type = 'array'
     
@@ -633,6 +637,8 @@ async def _read_excel_xls(file_path: str, request: ReadExcelRequest):
             row_data = ws.row_values(row_idx)
             # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
             row_data = [v if v != '' else '' for v in row_data]
+            while row_data and row_data[-1] == '':
+                row_data.pop()
             result = row_data
             result_type = 'array'
         
@@ -647,6 +653,8 @@ async def _read_excel_xls(file_path: str, request: ReadExcelRequest):
             col_data = ws.col_values(col_idx)
             # xlrd的空单元格已经是空字符串，但为了保险起见还是处理一下
             col_data = [v if v != '' else '' for v in col_data]
+            while col_data and col_data[-1] == '':
+                col_data.pop()
             result = col_data
             result_type = 'array'
         

@@ -192,6 +192,7 @@ import {
   Base64Config,
   RandomNumberConfig,
   GetTimeConfig,
+  TypeConvertConfig,
   ListOperationConfig,
   ListGetConfig,
   ListLengthConfig,
@@ -1259,6 +1260,8 @@ export function ConfigPanel({ selectedNodeId: propSelectedNodeId }: ConfigPanelP
         return <SetVariableConfig data={nodeData} onChange={handleChange} />
       case 'increment_decrement':
         return <IncrementDecrementConfig data={nodeData} onChange={handleChange} />
+      case 'type_convert':
+        return <TypeConvertConfig data={nodeData} onChange={handleChange} />
       case 'print_log':
         return <PrintLogConfig data={nodeData} onChange={handleChange} />
       case 'play_sound':

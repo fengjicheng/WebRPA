@@ -35,7 +35,7 @@ import { moduleTypeLabels } from '@/store/workflowStore'
  *
  * group（分组）与 note（便签）**保留在审计范围内**：它们是可拖拽的画布工具，
  * 在 ModuleSidebar 分类中有登记并参与搜索，用户确实会用「fz」「bq」去搜它们。
- * 保留后本审计口径 = 571 - 2 = 569，与对外披露口径一致（见 requirements 模块数量口径）。
+ * 保留后本审计口径 = 575 - 2 = 573，与对外披露口径一致（见 requirements 模块数量口径）。
  */
 const NON_SEARCHABLE_PSEUDO_TYPES: ReadonlySet<string> = new Set<string>([
   'custom_module',

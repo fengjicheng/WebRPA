@@ -101,10 +101,10 @@ app.get('/health', (req, res) => {
 // 获取最新版本号
 app.get('/api/version', (req, res) => {
   res.json({
-    version: '3.2.0',
-    releaseDate: '2026-08-30',
+    version: '3.2.6',
+    releaseDate: '2026-09-19',
     downloadUrl: 'https://github.com/pmh1314520/WebRPA/releases',
-    changelog: '3.2.0 版本：新增子工作流执行可视化监控窗口；建立模块元信息一致性校验网并补齐清单缺口；修复桌面自动化整组模块崩溃、Excel 读取结果类型异常、全局变量接口被路由遮蔽、执行器孤立节点被误当起始节点、媒体播放阻塞与播放器误弹、Word 替换文本无效等问题；计划任务尊重自动关闭浏览器开关，缺功能包提示改为可安装引导。详见 GitHub Releases。'
+    changelog: '3.2.6 版本：修复网页元素选择器与 iframe 切换无法进入多层嵌套 iframe；修复图片 OCR 初始化失败并新增多引擎回退诊断；固定等待支持小数秒；修复 Excel 创建后文件占用并新增自动打开、关闭功能；新增完整变量类型强制转换模块；修复 Excel 尾部空单元格被读成大量 null 导致列表循环无法结束。启动器源码同步开源。详见 GitHub Releases。'
   })
 })
 

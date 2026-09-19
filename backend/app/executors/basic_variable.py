@@ -1,9 +1,128 @@
 """基础模块执行器 - 变量和工具相关"""
 import asyncio
+import json
+import math
 import re
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor, escape_css_selector, pw_wait_for_element
 from .type_utils import to_int, to_float
+
+
+def _convert_variable_type(value, target_type: str, list_separator: str = ","):
+    """严格转换为 WebRPA 支持的变量类型（字符串/整数/小数/布尔/列表/字典）。"""
+    target = (target_type or "string").strip().lower()
+
+    if target == "string":
+        if value is None:
+            return ""
+        if isinstance(value, (dict, list, tuple)):
+            return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
+
+    if target == "integer":
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("空值不能转换为整数")
+        number = float(value.strip()) if isinstance(value, str) else float(value)
+        if not math.isfinite(number):
+            raise ValueError("无穷大或 NaN 不能转换为整数")
+        return int(number)
+
+    if target == "float":
+        if value is None or (isinstance(value, str) and not value.strip()):
+            raise ValueError("空值不能转换为小数")
+        result = float(value.strip()) if isinstance(value, str) else float(value)
+        if not math.isfinite(result):
+            raise ValueError("无穷大或 NaN 不是有效小数")
+        return result
+
+    if target == "boolean":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if value is None:
+            return False
+        normalized = str(value).strip().lower()
+        if normalized in {"true", "1", "yes", "y", "on", "是", "真"}:
+            return True
+        if normalized in {"false", "0", "no", "n", "off", "", "否", "假", "null", "none"}:
+            return False
+        raise ValueError(f"无法识别的布尔值: {value}")
+
+    if target == "list":
+        if isinstance(value, list):
+            return list(value)
+        if isinstance(value, (tuple, set)):
+            return list(value)
+        if isinstance(value, dict):
+            return list(value.values())
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            text = value.strip()
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    return parsed
+                if isinstance(parsed, dict):
+                    return list(parsed.values())
+            except Exception:
+                pass
+            separator = (list_separator.replace(r"\n", "\n")
+                         .replace(r"\r", "\r").replace(r"\t", "\t"))
+            if separator == "":
+                return [text]
+            return [part.strip() for part in text.split(separator)]
+        return [value]
+
+    if target in {"dictionary", "dict", "object"}:
+        if isinstance(value, dict):
+            return dict(value)
+        if value is None or value == "":
+            return {}
+        if isinstance(value, str):
+            parsed = json.loads(value.strip())
+            if not isinstance(parsed, dict):
+                raise ValueError("JSON 内容不是对象")
+            return parsed
+        if isinstance(value, (list, tuple)):
+            try:
+                return dict(value)
+            except Exception:
+                return {str(i): item for i, item in enumerate(value)}
+        raise ValueError(f"{type(value).__name__} 不能转换为字典")
+
+    raise ValueError(f"不支持的目标类型: {target_type}")
+
+
+@register_executor
+class TypeConvertExecutor(ModuleExecutor):
+    """变量强制类型转换模块。"""
+
+    @property
+    def module_type(self) -> str:
+        return "type_convert"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        raw_value = config.get("inputValue", "")
+        value = context.resolve_value(raw_value)
+        target_type = str(context.resolve_value(config.get("targetType", "string")) or "string")
+        result_variable = str(config.get("resultVariable", "converted_value") or "").strip()
+        list_separator = str(context.resolve_value(config.get("listSeparator", ",")) or ",")
+        if not result_variable:
+            return ModuleResult(success=False, error="结果变量名不能为空")
+        try:
+            result = _convert_variable_type(value, target_type, list_separator)
+            context.set_variable(result_variable, result)
+            return ModuleResult(
+                success=True,
+                message=f"类型转换完成: {type(value).__name__} → {target_type}，已存入 {result_variable}",
+                data={"value": result, "targetType": target_type},
+            )
+        except (ValueError, TypeError, json.JSONDecodeError) as e:
+            return ModuleResult(success=False, error=f"变量类型转换失败: {e}")
 
 
 @register_executor

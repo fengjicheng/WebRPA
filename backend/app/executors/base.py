@@ -205,6 +205,7 @@ class ExecutionContext:
     _in_iframe: bool = False  # 是否在iframe中
     _main_page: Optional[Page] = None  # 主页面引用（用于从iframe切换回来）
     _iframe_locator: Optional[dict] = None  # iframe定位信息 {type: 'name'|'index'|'selector', value: ...}
+    _iframe_locator_path: list[dict] = field(default_factory=list)  # 主页面到当前嵌套 iframe 的逐层路径
     _current_frame: Optional[Page] = None  # 当前iframe的直接引用（用于嵌套iframe）
     
     # Playwright 实例引用
@@ -244,10 +245,14 @@ class ExecutionContext:
             print(f"[get_current_frame] 不在iframe中，返回当前page")
             return self.page
         
-        # 如果有保存的frame引用，直接返回
+        # 页面刷新后旧 Frame 可能已 detached；有效时才直接返回。
         if self._current_frame:
-            print(f"[get_current_frame] 返回保存的frame引用: {self._current_frame.url}")
-            return self._current_frame
+            try:
+                if not self._current_frame.is_detached():
+                    print(f"[get_current_frame] 返回保存的frame引用: {self._current_frame.url}")
+                    return self._current_frame
+            except Exception:
+                pass
         
         # 否则尝试动态获取（兼容旧逻辑）
         if not self._iframe_locator or not self._main_page:
@@ -255,42 +260,47 @@ class ExecutionContext:
             return self.page
         
         try:
-            locator_type = self._iframe_locator.get('type')
-            locator_value = self._iframe_locator.get('value')
-            
-            print(f"[get_current_frame] 动态获取iframe，定位方式: {locator_type}, 值: {locator_value}")
-            
+            path = self._iframe_locator_path or [self._iframe_locator]
+            scope = self._main_page
             frame = None
-            
-            if locator_type == 'name':
-                frame = self._main_page.frame(name=locator_value)
-                if not frame:
+
+            for locator in path:
+                locator_type = locator.get('type')
+                locator_value = locator.get('value')
+                print(f"[get_current_frame] 动态获取iframe，定位方式: {locator_type}, 值: {locator_value}")
+                scope_frame = scope.main_frame if hasattr(scope, 'main_frame') else scope
+                child_frames = list(getattr(scope_frame, 'child_frames', []) or [])
+                frame = None
+
+                if locator_type == 'name':
+                    frame = next((f for f in child_frames if f.name == locator_value), None)
+                    if not frame:
+                        try:
+                            iframe_element = await scope.wait_for_selector(
+                                f'iframe[id="{locator_value}"]', timeout=2000
+                            )
+                            if iframe_element:
+                                frame = await iframe_element.content_frame()
+                        except Exception as e:
+                            print(f"[get_current_frame] 通过id查找失败: {e}")
+                elif locator_type == 'index':
                     try:
-                        iframe_element = await self._main_page.wait_for_selector(
-                            f'iframe[id="{locator_value}"]',
-                            timeout=2000
-                        )
+                        idx = int(locator_value)
+                        if 0 <= idx < len(child_frames):
+                            frame = child_frames[idx]
+                    except Exception:
+                        frame = None
+                elif locator_type == 'selector':
+                    try:
+                        iframe_element = await scope.wait_for_selector(locator_value, timeout=2000)
                         if iframe_element:
                             frame = await iframe_element.content_frame()
                     except Exception as e:
-                        print(f"[get_current_frame] 通过id查找失败: {e}")
-                    
-            elif locator_type == 'index':
-                frames = self._main_page.frames
-                child_frames = [f for f in frames if f != self._main_page.main_frame]
-                if 0 <= locator_value < len(child_frames):
-                    frame = child_frames[locator_value]
-                    
-            elif locator_type == 'selector':
-                try:
-                    iframe_element = await self._main_page.wait_for_selector(
-                        locator_value,
-                        timeout=2000
-                    )
-                    if iframe_element:
-                        frame = await iframe_element.content_frame()
-                except Exception as e:
-                    print(f"[get_current_frame] 通过选择器查找失败: {e}")
+                        print(f"[get_current_frame] 通过选择器查找失败: {e}")
+
+                if frame is None:
+                    break
+                scope = frame
             
             if frame:
                 print(f"[get_current_frame] 动态获取成功，更新context.page")
@@ -495,6 +505,7 @@ class ExecutionContext:
             self._in_iframe = False
             self._current_frame = None
             self._iframe_locator = None
+            self._iframe_locator_path = []
             self._main_page = None
             url = getattr(new_page, 'url', '') or ''
             self.add_log('info', f"已跟进{action_desc}打开的新标签页：{url}",

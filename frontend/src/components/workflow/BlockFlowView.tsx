@@ -492,7 +492,7 @@ export function BlockFlowView() {
     const Icon = moduleIcons[type]
     // 配色与画布节点同源：统一由 getBlockRowColorClasses 从画布节点样式类派生，
     // 兜底也复用同一份 DEFAULT_NODE_COLOR_CLASS，不在此处硬编码字面量（需求 4.3 / 4.6）
-    const { borderClass: borderCls, bgClass: bgCls, accentBarClass: accentBar, accentTextClass: accentText } =
+    const { bgClass: bgCls, accentBarClass: accentBar, accentTextClass: accentText } =
       getBlockRowColorClasses(type)
     const summary = getSummary(data)
     const selected = node.id === selectedNodeId

@@ -217,14 +217,21 @@ async def _start_picker_engine() -> dict:
     except Exception:
         pass
 
-    # 立即给所有现有页面注入一次（init_script 只对未来文档生效）
+    # 立即给所有现有页面及其全部 iframe 注入一次。
+    # add_init_script 只会作用于「之后创建/导航」的文档，选择器通常是在页面已经
+    # 加载完（iframe 也已存在）后启动；只 evaluate Page 会导致脚本仅进入主文档，
+    # 鼠标事件又不会跨 iframe 冒泡，于是只能选中最外层 iframe 元素。
     injected = 0
     for pg in ctx.pages:
-        try:
-            await pg.evaluate(PICKER_SCRIPT)
-            injected += 1
-        except Exception as e:
-            print(f"[browser_manager] 注入到 {pg.url} 失败：{e}")
+        frames = list(getattr(pg, "frames", []) or [])
+        if not frames and getattr(pg, "main_frame", None):
+            frames = [pg.main_frame]
+        for fr in frames:
+            try:
+                await fr.evaluate(PICKER_SCRIPT)
+                injected += 1
+            except Exception as e:
+                print(f"[browser_manager] 注入到 frame {getattr(fr, 'url', '')} 失败：{e}")
 
     _picker_active = True
     print(f"[browser_manager] 选择器已启动[v2-跨页跟随]：立即覆盖 {injected} 个页面；"
@@ -245,10 +252,14 @@ async def _stop_picker_engine() -> dict:
     ctx = browser_engine.get_context()
     if ctx:
         for pg in ctx.pages:
-            try:
-                await pg.evaluate("""
+            frames = list(getattr(pg, "frames", []) or [])
+            if not frames and getattr(pg, "main_frame", None):
+                frames = [pg.main_frame]
+            for fr in frames:
+                try:
+                    await fr.evaluate("""
                     () => {
-                        ['__picker_tip','__picker_box'].forEach(id => {
+                        ['__picker_tip','__picker_box','__picker_first_box','__picker_selected_box','__picker_style'].forEach(id => {
                             var el = document.getElementById(id);
                             if (el) el.remove();
                         });
@@ -258,9 +269,9 @@ async def _stop_picker_engine() -> dict:
                         window.__elementPickerResult = null;
                         window.__elementPickerSimilar = null;
                     }
-                """)
-            except Exception:
-                pass
+                    """)
+                except Exception:
+                    pass
         # 同时给后续新页面挂上禁用标志
         try:
             await ctx.add_init_script(
@@ -285,32 +296,27 @@ async def _ensure_picker_on_all_pages() -> None:
     if ctx is None:
         return
     for pg in list(getattr(ctx, "pages", []) or []):
-        url = ""
-        try:
-            url = pg.url
-        except Exception:
-            pass
-        # 关键：以“覆盖层元素是否真实存在”为准，而不是信 window.__elementPickerActive 布尔标志。
-        # 因为 add_init_script 会在文档极早期（body/documentElement 可能尚未生成）运行脚本，
-        # 脚本先把 __elementPickerActive=true，随后建 UI 时因 DOM 未就绪抛错中断 —— 标志被“毒化”
-        # 成 true 但覆盖层根本没建成。若只看布尔标志会误判“已激活”而永不修复，导致跳转后覆盖层消失。
-        try:
-            ui_ok = await pg.evaluate("() => !!document.getElementById('__picker_tip')")
-        except Exception as e:
-            # 页面正在跳转/关闭等瞬时状态会抛错，下个轮询周期会再补
-            print(f"[picker] 检查覆盖层失败 {url}: {e}")
-            continue
-        if ui_ok:
-            continue
-        # 覆盖层不存在（新页面 / 刚跳转 / 被毒化的标志）→ 清禁用标志并注入。
-        # 脚本按 DOM 是否已有覆盖层自身幂等判重，无需外部重置 __elementPickerActive（重置会致重复注入）。
-        try:
-            await pg.evaluate("() => { window.__elementPickerDisabled = false; }")
-            await pg.evaluate(PICKER_SCRIPT)
-            ui_now = await pg.evaluate("() => !!document.getElementById('__picker_tip')")
-            print(f"[picker] 重建覆盖层: {url} → ui={ui_now}")
-        except Exception as e:
-            print(f"[picker] 重建覆盖层失败 {url}: {e}")
+        frames = list(getattr(pg, "frames", []) or [])
+        if not frames and getattr(pg, "main_frame", None):
+            frames = [pg.main_frame]
+        for fr in frames:
+            url = getattr(fr, "url", "")
+            # 每个 frame 都应有高亮框；只有主 frame 才有顶部提示条。
+            # 逐 frame 检查，不能在主文档 UI 正常时就跳过其子 frame。
+            try:
+                ui_ok = await fr.evaluate("() => !!document.getElementById('__picker_box')")
+            except Exception as e:
+                print(f"[picker] 检查 frame 覆盖层失败 {url}: {e}")
+                continue
+            if ui_ok:
+                continue
+            try:
+                await fr.evaluate("() => { window.__elementPickerDisabled = false; }")
+                await fr.evaluate(PICKER_SCRIPT)
+                ui_now = await fr.evaluate("() => !!document.getElementById('__picker_box')")
+                print(f"[picker] 重建 frame 覆盖层: {url} → ui={ui_now}")
+            except Exception as e:
+                print(f"[picker] 重建 frame 覆盖层失败 {url}: {e}")
 
 
 async def _get_picker_result(key: str) -> dict:

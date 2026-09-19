@@ -7,6 +7,61 @@ import { VariableNameInput } from '@/components/ui/variable-name-input'
 import { VariableRefInput } from '@/components/ui/variable-ref-input'
 import { PathInput } from '@/components/ui/path-input'
 
+// ==================== 变量类型转换 ====================
+
+export function TypeConvertConfig({ data, onChange }: { data: NodeData; onChange: (key: string, value: unknown) => void }) {
+  const targetType = (data.targetType as string) || 'string'
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="inputValue">待转换值</Label>
+        <VariableInput
+          value={String(data.inputValue ?? '')}
+          onChange={(v) => onChange('inputValue', v)}
+          placeholder="输入值或 {变量名}"
+          multiline
+          rows={3}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="targetType">目标类型</Label>
+        <Select id="targetType" value={targetType} onChange={(e) => onChange('targetType', e.target.value)}>
+          <option value="string">字符串</option>
+          <option value="integer">整数</option>
+          <option value="float">小数</option>
+          <option value="boolean">布尔值</option>
+          <option value="list">列表</option>
+          <option value="dictionary">字典</option>
+        </Select>
+      </div>
+      {targetType === 'list' && (
+        <div className="space-y-2">
+          <Label htmlFor="listSeparator">列表分隔符</Label>
+          <VariableInput
+            value={(data.listSeparator as string) ?? ','}
+            onChange={(v) => onChange('listSeparator', v)}
+            placeholder="例如 , 或 \\n"
+          />
+          <p className="text-xs text-muted-foreground">输入不是 JSON 数组时，按此分隔符拆分；支持 \n 表示换行。</p>
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="resultVariable">结果变量</Label>
+        <VariableNameInput
+          id="resultVariable"
+          value={(data.resultVariable as string) || ''}
+          onChange={(v) => onChange('resultVariable', v)}
+          placeholder="converted_value"
+          isStorageVariable={true}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        支持字符串、整数、小数、布尔、列表、字典之间的强制转换；无效值会明确报错，不会静默改成 0。
+      </p>
+    </>
+  )
+}
+
 // ==================== 字符串操作模块 ====================
 
 // 正则表达式提取配置

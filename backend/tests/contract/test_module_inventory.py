@@ -10,8 +10,8 @@
   · 对外披露的模块数量口径（Property 15）
 
 口径说明（三个数字都真实存在，含义不同，文档里必须统一用 569）：
-  571 = moduleTypeLabels 键总数，含 custom_module、subflow_header 两个伪类型
-  569 = 对外披露口径，= 571 - custom_module - subflow_header，含 group、note 两个画布工具
+  575 = moduleTypeLabels 键总数，含 custom_module、subflow_header 两个伪类型
+  573 = 对外披露口径，= 575 - custom_module - subflow_header，含 group、note 两个画布工具
   567 = 纯功能模块，= 569 - group - note
 
 后续新增用例（如 AI schema 双向一致）请追加到文件末尾的对应小节，公共解析函数放在
@@ -49,10 +49,8 @@ COUNT_EXCLUDED_TYPES: set[str] = {"custom_module", "subflow_header"}
 #: 对外披露的模块数量。README、教学文档、AI 提示词中的数字必须与此一致。
 #:
 #: 口径构成：moduleTypeLabels 全部键数 减去 COUNT_EXCLUDED_TYPES 两个伪类型。
-#: 573 = 571（立项时）+ infinite_loop + sap_select_tab —— 这两个模块后端一直有执行器、
-#: AI schema 也有条目，只是前端漏了登记，用户在界面上用不到；任务 15 补齐前端登记后
-#: 它们进入披露口径（见 tasks.md 任务 15）。
-DISCLOSED_MODULE_COUNT = 571
+#: 575 = 573（上版）+ type_convert + excel_close。
+DISCLOSED_MODULE_COUNT = 573
 
 #: 前后端差集的显式豁免登记表：module_type -> 豁免理由（禁止空字符串）
 #: 新增豁免项必须写明「为什么这个 module_type 合法地只存在于一侧」，

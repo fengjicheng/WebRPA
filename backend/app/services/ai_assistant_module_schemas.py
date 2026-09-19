@@ -345,6 +345,19 @@ DATA_SCHEMAS: dict = {
         "example": {"variableName": "count", "operation": "increment", "step": "1"},
         "combo": "",
     },
+    "type_convert": {
+        "required": ["inputValue", "targetType"],
+        "optional": ["resultVariable", "listSeparator"],
+        "defaults": {"targetType": "string", "resultVariable": "converted_value", "listSeparator": ","},
+        "desc": {
+            "inputValue": "待转换的值，通常使用 {变量名}",
+            "targetType": "string/integer/float/boolean/list/dictionary",
+            "resultVariable": "保存转换结果的变量名",
+            "listSeparator": "转列表且输入不是 JSON 数组时使用的分隔符",
+        },
+        "example": {"inputValue": "{price_text}", "targetType": "float", "resultVariable": "price"},
+        "combo": "用于字符串数字转整数/小数，以及字符串、布尔、列表、字典之间的显式转换",
+    },
     "json_parse": {
         "required": ["jsonText"],
         "optional": ["resultVariable"],
@@ -5028,11 +5041,19 @@ EXCEL_SCHEMAS: dict = {
     # ----- 工作簿 / 工作表 -----
     "excel_create": {
         "required": ["filePath"],
-        "optional": ["sheetNames", "overwrite"],
-        "defaults": {"sheetNames": "Sheet1", "overwrite": False},
-        "desc": {"filePath": "新建的 .xlsx 路径", "sheetNames": "工作表名，逗号分隔", "overwrite": "已存在时是否覆盖"},
+        "optional": ["sheetNames", "overwrite", "openAfterCreate"],
+        "defaults": {"sheetNames": "Sheet1", "overwrite": False, "openAfterCreate": True},
+        "desc": {"filePath": "新建的 .xlsx 路径", "sheetNames": "工作表名，逗号分隔", "overwrite": "已存在时是否覆盖", "openAfterCreate": "创建后是否用默认表格程序打开"},
         "example": {"filePath": "D:\\\\report.xlsx", "sheetNames": "数据,汇总"},
         "combo": "后接 excel_write_dicts / excel_write_range 写数据",
+    },
+    "excel_close": {
+        "required": [],
+        "optional": ["filePath", "saveChanges", "closeAll"],
+        "defaults": {"saveChanges": True, "closeAll": False},
+        "desc": {"filePath": "要关闭的 Excel 文件路径", "saveChanges": "关闭前保存修改", "closeAll": "关闭 Excel/WPS 中全部工作簿"},
+        "example": {"filePath": "D:\\\\report.xlsx", "saveChanges": True},
+        "combo": "通常放在 Excel 写入流程末尾，释放文件占用",
     },
     "excel_add_sheet": {
         "required": ["filePath", "sheetName"],

@@ -244,6 +244,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   // 变量与数据
   set_variable: Variable,
   increment_decrement: TrendingUp,
+  type_convert: ArrowLeftRight,
   json_parse: FileJson,
   base64: Code2,
   random_number: Dices,
@@ -278,6 +279,7 @@ const moduleIcons: Record<ModuleType, React.ElementType> = {
   read_excel: FileSpreadsheet,
   // Excel 自动化（openpyxl）
   excel_create: FileSpreadsheet,
+  excel_close: FileX,
   excel_add_sheet: Plus,
   excel_delete_sheet: Trash2,
   excel_rename_sheet: Pencil,
@@ -879,6 +881,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   switch_tab: ['切换', '标签页', 'tab', '页面', '窗口', '索引', '标题', 'url', '下一个', '上一个', 'qhbqy', 'qh', 'bqy', 'ym', 'ck', 'qiehuan', 'biaoqianye', 'yemian', 'chuangkou'],
   set_variable: ['设置', '变量', 'set', 'variable', '赋值'],
   increment_decrement: ['自增', '自减', '加', '减', 'increment', 'decrement', '计数', '累加', '累减', '步长'],
+  type_convert: ['变量', '类型', '转换', '强制', '字符串', '整数', '小数', '布尔', '列表', '字典', 'convert', 'cast'],
   json_parse: ['json', '解析', '提取', 'parse', '数据', 'jsonpath'],
   base64: ['base64', '编码', '解码', 'encode', 'decode', '转换', '图片', '文件'],
   random_number: ['随机', '数字', 'random', '生成', '随机数'],
@@ -1053,6 +1056,7 @@ const moduleKeywords: Record<ModuleType, string[]> = {
   read_excel: ['读取', 'excel', '表格', 'xlsx', 'xls', '数据', '文件', '资产'],
   // Excel 自动化（openpyxl）
   excel_create: ['excel', '创建', '新建', '工作簿', 'xlsx', '表格', 'create'],
+  excel_close: ['excel', '关闭', '退出', '工作簿', '释放', 'close'],
   excel_add_sheet: ['excel', '添加', '工作表', 'sheet', '新增', 'add'],
   excel_delete_sheet: ['excel', '删除', '工作表', 'sheet', 'delete'],
   excel_rename_sheet: ['excel', '重命名', '工作表', 'sheet', 'rename'],
@@ -1570,7 +1574,7 @@ const moduleCategories = [
   {
     name: '变量与运算',
     color: 'bg-teal-500',
-    modules: ['set_variable', 'increment_decrement', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
+    modules: ['set_variable', 'increment_decrement', 'type_convert', 'json_parse', 'base64', 'random_number', 'get_time'] as ModuleType[],
   },
   {
     name: '文本处理',
@@ -1601,7 +1605,7 @@ const moduleCategories = [
     name: 'Excel自动化',
     color: 'bg-emerald-600',
     modules: [
-      'excel_create', 'excel_add_sheet', 'excel_delete_sheet', 'excel_rename_sheet', 'excel_list_sheets',
+      'excel_create', 'excel_close', 'excel_add_sheet', 'excel_delete_sheet', 'excel_rename_sheet', 'excel_list_sheets',
       'excel_copy_sheet', 'excel_move_sheet', 'excel_set_tab_color', 'excel_clear_sheet', 'excel_get_info',
       'excel_write_cell', 'excel_read_cell', 'excel_write_range', 'excel_read_range', 'excel_append_row',
       'excel_write_dicts', 'excel_read_dicts', 'excel_copy_range', 'excel_clear_range', 'excel_find_replace',

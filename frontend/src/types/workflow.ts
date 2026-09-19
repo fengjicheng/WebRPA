@@ -39,6 +39,7 @@ export type ModuleType =
   // 数据处理
   | 'set_variable'
   | 'increment_decrement'
+  | 'type_convert'
   | 'json_parse'
   | 'base64'
   | 'random_number'
@@ -49,6 +50,7 @@ export type ModuleType =
   | 'read_excel'
   // Excel 自动化（openpyxl）
   | 'excel_create'
+  | 'excel_close'
   | 'excel_add_sheet'
   | 'excel_delete_sheet'
   | 'excel_rename_sheet'

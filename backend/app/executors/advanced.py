@@ -725,6 +725,18 @@ class ReadExcelExecutor(ModuleExecutor):
     @property
     def module_type(self) -> str:
         return "read_excel"
+
+    @staticmethod
+    def _trim_trailing_empty(values):
+        """移除 Excel 的尾部空单元格。
+
+        Excel 会把曾编辑后清空、只改过格式的单元格计入 max_row/max_column；openpyxl
+        因而可能返回成百上千个尾随 None。只截断尾部，保留数据中间的空值及显式范围。
+        """
+        result = list(values)
+        while result and (result[-1] is None or result[-1] == ''):
+            result.pop()
+        return result
     
     async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
         import os
@@ -834,7 +846,7 @@ class ReadExcelExecutor(ModuleExecutor):
                 for cell in ws[row_index]:
                     if cell.column >= start_col_idx:
                         row_data.append(cell.value)
-                result = row_data
+                result = self._trim_trailing_empty(row_data)
                 result_type = 'array'
             
             elif read_mode == 'column':
@@ -848,7 +860,7 @@ class ReadExcelExecutor(ModuleExecutor):
                     col_idx = int(col_idx)
                 for row in ws.iter_rows(min_row=start_row, min_col=col_idx, max_col=col_idx):
                     col_data.append(row[0].value)
-                result = col_data
+                result = self._trim_trailing_empty(col_data)
                 result_type = 'array'
             
             elif read_mode == 'range':
@@ -902,7 +914,7 @@ class ReadExcelExecutor(ModuleExecutor):
                     else:
                         start_col_idx = int(start_col) - 1
                     row_data = row_data[start_col_idx:]
-                result = row_data
+                result = self._trim_trailing_empty(row_data)
                 result_type = 'array'
             
             elif read_mode == 'column':
@@ -914,7 +926,7 @@ class ReadExcelExecutor(ModuleExecutor):
                 else:
                     col_idx = int(col_idx) - 1
                 col_data = ws.col_values(col_idx, start_rowx=start_row - 1)
-                result = col_data
+                result = self._trim_trailing_empty(col_data)
                 result_type = 'array'
             
             elif read_mode == 'range':

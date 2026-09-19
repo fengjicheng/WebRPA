@@ -220,14 +220,8 @@ table_data.xlsx
 workflows/*.json
 !workflows/.gitkeep
 
-# ============================================
-# 启动器（不开源，整目录排除）
-# ============================================
-#
-# 注意：这里**不能**再写 !launcher/... 之类的反向例外。
-# 历史上曾用 `!launcher/src/` 等规则「保留源代码以便追踪修改」，结果把整个启动器
-# 源码推上了公开仓库（origin/main 上曾有 28 个文件、59 次提交），已通过改写历史移除。
-launcher/
+# 启动器源码从 3.2.6 起随主项目开源；依赖与构建产物仍由根规则及
+# launcher/.gitignore 排除（node_modules、dist、release、日志等）。
 # AI 助手会话历史 + 全局变量（含用户隐私）
 backend/data/global_vars.json
 backend/data/ai_assistant/

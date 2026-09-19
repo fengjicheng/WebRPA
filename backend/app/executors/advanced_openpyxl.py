@@ -11,6 +11,7 @@
 """
 import os
 import json
+import asyncio
 from typing import Any
 
 from .base import ModuleExecutor, ExecutionContext, ModuleResult, register_executor
@@ -170,6 +171,64 @@ def _parse_1d(raw: Any) -> list:
     return [v]
 
 
+def _close_excel_workbooks(path: str = "", close_all: bool = False,
+                           save_changes: bool = True, quit_if_empty: bool = True) -> int:
+    """通过 COM 关闭 Excel/WPS 中已打开的工作簿，返回关闭数量。
+
+    仅连接已经运行的应用，不会为“关闭”操作额外启动 Excel。路径比较使用绝对路径
+    和 normcase，兼容 Windows 大小写及斜杠差异。
+    """
+    if os.name != "nt":
+        raise RuntimeError("关闭 Excel 应用功能仅支持 Windows")
+
+    import pythoncom
+    import win32com.client
+
+    target = os.path.normcase(os.path.abspath(path)) if path else ""
+    closed = 0
+    pythoncom.CoInitialize()
+    try:
+        # Microsoft Excel 与 WPS 表格常见 ProgID。
+        for prog_id in ("Excel.Application", "ket.Application", "et.Application"):
+            try:
+                app = win32com.client.GetActiveObject(prog_id)
+            except Exception:
+                continue
+
+            workbooks = app.Workbooks
+            # 倒序关闭，避免集合索引在 Close 后变化。
+            for i in range(int(workbooks.Count), 0, -1):
+                wb = workbooks.Item(i)
+                full_name = ""
+                try:
+                    full_name = os.path.normcase(os.path.abspath(str(wb.FullName)))
+                except Exception:
+                    pass
+                if close_all or (target and full_name == target):
+                    wb.Close(SaveChanges=bool(save_changes))
+                    closed += 1
+
+            try:
+                remaining = int(app.Workbooks.Count)
+            except Exception:
+                remaining = 1
+            if close_all or (quit_if_empty and remaining == 0):
+                try:
+                    app.Quit()
+                except Exception:
+                    pass
+    finally:
+        pythoncom.CoUninitialize()
+    return closed
+
+
+def _open_excel_file(path: str) -> None:
+    """使用 Windows 默认关联程序打开刚创建的工作簿。"""
+    if os.name != "nt" or not hasattr(os, "startfile"):
+        raise RuntimeError("自动打开 Excel 文件仅支持 Windows")
+    os.startfile(os.path.abspath(path))
+
+
 @register_executor
 class ExcelCreateExecutor(ModuleExecutor):
     """创建 Excel 工作簿"""
@@ -182,23 +241,82 @@ class ExcelCreateExecutor(ModuleExecutor):
         path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
         sheet_names_raw = context.resolve_value(config.get("sheetNames", "Sheet1")) or "Sheet1"
         overwrite = to_bool(config.get("overwrite", False), False, context=context)
+        open_after_create = to_bool(config.get("openAfterCreate", True), True, context=context)
         if not path:
             return ModuleResult(success=False, error="文件路径不能为空")
         if os.path.exists(path) and not overwrite:
             return ModuleResult(success=False, error=f"文件已存在（如需覆盖请开启 overwrite）: {path}")
         try:
+            # 上次执行若按配置自动打开了同一个文件，覆盖前先保存并关闭它，保证工作流可重复运行。
+            if overwrite and os.path.exists(path):
+                try:
+                    _close_excel_workbooks(path=path, save_changes=True)
+                except Exception:
+                    # 未安装 Excel/pywin32 或文件并未在应用中打开，不影响 openpyxl 正常覆盖。
+                    pass
+
             openpyxl = _openpyxl()
             names = [n.strip() for n in str(sheet_names_raw).split(",") if n.strip()] or ["Sheet1"]
-            wb = openpyxl.Workbook()
-            wb.active.title = names[0]
-            for n in names[1:]:
-                wb.create_sheet(title=n)
-            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-            wb.save(path)
-            return ModuleResult(success=True, message=f"已创建 Excel: {path}（工作表: {', '.join(names)}）",
-                                data={"path": path, "sheets": names})
+            wb = None
+            try:
+                wb = openpyxl.Workbook()
+                wb.active.title = names[0]
+                for n in names[1:]:
+                    wb.create_sheet(title=n)
+                os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+                wb.save(path)
+            finally:
+                # 必须显式关闭工作簿/底层 ZipFile；否则 Windows 下可能残留临时文件或文件句柄，
+                # 导致下一次运行无法覆盖同一路径。
+                if wb is not None:
+                    wb.close()
+
+            opened = False
+            open_warning = ""
+            if open_after_create:
+                try:
+                    _open_excel_file(path)
+                    opened = True
+                except Exception as open_error:
+                    open_warning = f"；自动打开失败: {open_error}"
+            return ModuleResult(
+                success=True,
+                message=f"已创建 Excel: {path}（工作表: {', '.join(names)}）"
+                        f"{'，已自动打开' if opened else ''}{open_warning}",
+                data={"path": path, "sheets": names, "opened": opened},
+            )
         except Exception as e:
             return ModuleResult(success=False, error=f"创建 Excel 失败: {e}")
+
+
+@register_executor
+class ExcelCloseExecutor(ModuleExecutor):
+    """关闭 Excel/WPS 中指定工作簿或全部工作簿。"""
+
+    @property
+    def module_type(self) -> str:
+        return "excel_close"
+
+    async def execute(self, config: dict, context: ExecutionContext) -> ModuleResult:
+        path = _resolve_path(context, context.resolve_value(config.get("filePath", "")))
+        close_all = to_bool(config.get("closeAll", False), False, context=context)
+        save_changes = to_bool(config.get("saveChanges", True), True, context=context)
+        if not close_all and not path:
+            return ModuleResult(success=False, error="请指定要关闭的 Excel 文件，或开启‘关闭全部工作簿’")
+        try:
+            loop = asyncio.get_running_loop()
+            closed = await loop.run_in_executor(
+                None,
+                lambda: _close_excel_workbooks(path, close_all, save_changes),
+            )
+            target = "全部 Excel 工作簿" if close_all else path
+            if closed == 0:
+                return ModuleResult(success=True, message=f"未发现已打开的目标工作簿: {target}",
+                                    data={"closed": 0, "target": target})
+            return ModuleResult(success=True, message=f"已关闭 {closed} 个工作簿: {target}",
+                                data={"closed": closed, "target": target})
+        except Exception as e:
+            return ModuleResult(success=False, error=f"关闭 Excel 失败: {e}")
 
 
 @register_executor

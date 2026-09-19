@@ -2796,22 +2796,21 @@ class SwitchIframeExecutor(ModuleExecutor):
             return ModuleResult(success=False, error="页面未初始化，请先打开网页")
         
         try:
-            page = context.page
+            # context.page 在第一次切换后会是 Frame。Page.frames 只适用于页面，且会
+            # 把所有后代 frame 扁平化；嵌套场景必须始终相对“当前文档”的直接子 frame 定位。
+            page = await context.get_current_frame()
             frame = None
+            scope_frame = page.main_frame if hasattr(page, 'main_frame') else page
+            child_frames = list(getattr(scope_frame, 'child_frames', []) or [])
             
             # 调试：列出所有frame
             print(f"[SwitchIframe] 页面URL: {page.url}")
-            print(f"[SwitchIframe] 所有frames:")
-            for i, f in enumerate(page.frames):
-                is_main = " (主frame)" if f == page.main_frame else ""
-                print(f"  Frame {i}: name='{f.name}', url={f.url}{is_main}")
+            print(f"[SwitchIframe] 当前层直接子frames:")
+            for i, f in enumerate(child_frames):
+                print(f"  Frame {i}: name='{f.name}', url={f.url}")
             
             if locate_by == 'index':
                 # 通过索引定位iframe
-                frames = page.frames
-                # 过滤掉主框架
-                child_frames = [f for f in frames if f != page.main_frame]
-                
                 print(f"[SwitchIframe] 子frames数量: {len(child_frames)}")
                 
                 if iframe_index < 0 or iframe_index >= len(child_frames):
@@ -2830,9 +2829,9 @@ class SwitchIframeExecutor(ModuleExecutor):
                 
                 print(f"[SwitchIframe] 查找name={iframe_name}的iframe...")
                 
-                # 先尝试通过name属性查找
-                frame = page.frame(name=iframe_name)
-                print(f"[SwitchIframe] page.frame(name={iframe_name}) 结果: {frame}")
+                # 只在当前文档的直接子 frame 中查找，避免同名嵌套 frame 误命中。
+                frame = next((f for f in child_frames if f.name == iframe_name), None)
+                print(f"[SwitchIframe] direct child frame(name={iframe_name}) 结果: {frame}")
                 
                 # 如果没找到，尝试通过id查找
                 if frame is None:
@@ -2931,7 +2930,8 @@ class SwitchIframeExecutor(ModuleExecutor):
             
             # 切换到iframe
             # 保存主页面引用和iframe定位信息
-            if not context._in_iframe:
+            entering_from_main = not context._in_iframe
+            if entering_from_main:
                 context._main_page = context.page
             
             # 保存iframe定位信息，用于后续动态获取frame
@@ -2941,6 +2941,11 @@ class SwitchIframeExecutor(ModuleExecutor):
                 context._iframe_locator = {'type': 'index', 'value': iframe_index}
             elif locate_by == 'selector':
                 context._iframe_locator = {'type': 'selector', 'value': iframe_selector}
+
+            # 保存完整逐层路径，供页面刷新/frame 重建后重新定位嵌套层级。
+            if entering_from_main:
+                context._iframe_locator_path = []
+            context._iframe_locator_path.append(dict(context._iframe_locator))
             
             # 设置iframe状态
             context._in_iframe = True
@@ -2994,6 +2999,7 @@ class SwitchToMainExecutor(ModuleExecutor):
                 context._in_iframe = False
                 context._main_page = None
                 context._iframe_locator = None
+                context._iframe_locator_path = []
                 context._current_frame = None  # 清除frame引用
                 
                 return ModuleResult(
@@ -3006,6 +3012,7 @@ class SwitchToMainExecutor(ModuleExecutor):
                 context._in_iframe = False
                 context._main_page = None
                 context._iframe_locator = None
+                context._iframe_locator_path = []
                 context._current_frame = None  # 清除frame引用
                 
                 if context.page:

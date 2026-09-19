@@ -155,6 +155,13 @@ const EXCEL_FIELD_SCHEMAS: Record<string, FieldDef[]> = {
     F_FILE,
     { key: 'sheetNames', label: '工作表名（逗号分隔）', type: 'text', placeholder: 'Sheet1,Sheet2', default: 'Sheet1' },
     { key: 'overwrite', label: '已存在时覆盖', type: 'switch', default: false },
+    { key: 'openAfterCreate', label: '创建后自动打开', type: 'switch', default: true,
+      hint: '开启后使用系统默认表格程序打开；重复覆盖同一路径时会先保存并关闭上次自动打开的工作簿。' },
+  ],
+  excel_close: [
+    { ...F_FILE, hint: '关闭指定路径的已打开工作簿；开启“关闭全部”时可留空。' },
+    { key: 'saveChanges', label: '关闭前保存修改', type: 'switch', default: true },
+    { key: 'closeAll', label: '关闭全部工作簿', type: 'switch', default: false },
   ],
   excel_add_sheet: [F_FILE, { key: 'sheetName', label: '新工作表名', type: 'text', placeholder: '新工作表' }],
   excel_delete_sheet: [F_FILE, { key: 'sheetName', label: '要删除的工作表名', type: 'text', placeholder: '如 Sheet2' }],

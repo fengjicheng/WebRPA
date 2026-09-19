@@ -4091,3 +4091,21 @@ Object.assign(UI_DICT, {
   '用 SAP 脚本录制器取选项卡（tabp 开头）的元素ID；切换后该选项卡内的控件才能被操作':
     'Use the SAP script recorder to get the tab element ID (starts with tabp); controls inside the tab become operable only after switching to it',
 })
+
+// ---- 3.2.6：变量类型转换与 Excel 生命周期 ----
+Object.assign(UI_DICT, {
+  '待转换值': 'Value to convert',
+  '输入值或 {变量名}': 'Enter a value or {variable}',
+  '列表分隔符': 'List separator',
+  '例如 , 或 \\n': 'For example, , or \\n',
+  '输入不是 JSON 数组时，按此分隔符拆分；支持 \\n 表示换行。':
+    'When the input is not a JSON array, split it with this separator; \\n represents a newline.',
+  '支持字符串、整数、小数、布尔、列表、字典之间的强制转换；无效值会明确报错，不会静默改成 0。':
+    'Supports explicit conversion among strings, integers, decimals, booleans, lists and dictionaries; invalid values produce a clear error instead of silently becoming 0.',
+  '创建后自动打开': 'Open after creation',
+  '开启后使用系统默认表格程序打开；重复覆盖同一路径时会先保存并关闭上次自动打开的工作簿。':
+    'Opens with the system default spreadsheet app. Repeated overwrite runs first save and close the workbook opened by the previous run.',
+  '关闭指定路径的已打开工作簿；开启“关闭全部”时可留空。':
+    'Closes the open workbook at this path; leave it blank when Close all is enabled.',
+  '关闭全部工作簿': 'Close all workbooks',
+})
